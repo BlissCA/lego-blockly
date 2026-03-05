@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LEGO Interface B – Blockly</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="blockly/blockly_compressed.js"></script>
+  <script src="blockly/blocks_compressed.js"></script>
+  <script src="blockly/javascript_compressed.js"></script>
+  <script src="blockly/msg/en.js"></script>
+
+  <script src="blocks/lego_blocks.js"></script>
+  <script src="blocks/lego_generators.js"></script>
+  <script src="js/webserial.js"></script>
+  <script src="js/runner.js"></script>
+</head>
+
+<body>
+  <h1>LEGO Interface B – Blockly</h1>
+
+  <button id="connectBtn">Connect</button>
+  <button id="runBtn">Run</button>
+
+  <div id="blocklyDiv"></div>
+
+  <xml id="toolbox" style="display:none">
+    <!-- Standard categories -->
+    <category name="Logic" colour="210">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+    </category>
+
+    <category name="Loops" colour="120">
+      <block type="controls_repeat_ext"></block>
+      <block type="controls_whileUntil"></block>
+    </category>
+
+    <category name="Math" colour="230">
+      <block type="math_number"></block>
+      <block type="math_arithmetic"></block>
+    </category>
+
+    <category name="Variables" custom="VARIABLE" colour="330"></category>
+    <category name="Functions" custom="PROCEDURE" colour="290"></category>
+
+    <!-- LEGO category -->
+    <category name="LEGO Interface B" colour="60">
+      <block type="lego_connect"></block>
+      <block type="lego_disconnect"></block>
+      <block type="lego_set_output"></block>
+      <block type="lego_read_packet"></block>
+    </category>
+  </xml>
+
+  <script>
+    const workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox')
+    });
+
+    document.getElementById('connectBtn').onclick = () => lego.connect();
+    document.getElementById('runBtn').onclick = () => runCode(workspace);
+  </script>
+</body>
+</html>
