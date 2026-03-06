@@ -40,15 +40,28 @@ class DeviceManager {
   }
 
   async disconnectAll() {
-    const promises = this.devices.map(d => d.disconnect());
-    await Promise.allSettled(promises);
+    // Disconnect each device cleanly
+    for (const dev of this.devices) {
+      try {
+        await dev.disconnect();
+      } catch (err) {
+        console.warn(`Error disconnecting ${dev.name}:`, err);
+      }
+    }
+
+    // Clear internal list
     this.devices = [];
+
+    // Clear UI
     this.deviceListEl.innerHTML = "";
-    
+
     // Reset numbering
     this.legoBCount = 0;
 
-    console.log("All devices disconnected.");
+    // Notify Blockly dropdowns
+    document.dispatchEvent(new Event("serial-disconnected"));
+
+    console.log("All devices disconnected and UI reset.");
   }
 
   // ---------------- UI helpers ----------------
