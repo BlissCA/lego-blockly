@@ -24,6 +24,7 @@ body {
 #blocklyDiv {
   flex: 1;
   position: relative;
+  min-width: 0; /* prevents flexbox from collapsing it */
 }
 
 /* DEVICE PANE (RIGHT SIDE) */

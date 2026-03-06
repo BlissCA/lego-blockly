@@ -44,6 +44,10 @@ class DeviceManager {
     await Promise.allSettled(promises);
     this.devices = [];
     this.deviceListEl.innerHTML = "";
+    
+    // Reset numbering
+    this.legoBCount = 0;
+
     console.log("All devices disconnected.");
   }
 
