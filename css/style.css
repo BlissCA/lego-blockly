@@ -29,38 +29,12 @@ body {
 
 /* DEVICE PANE (RIGHT SIDE) */
 .device-pane {
-  position: relative;
   width: 260px;
   background-color: #333;
   color: #eee;
   display: flex;
   flex-direction: column;
   border-left: 1px solid #444;
-}
-
-.device-pane.collapsed {
-  width: 24px;
-}
-
-/* TOGGLE ARROW (VERTICALLY CENTERED) */
-.device-pane-toggle {
-  position: absolute;
-  top: 50%;
-  left: -10px;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 40px;
-  background-color: #333;
-  color: #eee;
-  border: 1px solid #444;
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  z-index: 10;
 }
 
 /* HEADER */

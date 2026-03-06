@@ -40,8 +40,6 @@
   <!-- DEVICE PANE (RIGHT SIDE) -->
   <div id="device-pane" class="device-pane expanded">
 
-    <div id="device-pane-toggle" class="device-pane-toggle">«</div>
-
     <div class="device-pane-header">
       <span>Devices</span>
       <button id="disconnectAllBtn">Disconnect All</button>
@@ -83,11 +81,18 @@
 
   <!-- Blockly injection -->
   <script>
-    const workspace = Blockly.inject('blocklyDiv', {
+    // Make workspace globally accessible
+    window.workspace = Blockly.inject('blocklyDiv', {
       toolbox: document.getElementById('toolbox')
     });
 
-    document.getElementById('runBtn').onclick = () => runCode(workspace);
+    // Resize Blockly when the window size changes
+    window.addEventListener("resize", () => {
+      Blockly.svgResize(window.workspace);
+    });
+
+    // Run button
+    document.getElementById('runBtn').onclick = () => runCode(window.workspace);
   </script>
 
 </body>
