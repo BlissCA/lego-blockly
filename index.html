@@ -32,7 +32,10 @@
     <div id="top-controls">
       <button id="connectLegoBBtn">Connect LEGO Interface B</button>
       <button id="runBtn">Run</button>
-    </div>
+      <button id="saveBtn">Save</button>
+      <button id="loadBtn">Load</button>
+      <input type="file" id="fileInput" style="display:none">
+   </div>
 
     <div id="blocklyDiv"></div>
   </div>
@@ -93,6 +96,44 @@
 
     // Run button
     document.getElementById('runBtn').onclick = () => runCode(window.workspace);
+  </script>
+  
+  <script>
+    // Save workspace to a file
+    document.getElementById("saveBtn").onclick = () => {
+      const xml = Blockly.Xml.workspaceToDom(window.workspace);
+      const text = Blockly.Xml.domToText(xml);
+
+      const blob = new Blob([text], { type: "text/xml" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lego_program.xml";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    };
+
+    // Trigger file picker
+    document.getElementById("loadBtn").onclick = () => {
+      document.getElementById("fileInput").click();
+    };
+
+    // Load workspace from selected file
+    document.getElementById("fileInput").onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const xml = Blockly.Xml.textToDom(reader.result);
+        window.workspace.clear();
+        Blockly.Xml.domToWorkspace(xml, window.workspace);
+        Blockly.svgResize(window.workspace);
+      };
+
+      reader.readAsText(file);
+    };
   </script>
 
 </body>
