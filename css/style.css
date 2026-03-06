@@ -1,10 +1,142 @@
 body {
-  font-family: sans-serif;
   margin: 0;
-  padding: 0;
+  font-family: sans-serif;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
 }
 
-#blocklyDiv {
-  height: 80vh;
-  width: 100%;
+/* LEFT DEVICE PANE */
+.device-pane {
+  position: relative;
+  width: 260px;
+  background-color: #333;
+  color: #eee;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #444;
+}
+
+.device-pane.collapsed {
+  width: 24px;
+}
+
+/* TOGGLE ARROW */
+.device-pane-toggle {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 40px;
+  background-color: #333;
+  color: #eee;
+  border: 1px solid #444;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  z-index: 10;
+}
+
+/* HEADER */
+.device-pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid #444;
+  font-size: 13px;
+}
+
+.device-pane-header button {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+/* DEVICE LIST */
+.device-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 6px 6px 6px;
+  font-size: 12px;
+}
+
+/* DEVICE ENTRY */
+.device-entry {
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px;
+  margin-bottom: 6px;
+  background-color: #3a3a3a;
+}
+
+.device-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.device-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.device-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #777;
+}
+
+/* STATUS COLORS */
+.status-connecting { background-color: #f1c40f; }
+.status-handshaking { background-color: #f39c12; }
+.status-active { background-color: #2ecc71; }
+.status-error { background-color: #e74c3c; }
+.status-disconnected { background-color: #777; }
+
+.device-meta {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+/* LOG AREA */
+.device-log {
+  background-color: #2f2f2f;
+  border-radius: 3px;
+  padding: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+/* MAIN AREA */
+#main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#top-controls {
+  padding: 6px 8px;
+  border-bottom: 1px solid #ccc;
+  background-color: #f5f5f5;
+}
+
+#blocklyArea {
+  flex: 1;
 }
