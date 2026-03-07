@@ -128,6 +128,14 @@ class LegoInterfaceB {
     this.reader = null;
     this.writer = null;
 
+    // Input state (Python: _iRaw, _iRot, _firstReadDone)
+    this.iRaw = new Array(9).fill(0);
+    this.iRot = new Array(9).fill(0);
+    this.firstReadDone = false;
+
+    // Index mapping (Python: _ix)
+    this.ix = [0, 14, 10, 6, 2, 16, 12, 8, 4];
+
     this.keepAliveTimer = null;
     this.readingActive = false;
 
@@ -298,7 +306,21 @@ class LegoInterfaceB {
     this.log(`Packet #${this.packetCount}: [${Array.from(packet).join(", ")}]`);
     this.lastPacket = packet;
 
-    // TODO: decode packet for Blockly
+    // Parse 9 words using ix mapping
+    for (let x = 0; x < 9; x++) {
+      const idx = this.ix[x];
+      const hi = packet[idx];
+      const lo = packet[idx + 1];
+      const word = (hi << 8) | lo;
+      this.iRaw[x] = word;
+
+      if (x > 0) {
+        let change = word & 0x0003;
+        if ((word & 0x0004) === 0) change *= -1;
+        this.iRot[x] += change;
+      }
+    }
+
   }
 
   // ---------------- Keep-Alive ----------------
@@ -370,6 +392,84 @@ class LegoInterfaceB {
     document.dispatchEvent(new Event("serial-disconnected"));
     this.log("Disconnected cleanly.");
   }
+
+  // Outputs Processing
+
+  // Write Helper
+  async writeBytes(bytes) {
+    if (!this.writer) return;
+    await this.writer.write(bytes);
+  }
+
+  // Helper: send single-byte command
+  async sendCmdByte(base, port) {
+    const b = (base | (port & 0x07)) & 0xFF;
+    await this.writeBytes(new Uint8Array([b]));
+  }
+
+  // Output Ports are 1–8 to match Input Ports 1-8 on the device, but we want 0–7 for bitmasking. 
+  // On the Device, output ports are A=1, B=2, C=3, D=4, ... H=8.
+  normPort(port) {
+    return (port - 1) & 7;
+  }
+
+  async outOn(port)    { await this.sendCmdByte(0x28, this.normPort(port)); }
+  async outOnL(port)   { await this.sendCmdByte(0x10, this.normPort(port)); }
+  async outOnR(port)   { await this.sendCmdByte(0x18, this.normPort(port)); }
+  async outOff(port)   { await this.sendCmdByte(0x38, this.normPort(port)); }
+  async outFloat(port) { await this.sendCmdByte(0x30, this.normPort(port)); }
+  async outRev(port)   { await this.sendCmdByte(0x20, this.normPort(port)); }
+  async outL(port)     { await this.sendCmdByte(0x40, this.normPort(port)); }
+  async outR(port)     { await this.sendCmdByte(0x48, this.normPort(port)); }
+
+  async outPow(port, power) {
+    const p = power & 0x07;
+    const cmd = (0xB0 | p) & 0xFF;
+    const mask = (1 << this.normPort(port)) & 0xFF;
+    await this.writeBytes(new Uint8Array([cmd, mask]));
+  }
+
+  async outOnFor(port, ton) {
+    const t = ton & 0xFF;
+    const cmd = (0xC0 | this.normPort(port)) & 0xFF;
+    await this.writeBytes(new Uint8Array([cmd, t]));
+  }
+
+  // End of Outputs Processing
+
+  // port: 0–8 (0 is special, Red Stop Button)
+  inputOn(port) {
+    const word = this.iRaw[port];
+    if (port > 0) {
+      return (word & 0x0008) === 0;
+    } else {
+      return (word & 0x1000) !== 0;
+    }
+  }
+
+  inputVal(port) {
+    const word = this.iRaw[port];
+    return (word >> 6) & 0x03FF;
+  }
+
+  inputTempF(port) {
+    const v = this.inputVal(port);
+    return (760.0 - v) / 4.4 + 32.0;
+  }
+
+  inputTempC(port) {
+    const v = this.inputVal(port);
+    return ((760.0 - v) / 4.4) * 5.0 / 9.0;
+  }
+
+  getRot(port) {
+    return this.iRot[port];
+  }
+
+  setRot(port, r) {
+    this.iRot[port] = r;
+  }
+
 }
 
 // ======================================================
