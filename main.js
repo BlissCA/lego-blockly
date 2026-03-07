@@ -1,7 +1,10 @@
 // Blockly ES modules
 import * as Blockly from "https://unpkg.com/blockly@12.4.1/core.js?module";
-import { javascriptGenerator } from "https://unpkg.com/blockly@12.4.1/javascript.js?module";
+import * as BlocklyJS from "https://unpkg.com/blockly@12.4.1/javascript.js?module";
 import "https://unpkg.com/blockly@12.4.1/blocks.js?module";
+
+// Extract generator
+const javascriptGenerator = BlocklyJS.javascriptGenerator;
 
 // Your custom blocks + generators
 import "./blocks/lego_blocks.js";

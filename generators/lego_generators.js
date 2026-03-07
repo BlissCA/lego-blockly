@@ -1,4 +1,5 @@
-import { javascriptGenerator } from "https://unpkg.com/blockly@12.4.1/javascript.js?module";
+import * as BlocklyJS from "https://unpkg.com/blockly@12.4.1/javascript.js?module";
+const javascriptGenerator = BlocklyJS.javascriptGenerator;
 
 // INPUT BLOCKS
 javascriptGenerator.forBlock["lego_inp_on"] = function (block) {
