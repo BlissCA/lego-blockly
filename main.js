@@ -1,12 +1,7 @@
-// Blockly ES modules (correct paths)
-import * as Blockly from "https://unpkg.com/blockly@12.4.1/dist/core.js?module";
-import * as BlocklyJS from "https://unpkg.com/blockly@12.4.1/dist/javascript.js?module";
-import "https://unpkg.com/blockly@12.4.1/dist/blocks.js?module";
+// Blockly is loaded globally from blockly.min.js
+const javascriptGenerator = Blockly.JavaScript;
 
-// Extract generator
-const javascriptGenerator = BlocklyJS.javascriptGenerator;
-
-// Your custom blocks + generators
+// Custom blocks + generators
 import "./blocks/lego_blocks.js";
 import "./generators/lego_generators.js";
 
@@ -17,114 +12,174 @@ import toolbox from "./toolbox/toolbox.js";
 import "./device/webserial.js";
 import "./device/deviceManager.js";
 
+// ---------------- GLOBAL EXECUTION CONTROL ----------------
 
-// Helper: log to status pane
+let currentExecution = null;
+let stopRequested = false;
+
+// Helper for generators to check stop condition
+window.shouldStop = () => stopRequested;
+
+// ---------------- STATUS LOG ----------------
+
 function logStatus(msg) {
-  const el = document.getElementById('statusLog');
+  const el = document.getElementById("statusLog");
   const time = new Date().toLocaleTimeString();
   el.textContent += `[${time}] ${msg}\n`;
   el.scrollTop = el.scrollHeight;
 }
 
-// Helper: expose getDeviceByName globally for generators
-window.getDeviceByName = function(name) {
-  if (!window.deviceManager) return null;
-  return window.deviceManager.devices.find(d => d.name === name) || null;
-};
+window.logStatus = logStatus;
 
-// Helper: refresh devices list in right panel
+// ---------------- DEVICE PANEL ----------------
+
 function refreshDevicesPanel() {
-  const listEl = document.getElementById('devicesList');
+  const listEl = document.getElementById("devicesList");
   const dm = window.deviceManager;
-  if (!dm || !dm.devices || dm.devices.length === 0) {
-    listEl.textContent = 'No devices connected.';
+
+  if (!dm || dm.devices.length === 0) {
+    listEl.textContent = "No devices connected.";
     return;
   }
-  listEl.innerHTML = '';
+
+  listEl.innerHTML = "";
   dm.devices.forEach(dev => {
-    const div = document.createElement('div');
-    div.textContent = `${dev.name} – ${dev.status || 'OK'}`;
+    const div = document.createElement("div");
+    div.textContent = `${dev.name} – ${dev.status || "OK"}`;
     listEl.appendChild(div);
   });
 }
 
-// Let deviceManager call this when devices change (optional)
 window.refreshDevicesPanel = refreshDevicesPanel;
-window.logStatus = logStatus;
 
-// Inject Blockly
-const workspace = Blockly.inject('blocklyDiv', {
+// Expose for generators
+window.getDeviceByName = function (name) {
+  if (!window.deviceManager) return null;
+  return window.deviceManager.devices.find(d => d.name === name) || null;
+};
+
+// ---------------- BLOCKLY WORKSPACE ----------------
+
+const workspace = Blockly.inject("blocklyDiv", {
   toolbox,
-  renderer: 'geras',
+  renderer: "geras",
   theme: Blockly.Themes.Classic,
 });
 
-// RUN button
-document.getElementById('runBtn').onclick = async () => {
-  const code = javascriptGenerator.workspaceToCode(workspace);
-  console.log('Generated code:\n', code);
-  logStatus('Running program...');
+// ---------------- RUN PROGRAM ----------------
 
-  try {
-    const asyncWrapper = new Function(`
+document.getElementById("runBtn").onclick = async () => {
+  const code = javascriptGenerator.workspaceToCode(workspace);
+  console.log("Generated code:\n", code);
+  logStatus("Running program...");
+
+  stopRequested = false;
+
+  const asyncWrapper = new Function(
+    "getDeviceByName",
+    "deviceManager",
+    "Blockly",
+    "shouldStop",
+    `
       return (async () => {
         ${code}
       })();
-    `);
-    await asyncWrapper();
-    logStatus('Program finished.');
+    `
+  );
+
+  try {
+    currentExecution = asyncWrapper(
+      name => window.getDeviceByName(name),
+      window.deviceManager,
+      Blockly,
+      () => stopRequested
+    );
+
+    await currentExecution;
+
+    if (!stopRequested) {
+      logStatus("Program finished.");
+    }
   } catch (err) {
-    logStatus('Error: ' + err);
-    console.error(err);
+    if (!stopRequested) {
+      logStatus("Error: " + err);
+      console.error(err);
+    }
+  } finally {
+    currentExecution = null;
   }
 };
 
-// CONNECT button
-document.getElementById('connectBtn').onclick = async () => {
+// ---------------- STOP PROGRAM (Option A) ----------------
+
+document.getElementById("stopBtn").onclick = async () => {
+  stopRequested = true;
+  logStatus("Stopping program...");
+
+  // Stop all motors on all devices
+  for (const dev of window.deviceManager.devices) {
+    try {
+      for (let port = 1; port <= 8; port++) {
+        await dev.outOff(port);
+      }
+    } catch (err) {
+      console.warn("Motor stop error:", err);
+    }
+  }
+
+  logStatus("Program stopped (devices remain connected).");
+};
+
+// ---------------- CONNECT ----------------
+
+document.getElementById("connectBtn").onclick = async () => {
   try {
     await window.deviceManager.connectLegoInterfaceB();
-    logStatus('Connected to LEGO Interface B.');
+    logStatus("Connected to LEGO Interface B.");
     refreshDevicesPanel();
   } catch (err) {
-    logStatus('Connect error: ' + err);
+    logStatus("Connect error: " + err);
   }
 };
 
-// DISCONNECT button
-document.getElementById('disconnectBtn').onclick = async () => {
+// ---------------- DISCONNECT ALL ----------------
+
+document.getElementById("disconnectBtn").onclick = async () => {
   try {
     await window.deviceManager.disconnectAll();
-    logStatus('Disconnected all devices.');
+    logStatus("Disconnected all devices.");
     refreshDevicesPanel();
   } catch (err) {
-    logStatus('Disconnect error: ' + err);
+    logStatus("Disconnect error: " + err);
   }
 };
 
-// SAVE button (export XML)
-document.getElementById('saveBtn').onclick = () => {
+// ---------------- SAVE PROJECT ----------------
+
+document.getElementById("saveBtn").onclick = () => {
   const xml = Blockly.Xml.workspaceToDom(workspace);
   const xmlText = Blockly.Xml.domToPrettyText(xml);
-  const blob = new Blob([xmlText], {type: 'text/xml'});
+  const blob = new Blob([xmlText], { type: "text/xml" });
   const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = 'lego-project.xml';
+  a.download = "lego-project.xml";
   a.click();
 
   URL.revokeObjectURL(url);
-  logStatus('Project saved as lego-project.xml');
+  logStatus("Project saved as lego-project.xml");
 };
 
-// LOAD button (import XML)
-document.getElementById('loadBtn').onclick = () => {
-  const input = document.getElementById('fileInput');
-  input.value = '';
+// ---------------- LOAD PROJECT ----------------
+
+document.getElementById("loadBtn").onclick = () => {
+  const input = document.getElementById("fileInput");
+  input.value = "";
   input.click();
 };
 
-document.getElementById('fileInput').onchange = e => {
+document.getElementById("fileInput").onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -134,9 +189,9 @@ document.getElementById('fileInput').onchange = e => {
       const xml = Blockly.Xml.textToDom(reader.result);
       workspace.clear();
       Blockly.Xml.domToWorkspace(xml, workspace);
-      logStatus('Project loaded from XML.');
+      logStatus("Project loaded from XML.");
     } catch (err) {
-      logStatus('Load error: ' + err);
+      logStatus("Load error: " + err);
     }
   };
   reader.readAsText(file);

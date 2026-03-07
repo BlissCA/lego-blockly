@@ -3,8 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <title>LEGO Interface B – Blockly</title>
+
+  <!-- Your stylesheet -->
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Load Blockly UMD (global Blockly object) -->
+  <script src="https://unpkg.com/blockly@12.4.1/blockly.min.js"></script>
 </head>
+
 <body>
   <header id="top-bar">
     <button id="connectBtn">Connect LEGO Interface B</button>
@@ -12,6 +18,9 @@
     <button id="saveBtn">Save Project</button>
     <button id="loadBtn">Load Project</button>
     <button id="runBtn">Run</button>
+    <button id="stopBtn">Stop</button>
+
+    <!-- Hidden file input for loading XML -->
     <input type="file" id="fileInput" accept=".xml" style="display:none" />
   </header>
 
@@ -19,6 +28,7 @@
     <div id="blockly-container">
       <div id="blocklyDiv"></div>
     </div>
+
     <aside id="right-panel">
       <h2>Devices</h2>
       <div id="devicesList"></div>
@@ -28,6 +38,7 @@
     </aside>
   </main>
 
+  <!-- Your ES‑module application -->
   <script type="module" src="./main.js"></script>
 </body>
 </html>
