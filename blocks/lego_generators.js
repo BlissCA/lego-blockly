@@ -9,31 +9,46 @@ function getDeviceByName(name) {
 Blockly.JavaScript['lego_inp_on'] = function(block) {
   const devName = block.getFieldValue('DEVICE');
   const port = block.getFieldValue('PORT');
-  return [`getDeviceByName("${devName}").inputOn(${port})`, Blockly.JavaScript.ORDER_NONE];
+  return [
+    'getDeviceByName("${devName}").inputOn(${port})',
+    Blockly.JavaScript.ORDER_NONE
+  ];
 };
 
 Blockly.JavaScript['lego_inp_val'] = function(block) {
   const devName = block.getFieldValue('DEVICE');
   const port = block.getFieldValue('PORT');
-  return [`getDeviceByName("${devName}").inputVal(${port})`, Blockly.JavaScript.ORDER_NONE];
+  return [
+    'getDeviceByName("${devName}").inputVal(${port})',
+    Blockly.JavaScript.ORDER_NONE
+  ];
 };
 
 Blockly.JavaScript['lego_inp_tempf'] = function(block) {
   const devName = block.getFieldValue('DEVICE');
   const port = block.getFieldValue('PORT');
-  return [`getDeviceByName("${devName}").inputTempF(${port})`, Blockly.JavaScript.ORDER_NONE];
+  return [
+    'getDeviceByName("${devName}").inputTempF(${port})',
+    Blockly.JavaScript.ORDER_NONE
+  ];
 };
 
 Blockly.JavaScript['lego_inp_tempc'] = function(block) {
   const devName = block.getFieldValue('DEVICE');
   const port = block.getFieldValue('PORT');
-  return [`getDeviceByName("${devName}").inputTempC(${port})`, Blockly.JavaScript.ORDER_NONE];
+  return [
+    'getDeviceByName("${devName}").inputTempC(${port})',
+    Blockly.JavaScript.ORDER_NONE
+  ];
 };
 
 Blockly.JavaScript['lego_inp_rot'] = function(block) {
   const devName = block.getFieldValue('DEVICE');
   const port = block.getFieldValue('PORT');
-  return [`getDeviceByName("${devName}").getRot(${port})`, Blockly.JavaScript.ORDER_NONE];
+  return [
+    'getDeviceByName("${devName}").getRot(${port})',
+    Blockly.JavaScript.ORDER_NONE
+  ];
 };
 
 
