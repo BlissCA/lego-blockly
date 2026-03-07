@@ -48,6 +48,8 @@ export class DeviceManager {
       await dev.disconnect();
       this._removeDevice(dev);
     }
+    this.devices = [];          // optional but clean
+    this._nextId = 1;           // ← reset numbering
     window.logStatus?.("All devices disconnected.");
   }
 
