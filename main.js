@@ -1,20 +1,18 @@
-// Load Blockly from CDN (ES modules)
-import * as Blockly from 'https://unpkg.com/blockly/core.js';
-import {javascriptGenerator} from 'https://unpkg.com/blockly/javascript.js';
+// Blockly ES modules
+import * as Blockly from "https://unpkg.com/blockly@12.4.1/core.js?module";
+import { javascriptGenerator } from "https://unpkg.com/blockly@12.4.1/javascript.js?module";
+import "https://unpkg.com/blockly@12.4.1/blocks.js?module";
 
-// Standard blocks (all built-in categories)
-import 'https://unpkg.com/blockly/blocks.js';
+// Your custom blocks + generators
+import "./blocks/lego_blocks.js";
+import "./generators/lego_generators.js";
 
-// Custom LEGO blocks & generators
-import './blocks/lego_blocks.js';
-import './generators/lego_generators.js';
+// Toolbox
+import toolbox from "./toolbox/toolbox.js";
 
-// Toolbox definition
-import toolbox from './toolbox/toolbox.js';
-
-// Your existing WebSerial + device manager
-import './device/webserial.js';
-import './device/deviceManager.js';
+// Device system
+import "./device/webserial.js";
+import "./device/deviceManager.js";
 
 // Helper: log to status pane
 function logStatus(msg) {
