@@ -1,125 +1,9 @@
-// ======================================================
-// DeviceManager — handles multiple devices + UI updates
-// ======================================================
+// device/webserial.js
+// ES-module version of your original LegoInterfaceB.
+// Only change: exported, and `manager` is expected to provide
+// updateDeviceEntry(device) and appendLog(device, message).
 
-class DeviceManager {
-  constructor() {
-    this.devices = [];
-    this.legoBCount = 0;
-
-    this.deviceListEl = document.getElementById("device-list");
-    this.connectLegoBBtn = document.getElementById("connectLegoBBtn")
-    this.disconnectAllBtn = document.getElementById("disconnectAllBtn");
-    this.paneEl = document.getElementById("device-pane");
-
-    this.connectLegoBBtn.addEventListener("click", () => this.connectLegoInterfaceB());
-    this.disconnectAllBtn.addEventListener("click", () => this.disconnectAll());
-    
-  }
-
-  async connectLegoInterfaceB() {
-    this.legoBCount += 1;
-    const name = `LegoB${this.legoBCount}`;
-
-    const device = new LegoInterfaceB(name, this);
-    this.devices.push(device);
-
-    this.renderDeviceEntry(device);
-
-    try {
-      await device.connect();
-    } catch (err) {
-      console.error(`[${name}] Connection error:`, err);
-      device.setStatus("error", "Connection error");
-      this.updateDeviceEntry(device);
-    }
-  }
-
-  async disconnectAll() {
-    // Disconnect each device cleanly
-    for (const dev of this.devices) {
-      try {
-        await dev.disconnect();
-      } catch (err) {
-        console.warn(`Error disconnecting ${dev.name}:`, err);
-      }
-    }
-
-    // Clear internal list
-    this.devices = [];
-
-    // Clear UI
-    this.deviceListEl.innerHTML = "";
-
-    // Reset numbering
-    this.legoBCount = 0;
-
-    // Notify Blockly dropdowns
-    document.dispatchEvent(new Event("serial-disconnected"));
-
-    console.log("All devices disconnected and UI reset.");
-  }
-
-  // ---------------- UI helpers ----------------
-
-  renderDeviceEntry(device) {
-    const container = document.createElement("div");
-    container.className = "device-entry";
-    container.id = `device-${device.name}`;
-
-    container.innerHTML = `
-      <div class="device-header">
-        <div class="device-name">${device.name}</div>
-        <div class="device-status">
-          <div class="status-dot" id="status-dot-${device.name}"></div>
-          <span id="status-text-${device.name}">Idle</span>
-        </div>
-      </div>
-      <div class="device-meta">
-        Packets: <span id="packet-count-${device.name}">0</span>
-      </div>
-      <div class="device-log" id="log-${device.name}"></div>
-    `;
-
-    this.deviceListEl.appendChild(container);
-  }
-
-  updateDeviceEntry(device) {
-    const dot = document.getElementById(`status-dot-${device.name}`);
-    const text = document.getElementById(`status-text-${device.name}`);
-    const packetCount = document.getElementById(`packet-count-${device.name}`);
-
-    if (dot) {
-      dot.className = "status-dot";
-      switch (device.status) {
-        case "connecting": dot.classList.add("status-connecting"); break;
-        case "handshaking": dot.classList.add("status-handshaking"); break;
-        case "active": dot.classList.add("status-active"); break;
-        case "error": dot.classList.add("status-error"); break;
-        case "disconnected":
-        default: dot.classList.add("status-disconnected"); break;
-      }
-    }
-
-    if (text) text.textContent = device.statusMessage || device.status;
-    if (packetCount) packetCount.textContent = device.packetCount.toString();
-  }
-
-  appendLog(device, message) {
-    const logEl = document.getElementById(`log-${device.name}`);
-    if (!logEl) return;
-
-    const timestamp = new Date().toLocaleTimeString();
-    logEl.textContent += `[${timestamp}] ${message}\n`;
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-}
-
-// ======================================================
-// LegoInterfaceB — your full protocol, wrapped in a class
-// ======================================================
-
-class LegoInterfaceB {
+export class LegoInterfaceB {
   constructor(name, manager) {
     this.name = name;
     this.manager = manager;
@@ -128,12 +12,10 @@ class LegoInterfaceB {
     this.reader = null;
     this.writer = null;
 
-    // Input state (Python: _iRaw, _iRot, _firstReadDone)
     this.iRaw = new Array(9).fill(0);
     this.iRot = new Array(9).fill(0);
     this.firstReadDone = false;
 
-    // Index mapping (Python: _ix)
     this.ix = [0, 14, 10, 6, 2, 16, 12, 8, 4];
 
     this.keepAliveTimer = null;
@@ -145,12 +27,10 @@ class LegoInterfaceB {
     this.status = "idle";
     this.statusMessage = "Idle";
 
-    // Handshake constants
     this.HANDSHAKE_SEND_1 = new Uint8Array([0x70, 0x00]); // "p\0"
     this.HANDSHAKE_SEND_2 = new TextEncoder().encode("###Do you byte, when I knock?$$$");
     this.HANDSHAKE_REPLY = "###Just a bit off the block!$$$";
 
-    // Keep-alive constant
     this.KEEP_ALIVE = new Uint8Array([0x02]);
   }
 
@@ -159,12 +39,12 @@ class LegoInterfaceB {
   setStatus(status, message) {
     this.status = status;
     if (message) this.statusMessage = message;
-    this.manager.updateDeviceEntry(this);
+    this.manager?.updateDeviceEntry?.(this);
   }
 
   log(msg) {
     console.log(`[${this.name}] ${msg}`);
-    this.manager.appendLog(this, msg);
+    this.manager?.appendLog?.(this, msg);
   }
 
   // ---------------- Connection + Handshake ----------------
@@ -302,11 +182,10 @@ class LegoInterfaceB {
 
   handlePacket(packet) {
     this.packetCount += 1;
-    this.manager.updateDeviceEntry(this);
+    this.manager?.updateDeviceEntry?.(this);
     this.log(`Packet #${this.packetCount}: [${Array.from(packet).join(", ")}]`);
     this.lastPacket = packet;
 
-    // Parse 9 words using ix mapping
     for (let x = 0; x < 9; x++) {
       const idx = this.ix[x];
       const hi = packet[idx];
@@ -320,7 +199,6 @@ class LegoInterfaceB {
         this.iRot[x] += change;
       }
     }
-
   }
 
   // ---------------- Keep-Alive ----------------
@@ -393,22 +271,18 @@ class LegoInterfaceB {
     this.log("Disconnected cleanly.");
   }
 
-  // Outputs Processing
+  // ---------------- Outputs Processing ----------------
 
-  // Write Helper
   async writeBytes(bytes) {
     if (!this.writer) return;
     await this.writer.write(bytes);
   }
 
-  // Helper: send single-byte command
   async sendCmdByte(base, port) {
     const b = (base | (port & 0x07)) & 0xFF;
     await this.writeBytes(new Uint8Array([b]));
   }
 
-  // Output Ports are 1–8 to match Input Ports 1-8 on the device, but we want 0–7 for bitmasking. 
-  // On the Device, output ports are A=1, B=2, C=3, D=4, ... H=8.
   normPort(port) {
     return (port - 1) & 7;
   }
@@ -435,9 +309,8 @@ class LegoInterfaceB {
     await this.writeBytes(new Uint8Array([cmd, t]));
   }
 
-  // End of Outputs Processing
+  // ---------------- Inputs ----------------
 
-  // port: 0–8 (0 is special, Red Stop Button)
   inputOn(port) {
     const word = this.iRaw[port];
     if (port > 0) {
@@ -469,21 +342,4 @@ class LegoInterfaceB {
   setRot(port, r) {
     this.iRot[port] = r;
   }
-
 }
-
-// ======================================================
-// Bootstrap
-// ======================================================
-
-window.addEventListener("DOMContentLoaded", () => {
-  window.deviceManager = new DeviceManager();
-});
-
-/* document.getElementById("connectLegoBBtn").addEventListener("click", async () => {
-  try {
-    await window.deviceManager.connectLegoInterfaceB();
-  } catch (err) {
-    console.error("Global connect error:", err);
-  }
-}); */

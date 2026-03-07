@@ -1,158 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>LEGO Interface B – Blockly</title>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/style.css">
-
-  <!-- Blockly core -->
-  <script src="blockly/blockly_compressed.js"></script>
-  <script src="blockly/blocks_compressed.js"></script>
-  <script src="blockly/javascript_compressed.js"></script>
-  <script src="blockly/msg/en.js"></script>
-
-  <!-- Your LEGO blocks + generators -->
-  <script src="blocks/lego_blocks.js"></script>
-  <script src="blocks/lego_generators.js"></script>
-
-  <!-- Multi‑device WebSerial engine -->
-  <script src="js/webserial.js" defer></script>
-
-  <!-- Code runner -->
-  <script src="js/runner.js" defer></script>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
+  <header id="top-bar">
+    <button id="connectBtn">Connect LEGO Interface B</button>
+    <button id="disconnectBtn">Disconnect All</button>
+    <button id="saveBtn">Save Project</button>
+    <button id="loadBtn">Load Project</button>
+    <button id="runBtn">Run</button>
+    <input type="file" id="fileInput" accept=".xml" style="display:none" />
+  </header>
 
-  <!-- MAIN AREA (LEFT SIDE) -->
-  <div id="main-area">
-
-    <div id="top-controls">
-      <button id="connectLegoBBtn">Connect LEGO Interface B</button>
-      <button id="runBtn">Run</button>
-      <button id="saveBtn">Save</button>
-      <button id="loadBtn">Load</button>
-      <input type="file" id="fileInput" style="display:none">
-   </div>
-
-    <div id="blocklyDiv"></div>
-  </div>
-
-  <!-- DEVICE PANE (RIGHT SIDE) -->
-  <div id="device-pane" class="device-pane expanded">
-
-    <div class="device-pane-header">
-      <span>Devices</span>
-      <button id="disconnectAllBtn">Disconnect All</button>
+  <main id="main-layout">
+    <div id="blockly-container">
+      <div id="blocklyDiv"></div>
     </div>
+    <aside id="right-panel">
+      <h2>Devices</h2>
+      <div id="devicesList"></div>
 
-    <div id="device-list" class="device-list"></div>
-  </div>
+      <h2>Status</h2>
+      <pre id="statusLog"></pre>
+    </aside>
+  </main>
 
-  <!-- TOOLBOX -->
-  <xml id="toolbox" style="display:none">
-
-    <category name="Logic" colour="210">
-      <block type="controls_if"></block>
-      <block type="logic_compare"></block>
-    </category>
-
-    <category name="Loops" colour="120">
-      <block type="controls_repeat_ext"></block>
-      <block type="controls_whileUntil"></block>
-    </category>
-
-    <category name="Math" colour="230">
-      <block type="math_number"></block>
-      <block type="math_arithmetic"></block>
-    </category>
-
-    <category name="Variables" custom="VARIABLE" colour="330"></category>
-    <category name="Functions" custom="PROCEDURE" colour="290"></category>
-
-    <!-- LEGO category -->
-    <category name="LEGO Interface B" colour="60">
-      <!-- INPUTS -->
-      <label text="Inputs"></label>
-      <block type="lego_inp_on"></block>
-      <block type="lego_inp_val"></block>
-      <block type="lego_inp_tempf"></block>
-      <block type="lego_inp_tempc"></block>
-      <block type="lego_inp_rot"></block>
-
-      <sep gap="16"></sep>
-
-      <!-- OUTPUTS -->
-      <label text="Outputs"></label>
-      <block type="lego_out_on"></block>
-      <block type="lego_out_onl"></block>
-      <block type="lego_out_onr"></block>
-      <block type="lego_out_off"></block>
-      <block type="lego_out_float"></block>
-      <block type="lego_out_rev"></block>
-      <block type="lego_out_l"></block>
-      <block type="lego_out_r"></block>
-      <block type="lego_out_pow"></block>
-      <block type="lego_out_onfor"></block>
-    </category>
-
-  </xml>
-
-  <!-- Blockly injection -->
-  <script>
-    // Make workspace globally accessible
-    window.workspace = Blockly.inject('blocklyDiv', {
-      toolbox: document.getElementById('toolbox')
-    });
-
-    // Resize Blockly when the window size changes
-    window.addEventListener("resize", () => {
-      Blockly.svgResize(window.workspace);
-    });
-
-    // Run button
-    document.getElementById('runBtn').onclick = () => runCode(window.workspace);
-  </script>
-
-  <script>
-    // Save workspace to a file
-    document.getElementById("saveBtn").onclick = () => {
-      const xml = Blockly.Xml.workspaceToDom(window.workspace);
-      const text = Blockly.utils.xml.domToText(xml);
-
-      const blob = new Blob([text], { type: "text/xml" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "program.xml";
-      a.click();
-
-      URL.revokeObjectURL(url);
-    };
-
-    // Trigger file picker
-    document.getElementById("loadBtn").onclick = () => {
-      document.getElementById("fileInput").click();
-    };
-
-    // Load workspace from selected file
-    document.getElementById("fileInput").onchange = (e) => {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const xml = Blockly.utils.xml.textToDom(reader.result);
-        window.workspace.clear();
-        Blockly.Xml.domToWorkspace(xml, window.workspace);
-        Blockly.svgResize(window.workspace);
-      };
-
-      reader.readAsText(file);
-    };
-  </script>
-
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
