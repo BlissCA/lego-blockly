@@ -156,20 +156,21 @@ document.getElementById("disconnectBtn").onclick = async () => {
 
 // ---------------- SAVE PROJECT ----------------
 
-document.getElementById("saveBtn").onclick = () => {
-  const xml = Blockly.Xml.workspaceToDom(workspace);
-  const xmlText = Blockly.Xml.domToPrettyText(xml);
-  const blob = new Blob([xmlText], { type: "text/xml" });
+document.getElementById("saveBtn").addEventListener("click", () => {
+  const json = Blockly.serialization.workspaces.save(Blockly.getMainWorkspace());
+  const text = JSON.stringify(json, null, 2);
+
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "lego-project.xml";
+  a.download = "lego-project.json";
   a.click();
 
   URL.revokeObjectURL(url);
-  logStatus("Project saved as lego-project.xml");
-};
+  logStatus("Project saved as lego-project.json");
+});
 
 // ---------------- LOAD PROJECT ----------------
 
@@ -179,20 +180,22 @@ document.getElementById("loadBtn").onclick = () => {
   input.click();
 };
 
-document.getElementById("fileInput").onchange = e => {
+document.getElementById("fileInput").onchange = async e => {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const xml = Blockly.Xml.textToDom(reader.result);
-      workspace.clear();
-      Blockly.Xml.domToWorkspace(xml, workspace);
-      logStatus("Project loaded from XML.");
-    } catch (err) {
-      logStatus("Load error: " + err);
-    }
-  };
-  reader.readAsText(file);
+  try {
+    const text = await file.text();
+    const json = JSON.parse(text);
+
+    // Clear current workspace
+    workspace.clear();
+
+    // Load JSON into workspace (Blockly 12)
+    Blockly.serialization.workspaces.load(json, workspace);
+
+    logStatus("Project loaded.");
+  } catch (err) {
+    logStatus("Load error: " + err);
+  }
 };
