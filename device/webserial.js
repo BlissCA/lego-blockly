@@ -64,7 +64,7 @@ export class LegoInterfaceB {
     this.log("Port opened.");
     this.setStatus("handshaking", "Performing handshake...");
 
-    this.writer = this.port.writable.getWriter();
+//    this.writer = this.port.writable.getWriter();
 
     await this.sendHandshake();
     this.log("Handshake complete.");
