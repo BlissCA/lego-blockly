@@ -1,5 +1,3 @@
-// Blockly is global (loaded from blockly.min.js)
-
 function getDeviceDropdown() {
   const devices = window.deviceManager?.devices || [];
   return devices.length
@@ -7,13 +5,29 @@ function getDeviceDropdown() {
     : [['No devices', 'NONE']];
 }
 
+// Helper to auto‑insert default number blocks
+function attachDefaultNumber(block, inputName, defaultValue) {
+  const input = block.getInput(inputName);
+  if (!input) return;
+
+  if (!input.connection.targetConnection) {
+    const num = block.workspace.newBlock("math_number");
+    num.setFieldValue(String(defaultValue), "NUM");
+    num.initSvg();
+    num.render();
+    num.outputConnection.connect(input.connection);
+  }
+}
+
 Blockly.defineBlocksWithJsonArray([
+  // ---------------- INPUT BLOCKS ----------------
+
   {
     "type": "lego_inp_on",
     "message0": "device %1 input ON port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 0, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "output": "Boolean",
     "colour": 60,
@@ -24,7 +38,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 input value port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 0, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "output": "Number",
     "colour": 60,
@@ -35,7 +49,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 temperature °F port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 0, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "output": "Number",
     "colour": 60,
@@ -46,7 +60,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 temperature °C port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 0, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "output": "Number",
     "colour": 60,
@@ -57,21 +71,21 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 rotation count port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 0, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "output": "Number",
     "colour": 60,
     "tooltip": "Returns rotation counter"
   },
 
-  // OUTPUT COMMAND BLOCKS
+  // ---------------- OUTPUT BLOCKS ----------------
 
   {
     "type": "lego_out_on",
     "message0": "device %1 output ON port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -82,7 +96,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output ON Left port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -93,7 +107,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output ON Right port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -104,7 +118,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output OFF port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -115,7 +129,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output FLOAT port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -126,7 +140,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output REVERSE port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -137,7 +151,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output SET LEFT port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -148,7 +162,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output SET RIGHT port %2",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 }
+      { "type": "input_value", "name": "PORT" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -159,8 +173,8 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 set power port %2 power %3",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 },
-      { "type": "field_number", "name": "PWR", "value": 7, "min": 0, "max": 7 }
+      { "type": "input_value", "name": "PORT" },
+      { "type": "input_value", "name": "PWR" }
     ],
     "previousStatement": null,
     "nextStatement": null,
@@ -171,11 +185,37 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "device %1 output ON FOR port %2 time %3",
     "args0": [
       { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
-      { "type": "field_number", "name": "PORT", "value": 1, "min": 1, "max": 8 },
-      { "type": "field_number", "name": "TIME", "value": 50, "min": 0, "max": 255 }
+      { "type": "input_value", "name": "PORT" },
+      { "type": "input_value", "name": "TIME" }
     ],
     "previousStatement": null,
     "nextStatement": null,
     "colour": 20
   }
 ]);
+
+// ---------------- AUTO‑INSERT DEFAULT NUMBER BLOCKS ----------------
+
+const DEFAULTS = {
+  PORT: 1,
+  PWR: 7,
+  TIME: 50
+};
+
+Blockly.getMainWorkspace().addChangeListener(function (event) {
+  if (event.type !== Blockly.Events.BLOCK_CREATE) return;
+
+  const ws = Blockly.getMainWorkspace();
+  const createdIds = event.ids;
+
+  createdIds.forEach(id => {
+    const block = ws.getBlockById(id);
+    if (!block) return;
+
+    ["PORT", "PWR", "TIME"].forEach(name => {
+      if (block.getInput(name)) {
+        attachDefaultNumber(block, name, DEFAULTS[name]);
+      }
+    });
+  });
+});
