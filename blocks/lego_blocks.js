@@ -7,7 +7,8 @@ function getDeviceDropdown() {
     : [['No devices', 'NONE']];
 }
 
-Blockly.ready(() => {
+window.addEventListener("load", () => {
+
   Blockly.defineBlocksWithJsonArray([
 
     // ---------------- INPUT BLOCKS ----------------
