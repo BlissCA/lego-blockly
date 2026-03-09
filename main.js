@@ -17,6 +17,7 @@ import "./device/deviceManager.js";
 let currentExecution = null;
 let stopRequested = false;
 let debugLogPackets = false;
+window.debugLogPackets = debugLogPackets;
 
 // Helper for generators to check stop condition
 window.shouldStop = () => stopRequested;
@@ -207,5 +208,6 @@ document.getElementById("clearStatusBtn").onclick = () => {
 
 document.getElementById("debugPackets").onchange = e => {
   debugLogPackets = e.target.checked;
+  window.debugLogPackets = debugLogPackets;
   console.log("Debug packet logging:", debugLogPackets);
 };
