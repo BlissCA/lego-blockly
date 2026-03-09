@@ -331,7 +331,32 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 20
-    }
+    },
+
+    {
+      "type": "lego_out_resetrot",
+      "message0": "%1 set rot.count on port %2 to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getDeviceDropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    }    
 
   ]);
 });

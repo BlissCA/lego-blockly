@@ -91,3 +91,14 @@ if (shouldStop()) return;
 await deviceManager.getDeviceByName("${dev}").outOnFor(${port}, ${time});
 `;
 };
+
+javascriptGenerator.forBlock["lego_out_resetrot"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+if (shouldStop()) return;
+await deviceManager.getDeviceByName("${dev}").setRot(${port}, ${count});
+`;
+};

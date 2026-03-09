@@ -291,6 +291,24 @@ const toolbox = {
             }
           }
         }
+        {
+          "kind": "block",
+          "type": "lego_out_resetrot",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 1 }
+              }
+            },
+            "COUNT": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 0 }
+              }
+            }
+          }
+        }
       ]
     }
   ]
