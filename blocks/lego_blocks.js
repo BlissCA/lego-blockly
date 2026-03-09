@@ -345,6 +345,7 @@ window.addEventListener("load", () => {
           "check": "Number"
         }
       ],
+      "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
       "colour": 20
