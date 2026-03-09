@@ -306,26 +306,18 @@ window.addEventListener("load", () => {
 
     {
       "type": "lego_out_onfor",
-      "message0": "device %1 output ON FOR port %2 time %3",
+      "message0": "%1 out %2 ON FOR %3 x 0.1s",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
         {
           "type": "input_value",
           "name": "PORT",
           "check": "Number",
-          "shadow": {
-            "type": "math_number",
-            "fields": { "NUM": 1 }
-          }
         },
         {
           "type": "input_value",
           "name": "TIME",
           "check": "Number",
-          "shadow": {
-            "type": "math_number",
-            "fields": { "NUM": 50 }
-          }
         }
       ],
       "previousStatement": null,
