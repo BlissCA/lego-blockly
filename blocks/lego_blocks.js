@@ -327,7 +327,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "lego_out_resetrot",
-      "message0": "%1 set rot.count on port %2 to %3",
+      "message0": "%1 inp %2 set rot.count to %3",
       "args0": [
         {
           "type": "field_dropdown",
