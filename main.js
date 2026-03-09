@@ -199,3 +199,7 @@ document.getElementById("fileInput").onchange = async e => {
     logStatus("Load error: " + err);
   }
 };
+
+document.getElementById("clearStatusBtn").onclick = () => {
+  document.getElementById("statusLog").textContent = "";
+};

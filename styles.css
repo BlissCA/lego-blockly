@@ -50,6 +50,19 @@ body {
   font-size: 13px;
 }
 
+#statusHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.statusClearBtn {
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
 #statusLog {
   flex: 1;
   border: 1px solid #ddd;
