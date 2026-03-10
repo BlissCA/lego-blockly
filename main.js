@@ -219,3 +219,10 @@ document.getElementById("debugPackets").onchange = e => {
   window.debugLogPackets = debugLogPackets;
   console.log("Debug packet logging:", debugLogPackets);
 };
+
+document.getElementById("clearWorkspaceBtn").onclick = () => {
+  if (confirm("Clear all blocks?")) {
+    workspace.clear();
+    workspace.clearUndo();
+  }
+};
