@@ -336,7 +336,7 @@ export class LegoInterfaceB {
   }
 
   async outRev(port) {
-    if (!this.setOutputMode(port, "rev")) return;
+    // if (!this.setOutputMode(port, "rev")) return; // NO CACHE for rev, since it can be used consecutively to reverse direction
     await this.sendCmdByte(0x20, this.normPort(port));
   }
 
