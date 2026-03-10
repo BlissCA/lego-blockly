@@ -1,0 +1,212 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "lego_out_on",
+        "id": "vWsUIKG#S$p!JXs!v7u#",
+        "x": 191,
+        "y": 148,
+        "fields": {
+          "DEVICE": "LegoB1"
+        },
+        "inputs": {
+          "PORT": {
+            "shadow": {
+              "type": "math_number",
+              "id": "(O_#6chFQ:q#^RqIG-%m",
+              "fields": {
+                "NUM": 1
+              }
+            }
+          }
+        },
+        "next": {
+          "block": {
+            "type": "lego_wait_time",
+            "id": "`XE3^yk0-{W`g3`a.C;e",
+            "inputs": {
+              "SECS": {
+                "shadow": {
+                  "type": "math_number",
+                  "id": "ih`jw[gbDVUbw#/.UWiz",
+                  "fields": {
+                    "NUM": 1
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "lego_out_rev",
+                "id": "]FAT?+EA!eBN?omn?9Zx",
+                "fields": {
+                  "DEVICE": "LegoB1"
+                },
+                "inputs": {
+                  "PORT": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "AD9gBYS2}^k]qGJK?JvD",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "lego_wait_time",
+                    "id": "ttFPS[Z^?dKmB*Wn}8=?",
+                    "inputs": {
+                      "SECS": {
+                        "shadow": {
+                          "type": "math_number",
+                          "id": "Cb$cH`:8-^Anbs!#6.)(",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "lego_out_rev",
+                        "id": "9|UE9mc5VUj#yQ]I75cF",
+                        "fields": {
+                          "DEVICE": "LegoB1"
+                        },
+                        "inputs": {
+                          "PORT": {
+                            "shadow": {
+                              "type": "math_number",
+                              "id": "5-|UI^j)dM21X|:K086/",
+                              "fields": {
+                                "NUM": 1
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "lego_wait_time",
+                            "id": "2TF,e~:oq):[6XfpjTCr",
+                            "inputs": {
+                              "SECS": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "-QG(}RVl,S~ehWi*RNzt",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            },
+                            "next": {
+                              "block": {
+                                "type": "lego_out_rev",
+                                "id": "le7!DL[RA={V(,J*ID;$",
+                                "fields": {
+                                  "DEVICE": "LegoB1"
+                                },
+                                "inputs": {
+                                  "PORT": {
+                                    "shadow": {
+                                      "type": "math_number",
+                                      "id": "%J4o^vNX.-{87Oq+;./i",
+                                      "fields": {
+                                        "NUM": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "next": {
+                                  "block": {
+                                    "type": "lego_wait_time",
+                                    "id": "!MjL9_kIs.:f$(?g*O@h",
+                                    "inputs": {
+                                      "SECS": {
+                                        "shadow": {
+                                          "type": "math_number",
+                                          "id": "MIFtHIu9a/^58/~(;bPg",
+                                          "fields": {
+                                            "NUM": 1
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "lego_out_rev",
+                                        "id": "@o2e]m!UL[UcW@Gww@/[",
+                                        "fields": {
+                                          "DEVICE": "LegoB1"
+                                        },
+                                        "inputs": {
+                                          "PORT": {
+                                            "shadow": {
+                                              "type": "math_number",
+                                              "id": "CP}{61x[h_dGl}8B.BG$",
+                                              "fields": {
+                                                "NUM": 1
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "next": {
+                                          "block": {
+                                            "type": "lego_wait_time",
+                                            "id": "*o4~X)HGua/=Wo0yNWW8",
+                                            "inputs": {
+                                              "SECS": {
+                                                "shadow": {
+                                                  "type": "math_number",
+                                                  "id": "pS3v@)gSPwb]c;9q1bVK",
+                                                  "fields": {
+                                                    "NUM": 1
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "next": {
+                                              "block": {
+                                                "type": "lego_out_off",
+                                                "id": "h_Ap08:GGWK$J:ai[G9F",
+                                                "fields": {
+                                                  "DEVICE": "LegoB1"
+                                                },
+                                                "inputs": {
+                                                  "PORT": {
+                                                    "shadow": {
+                                                      "type": "math_number",
+                                                      "id": "7N=StdMUfl#jBPZ7WLbw",
+                                                      "fields": {
+                                                        "NUM": 1
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
