@@ -131,3 +131,15 @@ if (shouldStop()) return;
 logStatus(String(${value}));
 `;
 };
+
+javascriptGenerator.forBlock["ons_rising"] = function(block) {
+  const bool = javascriptGenerator.valueToCode(block, "BOOL", javascriptGenerator.ORDER_NONE) || "false";
+  const id = block.id;
+  return [`ONS("${id}", ${bool})`, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["ons_falling"] = function(block) {
+  const bool = javascriptGenerator.valueToCode(block, "BOOL", javascriptGenerator.ORDER_NONE) || "false";
+  const id = block.id;
+  return [`ONSF("${id}", ${bool})`, javascriptGenerator.ORDER_ATOMIC];
+};

@@ -130,7 +130,31 @@ const toolbox = {
               }
             }
           }
-        }        
+        },
+        {
+          "kind": "block",
+          "type": "ons_rising",
+          "inputs": {
+            "BOOL": {
+              "shadow": {
+                "type": "logic_boolean",
+                "fields": { "BOOL": "TRUE" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "ons_falling",
+          "inputs": {
+            "BOOL": {
+              "shadow": {
+                "type": "logic_boolean",
+                "fields": { "BOOL": "TRUE" }
+              }
+            }
+          }
+        }
       ]
     },
     {

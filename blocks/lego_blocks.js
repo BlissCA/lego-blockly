@@ -352,7 +352,28 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 160
+    },
+
+    {
+      "type": "ons_rising",
+      "message0": "one-shot rising of %1",
+      "args0": [
+        { "type": "input_value", "name": "BOOL", "check": "Boolean" }
+      ],
+      "output": "Boolean",
+      "colour": 200
+    },
+
+    {
+      "type": "ons_falling",
+      "message0": "one-shot falling of %1",
+      "args0": [
+        { "type": "input_value", "name": "BOOL", "check": "Boolean" }
+      ],
+      "output": "Boolean",
+      "colour": 200
     }
+
 
   ]);
 });

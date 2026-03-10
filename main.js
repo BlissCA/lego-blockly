@@ -226,3 +226,22 @@ document.getElementById("clearWorkspaceBtn").onclick = () => {
     workspace.clearUndo();
   }
 };
+
+// ---------------- One Shot Management ----------------
+window._onsMemory = {};
+
+function ONS(id, currentValue) {
+  const prev = window._onsMemory[id] ?? false;
+  window._onsMemory[id] = currentValue;
+
+  // Rising edge
+  return (!prev && currentValue);
+}
+
+function ONSF(id, currentValue) {
+  const prev = window._onsMemory[id] ?? false;
+  window._onsMemory[id] = currentValue;
+
+  // Falling edge
+  return (prev && !currentValue);
+}
