@@ -26,7 +26,7 @@ export class LegoInterfaceB {
   
     // Cache of last output states
     // Last known output mode per port: "on", "off", "onL", "onR", "float", "rev", "L", "R"
-    this.outputCache = {};
+    this.outputState = {};
 
     // Last known power per port (0–7)
     this.outputPower = {};
