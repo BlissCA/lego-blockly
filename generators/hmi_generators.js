@@ -1,4 +1,4 @@
-import { javascriptGenerator } from "blockly/javascript";
+/* global Blockly, javascriptGenerator */
 
 //
 // BUTTON

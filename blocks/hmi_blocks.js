@@ -1,4 +1,4 @@
-import * as Blockly from "blockly";
+/* global Blockly */
 
 //
 // HMI BUTTON
