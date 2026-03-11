@@ -26,21 +26,21 @@ window.shouldStop = () => stopRequested;
 // Memory for all ONS blocks (keyed by block ID)
 window._onsMemory = {};
 
-function ONS(id, currentValue) {
+window.ONS = function(id, currentValue) {
   const prev = window._onsMemory[id] ?? false;
   window._onsMemory[id] = currentValue;
 
   // Rising edge
   return (!prev && currentValue);
-}
+};
 
-function ONSF(id, currentValue) {
+window.ONSF = function(id, currentValue) {
   const prev = window._onsMemory[id] ?? false;
   window._onsMemory[id] = currentValue;
 
   // Falling edge
   return (prev && !currentValue);
-}
+};
 
 // ---------------- STATUS LOG ----------------
 
