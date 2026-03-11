@@ -14,21 +14,26 @@ Blockly.Blocks["hmi_button"] = {
           60, 30,
           "*",
           function () {
-            const block = this.getSourceBlock();
+             const block = this.getSourceBlock();
+            if (!block) return;
+
             const tag = block.getFieldValue("TAG");
             window.hmi.button[tag] = true;
+
+            console.log("HMI Button clicked:", tag);
           }
         ),
         "BTN"
       );
 
-    // ⭐ UI block only — no connections
+    // UI-only block
     this.setOutput(false);
     this.setPreviousStatement(false);
     this.setNextStatement(false);
     this.setColour(20);
   }
 };
+
 
 //
 // HMI BUTTON STATE (Boolean reporter)
