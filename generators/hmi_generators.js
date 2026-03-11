@@ -1,35 +1,35 @@
-/* global Blockly, javascriptGenerator */
+/* global Blockly */
 const javascriptGenerator = Blockly.JavaScript;
 
 //
-// BUTTON
+// BUTTON STATE
 //
-javascriptGenerator.forBlock["hmi_button"] = function (block) {
-  const id = block.id;
-  return [`window.hmi.button["${id}"] === true`, javascriptGenerator.ORDER_ATOMIC];
+javascriptGenerator.forBlock["hmi_button_state"] = function (block) {
+  const tag = block.getFieldValue("TAG");
+  return [`window.hmi.button["${tag}"] === true`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 //
 // INDICATOR
 //
 javascriptGenerator.forBlock["hmi_indicator"] = function (block) {
-  const id = block.id;
-  return [`window.hmi.indicator["${id}"]`, javascriptGenerator.ORDER_ATOMIC];
+  const tag = block.getFieldValue("TAG");
+  return `window.hmi.indicator["${tag}"] = true;\n`;
 };
 
 //
 // SLIDER
 //
 javascriptGenerator.forBlock["hmi_slider"] = function (block) {
-  const id = block.id;
-  return [`window.hmi.slider["${id}"]`, javascriptGenerator.ORDER_ATOMIC];
+  const tag = block.getFieldValue("TAG");
+  return [`window.hmi.slider["${tag}"]`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 //
 // DISPLAY
 //
 javascriptGenerator.forBlock["hmi_display"] = function (block) {
+  const tag = block.getFieldValue("TAG");
   const text = javascriptGenerator.valueToCode(block, "TEXT", javascriptGenerator.ORDER_NONE) || '""';
-  const id = block.id;
-  return `window.hmi.display["${id}"] = ${text};\n`;
+  return `window.hmi.display["${tag}"] = ${text};\n`;
 };
