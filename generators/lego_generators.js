@@ -118,9 +118,10 @@ javascriptGenerator.forBlock["lego_wait_time"] = function (block) {
   const secs = javascriptGenerator.valueToCode(block, "SECS", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-if (shouldStop()) return;
-await new Promise(r => setTimeout(r, ${secs} * 1000));
-`;
+    if (shouldStop()) return;
+    await new Promise(r => setTimeout(r, ${secs} * 1000));
+    window.resetHMI();
+  `;
 };
 
 javascriptGenerator.forBlock["lego_print_value"] = function (block) {
