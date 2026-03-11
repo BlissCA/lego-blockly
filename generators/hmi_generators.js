@@ -4,7 +4,7 @@ const javascriptGenerator = Blockly.JavaScript;
 //
 // BUTTON dummy empty generator
 //
-javascriptGenerator.forBlock["hmi_button"] = function (block) {
+javascriptGenerator.forBlock["hmi_button_ui"] = function (block) {
   return "";
 };
 

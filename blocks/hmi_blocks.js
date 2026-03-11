@@ -3,7 +3,7 @@
 //
 // HMI BUTTON (interactive)
 //
-Blockly.Blocks["hmi_button"] = {
+Blockly.Blocks["hmi_button_ui"] = {
   init: function () {
     this.appendDummyInput()
       .appendField("HMI Button")
