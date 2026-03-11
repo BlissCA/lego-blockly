@@ -169,6 +169,18 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "lego_out_offall",
+      "message0": "%1 out ALL OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
       "type": "lego_out_float",
       "message0": "%1 outp %2 FLOAT",
       "args0": [

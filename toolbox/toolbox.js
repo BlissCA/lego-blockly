@@ -287,6 +287,11 @@ const toolbox = {
         },
         {
           "kind": "block",
+          "type": "lego_out_offall",
+          
+        },
+        {
+          "kind": "block",
           "type": "lego_out_float",
           "inputs": {
             "PORT": {

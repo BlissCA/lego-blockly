@@ -25,7 +25,7 @@ export class LegoInterfaceB {
     this.packetCount = 0;
   
     // Cache of last output states
-    // Last known output mode per port: "on", "off", "onL", "onR", "float", "rev", "L", "R"
+    // Last known output mode per port: "on", "off", "offAll" "onL", "onR", "float", "rev", "L", "R"
     this.outputState = {};
 
     // Last known power per port (0–7)
@@ -328,6 +328,11 @@ export class LegoInterfaceB {
   async outOff(port) {
     if (!this.setOutputMode(port, "off")) return;
     await this.sendCmdByte(0x38, this.normPort(port));
+  }
+
+  async outOffAll() {
+    if (!this.setOutputMode("offAll")) return;
+    await this.writeBytes(new Uint8Array([0x90, 0xFF]));
   }
 
   async outFloat(port) {
