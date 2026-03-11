@@ -5,20 +5,25 @@
 //
 Blockly.Blocks["hmi_button"] = {
   init: function () {
+    const id = this.id;
+    window.hmi.button[id] = false;
+
     this.appendDummyInput()
       .appendField("HMI Button")
       .appendField(
         new Blockly.FieldImage(
-        "img/play-button.png",   // your button image
-        60, 30,             // width, height
-        "*",                // alt text
-        () => {
-            const id = this.id;
-            window.hmi.button[id] = true;
-        }
+          "img/play-button.png",
+          60, 30,
+          "*",
+          function () {
+            const block = this.getSourceBlock();   // ⭐ Correct block reference
+            const bid = block.id;
+            window.hmi.button[bid] = true;
+          }
         ),
         "BTN"
       );
+
     this.setOutput(true, "Boolean");
     this.setColour(20);
   }
