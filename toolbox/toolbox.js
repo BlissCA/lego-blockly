@@ -96,12 +96,14 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Variables",
-      "custom": "VARIABLE"
+      "custom": "VARIABLE",
+      "colour": 330
     },
     {
       "kind": "category",
       "name": "Functions",
-      "custom": "PROCEDURE"
+      "custom": "PROCEDURE",
+      "colour": 290
     },
     {
       "kind": "category",
