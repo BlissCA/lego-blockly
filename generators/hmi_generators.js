@@ -13,6 +13,7 @@ javascriptGenerator.forBlock["hmi_button"] = function (block) {
 //
 javascriptGenerator.forBlock["hmi_button_state"] = function (block) {
   const tag = block.getFieldValue("TAG");
+  console.log("HMI Button State tag:", tag);
   return [`window.hmi.button["${tag}"] === true`, javascriptGenerator.ORDER_ATOMIC];
 };
 

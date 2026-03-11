@@ -52,6 +52,13 @@ window.hmi = {
   display: {}
 };
 
+// Reset button presses each scan
+window.resetHMI = function () {
+  for (const id in window.hmi.button) {
+    window.hmi.button[id] = false;
+  }
+};
+
 // ---------------- STATUS LOG ----------------
 
 function logStatus(msg) {
