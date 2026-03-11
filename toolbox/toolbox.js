@@ -398,6 +398,7 @@ const toolbox = {
       "colour": 45,
       "contents": [
         { "kind": "block", "type": "hmi_button" },
+        { "kind": "block", "type": "hmi_button_state" },
         { "kind": "block", "type": "hmi_indicator" },
         { "kind": "block", "type": "hmi_slider" },
         { "kind": "block", "type": "hmi_display" }
