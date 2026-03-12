@@ -409,6 +409,35 @@ export class LegoInterfaceB {
     if (!this.shouldSendMulti(mask, "on")) return;
     await this.writeBytes(cmd);
   }
+  async multiOutOff(mask) {
+    const cmd = new Uint8Array([0x90, mask]);
+    if (!this.shouldSendMulti(mask, "off")) return;
+    await this.writeBytes(cmd);
+  }
+  async multiOutFloat(mask) {
+    const cmd = new Uint8Array([0x92, mask]);
+    if (!this.shouldSendMulti(mask, "float")) return;
+    await this.writeBytes(cmd);
+  }
+  async multiOutRev(mask) {
+    const cmd = new Uint8Array([0x95, mask]);
+    await this.writeBytes(cmd);
+  }
+  async multiOutL(mask) {
+    const cmd = new Uint8Array([0x93, mask]);
+    if (!this.shouldSendMulti(mask, "L")) return;
+    await this.writeBytes(cmd);
+  }
+  async multiOutR(mask) {
+    const cmd = new Uint8Array([0x94, mask]);
+    if (!this.shouldSendMulti(mask, "R")) return;
+    await this.writeBytes(cmd);
+  }
+async multiOutPower(level, mask) {
+  const cmd = new Uint8Array([0xB0 + level, mask]);
+  if (!this.shouldSendMulti(mask, "pow", level)) return;
+  await this.writeBytes(cmd);
+}
 
 
   // ---------------- Inputs ----------------
