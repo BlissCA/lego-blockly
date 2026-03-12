@@ -31,6 +31,12 @@ export class LegoInterfaceB {
     // Last known power per port (0–7)
     this.outputPower = {};
 
+    // New Output Cache that work for both single and multiple commands.
+    this.portState = {};
+    for (let p = 1; p <= 8; p++) {
+      this.portState[p] = { mode: "off", power: 7 };
+    }
+
     this.status = "idle";
     this.statusMessage = "Idle";
 
@@ -295,6 +301,47 @@ export class LegoInterfaceB {
     return true;    // changed → send command
   }
 
+  // ---------------- Helper Method to Update Cache for single port commands ----------------
+  shouldSendSingle(port, mode, power = null) {
+    const st = this.portState[port];
+
+    if (st.mode === mode && (power === null || st.power === power)) {
+      return false; // no change → skip sending
+    }
+
+    st.mode = mode;
+    if (power !== null) st.power = power;
+
+    return true;    // changed → send command
+  }
+
+  // ---------------- Helper Method to Update Cache for multiple port commands ----------------
+   shouldSendMulti(mask, mode, power = null) {
+    let mustSend = false;
+
+    for (let p = 1; p <= 8; p++) {
+      if (mask & (1 << (p - 1))) {
+        const st = this.portState[p];
+
+        if (st.mode !== mode || (power !== null && st.power !== power)) {
+          mustSend = true;
+        }
+      }
+    }
+
+    // Update states
+    if (mustSend) {
+      for (let p = 1; p <= 8; p++) {
+        if (mask & (1 << (p - 1))) {
+          this.portState[p].mode = mode;
+          if (power !== null) this.portState[p].power = power;
+        }
+      }
+    }
+
+    return mustSend;
+  }
+
   // ---------------- Outputs Processing ----------------
 
   async writeBytes(bytes) {
@@ -318,32 +365,32 @@ export class LegoInterfaceB {
   }
 
   async outOn(port) {
-    if (!this.setOutputMode(port, "on")) return;
+    if (!this.shouldSendSingle(port, "on")) return;
     await this.sendCmdByte(0x28, this.normPort(port));
   }
 
   async outOnL(port) {
-    if (!this.setOutputMode(port, "onL")) return;
+    if (!this.shouldSendSingle(port, "onL")) return;
     await this.sendCmdByte(0x10, this.normPort(port));
   }
 
   async outOnR(port) {
-    if (!this.setOutputMode(port, "onR")) return;
+    if (!this.shouldSendSingle(port, "onR")) return;
     await this.sendCmdByte(0x18, this.normPort(port));
   }
 
   async outOff(port) {
-    if (!this.setOutputMode(port, "off")) return;
+    if (!this.shouldSendSingle(port, "off")) return;
     await this.sendCmdByte(0x38, this.normPort(port));
   }
 
   async outOffAll() {
-    if (!this.setOutputMode(0,"offAll")) return;
+    if (!this.shouldSendMulti(0xFF, "off")) return;
     await this.writeBytes(new Uint8Array([0x90, 0xFF]));
   }
 
   async outFloat(port) {
-    if (!this.setOutputMode(port, "float")) return;
+    if (!this.shouldSendSingle(port, "float")) return;
     await this.sendCmdByte(0x30, this.normPort(port));
   }
 
@@ -353,21 +400,19 @@ export class LegoInterfaceB {
   }
 
   async outL(port) {
-    if (!this.setOutputMode(port, "L")) return;
+    if (!this.shouldSendSingle(port, "L")) return;
     await this.sendCmdByte(0x40, this.normPort(port));
   }
 
   async outR(port) {
-    if (!this.setOutputMode(port, "R")) return;
+    if (!this.shouldSendSingle(port, "R")) return;
     await this.sendCmdByte(0x48, this.normPort(port));
   }
 
   async outPow(port, power) {
     const p = power & 0x07;
     const key = `pow_${port}`;
-    if (this.outputPower[key] === p) return;
-    this.outputPower[key] = p;
-
+    if (!this.shouldSendSingle(port, "pow", p)) return;
     const cmd = (0xB0 | p) & 0xFF;
     const mask = (1 << this.normPort(port)) & 0xFF;
     await this.writeBytes(new Uint8Array([cmd, mask]));
