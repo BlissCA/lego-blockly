@@ -586,8 +586,7 @@ Blockly.Blocks["lego_multi_pow"] = {
   init: function () {
     this.appendDummyInput("ROW1")
       .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
-      .appendField("Multi Out Set Pwr")
-       .appendField("Power");
+      .appendField("Multi Out Set Pwr");
 
     this.appendValueInput("PWR")
       .setCheck("Number")
