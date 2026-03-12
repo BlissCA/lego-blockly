@@ -418,7 +418,7 @@ Blockly.Blocks["lego_multi_out_on"] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour(160);
+    this.setColour(20);
   }
 };
 
@@ -450,7 +450,7 @@ Blockly.Blocks["lego_multi_out_off"] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour(160);
+    this.setColour(20);
   }
 };
 
@@ -482,6 +482,6 @@ Blockly.Blocks["lego_multi_out_float"] = {
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour(160);
+    this.setColour(20);
   }
 };
