@@ -201,3 +201,51 @@ javascriptGenerator.forBlock["lego_multi_out_float"] = function (block) {
   await deviceManager.getDeviceByName("${dev}").multiOutFloat(0x${mask.toString(16)});
   `;
 };
+
+avascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+  if (shouldStop()) return;
+  await deviceManager.getDeviceByName("${dev}").multiOutRev(0x${mask.toString(16)});
+  `;
+};
+
+avascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+  if (shouldStop()) return;
+  await deviceManager.getDeviceByName("${dev}").multiOutL(0x${mask.toString(16)});
+  `;
+};
+
+avascriptGenerator.forBlock["lego_multi_out_R"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+  if (shouldStop()) return;
+  await deviceManager.getDeviceByName("${dev}").multiOutR(0x${mask.toString(16)});
+  `;
+};

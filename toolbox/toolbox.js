@@ -418,6 +418,18 @@ const toolbox = {
               "kind": "block",
               "type": "lego_multi_out_float"
             },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_Rev"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_L"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_R"
+            },
 
             {
               "kind": "block",
