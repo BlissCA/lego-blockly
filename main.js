@@ -170,7 +170,7 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.outOff(port);
       }
     } catch (err) {
-      console.warn("Motor stop error:", err);
+      console.warn("Output stop error:", err);
     }
   }
 
