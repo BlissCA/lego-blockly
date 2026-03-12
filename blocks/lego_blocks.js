@@ -590,7 +590,6 @@ Blockly.Blocks["lego_multi_pow"] = {
 
     this.appendValueInput("PWR")
       .setCheck("Number")
-      .setAlign(Blockly.ALIGN_RIGHT);
     this.setInputsInline(true);
     this.appendEndRowInput();
 
@@ -604,7 +603,7 @@ Blockly.Blocks["lego_multi_pow"] = {
       .appendField("4")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
     this.appendEndRowInput();
-    
+
     this.appendDummyInput("ROW3")
       .appendField("5")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
