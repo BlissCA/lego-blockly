@@ -202,7 +202,7 @@ javascriptGenerator.forBlock["lego_multi_out_float"] = function (block) {
   `;
 };
 
-avascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
+javascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   let mask = 0;
 
@@ -218,7 +218,7 @@ avascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
   `;
 };
 
-avascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
+javascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   let mask = 0;
 
@@ -234,7 +234,7 @@ avascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
   `;
 };
 
-avascriptGenerator.forBlock["lego_multi_out_R"] = function (block) {
+javascriptGenerator.forBlock["lego_multi_out_R"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   let mask = 0;
 

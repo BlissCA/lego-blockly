@@ -433,6 +433,11 @@ const toolbox = {
 
             {
               "kind": "block",
+              "type": "lego_out_pow",
+              
+            }
+            {
+              "kind": "block",
               "type": "lego_out_offall",
               
             }
