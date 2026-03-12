@@ -285,7 +285,7 @@ export class LegoInterfaceB {
       return false; // no change → skip sending
     }
     this.outputState[port] = mode;
-    if (port === 0) {this.outputState[port] = "allow";} // we allow dummy port 0 (which means "all ports") command after any port 1-8 commands
+    if (port > 0) {this.outputState[0] = "allow";} // we allow dummy port 0 (which means "all ports") command after any port 1-8 commands
     return true;    // changed → send command
   }
 
