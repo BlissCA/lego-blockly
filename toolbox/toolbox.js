@@ -433,7 +433,7 @@ const toolbox = {
 
             {
               "kind": "block",
-              "type": "lego_out_pow",
+              "type": "lego_multi_pow",
               
             },
             {
