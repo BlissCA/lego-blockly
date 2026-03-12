@@ -434,7 +434,7 @@ export class LegoInterfaceB {
     await this.writeBytes(cmd);
   }
 async multiOutPower(level, mask) {
-  const cmd = new Uint8Array([0xB0 + level, mask]);
+  const cmd = new Uint8Array([0xB0 + (level & 0x07), mask]);
   if (!this.shouldSendMulti(mask, "pow", level)) return;
   await this.writeBytes(cmd);
 }
