@@ -424,6 +424,14 @@ export class LegoInterfaceB {
     await this.writeBytes(new Uint8Array([cmd, t]));
   }
 
+  // ---------------- Multiple Ports Outputs Processing ----------------
+  async multiOutOn(mask) {
+    const cmd = [0x91, mask];
+    if (!this.shouldSendMulti(mask, "on")) return;
+    await this.writeBytes(cmd);
+  }
+
+
   // ---------------- Inputs ----------------
 
   inputOn(port) {

@@ -152,3 +152,18 @@ javascriptGenerator.forBlock["ons_falling"] = function(block) {
   const id = block.id;
   return [`ONSF("${id}", ${bool})`, javascriptGenerator.ORDER_ATOMIC];
 };
+
+javascriptGenerator.forBlock["lego_multi_out_on"] = function (block) {
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+  if (shouldStop()) return;
+  await deviceManager.getDeviceByName("${dev}").multiOutOn(0x${mask.toString(16)});
+  `;
+};
