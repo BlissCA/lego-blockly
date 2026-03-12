@@ -592,6 +592,7 @@ Blockly.Blocks["lego_multi_pow"] = {
       .setCheck("Number")
       .setAlign(Blockly.ALIGN_RIGHT);
     this.setInputsInline(true);
+    this.appendEndRowInput();
 
     this.appendDummyInput("ROW2")
       .appendField("1")
