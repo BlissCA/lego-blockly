@@ -263,6 +263,6 @@ javascriptGenerator.forBlock["lego_multi_pow"] = function (block) {
 
   return `
   if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutPow(${pwr}, 0x${mask.toString(16)});
+  await deviceManager.getDeviceByName("${dev}").multiOutPower(${pwr}, 0x${mask.toString(16)});
   `;
 };
