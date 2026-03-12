@@ -65,7 +65,15 @@ javascriptGenerator.forBlock["lego_out_on"]    = b => legoCmd(b, "outOn");
 javascriptGenerator.forBlock["lego_out_onl"]   = b => legoCmd(b, "outOnL");
 javascriptGenerator.forBlock["lego_out_onr"]   = b => legoCmd(b, "outOnR");
 javascriptGenerator.forBlock["lego_out_off"]   = b => legoCmd(b, "outOff");
-javascriptGenerator.forBlock["lego_out_offall"] = b => legoCmd(b, "outOffAll");
+javascriptGenerator.forBlock["lego_out_offall"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  return `
+if (shouldStop()) return;
+await deviceManager.getDeviceByName("${dev}").outOffAll();
+`;
+};
+
 javascriptGenerator.forBlock["lego_out_float"] = b => legoCmd(b, "outFloat");
 javascriptGenerator.forBlock["lego_out_rev"]   = b => legoCmd(b, "outRev");
 javascriptGenerator.forBlock["lego_out_l"]     = b => legoCmd(b, "outL");
