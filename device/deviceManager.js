@@ -35,13 +35,19 @@ export class DeviceManager {
     window.refreshDevicesPanel?.();
   }
 
-  async connectLegoInterfaceB() {
-    const name = this._allocateName();
-    const dev = new LegoInterfaceB(name, this);
+async connectLegoInterfaceB() {
+  const dev = new LegoInterfaceB(null, this);
+
+  try {
     await dev.connect();
     this._addDevice(dev);
     return dev;
+  } catch (err) {
+    console.warn("Connection failed:", err);
+    await dev.forceDisconnect();   // cleans up port + frees name if allocated
+    return null;
   }
+}
 
   async disconnectAll() {
     for (const dev of [...this.devices]) {

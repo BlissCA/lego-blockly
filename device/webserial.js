@@ -60,7 +60,18 @@ export class LegoInterfaceB {
     this.setStatus("connecting", "Requesting port...");
     this.log("Requesting serial port...");
 
-    this.port = await navigator.serial.requestPort();
+    // 1. User selects a port
+    try {
+      this.port = await navigator.serial.requestPort();
+    } catch (err) {
+      this.log("User cancelled port selection");
+      throw err;  // bubble up to deviceManager
+    }
+
+    // 2. NOW allocate the name
+    this.name = this.manager._allocateName();
+
+    // 3. Open the port
     await this.port.open({
       baudRate: 9600,
       dataBits: 8,
@@ -71,26 +82,16 @@ export class LegoInterfaceB {
     this.log("Port opened.");
     this.setStatus("handshaking", "Performing handshake...");
 
+    // 4. Handshake
     await this.sendHandshake();
-    this.log("Handshake complete.");
 
+    this.log("Handshake complete.");
     this.setStatus("active", "Connected");
     document.dispatchEvent(new Event("serial-connected"));
 
+    // 5. Start background tasks
     this.startKeepAlive();
     this.startContinuousReader();
-  }
-
-  async sendHandshake() {
-    this.log("Sending handshake part 1...");
-//    await this.writer.write(this.HANDSHAKE_SEND_1);
-    await this.writeBytes(this.HANDSHAKE_SEND_1);
-    this.log("Sending handshake phrase...");
-//    await this.writer.write(this.HANDSHAKE_SEND_2);
-    await this.writeBytes(this.HANDSHAKE_SEND_2);
-
-    const reply = await this.waitForHandshakeReply();
-    this.log(`Received handshake reply: ${reply}`);
   }
 
   async waitForHandshakeReply() {
@@ -281,6 +282,31 @@ export class LegoInterfaceB {
     this.log("Disconnected cleanly.");
   }
 
+  // ---------------- force disconnect, a minimal cleanup if handshake times out ----------------
+  async forceDisconnect() {
+    this.stopKeepAlive();
+    this.readingActive = false;
+
+    try { await this.reader?.cancel(); } catch {}
+    try { this.reader?.releaseLock(); } catch {}
+    this.reader = null;
+
+    try { await this.writer?.close(); } catch {}
+    try { this.writer?.releaseLock(); } catch {}
+    this.writer = null;
+
+    try { await this.port?.close(); } catch {}
+    this.port = null;
+
+    // Free the name if it was allocated
+    if (this.name) {
+      this.manager._freeName(this.name);
+      this.name = null;
+    }
+
+    this.setStatus("disconnected", "Disconnected");
+  }
+  
   // ---------------- Helper Method to Update Cache for single port commands ----------------
   shouldSendSingle(port, mode, power = null) {
     const st = this.portState[port];
