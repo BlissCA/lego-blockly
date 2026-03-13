@@ -1,4 +1,5 @@
 const javascriptGenerator = Blockly.JavaScript;
+const dev_${dev} = deviceManager.getDeviceByName("${dev}");
 
 javascriptGenerator.addReservedWords("shouldStop");
 
@@ -57,7 +58,8 @@ function legoCmd(block, method) {
 
   return `
 if (shouldStop()) return;
-await deviceManager.getDeviceByName("${dev}").${method}(${port});
+if (!dev_${dev}) throw new Error("Device lost");
+await dev_${dev}.${method}(${port});
 `;
 }
 
