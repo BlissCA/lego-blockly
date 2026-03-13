@@ -56,8 +56,12 @@ function legoCmd(block, method) {
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-shouldStop();
-await deviceManager.getDeviceByName("${dev}").${method}(${port});
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
+}
 `;
 }
 
@@ -65,12 +69,17 @@ javascriptGenerator.forBlock["lego_out_on"]    = b => legoCmd(b, "outOn");
 javascriptGenerator.forBlock["lego_out_onl"]   = b => legoCmd(b, "outOnL");
 javascriptGenerator.forBlock["lego_out_onr"]   = b => legoCmd(b, "outOnR");
 javascriptGenerator.forBlock["lego_out_off"]   = b => legoCmd(b, "outOff");
+
 javascriptGenerator.forBlock["lego_out_offall"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
 
   return `
-if (shouldStop()) return;
-await deviceManager.getDeviceByName("${dev}").outOffAll();
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outOffAll();
+}
 `;
 };
 
@@ -85,8 +94,12 @@ javascriptGenerator.forBlock["lego_out_pow"] = function (block) {
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-if (shouldStop()) return;
-await deviceManager.getDeviceByName("${dev}").outPow(${port}, ${pwr});
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outPow(${port}, ${pwr});
+}
 `;
 };
 
@@ -96,8 +109,12 @@ javascriptGenerator.forBlock["lego_out_onfor"] = function (block) {
   const time = javascriptGenerator.valueToCode(block, "TIME", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-if (shouldStop()) return;
-await deviceManager.getDeviceByName("${dev}").outOnFor(${port}, ${time});
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outOnFor(${port}, ${time});
+}
 `;
 };
 
@@ -107,8 +124,12 @@ javascriptGenerator.forBlock["lego_out_resetrot"] = function (block) {
   const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-if (shouldStop()) return;
-await deviceManager.getDeviceByName("${dev}").setRot(${port}, ${count});
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setRot(${port}, ${count});
+}
 `;
 };
 
@@ -117,7 +138,7 @@ javascriptGenerator.forBlock["lego_wait_until"] = function (block) {
 
   return `
 while (!(${cond})) {
-  if (shouldStop()) return;
+  shouldStop();
   await new Promise(r => setTimeout(r, 10));
 }
 `;
@@ -127,16 +148,16 @@ javascriptGenerator.forBlock["lego_wait_time"] = function (block) {
   const secs = javascriptGenerator.valueToCode(block, "SECS", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
-    if (shouldStop()) return;
-    await new Promise(r => setTimeout(r, ${secs} * 1000));
-  `;
+shouldStop();
+await new Promise(r => setTimeout(r, ${secs} * 1000));
+`;
 };
 
 javascriptGenerator.forBlock["lego_print_value"] = function (block) {
   const value = javascriptGenerator.valueToCode(block, "VALUE", javascriptGenerator.ORDER_NONE) || '""';
 
   return `
-if (shouldStop()) return;
+shouldStop();
 logStatus(String(${value}));
 `;
 };
@@ -164,9 +185,13 @@ javascriptGenerator.forBlock["lego_multi_out_on"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutOn(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutOn(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_out_off"] = function (block) {
@@ -180,11 +205,14 @@ javascriptGenerator.forBlock["lego_multi_out_off"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutOff(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutOff(0x${mask.toString(16)});
+}
+`;
 };
-
 
 javascriptGenerator.forBlock["lego_multi_out_float"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
@@ -197,9 +225,13 @@ javascriptGenerator.forBlock["lego_multi_out_float"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutFloat(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutFloat(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
@@ -213,9 +245,13 @@ javascriptGenerator.forBlock["lego_multi_out_Rev"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutRev(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutRev(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
@@ -229,9 +265,13 @@ javascriptGenerator.forBlock["lego_multi_out_L"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutL(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutL(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_out_R"] = function (block) {
@@ -245,9 +285,13 @@ javascriptGenerator.forBlock["lego_multi_out_R"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutR(0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutR(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_pow"] = function (block) {
@@ -262,7 +306,11 @@ javascriptGenerator.forBlock["lego_multi_pow"] = function (block) {
   }
 
   return `
-  if (shouldStop()) return;
-  await deviceManager.getDeviceByName("${dev}").multiOutPower(${pwr}, 0x${mask.toString(16)});
-  `;
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.multiOutPower(${pwr}, 0x${mask.toString(16)});
+}
+`;
 };
