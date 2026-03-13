@@ -22,7 +22,11 @@ let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 
 // Helper for generators to check stop condition
-window.shouldStop = () => stopRequested;
+window.shouldStop = () => {
+  if (stopRequested) {
+    throw new Error("Program stopped");
+  }
+};
 
 // ---------------- One Shot Management ----------------
 // Memory for all ONS blocks (keyed by block ID)
