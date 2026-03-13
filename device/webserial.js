@@ -123,56 +123,53 @@ export class LegoInterfaceB {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    const readPromise = new Promise(async (resolve, reject) => {
-      while (this.handshakeActive && this.port && this.port.readable) {
+    this.handshakeActive = true;
+
+    const readLoop = async () => {
+      while (this.handshakeActive && this.port?.readable) {
         this.reader = this.port.readable.getReader();
         try {
-          while (true) {
+          while (this.handshakeActive) {
             const { value, done } = await this.reader.read();
-            if (done) break;
+            if (done || !this.handshakeActive) break;
+
             if (value) {
               buffer += decoder.decode(value, { stream: true });
               if (buffer.includes(this.HANDSHAKE_REPLY)) {
-                this.reader.releaseLock();
-                this.reader = null;
-                resolve(this.HANDSHAKE_REPLY);
-                return;
+                return this.HANDSHAKE_REPLY;
               }
             }
-            if (!this.handshakeActive) break;
           }
-        } catch (err) {
-          reject(err);
         } finally {
-          if (this.reader) {
-            this.reader.releaseLock();
-            this.reader = null;
-          }
+          try { this.reader.releaseLock(); } catch {}
+          this.reader = null;
         }
       }
-    });
+      return null;
+    };
 
-    const timeoutPromise = new Promise(resolve => {
-      setTimeout(() => resolve("TIMEOUT"), 500);
-    });
+    const timeout = new Promise(resolve =>
+      setTimeout(() => resolve("TIMEOUT"), 500)
+    );
 
-    const result = await Promise.race([readPromise, timeoutPromise]);
+    const result = await Promise.race([readLoop(), timeout]);
+
+    // Stop the read loop
+    this.handshakeActive = false;
+
+    // Cancel reader if still active
+    try { await this.reader?.cancel(); } catch {}
+    try { this.reader?.releaseLock(); } catch {}
+    this.reader = null;
 
     if (result === "TIMEOUT") {
-      this.handshakeActive = false;
-
-      try { await this.reader?.cancel(); } catch {}
-      try { this.reader?.releaseLock(); } catch {}
-      this.reader = null;
-
       this.log("Handshake timeout!");
-      this.setStatus("error", "Handshake timeout");
       throw new Error("Handshake timeout");
     }
 
     return result;
   }
-
+  
   // ---------------- Continuous 19-byte Reader ----------------
 
   async startContinuousReader() {
