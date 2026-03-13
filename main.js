@@ -143,7 +143,7 @@ document.getElementById("runBtn").onclick = async () => {
       name => window.getDeviceByName(name),
       window.deviceManager,
       Blockly,
-      () => stopRequested
+      window.shouldStop
     );
 
     await currentExecution;
