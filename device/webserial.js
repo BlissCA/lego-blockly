@@ -23,7 +23,9 @@ export class LegoInterfaceB {
 
     this.packetBuffer = [];
     this.packetCount = 0;
-  
+
+    this.handshakeActive = false;
+
     // Cache of last output states
     // New Output Cache that work for both single and multiple commands.
     this.portState = {};
@@ -95,6 +97,7 @@ export class LegoInterfaceB {
   }
 
   async sendHandshake() {
+    this.handshakeActive = true;
     this.log("Sending handshake part 1...");
 //    await this.writer.write(this.HANDSHAKE_SEND_1);
     await this.writeBytes(this.HANDSHAKE_SEND_1);
@@ -104,6 +107,8 @@ export class LegoInterfaceB {
 
     const reply = await this.waitForHandshakeReply();
     this.log(`Received handshake reply: ${reply}`);
+    this.handshakeActive = false;
+    return reply;
   }
 
   async waitForHandshakeReply() {
@@ -111,7 +116,7 @@ export class LegoInterfaceB {
     let buffer = "";
 
     const readPromise = new Promise(async (resolve, reject) => {
-      while (this.port && this.port.readable) {
+      while (this.handshakeActive && this.port && this.port.readable) {
         this.reader = this.port.readable.getReader();
         try {
           while (true) {
@@ -126,6 +131,7 @@ export class LegoInterfaceB {
                 return;
               }
             }
+            if (!this.handshakeActive) break;
           }
         } catch (err) {
           reject(err);
@@ -145,6 +151,12 @@ export class LegoInterfaceB {
     const result = await Promise.race([readPromise, timeoutPromise]);
 
     if (result === "TIMEOUT") {
+      this.handshakeActive = false;
+
+      try { await this.reader?.cancel(); } catch {}
+      try { this.reader?.releaseLock(); } catch {}
+      this.reader = null;
+
       this.log("Handshake timeout!");
       this.setStatus("error", "Handshake timeout");
       throw new Error("Handshake timeout");
