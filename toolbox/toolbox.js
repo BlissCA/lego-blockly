@@ -23,8 +23,7 @@ const toolbox = {
             },
         { "kind": "block", "type": "logic_boolean" },
         { "kind": "block", "type": "logic_null" },
-        { "kind": "block", "type": "logic_ternary" },
-        { "kind": "block", "type": "Legob_outportalpha" }
+        { "kind": "block", "type": "logic_ternary" }
       ]
     },
     {
@@ -54,7 +53,8 @@ const toolbox = {
         { "kind": "block", "type": "math_modulo" },
         { "kind": "block", "type": "math_constrain" },
         { "kind": "block", "type": "math_random_int" },
-        { "kind": "block", "type": "math_random_float" }
+        { "kind": "block", "type": "math_random_float" },
+        { "kind": "block", "type": "Legob_outportalpha" }
       ]
     },
     {
