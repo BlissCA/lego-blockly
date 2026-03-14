@@ -48,6 +48,71 @@ window.ONSF = function(id, currentValue) {
   return (prev && !currentValue);
 };
 
+// ---------------- Named TIMER implementation ----------------
+
+window.Timers = {};
+
+class NamedTimer {
+  constructor(name) {
+    this.name = name;
+    this.reset();
+  }
+
+  reset() {
+    this.accum = 0;
+    this.preset = 0;
+    this.running = false;
+    this.done = false;
+    this._fired = false;   // ensures Do-block runs once
+    this.lastUpdate = performance.now();
+  }
+
+  start(presetSeconds) {
+    this.preset = presetSeconds;
+    this.accum = 0;
+    this.running = true;
+    this.done = false;
+    this._fired = false;
+    this.lastUpdate = performance.now();
+  }
+
+  stop() {
+    this.running = false;
+  }
+
+  update() {
+    if (!this.running) return;
+
+    const now = performance.now();
+    const dt = (now - this.lastUpdate) / 1000;
+    this.lastUpdate = now;
+
+    this.accum += dt;
+
+    if (this.accum >= this.preset) {
+      this.done = true;
+    }
+  }
+
+  doneOnce() {
+    if (this.done && !this._fired) {
+      this._fired = true;
+      return true;
+    }
+    return false;
+  }
+}
+
+window.Timer = {
+  get(name) {
+    if (!window.Timers[name]) {
+      window.Timers[name] = new NamedTimer(name);
+    }
+    window.Timers[name].update();
+    return window.Timers[name];
+  }
+};
+
 /* // ---------------- HMI STATE ----------------
 window.hmi = {
   button: {},
