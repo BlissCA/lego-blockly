@@ -8,6 +8,8 @@ The requirements? Well no need to install any softwares like python etc but you 
 - usb ports available with USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
   It might work with Android phone or tablet with OTG adapter + serial adapter or a Bluetooth to RS232 adapter.  Has to be be confirmed.
 
+It supports multiple Lego Interface B!
+
 Link to my Lego-Blockly page:
 https://blissca.github.io/lego-blockly/index.html
 
