@@ -100,7 +100,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "Legob_outportalpha",
-      "message0": "constant %1",
+      "message0": "%1",
       "args0": [
         {
           "type": "field_dropdown",
@@ -416,23 +416,23 @@ Blockly.Blocks["lego_multi_out_on"] = {
       .appendField("Multi Out ON");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -448,23 +448,23 @@ Blockly.Blocks["lego_multi_out_off"] = {
       .appendField("Multi Out OFF");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
       .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -480,23 +480,23 @@ Blockly.Blocks["lego_multi_out_float"] = {
       .appendField("Multi Out Float");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -512,23 +512,23 @@ Blockly.Blocks["lego_multi_out_Rev"] = {
       .appendField("Multi Out Reverse");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -544,23 +544,23 @@ Blockly.Blocks["lego_multi_out_L"] = {
       .appendField("Multi Out Set Left");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -576,23 +576,23 @@ Blockly.Blocks["lego_multi_out_R"] = {
       .appendField("Multi Out Set Right");
 
     this.appendDummyInput()
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
 
     this.appendDummyInput()
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);
@@ -613,24 +613,24 @@ Blockly.Blocks["lego_multi_pow"] = {
     this.appendEndRowInput();
 
     this.appendDummyInput("ROW2")
-      .appendField("1")
+      .appendField("A")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
-      .appendField("2")
+      .appendField("B")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
-      .appendField("3")
+      .appendField("C")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
-      .appendField("4")
+      .appendField("D")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
     this.appendEndRowInput();
 
     this.appendDummyInput("ROW3")
-      .appendField("5")
+      .appendField("E")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
-      .appendField("6")
+      .appendField("F")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
-      .appendField("7")
+      .appendField("G")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
-      .appendField("8")
+      .appendField("H")
       .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
 
     this.setPreviousStatement(true);

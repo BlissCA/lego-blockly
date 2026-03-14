@@ -283,8 +283,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -295,8 +295,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -307,8 +307,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -319,8 +319,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -331,8 +331,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -343,8 +343,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -355,8 +355,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 }
               }
@@ -368,8 +368,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 },
                 "PWR": {
@@ -387,8 +387,8 @@ const toolbox = {
               "inputs": {
                 "PORT": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 1 }
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "A" }
                   }
                 },
                 "TIME": {
