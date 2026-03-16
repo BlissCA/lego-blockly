@@ -489,7 +489,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "named_timer_elapsed",
-      "message0": "%1 Running?",
+      "message0": "%1 Elapsed time?",
       "args0": [
         {
           "type": "field_input",
@@ -506,7 +506,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "named_timer_remaining",
-      "message0": "%1 Running?",
+      "message0": "%1 Remain time?",
       "args0": [
         {
           "type": "field_input",
