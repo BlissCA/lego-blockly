@@ -286,7 +286,7 @@ const toolbox = {
                 "PORT": {
                   "shadow": {
                     "type": "Legob_outportalpha",
-                    "fields": { "LETTER": "A" }
+                    "fields": { "LETTER": "1" }
                   }
                 }
               }
