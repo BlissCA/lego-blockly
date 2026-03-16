@@ -1,0 +1,496 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "variables_set",
+        "id": "o]pa%S9%{(66kb[%/K1D",
+        "x": 216,
+        "y": 106,
+        "fields": {
+          "VAR": {
+            "id": "SS?WJ=)c_zH`mh13/n0I"
+          }
+        },
+        "inputs": {
+          "VALUE": {
+            "block": {
+              "type": "math_number",
+              "id": "r*jkJiHwg(*pn537X9G?",
+              "fields": {
+                "NUM": 1
+              }
+            }
+          }
+        },
+        "next": {
+          "block": {
+            "type": "variables_set",
+            "id": "0)!hm#$ON+xOVA{~=I11",
+            "fields": {
+              "VAR": {
+                "id": "!tMO9S=0l.gT89A_2}+{"
+              }
+            },
+            "inputs": {
+              "VALUE": {
+                "block": {
+                  "type": "math_number",
+                  "id": "6^d0{a9Kp55x-xW79(VN",
+                  "fields": {
+                    "NUM": 0
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "lego_out_off",
+                "id": "F-2V[Qe(SxO8RntQ%PGh",
+                "fields": {
+                  "DEVICE": "LegoB1"
+                },
+                "inputs": {
+                  "PORT": {
+                    "shadow": {
+                      "type": "Legob_outportalpha",
+                      "id": "cFp.:2w[kkEyv8Z0.LN|",
+                      "fields": {
+                        "LETTER": "1"
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "lego_out_off",
+                    "id": "eVesx@1~+}@zARP({w+Q",
+                    "fields": {
+                      "DEVICE": "LegoB1"
+                    },
+                    "inputs": {
+                      "PORT": {
+                        "shadow": {
+                          "type": "Legob_outportalpha",
+                          "id": "x/`Vr`;+(0652jE`B%5t",
+                          "fields": {
+                            "LETTER": "2"
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "controls_whileUntil",
+                        "id": "He,6fl9:7CReQe1K/66i",
+                        "fields": {
+                          "MODE": "WHILE"
+                        },
+                        "inputs": {
+                          "BOOL": {
+                            "block": {
+                              "type": "logic_boolean",
+                              "id": "DzRmz23vv#}F^IrTgwg_",
+                              "fields": {
+                                "BOOL": "TRUE"
+                              }
+                            }
+                          },
+                          "DO": {
+                            "block": {
+                              "type": "controls_if",
+                              "id": "cyp{pn@5b}4Fh|t*:=w#",
+                              "inputs": {
+                                "IF0": {
+                                  "block": {
+                                    "type": "logic_compare",
+                                    "id": "gs*L~at/_bTXg%aX-Q[I",
+                                    "fields": {
+                                      "OP": "EQ"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "xy?_$nl?t;wf`u5g+1;?",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "SS?WJ=)c_zH`mh13/n0I"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "pw-)W]n?KRo:G)FrRJa@",
+                                          "fields": {
+                                            "NUM": 1
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "DO0": {
+                                  "block": {
+                                    "type": "variables_set",
+                                    "id": "q0XkOj!rQOUCQ$+0#^Z)",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "SS?WJ=)c_zH`mh13/n0I"
+                                      }
+                                    },
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "3Ix]dV|6N4PPvv|5!3it",
+                                          "fields": {
+                                            "NUM": 0
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "after_named_time_do",
+                                        "id": "hcg9o(_$yW`~#4+DIKcz",
+                                        "fields": {
+                                          "TIMER_NAME": "T1"
+                                        },
+                                        "inputs": {
+                                          "TIME": {
+                                            "shadow": {
+                                              "type": "math_number",
+                                              "id": "a-IyWIG5hbdo3jRpq;vD",
+                                              "fields": {
+                                                "NUM": 0.5
+                                              }
+                                            }
+                                          },
+                                          "DO": {
+                                            "block": {
+                                              "type": "controls_if",
+                                              "id": "b#Z;3[1l=lMoza?zj4lU",
+                                              "extraState": {
+                                                "hasElse": true
+                                              },
+                                              "inputs": {
+                                                "IF0": {
+                                                  "block": {
+                                                    "type": "logic_compare",
+                                                    "id": "ELjFmEV2g2oS+jg?Mrl3",
+                                                    "fields": {
+                                                      "OP": "EQ"
+                                                    },
+                                                    "inputs": {
+                                                      "A": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "(eJ:Hn0TP=Dfi|A_[g?*",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "!tMO9S=0l.gT89A_2}+{"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "B": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "^@c}P%GXw/B1^o/P|?m4",
+                                                          "fields": {
+                                                            "NUM": 0
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "DO0": {
+                                                  "block": {
+                                                    "type": "lego_out_on",
+                                                    "id": "b?oZyE!=W}v!EXX|9bbH",
+                                                    "fields": {
+                                                      "DEVICE": "LegoB1"
+                                                    },
+                                                    "inputs": {
+                                                      "PORT": {
+                                                        "shadow": {
+                                                          "type": "Legob_outportalpha",
+                                                          "id": "EK!KLOO9.9z3tM7nu/oW",
+                                                          "fields": {
+                                                            "LETTER": "1"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "next": {
+                                                      "block": {
+                                                        "type": "variables_set",
+                                                        "id": "dojvg7fG_K6[ib]CDujp",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "!tMO9S=0l.gT89A_2}+{"
+                                                          }
+                                                        },
+                                                        "inputs": {
+                                                          "VALUE": {
+                                                            "block": {
+                                                              "type": "math_number",
+                                                              "id": "OUJdAHFO|m+u~}I]|2ua",
+                                                              "fields": {
+                                                                "NUM": 1
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ELSE": {
+                                                  "block": {
+                                                    "type": "lego_out_off",
+                                                    "id": "qZW~w/SEzivzS$x6_kG)",
+                                                    "fields": {
+                                                      "DEVICE": "LegoB1"
+                                                    },
+                                                    "inputs": {
+                                                      "PORT": {
+                                                        "shadow": {
+                                                          "type": "Legob_outportalpha",
+                                                          "id": "$#2uMJIc3zJ5Uc7F)LV:",
+                                                          "fields": {
+                                                            "LETTER": "1"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "next": {
+                                                      "block": {
+                                                        "type": "variables_set",
+                                                        "id": "Wxsu#,=x[N7MQa5xI:8`",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "!tMO9S=0l.gT89A_2}+{"
+                                                          }
+                                                        },
+                                                        "inputs": {
+                                                          "VALUE": {
+                                                            "block": {
+                                                              "type": "math_number",
+                                                              "id": "%xl|m}9|toMj`o!A{T.Z",
+                                                              "fields": {
+                                                                "NUM": 0
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "next": {
+                                                "block": {
+                                                  "type": "variables_set",
+                                                  "id": "WCLE*Y71NSeVRfdV7^7q",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "SS?WJ=)c_zH`mh13/n0I"
+                                                    }
+                                                  },
+                                                  "inputs": {
+                                                    "VALUE": {
+                                                      "block": {
+                                                        "type": "math_number",
+                                                        "id": "YvY(!7g+wz]}yD@QB`to",
+                                                        "fields": {
+                                                          "NUM": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "controls_if",
+                                  "id": "dRL=n;obo@8;y=GIvOcM",
+                                  "extraState": {
+                                    "elseIfCount": 1
+                                  },
+                                  "inputs": {
+                                    "IF0": {
+                                      "block": {
+                                        "type": "ons_rising",
+                                        "id": "H|m/9hoA?5IW]]fGRaxw",
+                                        "inputs": {
+                                          "BOOL": {
+                                            "shadow": {
+                                              "type": "logic_boolean",
+                                              "id": "sSJq@#zk%|S1y*y;0l8]",
+                                              "fields": {
+                                                "BOOL": "TRUE"
+                                              }
+                                            },
+                                            "block": {
+                                              "type": "lego_inp_on",
+                                              "id": "=h6sgUaTz,`Ub-2#l4j^",
+                                              "fields": {
+                                                "DEVICE": "LegoB1"
+                                              },
+                                              "inputs": {
+                                                "PORT": {
+                                                  "shadow": {
+                                                    "type": "math_number",
+                                                    "id": "?_A3`OL@,~[qEJ_)bB#$",
+                                                    "fields": {
+                                                      "NUM": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "DO0": {
+                                      "block": {
+                                        "type": "lego_out_on",
+                                        "id": "U|2EH`[z1.=hFJV)l!?)",
+                                        "fields": {
+                                          "DEVICE": "LegoB1"
+                                        },
+                                        "inputs": {
+                                          "PORT": {
+                                            "shadow": {
+                                              "type": "Legob_outportalpha",
+                                              "id": "vtd~0E.W$}S;:CyvTx@n",
+                                              "fields": {
+                                                "LETTER": "2"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "IF1": {
+                                      "block": {
+                                        "type": "ons_falling",
+                                        "id": "HZ}ur=9eHn1bP%{e^|U+",
+                                        "inputs": {
+                                          "BOOL": {
+                                            "shadow": {
+                                              "type": "logic_boolean",
+                                              "id": "Wc=_jBd:Jdf}{sucH({n",
+                                              "fields": {
+                                                "BOOL": "TRUE"
+                                              }
+                                            },
+                                            "block": {
+                                              "type": "lego_inp_on",
+                                              "id": ".+7L[RnsD0uUQya4N*Zx",
+                                              "fields": {
+                                                "DEVICE": "LegoB1"
+                                              },
+                                              "inputs": {
+                                                "PORT": {
+                                                  "shadow": {
+                                                    "type": "math_number",
+                                                    "id": "JTk[h:1zV/5GM6tja:Ql",
+                                                    "fields": {
+                                                      "NUM": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "DO1": {
+                                      "block": {
+                                        "type": "lego_out_off",
+                                        "id": "(u9m)f0oOJ9_uAH}fbla",
+                                        "fields": {
+                                          "DEVICE": "LegoB1"
+                                        },
+                                        "inputs": {
+                                          "PORT": {
+                                            "shadow": {
+                                              "type": "Legob_outportalpha",
+                                              "id": "?/m_!(HT=;|w6/m#RhU,",
+                                              "fields": {
+                                                "LETTER": "2"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "next": {
+                                    "block": {
+                                      "type": "lego_wait_time",
+                                      "id": "[q#TEW}~t#PK6+ADojl?",
+                                      "inputs": {
+                                        "SECS": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "_//Ulx_*!3}W}FI1AZH?",
+                                            "fields": {
+                                              "NUM": 0.05
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "A1",
+      "id": "`hR}H|F$Hd#WABwVj{FO"
+    },
+    {
+      "name": "T1EN",
+      "id": "|@j$o=SaB._l,I]fe.OL"
+    },
+    {
+      "name": "T1DN",
+      "id": "SS?WJ=)c_zH`mh13/n0I"
+    },
+    {
+      "name": "O1",
+      "id": "!tMO9S=0l.gT89A_2}+{"
+    }
+  ]
+}

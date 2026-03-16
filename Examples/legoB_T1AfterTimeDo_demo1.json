@@ -1,0 +1,107 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "lego_out_off",
+        "id": "PEw9+Rh))_E_{uf-c=x^",
+        "x": 227,
+        "y": 167,
+        "fields": {
+          "DEVICE": "LegoB1"
+        },
+        "inputs": {
+          "PORT": {
+            "shadow": {
+              "type": "Legob_outportalpha",
+              "id": "aA3XUYw|o-/!)}njEW3*",
+              "fields": {
+                "LETTER": "1"
+              }
+            }
+          }
+        },
+        "next": {
+          "block": {
+            "type": "after_named_time_do",
+            "id": "WGz(w}0q7i?Tl@Z]mw-R",
+            "fields": {
+              "TIMER_NAME": "T1"
+            },
+            "inputs": {
+              "TIME": {
+                "shadow": {
+                  "type": "math_number",
+                  "id": "YEU96CFp`4hD3M`y)j7Q",
+                  "fields": {
+                    "NUM": 5
+                  }
+                }
+              },
+              "DO": {
+                "block": {
+                  "type": "lego_out_on",
+                  "id": "Ruxm[p!k7h3%#6-vRXA3",
+                  "fields": {
+                    "DEVICE": "LegoB1"
+                  },
+                  "inputs": {
+                    "PORT": {
+                      "shadow": {
+                        "type": "Legob_outportalpha",
+                        "id": "Q)rlG`|vKZdrLi_v7oth",
+                        "fields": {
+                          "LETTER": "1"
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "lego_out_off",
+                      "id": "Ls5.J?]t-=3iJ4l[E[oy",
+                      "fields": {
+                        "DEVICE": "LegoB1"
+                      },
+                      "inputs": {
+                        "PORT": {
+                          "shadow": {
+                            "type": "Legob_outportalpha",
+                            "id": "?I1[.~yUA.wt0B%H0:qI",
+                            "fields": {
+                              "LETTER": "2"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "next": {
+              "block": {
+                "type": "lego_out_on",
+                "id": "Xw4FI.3w7yr0wF#?Pp%P",
+                "fields": {
+                  "DEVICE": "LegoB1"
+                },
+                "inputs": {
+                  "PORT": {
+                    "shadow": {
+                      "type": "Legob_outportalpha",
+                      "id": "nms,pkN%{K-wmOQCC7]p",
+                      "fields": {
+                        "LETTER": "2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
