@@ -385,3 +385,18 @@ javascriptGenerator.forBlock['timer_set_value'] = function(block) {
 }
 `;
 };
+
+javascriptGenerator.forBlock['after_time_do'] = function(block) {
+  const time = javascriptGenerator.valueToCode(block, 'TIME', javascriptGenerator.ORDER_ATOMIC) || '0';
+  const branch = javascriptGenerator.statementToCode(block, 'DO');
+
+  return `
+{
+  shouldStop();
+  TimerScheduler.schedule(${time}, async () => {
+    shouldStop();
+    ${branch}
+  });
+}
+`;
+};

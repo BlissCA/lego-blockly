@@ -108,7 +108,7 @@ const toolbox = {
 
     {
       "kind": "category",
-      "name": "Control+Wait",
+      "name": "Control",
       "colour": "60",
       "contents": [
         {
@@ -169,7 +169,22 @@ const toolbox = {
               }
             }
           }
+        },
+        {
+          "kind": "block",
+          "type": "after_time_do",
+          "inputs": {
+            "TIME": {
+              "shadow": {
+                "type": "math_number",
+                "fields": {
+                  "NUM": 5
+                }
+              }
+            }
+          }
         }
+
       ]
     },
     {

@@ -21,13 +21,41 @@ let stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 
+// ---------------- EVENT-DRIVEN TIMER SCHEDULER ----------------
+
+window.ScheduledEvents = [];
+
+window.TimerScheduler = {
+  schedule(delaySeconds, callback) {
+    const due = performance.now() + delaySeconds * 1000;
+    window.ScheduledEvents.push({ due, callback, fired: false });
+  },
+
+  async update() {
+    const now = performance.now();
+    for (const evt of window.ScheduledEvents) {
+      if (!evt.fired && now >= evt.due) {
+        evt.fired = true;
+        try {
+          await evt.callback();
+        } catch (err) {
+          console.error("Timer callback error:", err);
+        }
+      }
+    }
+  }
+};
+
 // Helper for generators to check stop condition
 window.shouldStop = () => {
-
   if (stopRequested) {
     throw new Error("Program stopped");
   }
+
+  // Update scheduled timers on every block execution
+  window.TimerScheduler.update();
 };
+
 
 // ---------------- One Shot Management ----------------
 // Memory for all ONS blocks (keyed by block ID)
