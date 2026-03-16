@@ -401,3 +401,19 @@ javascriptGenerator.forBlock['after_time_do'] = function(block) {
 `;
 };
 
+javascriptGenerator.forBlock['after_named_time_do'] = function(block) {
+  const name = block.getFieldValue('TIMER_NAME');
+  const time = javascriptGenerator.valueToCode(block, 'TIME', javascriptGenerator.ORDER_ATOMIC) || '0';
+  const branch = javascriptGenerator.statementToCode(block, 'DO');
+
+  return `
+{
+  shouldStop();
+  NamedEventTimer.start("${name}", ${time}, async () => {
+    shouldStop();
+    ${branch}
+  });
+}
+`;
+};
+

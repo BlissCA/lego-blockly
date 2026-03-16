@@ -183,6 +183,21 @@ const toolbox = {
               }
             }
           }
+        },
+
+        {
+          "kind": "block",
+          "type": "after_named_time_do",
+          "inputs": {
+            "TIME": {
+              "shadow": {
+                "type": "math_number",
+                "fields": {
+                  "NUM": 5
+                }
+              }
+            }
+          }
         }
 
       ]

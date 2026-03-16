@@ -406,6 +406,33 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 60,
       "tooltip": "Executes code after a delay without blocking other blocks.",
+    },
+    
+    {
+      "type": "after_named_time_do",
+      "message0": "%1 after %2 sec\nDo %3",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "TIMER_NAME",
+          "check": "String"
+        },
+        {
+          "type": "input_value",
+          "name": "TIME",
+          "text": "T1",
+          "spellcheck": false
+        },
+        {
+          "type": "input_statement",
+          "name": "DO"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 60,
+      "tooltip": "Executes code after a delay without blocking other blocks.",
     }
 
   ]);

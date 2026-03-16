@@ -43,6 +43,45 @@ window.TimerScheduler = {
   }
 };
 
+// ---------------- NAMED EVENT-DRIVEN TIMERS ----------------
+
+window.NamedEventTimers = {};
+
+window.NamedEventTimer = {
+  start(name, delaySeconds, callback) {
+    // Cancel existing timer with same name
+    if (window.NamedEventTimers[name]) {
+      clearTimeout(window.NamedEventTimers[name].handle);
+    }
+
+    const handle = setTimeout(async () => {
+      // If program was stopped, do nothing
+      if (stopRequested) return;
+
+      try {
+        await callback();
+      } catch (err) {
+        console.error("Named timer error:", err);
+        window.logStatus("Timer error: " + err);
+      }
+
+      // Remove timer after firing
+      delete window.NamedEventTimers[name];
+
+    }, delaySeconds * 1000);
+
+    // Store timer
+    window.NamedEventTimers[name] = { handle };
+  },
+
+  cancel(name) {
+    if (window.NamedEventTimers[name]) {
+      clearTimeout(window.NamedEventTimers[name].handle);
+      delete window.NamedEventTimers[name];
+    }
+  }
+};
+
 // Helper for generators to check stop condition
 window.shouldStop = () => {
   if (stopRequested) {
