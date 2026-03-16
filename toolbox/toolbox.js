@@ -278,7 +278,6 @@ const toolbox = {
           "kind": "category",
           "name": "Outputs Single Port",
           "contents": [
-            { "kind": "block", "type": "Legob_outportalpha" },
             {
               "kind": "block",
               "type": "lego_out_on",
