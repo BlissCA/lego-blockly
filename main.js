@@ -23,6 +23,11 @@ window.debugLogPackets = debugLogPackets;
 
 // Helper for generators to check stop condition
 window.shouldStop = () => {
+  // Update all timers every scan
+  for (const name in window.Timers) {
+    window.Timers[name].update();
+  }
+
   if (stopRequested) {
     throw new Error("Program stopped");
   }
