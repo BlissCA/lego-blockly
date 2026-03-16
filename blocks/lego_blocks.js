@@ -335,7 +335,7 @@ window.addEventListener("load", () => {
       ],
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60
+      "colour": 180
     },
 
     {
@@ -350,7 +350,7 @@ window.addEventListener("load", () => {
       ],
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60
+      "colour": 180
     },
 
     {
@@ -364,7 +364,7 @@ window.addEventListener("load", () => {
       ],
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60
+      "colour": 180
     },
 
     {
@@ -374,7 +374,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BOOL", "check": "Boolean" }
       ],
       "output": "Boolean",
-      "colour": 60
+      "colour": 180
     },
 
     {
@@ -384,7 +384,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BOOL", "check": "Boolean" }
       ],
       "output": "Boolean",
-      "colour": 60
+      "colour": 180
     },
 
     {
@@ -404,7 +404,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60,
+      "colour": 180,
       "tooltip": "Executes code after a delay without blocking other blocks.",
     },
     
@@ -431,7 +431,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60,
+      "colour": 180,
       "tooltip": "Executes code after a delay without blocking other blocks.",
     },
 
@@ -449,7 +449,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 60,
+      "colour": 180,
       "tooltip": "Cancels Named Timer",
     }
 

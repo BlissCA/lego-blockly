@@ -109,7 +109,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Control",
-      "colour": "60",
+      "colour": "180",
       "contents": [
         {
           "kind": "block",
