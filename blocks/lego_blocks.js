@@ -98,24 +98,6 @@ window.addEventListener("load", () => {
       "tooltip": "Returns rotation counter"
     },
 
-    {
-      "type": "Legob_outportalpha",
-      "message0": "%1",
-      "args0": [
-        {
-          "type": "field_dropdown",
-          "name": "LETTER",
-          "options": [
-            ["A", "1"], ["B", "2"], ["C", "3"], ["D", "4"],
-            ["E", "5"], ["F", "6"], ["G", "7"], ["H", "8"]
-          ]
-        }
-      ],
-      "output": "Number",
-      "colour": 230,
-      "tooltip": "Returns a predefined constant value.",
-      "helpUrl": ""
-    },
 
     // ---------------- OUTPUT BLOCKS ----------------
 
@@ -720,5 +702,19 @@ Blockly.Blocks['timer_set_value'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(230);
+  }
+};
+
+Blockly.Blocks['Legob_outportalpha'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"], ["C", "3"], ["D", "4"],
+        ["E", "5"], ["F", "6"], ["G", "7"], ["H", "8"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value.");
   }
 };
