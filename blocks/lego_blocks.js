@@ -415,13 +415,13 @@ window.addEventListener("load", () => {
         {
           "type": "field_input",
           "name": "TIMER_NAME",
-          "check": "String"
+          "text": "T1",
+          "spellcheck": false
         },
         {
           "type": "input_value",
           "name": "TIME",
-          "text": "T1",
-          "spellcheck": false
+          "check": "Number"
         },
         {
           "type": "input_statement",
