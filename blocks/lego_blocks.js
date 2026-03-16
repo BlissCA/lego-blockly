@@ -389,7 +389,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "after_time_do",
-      "message0": "after %1 sec do %2",
+      "message0": "after %1 sec\nDo %2",
       "args0": [
         {
           "type": "input_value",
