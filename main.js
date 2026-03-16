@@ -27,22 +27,19 @@ window.ScheduledEvents = [];
 
 window.TimerScheduler = {
   schedule(delaySeconds, callback) {
-    const due = performance.now() + delaySeconds * 1000;
-    window.ScheduledEvents.push({ due, callback, fired: false });
-  },
+    const handle = setTimeout(async () => {
+      // If program was stopped in the meantime, do nothing
+      if (stopRequested) return;
 
-  async update() {
-    const now = performance.now();
-    for (const evt of window.ScheduledEvents) {
-      if (!evt.fired && now >= evt.due) {
-        evt.fired = true;
-        try {
-          await evt.callback();
-        } catch (err) {
-          console.error("Timer callback error:", err);
-        }
+      try {
+        await callback();
+      } catch (err) {
+        console.error("Timer callback error:", err);
+        window.logStatus("Timer error: " + err);
       }
-    }
+    }, delaySeconds * 1000);
+
+    return handle;
   }
 };
 
@@ -51,9 +48,6 @@ window.shouldStop = () => {
   if (stopRequested) {
     throw new Error("Program stopped");
   }
-
-  // Update scheduled timers on every block execution
-  window.TimerScheduler.update();
 };
 
 
