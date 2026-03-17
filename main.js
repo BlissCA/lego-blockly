@@ -21,6 +21,49 @@ let stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 
+// ----------------- function to auto-select serial/bluetooth port ----------------
+window.autoSelectPort = async function () {
+  const os = navigator.userAgentData?.platform || navigator.platform;
+
+  const supportsBluetoothSPP =
+    navigator.serial &&
+    "bluetoothServiceClassId" in SerialPortFilter.prototype;
+
+  const supportsUSBSerial = !!navigator.serial;
+
+  // Android → Prefer Bluetooth SPP
+  if (/Android/i.test(os)) {
+    if (supportsBluetoothSPP) {
+      return navigator.serial.requestPort({
+        filters: [{
+          bluetoothServiceClassId: "00001101-0000-1000-8000-00805f9b34fb"
+        }]
+      });
+    }
+    throw new Error("Bluetooth SPP not supported on this Android Chrome.");
+  }
+
+  // Desktop → Prefer USB
+  if (supportsUSBSerial) {
+    try {
+      return await navigator.serial.requestPort();
+    } catch (err) {
+      // user cancelled or no USB devices
+    }
+  }
+
+  // Desktop fallback → Bluetooth SPP
+  if (supportsBluetoothSPP) {
+    return navigator.serial.requestPort({
+      filters: [{
+        bluetoothServiceClassId: "00001101-0000-1000-8000-00805f9b34fb"
+      }]
+    });
+  }
+
+  throw new Error("No compatible serial transport available.");
+};
+
 // ---------------- EVENT-DRIVEN TIMER SCHEDULER ----------------
 
 //window.ScheduledEvents = [];
