@@ -25,41 +25,46 @@ window.debugLogPackets = debugLogPackets;
 window.autoSelectPort = async function () {
   const os = navigator.userAgentData?.platform || navigator.platform;
 
-  const supportsBluetoothSPP =
-    navigator.serial &&
-    "bluetoothServiceClassId" in SerialPortFilter.prototype;
-
-  const supportsUSBSerial = !!navigator.serial;
-
-  // Android → Prefer Bluetooth SPP
-  if (/Android/i.test(os)) {
-    if (supportsBluetoothSPP) {
-      return navigator.serial.requestPort({
+  // --- Try Bluetooth SPP (HC-05) ---
+  async function tryBluetoothSPP() {
+    try {
+      return await navigator.serial.requestPort({
         filters: [{
           bluetoothServiceClassId: "00001101-0000-1000-8000-00805f9b34fb"
         }]
       });
+    } catch (err) {
+      if (err instanceof TypeError) {
+        // Chrome does not support RFCOMM
+        return null;
+      }
+      throw err; // user cancelled or other error
     }
-    throw new Error("Bluetooth SPP not supported on this Android Chrome.");
   }
 
-  // Desktop → Prefer USB
-  if (supportsUSBSerial) {
+  // --- Try USB Serial ---
+  async function tryUSB() {
     try {
       return await navigator.serial.requestPort();
     } catch (err) {
-      // user cancelled or no USB devices
+      return null; // user cancelled or no USB devices
     }
   }
 
-  // Desktop fallback → Bluetooth SPP
-  if (supportsBluetoothSPP) {
-    return navigator.serial.requestPort({
-      filters: [{
-        bluetoothServiceClassId: "00001101-0000-1000-8000-00805f9b34fb"
-      }]
-    });
+  // --- Android: Prefer Bluetooth ---
+  if (/Android/i.test(os)) {
+    const bt = await tryBluetoothSPP();
+    if (bt) return bt;
+    throw new Error("Bluetooth SPP not supported on this Android Chrome.");
   }
+
+  // --- Desktop: Prefer USB ---
+  const usb = await tryUSB();
+  if (usb) return usb;
+
+  // --- Desktop fallback: Bluetooth ---
+  const bt = await tryBluetoothSPP();
+  if (bt) return bt;
 
   throw new Error("No compatible serial transport available.");
 };
