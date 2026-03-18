@@ -282,3 +282,5 @@ export class LegoRcx {
     return v;
   }
 }
+
+window.DeviceLegoRcx = DeviceLegoRcx;
