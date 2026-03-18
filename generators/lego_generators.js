@@ -326,66 +326,6 @@ javascriptGenerator.forBlock["lego_multi_pow"] = function (block) {
 
 // ---------------- TIMER GENERATORS ----------------
 
-javascriptGenerator.forBlock['timer_after'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  const preset = block.getFieldValue("PRESET");
-  const statements = javascriptGenerator.statementToCode(block, "DO");
-
-  return `
-{
-  shouldStop();
-  const t = Timer.get("${name}");
-  t.start(${preset});
-
-  if (t.doneOnce()) {
-    ${statements}
-  }
-}
-`;
-};
-
-javascriptGenerator.forBlock['timer_reset'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  return `
-{
-  shouldStop();
-  Timer.get("${name}").reset();
-}
-`;
-};
-
-javascriptGenerator.forBlock['timer_stop'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  return `
-{
-  shouldStop();
-  Timer.get("${name}").stop();
-}
-`;
-};
-
-javascriptGenerator.forBlock['timer_value'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  return [`Timer.get("${name}").accum`, javascriptGenerator.ORDER_ATOMIC];
-};
-
-javascriptGenerator.forBlock['timer_done'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  return [`Timer.get("${name}").done`, javascriptGenerator.ORDER_ATOMIC];
-};
-
-javascriptGenerator.forBlock['timer_set_value'] = function(block) {
-  const name = block.getFieldValue("TIMER_NAME");
-  const val = javascriptGenerator.valueToCode(block, "VALUE", javascriptGenerator.ORDER_NONE) || "0";
-
-  return `
-{
-  shouldStop();
-  Timer.get("${name}").accum = ${val};
-}
-`;
-};
-
 javascriptGenerator.forBlock['after_time_do'] = function(block) {
   const time = javascriptGenerator.valueToCode(block, 'TIME', javascriptGenerator.ORDER_ATOMIC) || '0';
   const branch = javascriptGenerator.statementToCode(block, 'DO');
