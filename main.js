@@ -28,10 +28,9 @@ window.autoSelectPort = async function () {
   // --- Try Bluetooth SPP (HC-05) ---
   async function tryBluetoothSPP() {
     try {
-      return await navigator.serial.requestPort({
-        filters: [{
-          bluetoothServiceClassId: "00001101-0000-1000-8000-00805f9b34fb"
-        }]
+      return await await navigator.serial.requestPort({
+        allowedBluetoothServiceClassIds: [0x1101],
+        filters: [{ bluetoothServiceClassId: 0x1101 }]
       });
     } catch (err) {
       if (err instanceof TypeError) {
