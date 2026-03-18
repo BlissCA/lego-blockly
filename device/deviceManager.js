@@ -1,6 +1,7 @@
 // device/deviceManager.js
 
 import { LegoInterfaceB } from './DeviceLegoB.js';
+import { LegoRcx } from './DeviceLegoRcx.js';
 
 export class DeviceManager {
   constructor() {
