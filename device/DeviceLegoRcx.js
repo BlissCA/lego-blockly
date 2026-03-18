@@ -175,6 +175,7 @@ export class LegoRcx {
 
       // Write
       await this.writeBytes(buff);
+      console.log("Sent:", buff);
 
       // Read loop
       const readReader = this.port.readable.getReader();
