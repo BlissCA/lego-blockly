@@ -162,6 +162,7 @@ export class LegoRcx {
       if (!this.port) return null;
 
       const buff = this.mkSerBuffWr(cmd);
+      console.log("Sent:", buff);
 
       // Expected reply signature
       const replyCode = buff[4];
@@ -175,7 +176,6 @@ export class LegoRcx {
 
       // Write
       await this.writeBytes(buff);
-      console.log("Sent:", buff);
 
       // Read loop
       const readReader = this.port.readable.getReader();
