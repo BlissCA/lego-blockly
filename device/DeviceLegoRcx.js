@@ -117,11 +117,8 @@ export class LegoRcx {
 
   // ---------------- Low-level write ----------------
   async writeBytes(bytes) {
-    return this.enqueue(async () => {
-      if (!this.port || !this.writer) return;
-      console.log("Sent:", bytes);
-      await this.writer.write(bytes);
-    });
+    if (!this.port || !this.writer) return;
+    await this.writer.write(bytes);
   }
 
   // ---------------- RCX Protocol ----------------
