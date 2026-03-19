@@ -72,6 +72,7 @@ export class LegoRcx {
   // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
+    console.log("Sent:", bytes);
     await this.writer.write(bytes);
   }
 
