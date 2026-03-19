@@ -9,32 +9,20 @@ export class LegoRcx {
     this.reader = null;
     this.writer = null;
 
+    this.readLoopActive = false;
+    this.incoming = new Uint8Array(0);   // shared buffer
+
     this.queue = Promise.resolve();
     this.queueActive = true;
 
     this.lastOpCode = 0;
-    this.opCodeEx = new Set([0xF7]); // same as Python: opCodeEx = (0xf7, -1)
-
-    this.status = "idle";
-    this.statusMessage = "Idle";
-  }
-
-  log(msg) {
-    console.log(`[RCX ${this.name}] ${msg}`);
-  }
-
-  setStatus(status, msg) {
-    this.status = status;
-    this.statusMessage = msg;
-    document.dispatchEvent(new CustomEvent("device-status", {
-      detail: { name: this.name, status, msg }
-    }));
+    this.opCodeEx = new Set([0xF7]);
   }
 
   // ---------------- Queue ----------------
   enqueue(fn) {
     if (!this.queueActive) return Promise.resolve();
-    this.queue = this.queue.then(fn).catch(err => this.log("Queue error: " + err));
+    this.queue = this.queue.then(fn).catch(err => console.error(err));
     return this.queue;
   }
 
@@ -52,93 +40,54 @@ export class LegoRcx {
 
     this.writer = this.port.writable.getWriter();
 
-    this.setStatus("connected", "Connected");
-    this.log("Connected.");
+    // Start background reader
+    this.readLoopActive = true;
+    this.startReadLoop();
 
-    // Try alive ping
-    const ok = await this.alive();
-    if (!ok) {
-      this.log("RCX did not respond. Power it on.");
+    console.log(`[RCX ${this.name}] Connected.`);
+  }
+
+  // ---------------- Background Reader ----------------
+  async startReadLoop() {
+    this.reader = this.port.readable.getReader();
+
+    try {
+      while (this.readLoopActive) {
+        const { value, done } = await this.reader.read();
+        if (done || !value) break;
+
+        // Append to buffer
+        let tmp = new Uint8Array(this.incoming.length + value.length);
+        tmp.set(this.incoming);
+        tmp.set(value, this.incoming.length);
+        this.incoming = tmp;
+      }
+    } catch (err) {
+      console.warn("Reader stopped:", err);
+    } finally {
+      try { this.reader.releaseLock(); } catch {}
     }
   }
 
-  // ---------------- Disconnect ----------------
-  async disconnect() {
-    this.log("Disconnecting...");
-    this.queueActive = false;
-
-    try { await this.queue; } catch {}
-
-    try {
-      if (this.reader) {
-        await this.reader.cancel();
-        this.reader.releaseLock();
-      }
-    } catch {}
-
-    try {
-      if (this.writer) {
-        this.writer.releaseLock();
-      }
-    } catch {}
-
-    try {
-      if (this.port) {
-        await this.port.close();
-      }
-    } catch {}
-
-    this.reader = null;
-    this.writer = null;
-    this.port = null;
-
-    this.setStatus("disconnected", "Disconnected");
-    this.log("Disconnected.");
-  }
-
-  async forceDisconnect() {
-    this.queueActive = false;
-    this.queue = Promise.resolve();
-
-    try { await this.reader?.cancel(); } catch {}
-    try { this.reader?.releaseLock(); } catch {}
-    try { this.writer?.releaseLock(); } catch {}
-    try { await this.port?.close(); } catch {}
-
-    this.reader = null;
-    this.writer = null;
-    this.port = null;
-
-    this.manager._freeName(this.name);
-    this.name = null;
-
-    this.setStatus("disconnected", "Disconnected");
-  }
-
-  // ---------------- Low-level write ----------------
+  // ---------------- Write ----------------
   async writeBytes(bytes) {
-    if (!this.port || !this.writer) return;
+    if (!this.writer) return;
     await this.writer.write(bytes);
   }
 
   // ---------------- RCX Protocol ----------------
-
   mkSerBuffWr(cmd) {
     if (!cmd || cmd.length === 0) cmd = new Uint8Array([0x10]);
 
     let opCode = cmd[0];
 
-    // Toggle opcode bit if same as last time
     if (opCode === this.lastOpCode && !this.opCodeEx.has(opCode)) {
-      if ((opCode & 0x08) === 0) opCode |= 0x08;
-      else opCode &= ~0x08;
-
+      opCode ^= 0x08; // toggle bit
       cmd = Uint8Array.from([opCode, ...cmd.slice(1)]);
     }
 
     this.lastOpCode = opCode;
 
-    // Build buffer with complement bytes
     let buff = [];
     let sum = 0;
 
@@ -151,70 +100,50 @@ export class LegoRcx {
     buff.push(sum & 0xFF);
     buff.push((-1 - sum) & 0xFF);
 
-    // Add header
     return Uint8Array.from([0x55, 0xFF, 0x00, ...buff]);
   }
 
   async rcxCmd(cmd, vblen = 0) {
     return this.enqueue(async () => {
-      if (!this.port) return null;
-
       const buff = this.mkSerBuffWr(cmd);
-      console.log("Sent:", buff);
 
-      // Expected reply signature
+      // Expected signature
       const replyCode = buff[4];
       const replyComp = buff[3];
       const signature = Uint8Array.from([0x55, 0xFF, 0x00, replyCode, replyComp]);
 
-      // Clear input
-      const reader = this.port.readable.getReader();
-      await reader.cancel().catch(() => {});
-      reader.releaseLock();
+      // Clear buffer
+      this.incoming = new Uint8Array(0);
 
-      // Write
+      // Write command
       await this.writeBytes(buff);
 
-      // Read loop
-      const readReader = this.port.readable.getReader();
-      let collected = new Uint8Array(0);
-      let found = -1;
+      // Wait for reply
       const t0 = performance.now();
+      let found = -1;
 
-      try {
-        while (found === -1 && performance.now() < t0 + 1000) {
-          const { value, done } = await readReader.read();
-          if (done || !value) break;
-
-          // Append
-          let tmp = new Uint8Array(collected.length + value.length);
-          tmp.set(collected);
-          tmp.set(value, collected.length);
-          collected = tmp;
-
-          // Search signature
-          found = this.findSignature(collected, signature);
-        }
-      } finally {
-        readReader.releaseLock();
+      while (performance.now() < t0 + 1000) {
+        found = this.findSignature(this.incoming, signature);
+        if (found !== -1) break;
+        await new Promise(r => setTimeout(r, 5));
       }
 
-      if (found === -1) return null;
+      if (found === -1) {
+        console.warn(`[RCX ${this.name}] No reply for cmd ${cmd[0].toString(16)}`);
+        return null;
+      }
 
       if (vblen > 0) {
         const needed = signature.length + 2 * vblen;
-        while (collected.length < found + needed) {
-          const { value, done } = await readReader.read();
-          if (done || !value) break;
-          let tmp = new Uint8Array(collected.length + value.length);
-          tmp.set(collected);
-          tmp.set(value, collected.length);
-          collected = tmp;
+
+        while (this.incoming.length < found + needed) {
+          if (performance.now() > t0 + 1000) break;
+          await new Promise(r => setTimeout(r, 5));
         }
 
         let vals = [];
         for (let i = 0; i < vblen; i++) {
-          vals.push(collected[found + signature.length + i * 2]);
+          vals.push(this.incoming[found + signature.length + i * 2]);
         }
         return Uint8Array.from(vals);
       }
@@ -235,6 +164,23 @@ export class LegoRcx {
       if (ok) return i;
     }
     return -1;
+  }
+
+  // ---------------- Disconnect ----------------
+  async disconnect() {
+    this.queueActive = false;
+    this.readLoopActive = false;
+
+    try { await this.reader?.cancel(); } catch {}
+    try { this.reader?.releaseLock(); } catch {}
+    try { this.writer?.releaseLock(); } catch {}
+    try { await this.port?.close(); } catch {}
+
+    this.reader = null;
+    this.writer = null;
+    this.port = null;
+
+    console.log(`[RCX ${this.name}] Disconnected.`);
   }
 
   // ---------------- High-level commands ----------------
