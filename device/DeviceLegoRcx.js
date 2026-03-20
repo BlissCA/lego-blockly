@@ -109,33 +109,49 @@ export class LegoRcx {
         let collected = new Uint8Array(0);
         let found = -1;
 
-        while (performance.now() < t0 + 100) {   // RCX replies within 50–100ms
-          let readTimeout = false;
+        // Read until signature found or timeout
+        while (performance.now() < t0 + 200) {
 
-          const readPromise = reader.read();
-          const timeoutPromise = new Promise(r => setTimeout(() => {
-            readTimeout = true;
-            r({ value: null, done: false });
-          }, 20)); // 20ms timeout per read
+          let value = null;
+          let done = false;
 
-          const { value, done } = await Promise.race([readPromise, timeoutPromise]);
+          try {
+            // Try reading with timeout
+            const readPromise = reader.read();
+            const timeoutPromise = new Promise(r => setTimeout(() => {
+              r({ value: null, done: false });
+            }, 20));
 
-          if (readTimeout) continue;
+            ({ value, done } = await Promise.race([readPromise, timeoutPromise]));
+
+          } catch (err) {
+            // ⭐ Ignore parity errors completely
+            if (err?.name === "ParityError" || err?.message?.includes("Parity")) {
+              // Treat as no data
+              continue;
+            }
+
+            // Other errors → abort command
+            console.warn(`[RCX ${this.name}] Read error:`, err);
+            break;
+          }
+
           if (done) break;
           if (!value) continue;
 
+          // Append bytes
           let tmp = new Uint8Array(collected.length + value.length);
           tmp.set(collected);
           tmp.set(value, collected.length);
           collected = tmp;
 
-          // Require at least 6 bytes (header + opcode + complement)
+          // Require at least 6 bytes before checking signature
           if (collected.length >= 6) {
             found = this.findSignature(collected, signature);
             if (found !== -1) break;
           }
         }
-
+        
         if (found === -1) {
           console.warn(`[RCX ${this.name}] No reply for cmd ${cmd[0].toString(16)}`);
           return null;
