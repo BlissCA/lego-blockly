@@ -96,7 +96,11 @@ export class LegoRcx {
       const replyComp = buff[3];
       const signature = Uint8Array.from([0x55, 0xFF, 0x00, replyCode, replyComp]);
 
+      // Write command
       await this.writeBytes(buff);
+
+      // ⭐ REQUIRED DELAY for RCX IR tower half‑duplex switching
+      await new Promise(r => setTimeout(r, 20));
 
       const reader = this.port.readable.getReader();
 
