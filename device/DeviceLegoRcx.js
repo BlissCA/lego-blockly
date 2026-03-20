@@ -9,9 +9,6 @@ export class LegoRcx {
     this.reader = null;
     this.writer = null;
 
-    this.readLoopActive = false;
-    this.incoming = new Uint8Array(0);   // shared buffer
-
     this.queue = Promise.resolve();
     this.queueActive = true;
 
@@ -44,10 +41,6 @@ export class LegoRcx {
 
     this.writer = this.port.writable.getWriter();
 
-    // Start background reader
-    this.readLoopActive = true;
-    this.startReadLoop();
-
     console.log(`[RCX ${this.name}] Connected.`);
 
     // Try alive ping
@@ -58,44 +51,6 @@ export class LegoRcx {
     }
 
   }
-
-  // ---------------- Background Reader ----------------
-  async startReadLoop() {
-    while (this.readLoopActive) {
-      try {
-        this.reader = this.port.readable.getReader();
-
-        while (this.readLoopActive) {
-          const { value, done } = await this.reader.read();
-          if (done) break;
-          if (value) {
-            // Append to buffer
-            let tmp = new Uint8Array(this.incoming.length + value.length);
-            tmp.set(this.incoming);
-            tmp.set(value, this.incoming.length);
-            this.incoming = tmp;
-          }
-        }
-
-      } catch (err) {
-        console.warn(`[RCX ${this.name}] Reader stopped:`, err);
-
-        // ⭐ If parity error, restart reader
-        if (err?.name === "ParityError" || err?.message?.includes("Parity")) {
-          console.warn(`[RCX ${this.name}] Restarting reader after parity error`);
-          await new Promise(r => setTimeout(r, 20));
-          continue; // restart outer loop
-        }
-
-        // Other errors → break
-        break;
-
-      } finally {
-        try { this.reader?.releaseLock(); } catch {}
-      }
-    }
-  }
-
 
   // ---------------- Write ----------------
   async writeBytes(bytes) {
@@ -134,6 +89,7 @@ export class LegoRcx {
 
   async rcxCmd(cmd, vblen = 0) {
     return this.enqueue(async () => {
+
       const buff = this.mkSerBuffWr(cmd);
 
       // Expected signature
@@ -141,43 +97,67 @@ export class LegoRcx {
       const replyComp = buff[3];
       const signature = Uint8Array.from([0x55, 0xFF, 0x00, replyCode, replyComp]);
 
-      // Clear buffer
-      this.incoming = new Uint8Array(0);
-
       // Write command
       await this.writeBytes(buff);
 
-      // Wait for reply
-      const t0 = performance.now();
-      let found = -1;
+      // Create a reader for this command only
+      const reader = this.port.readable.getReader();
 
-      while (performance.now() < t0 + 1000) {
-        found = this.findSignature(this.incoming, signature);
-        if (found !== -1) break;
-        await new Promise(r => setTimeout(r, 5));
-      }
+      try {
+        const t0 = performance.now();
+        let collected = new Uint8Array(0);
+        let found = -1;
 
-      if (found === -1) {
-        console.warn(`[RCX ${this.name}] No reply for cmd ${cmd[0].toString(16)}`);
-        return null;
-      }
+        // Read until signature found or timeout
+        while (performance.now() < t0 + 1000) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (!value) continue;
 
-      if (vblen > 0) {
-        const needed = signature.length + 2 * vblen;
+          // Append bytes
+          let tmp = new Uint8Array(collected.length + value.length);
+          tmp.set(collected);
+          tmp.set(value, collected.length);
+          collected = tmp;
 
-        while (this.incoming.length < found + needed) {
-          if (performance.now() > t0 + 1000) break;
-          await new Promise(r => setTimeout(r, 5));
+          // Look for signature
+          found = this.findSignature(collected, signature);
+          if (found !== -1) break;
         }
 
-        let vals = [];
-        for (let i = 0; i < vblen; i++) {
-          vals.push(this.incoming[found + signature.length + i * 2]);
+        if (found === -1) {
+          console.warn(`[RCX ${this.name}] No reply for cmd ${cmd[0].toString(16)}`);
+          return null;
         }
-        return Uint8Array.from(vals);
-      }
 
-      return Uint8Array.from([0x00]);
+        // Extract returned values
+        if (vblen > 0) {
+          const needed = signature.length + 2 * vblen;
+
+          while (collected.length < found + needed) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+
+            let tmp = new Uint8Array(collected.length + value.length);
+            tmp.set(collected);
+            tmp.set(value, collected.length);
+            collected = tmp;
+          }
+
+          let vals = [];
+          for (let i = 0; i < vblen; i++) {
+            vals.push(collected[found + signature.length + i * 2]);
+          }
+          return Uint8Array.from(vals);
+        }
+
+        return Uint8Array.from([0x00]);
+
+      } finally {
+        // Release reader WITHOUT cancel()
+        try { reader.releaseLock(); } catch {}
+      }
     });
   }
 
@@ -198,9 +178,7 @@ export class LegoRcx {
   // ---------------- Disconnect ----------------
   async disconnect() {
     this.queueActive = false;
-    this.readLoopActive = false;
 
-    try { await this.reader?.cancel(); } catch {}
     try { this.reader?.releaseLock(); } catch {}
     try { this.writer?.releaseLock(); } catch {}
     try { await this.port?.close(); } catch {}
