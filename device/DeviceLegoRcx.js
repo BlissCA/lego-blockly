@@ -100,7 +100,7 @@ export class LegoRcx {
       await this.writeBytes(buff);
 
       // ⭐ REQUIRED DELAY for RCX IR tower half‑duplex switching
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise(r => setTimeout(r, 100));
 
       const reader = this.port.readable.getReader();
 
