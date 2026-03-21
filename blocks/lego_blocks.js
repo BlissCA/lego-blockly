@@ -1,11 +1,35 @@
 // Blockly is global (loaded from blockly.min.js)
 
+// ---------------- DEVICE DROPDOWNS ----------------
+
+// All devices (if you still need it somewhere)
 function getDeviceDropdown() {
   const devices = window.deviceManager?.devices || [];
   return devices.length
     ? devices.map(d => [d.name, d.name])
     : [['No devices', 'NONE']];
 }
+
+// Only LEGO Interface B devices
+function getLegoBDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("LegoB"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No Lego B', 'NONE']];
+}
+
+// Only RCX devices
+function getRcxDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("Rcx"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No RCX', 'NONE']];
+}
+
 
 window.addEventListener("load", () => {
 
@@ -17,7 +41,7 @@ window.addEventListener("load", () => {
       "type": "lego_inp_on",
       "message0": "%1 inp %2 ON",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -34,7 +58,7 @@ window.addEventListener("load", () => {
       "type": "lego_inp_val",
       "message0": "%1 inp %2 value",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -51,7 +75,7 @@ window.addEventListener("load", () => {
       "type": "lego_inp_tempf",
       "message0": "%1 inp %2 temp.°F",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -68,7 +92,7 @@ window.addEventListener("load", () => {
       "type": "lego_inp_tempc",
       "message0": "%1 inp %2 temp.°C",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -85,7 +109,7 @@ window.addEventListener("load", () => {
       "type": "lego_inp_rot",
       "message0": "%1 inp %2 rotation count",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -105,7 +129,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_on",
       "message0": "%1 out %2 ON",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -122,7 +146,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_onl",
       "message0": "%1 out %2 ON Left",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -139,7 +163,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_onr",
       "message0": "%1 out %2 ON Right",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -156,7 +180,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_off",
       "message0": "%1 out %2 OFF",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -173,7 +197,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_offall",
       "message0": "%1 out ALL OFF",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown }
       ],
       "inputsInline": true,
       "previousStatement": null,
@@ -185,7 +209,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_float",
       "message0": "%1 outp %2 FLOAT",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -202,7 +226,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_rev",
       "message0": "%1 out %2 REVERSE",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -219,7 +243,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_l",
       "message0": "%1 out %2 SET LEFT",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -236,7 +260,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_r",
       "message0": "%1 out %2 SET RIGHT",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -253,7 +277,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_pow",
       "message0": "%1 out %2 set power %3",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -279,7 +303,7 @@ window.addEventListener("load", () => {
       "type": "lego_out_onfor",
       "message0": "%1 out %2 ON FOR %3 x 0.1s",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getDeviceDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
           "type": "input_value",
           "name": "PORT",
@@ -304,7 +328,7 @@ window.addEventListener("load", () => {
         {
           "type": "field_dropdown",
           "name": "DEVICE",
-          "options": getDeviceDropdown
+          "options": getLegoBDropdown
         },
         {
           "type": "input_value",
@@ -527,7 +551,7 @@ window.addEventListener("load", () => {
 Blockly.Blocks["lego_multi_out_on"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out ON");
 
     this.appendDummyInput()
@@ -559,7 +583,7 @@ Blockly.Blocks["lego_multi_out_on"] = {
 Blockly.Blocks["lego_multi_out_off"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out OFF");
 
     this.appendDummyInput()
@@ -591,7 +615,7 @@ Blockly.Blocks["lego_multi_out_off"] = {
 Blockly.Blocks["lego_multi_out_float"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out Float");
 
     this.appendDummyInput()
@@ -623,7 +647,7 @@ Blockly.Blocks["lego_multi_out_float"] = {
 Blockly.Blocks["lego_multi_out_Rev"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out Reverse");
 
     this.appendDummyInput()
@@ -655,7 +679,7 @@ Blockly.Blocks["lego_multi_out_Rev"] = {
 Blockly.Blocks["lego_multi_out_L"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out Set Left");
 
     this.appendDummyInput()
@@ -687,7 +711,7 @@ Blockly.Blocks["lego_multi_out_L"] = {
 Blockly.Blocks["lego_multi_out_R"] = {
   init: function () {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out Set Right");
 
     this.appendDummyInput()
@@ -719,7 +743,7 @@ Blockly.Blocks["lego_multi_out_R"] = {
 Blockly.Blocks["lego_multi_pow"] = {
   init: function () {
     this.appendDummyInput("ROW1")
-      .appendField(new Blockly.FieldDropdown(getDeviceDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
       .appendField("Multi Out Set Pwr");
 
     this.appendValueInput("PWR")
