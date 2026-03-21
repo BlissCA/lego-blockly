@@ -30,9 +30,18 @@ export class LegoRcx {
   }
 
   // ---------------- Connect ----------------
-  async connect(port) {
-    this.port = port;
+  async connect() {
+    this.log("Requesting serial port...");
 
+    // 1. User selects a port (or autoSelectPort picks the last used one)
+    try {
+      this.port = await window.autoSelectPort();
+    } catch (err) {
+      this.log("User cancelled port selection");
+      throw err;  // bubble up to deviceManager
+    }
+
+    // 2. Open the port
     await this.port.open({
       baudRate: 2400,
       dataBits: 8,
@@ -43,18 +52,17 @@ export class LegoRcx {
 
     this.writer = this.port.writable.getWriter();
 
-    console.log(`[RCX ${this.name}] Connected.`);
+    this.log("Connected.");
     this.status = "Connected";
 
-
-    // Try alive ping
+    // 3. Try alive ping
     const ok = await this.alive();
     if (!ok) {
       this.log("RCX did not respond. Power it on.");
       window.logStatus(`RCX ${this.name}: Please power on the RCX.`);
     }
-
   }
+
 
   // ---------------- Write ----------------
   async writeBytes(bytes) {
