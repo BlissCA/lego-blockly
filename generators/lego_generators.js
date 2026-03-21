@@ -406,7 +406,7 @@ javascriptGenerator.forBlock["rcx_alive"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
 
   return [
-    `deviceManager.getDeviceByName("${dev}").alive()`,
+    `await deviceManager.getDeviceByName("${dev}").alive()`,
     javascriptGenerator.ORDER_NONE
   ];
 };
