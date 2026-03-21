@@ -187,9 +187,13 @@ async rcxCmd(cmd, vblen = 0) {
             for (let i = 0; i < vblen; i++) {
               vals.push(collected[found + signature.length + i * 2]);
             }
+            // ⭐ Mandatory cool‑down delay after successful RCX command
+            await new Promise(r => setTimeout(r, 20));
             return Uint8Array.from(vals);
           }
 
+          // ⭐ Mandatory cool‑down delay after successful RCX command
+          await new Promise(r => setTimeout(r, 20));
           return Uint8Array.from([0x00]);
         }
 
