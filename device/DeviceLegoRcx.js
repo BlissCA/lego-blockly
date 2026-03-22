@@ -52,8 +52,8 @@ export class LegoRcx {
       baudRate: 2400,
       dataBits: 8,
       stopBits: 1,
-      parity: "odd",
-      bufferSize: 256
+      parity: "none",
+      bufferSize: 3*32*1024
     });
 
     this.writer = this.port.writable.getWriter();
