@@ -49,10 +49,10 @@ export class LegoRcx {
 
     // 2. Open the port
     await this.port.open({
-      baudRate: 4800,
+      baudRate: 2400,
       dataBits: 8,
       stopBits: 1,
-      parity: "none",
+      parity: "odd",
       bufferSize: 3*32*1024
     });
 
@@ -131,7 +131,7 @@ async rcxCmd(cmd, vblen = 0) {
         let found = -1;
 
         // Read until signature found or timeout
-        while (performance.now() < t0 + 200) {
+        while (performance.now() < t0 + 1000) {  // was 200
 
           let value = null;
           let done = false;
@@ -140,7 +140,7 @@ async rcxCmd(cmd, vblen = 0) {
             const readPromise = reader.read();
             const timeoutPromise = new Promise(r => setTimeout(() => {
               r({ value: null, done: false });
-            }, 20));
+            }, 340)); // was 20
 
             ({ value, done } = await Promise.race([readPromise, timeoutPromise]));
 
@@ -178,7 +178,7 @@ async rcxCmd(cmd, vblen = 0) {
               const readPromise = reader.read();
               const timeoutPromise = new Promise(r => setTimeout(() => {
                 r({ value: null, done: false });
-              }, 20));
+              }, 340)); // was 20
 
               const { value, done } = await Promise.race([readPromise, timeoutPromise]);
               if (done || !value) break;
