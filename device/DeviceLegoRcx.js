@@ -49,7 +49,7 @@ export class LegoRcx {
 
     // 2. Open the port
     await this.port.open({
-      baudRate: 2400,
+      baudRate: 4800,
       dataBits: 8,
       stopBits: 1,
       parity: "none",
