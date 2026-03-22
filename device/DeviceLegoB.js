@@ -255,7 +255,8 @@ export class LegoInterfaceB {
 
     this.manager?.updateDeviceEntry?.(this);
     if (window.debugLogPackets) {
-        this.log(`Packet #${this.packetCount}: [${Array.from(packet).join(", ")}]`);
+      //this.log(`Packet #${this.packetCount}: [${Array.from(packet).join(", ")}]`);
+      this.log(`Packet #${this.packetCount}: [${Array.from(packet).toHex().match(/.{1,2}/g).join(' ')}]`);
     }
     this.lastPacket = packet;
 
