@@ -41,6 +41,12 @@ export class LegoRcx {
       throw err;  // bubble up to deviceManager
     }
 
+    // ⭐ Allocate name ONLY NOW
+    if (!this.name) {
+      this.name = this.manager._allocateName("Rcx");
+    }
+
+
     // 2. Open the port
     await this.port.open({
       baudRate: 2400,

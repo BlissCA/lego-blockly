@@ -87,7 +87,7 @@ export class DeviceManager {
 
   async connectLegoInterfaceB() {
     const name = this._allocateName("LegoB");
-    const dev = new LegoInterfaceB(name, this);
+    const dev = new LegoInterfaceB(null, this);
 
     try {
       await dev.connect();
@@ -108,7 +108,7 @@ export class DeviceManager {
 
   async connectRcx() {
     const name = this._allocateName("Rcx");
-    const dev = new LegoRcx(name, this);
+    const dev = new LegoRcx(null, this);
 
     try {
       await dev.connect();
@@ -117,7 +117,7 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("RCX connection failed:", err);
-      await dev.forceDisconnect();
+      await dev.Disconnect();
       this._freeName(name);
       return null;
     }
