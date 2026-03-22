@@ -512,7 +512,101 @@ const toolbox = {
       "name": "Lego RCX",
       "colour": 20,
       "contents": [
-        { "kind": "category", "name": "Motors", "colour": 20, "contents": []},
+        { "kind": "category", "name": "Motors", "colour": 20, "contents": [
+            { "kind": "block", "type": "Rcx_MotPort" },
+            {
+              "kind": "block",
+              "type": "rcx_mot_on",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "rcx_mot_off",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "rcx_mot_float",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "rcx_mot_flip",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "rcx_mot_f",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "rcx_mot_r",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+
+            {
+              "kind": "block",
+              "type": "rcx_mot_pow",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Rcx_MotPort",
+                    "fields": { "LETTER": "1" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 7 }
+                  }
+                }
+              }
+            }
+          ]
+        },
         { "kind": "category", "name": "Sensors Config", "colour": 20, "contents": []},
         { "kind": "category", "name": "Misc", "colour": 20, "contents": [
             {

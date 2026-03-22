@@ -207,7 +207,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "lego_out_float",
-      "message0": "%1 outp %2 FLOAT",
+      "message0": "%1 out %2 FLOAT",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
@@ -570,6 +570,135 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "output": "Boolean",
       "colour": 20
+    },
+    // ---------------- RCX OUTPUT BLOCKS ----------------
+
+    {
+      "type": "rcx_mot_on",
+      "message0": "%1 Motors %2 ON",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_off",
+      "message0": "%1 Motors %2 OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_float",
+      "message0": "%1 Motors %2 FLOAT",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_flip",
+      "message0": "%1 Motors %2 Flip",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_f",
+      "message0": "%1 Motors %2 Set forward",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_r",
+      "message0": "%1 Motors %2 SET RIGHT",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "rcx_mot_pow",
+      "message0": "%1 Motors %2 set power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 7 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
     }
 
   ]);
@@ -815,6 +944,19 @@ Blockly.Blocks['Legob_outportalpha'] = {
 
     this.setOutput(true, "Number");
     this.setColour(230);
-    this.setTooltip("Returns a predefined constant value.");
+    this.setTooltip("Returns a predefined constant value for Lego B output ports.");
+  }
+};
+
+Blockly.Blocks['Rcx_MotPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"], ["C", "4"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for RCX output ports.");
   }
 };

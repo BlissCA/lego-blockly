@@ -388,6 +388,114 @@ javascriptGenerator.forBlock['named_timer_remaining'] = function(block) {
 };
 
 // ---------------- RCX DEVICE GENERATORS ----------------
+
+// ---------------- Lego RCX Output Port Letters A, B, C = 1, 2, 4 ----------------
+javascriptGenerator.forBlock["Rcx_MotPort"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["rcx_mot_on"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).on();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_off"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).off();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_float"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).float();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_flip"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).flip();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_f"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).f();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_r"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).r();
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_mot_pow"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.mot(${ports}).pow(${pwr});
+}
+`;
+};
+
 javascriptGenerator.forBlock["rcx_snd"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const sound = javascriptGenerator.valueToCode(block, "SOUND", javascriptGenerator.ORDER_NONE) || "0";
