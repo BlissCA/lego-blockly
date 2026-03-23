@@ -571,6 +571,7 @@ window.addEventListener("load", () => {
       "output": "Boolean",
       "colour": 20
     },
+
     // ---------------- RCX OUTPUT BLOCKS ----------------
 
     {
@@ -693,26 +694,6 @@ window.addEventListener("load", () => {
             "type": "math_number",
             "fields": { "NUM": 7 }
           }
-        }
-      ],
-      "inputsInline": true,
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": 20
-    },
-    {
-      "type": "rcx_getval",
-      "message0": "%1 get val. Scr: %2 Arg: %3",
-      "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
-        { "type": "field_dropdown", "name": "SOURCE", "options": [["VAR", "0"], ["TMR", "1"], ["MOT", "3"], ["PRG", "8"], ["SV", "9"], ["ST", "10"], ["SM", "11"], ["SR", "12"], ["SB", "13"], ["CLK", "14"], ["MSG", "15"] ]},
-        {
-          "type": "field_number",
-          "name": "ARG",
-          "value": 0,
-          "min": 0,
-          "max": 31,
-          "precision": 1,
         }
       ],
       "inputsInline": true,
@@ -981,15 +962,28 @@ Blockly.Blocks['Rcx_MotPort'] = {
   }
 };
 
-Blockly.Blocks['Rcx_Source'] = {
+Blockly.Blocks['rcx_getval'] = {
   init: function() {
-    this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([
-        ["VAR", "0"], ["TMR", "1"], ["MOT", "3"], ["PRG", "8"], ["SV", "9"], ["ST", "10"], ["SM", "11"], ["SR", "12"], ["SB", "13"], ["CLK", "14"], ["MSG", "15"]
-      ]), "SOURCE");
+    this.jsonInit({
+      "message0": "%1 get val. Scr: %2 Arg: %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        { "type": "field_dropdown", "name": "SOURCE", "options": [["VAR", "0"], ["TMR", "1"], ["MOT", "3"], ["PRG", "8"], ["SV", "9"], ["ST", "10"], ["SM", "11"], ["SR", "12"], ["SB", "13"], ["CLK", "14"], ["MSG", "15"] ]},
+        {
+          "type": "field_number",
+          "name": "ARG",
+          "value": 0,
+          "min": 0,
+          "max": 31,
+          "precision": 1,
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 20
+    });
+
     this.setFieldValue("9", "SOURCE");
-    this.setOutput(true, "Number");
-    this.setColour(230);
     this.setTooltip("Sources: SV=Sensor Value, SR=Raw Value, SB=Boolean Value");
   }
 };
