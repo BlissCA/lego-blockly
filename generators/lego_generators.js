@@ -525,7 +525,7 @@ javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   const arg  = block.getFieldValue("ARG"); //javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
 
   return [
-    `await deviceManager.getDeviceByName("${dev}").getVal(${source}, ${arg})`, 
+    `await deviceManager.getDeviceByName("${dev}").getval(${source}, ${arg})`, 
     javascriptGenerator.ORDER_NONE
   ];
 };
