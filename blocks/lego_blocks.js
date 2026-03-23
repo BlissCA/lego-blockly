@@ -705,7 +705,7 @@ window.addEventListener("load", () => {
       "message0": "%1 get val. Scr: %2 Arg: %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
-        { "type": "field_dropdown", "name": "SOURCE", "options": Rcx_Source },
+        { "type": "input_value", "name": "SOURCE", "check": "Number" },
         {
           "type": "field_number",
           "name": "ARG",
