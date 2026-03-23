@@ -965,7 +965,7 @@ Blockly.Blocks['Rcx_MotPort'] = {
 Blockly.Blocks['rcx_getval'] = {
   init: function() {
     this.jsonInit({
-      "message0": "%1 get val. Scr: %2 Arg: %3",
+      "message0": "%1 get val. Source: %2 Arg: %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
         { "type": "field_dropdown", "name": "SOURCE", "options": [["VAR", "0"], ["TMR", "1"], ["MOT", "3"], ["PRG", "8"], ["SV", "9"], ["ST", "10"], ["SM", "11"], ["SR", "12"], ["SB", "13"], ["CLK", "14"], ["MSG", "15"] ]},

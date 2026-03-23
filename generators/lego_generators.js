@@ -521,8 +521,8 @@ javascriptGenerator.forBlock["rcx_alive"] = function (block) {
 
 javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const source = javascriptGenerator.valueToCode(block, "SOURCE", javascriptGenerator.ORDER_NONE) || "0";
-  const arg  = javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
+  const source = block.getFieldValue("SOURCE"); //javascriptGenerator.valueToCode(block, "SOURCE", javascriptGenerator.ORDER_NONE) || "0";
+  const arg  = block.getFieldValue("ARG"); //javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
 
   return `
 {
