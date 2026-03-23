@@ -524,12 +524,13 @@ javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   const source = block.getFieldValue("SOURCE"); //javascriptGenerator.valueToCode(block, "SOURCE", javascriptGenerator.ORDER_NONE) || "0";
   const arg  = block.getFieldValue("ARG"); //javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
 
-  return `
-{
-  shouldStop();
-  const dev = deviceManager.getDeviceByName("${dev}");
-  if (!dev) throw new Error("Device lost");
-  await dev.getVal(${source}, ${arg});
-}
-`;
+  return [
+    `
+      {
+        shouldStop();
+        const dev = deviceManager.getDeviceByName("${dev}");
+        if (!dev) throw new Error("Device lost");
+        await dev.getVal(${source}, ${arg});
+      }
+    `, javascriptGenerator.ORDER_NONE];
 };
