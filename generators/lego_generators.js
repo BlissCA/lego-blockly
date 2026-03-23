@@ -518,3 +518,18 @@ javascriptGenerator.forBlock["rcx_alive"] = function (block) {
     javascriptGenerator.ORDER_NONE
   ];
 };
+
+javascriptGenerator.forBlock["rcx_getval"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const source = javascriptGenerator.valueToCode(block, "SOURCE", javascriptGenerator.ORDER_NONE) || "0";
+  const arg  = javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.getVal(${source}, ${arg});
+}
+`;
+};

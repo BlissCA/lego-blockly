@@ -626,7 +626,11 @@ const toolbox = {
             {
               "kind": "block",
               "type": "rcx_alive"
-            }            
+            },
+            {
+              "kind": "block",
+              "type": "rcx_getval"
+            }                        
           ]
         }
       ]
