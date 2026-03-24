@@ -517,6 +517,75 @@ javascriptGenerator.forBlock["rcx_snd"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["rcx_msg"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const msg = javascriptGenerator.valueToCode(block, "MSG", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.msg(${msg});
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_prog"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const prog = javascriptGenerator.valueToCode(block, "PROG", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.prg(${prog});
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcxstarttask"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const task = javascriptGenerator.valueToCode(block, "TASK", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.start(${task});
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcxstoptask"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const task = javascriptGenerator.valueToCode(block, "TASK", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stop(${task});
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_stopall"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+ 
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stop(-1);
+}
+`;
+};
+
 javascriptGenerator.forBlock["rcx_alive"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
 

@@ -663,6 +663,70 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "rcx_msg",
+              "inputs": {
+                "MSG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {"NUM": 0,},
+                    "min": 0,
+                    "max": 255,
+                    "precision": 1
+                  }
+                }
+              }              
+            },
+            {
+              "kind": "block",
+              "type": "rcx_prog",
+              "inputs": {
+                "MSG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {"PROG": 1},
+                    "min": 1,
+                    "max": 5,
+                    "precision": 1
+                  }
+                }
+              }              
+            },
+            {
+              "kind": "block",
+              "type": "rcx_starttask",
+              "inputs": {
+                "MSG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {"TASK": 0},
+                    "min": 0,
+                    "max": 9,
+                    "precision": 1
+                  }
+                }
+              }              
+            },
+            {
+              "kind": "block",
+              "type": "rcx_stoptask",
+              "inputs": {
+                "MSG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {"TASK": 0},
+                    "min": 0,
+                    "max": 9,
+                    "precision": 1
+                  }
+                }
+              }              
+            },
+            {
+              "kind": "block",
+              "type": "rcx_stopall"
+            },
+            {
+              "kind": "block",
               "type": "rcx_alive"
             },
             {

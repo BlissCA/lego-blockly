@@ -562,6 +562,91 @@ window.addEventListener("load", () => {
       "colour": 20
     },
     {
+      "type": "rcx_prog",
+      "message0": "%1 program %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "PROG",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_starttask",
+      "message0": "%1 start task %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "TASK",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_stoptask",
+      "message0": "%1 stop task %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "TASK",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_stopall",
+      "message0": "%1 stop all tasks",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_msg",
+      "message0": "%1 msg %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        {
+          "type": "input_value",
+          "name": "MSG",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_alive",
+      "message0": "%1 alive?",
+      "args0": [
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
       "type": "rcx_alive",
       "message0": "%1 alive?",
       "args0": [
