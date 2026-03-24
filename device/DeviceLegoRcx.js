@@ -16,6 +16,7 @@ export class LegoRcx {
 
     this.lastOpCode = 0;
     this.opCodeEx = new Set([0xF7]);
+    this.NoReply = false;
   }
 
   log(msg) {
@@ -83,6 +84,12 @@ export class LegoRcx {
 
     let opCode = cmd[0];
 
+    if (this.opCodeEx.has(opCode)) {
+      this.NoReply = true;
+    } else {
+      this.NoReply = false;
+    }
+
     if (opCode === this.lastOpCode && !this.opCodeEx.has(opCode)) {
       opCode ^= 0x08; // toggle bit
       cmd = Uint8Array.from([opCode, ...cmd.slice(1)]);
@@ -123,6 +130,11 @@ async rcxCmd(cmd, vblen = 0) {
       // Allow IR tower to switch TX→RX
       await new Promise(r => setTimeout(r, 20));
 
+      if (this.NoReply) {
+        // No-reply command (e.g. msg) → return immediately
+        return Uint8Array.from([0x00]);
+      }
+      
       const reader = this.port.readable.getReader();
 
       try {
