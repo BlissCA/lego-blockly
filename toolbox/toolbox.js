@@ -680,7 +680,7 @@ const toolbox = {
               "kind": "block",
               "type": "rcx_prog",
               "inputs": {
-                "MSG": {
+                "PROG": {
                   "shadow": {
                     "type": "math_number",
                     "fields": {"PROG": 1},
