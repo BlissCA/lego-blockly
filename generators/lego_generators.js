@@ -545,7 +545,7 @@ javascriptGenerator.forBlock["rcx_prog"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["rcxstarttask"] = function (block) {
+javascriptGenerator.forBlock["rcx_starttask"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const task = javascriptGenerator.valueToCode(block, "TASK", javascriptGenerator.ORDER_NONE) || "0";
 
@@ -559,7 +559,7 @@ javascriptGenerator.forBlock["rcxstarttask"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["rcxstoptask"] = function (block) {
+javascriptGenerator.forBlock["rcx_stoptask"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const task = javascriptGenerator.valueToCode(block, "TASK", javascriptGenerator.ORDER_NONE) || "0";
 
