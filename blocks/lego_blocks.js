@@ -1042,7 +1042,7 @@ Blockly.Blocks['rcx_sensorclear'] = {
 Blockly.Blocks['rcx_getinpval'] = {
   init: function() {
     this.jsonInit({
-      "message0": "%1 value of input: %2",
+      "message0": "%1 inp %2 value",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
         { "type": "input_value", "name": "PORT", "check": "Number" },
