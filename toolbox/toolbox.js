@@ -731,6 +731,10 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "rcx_pwroff"
+            },
+            {
+              "kind": "block",
               "type": "rcx_getval"
             },
             {

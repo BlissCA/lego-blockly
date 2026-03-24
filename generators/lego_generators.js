@@ -595,6 +595,19 @@ javascriptGenerator.forBlock["rcx_alive"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["rcx_pwroff"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+ 
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.pwroff();
+}
+`;
+};
+
 javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const source = block.getFieldValue("SOURCE");

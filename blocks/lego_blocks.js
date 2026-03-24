@@ -656,6 +656,17 @@ window.addEventListener("load", () => {
       "output": "Boolean",
       "colour": 20
     },
+    {
+      "type": "rcx_pwroff",
+      "message0": "%1 power off",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
 
     // ---------------- RCX OUTPUT BLOCKS ----------------
 
