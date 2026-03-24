@@ -657,7 +657,7 @@ const toolbox = {
             {
               "kind": "block",
               "type": "rcx_getval"
-            }
+            },
             {
               "kind": "block",
               "type": "rcx_getinpval",
