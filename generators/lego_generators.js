@@ -551,3 +551,17 @@ javascriptGenerator.forBlock["rcx_sensortype"] = function (block) {
 }
 `;
 };
+
+javascriptGenerator.forBlock["rcx_sensorclear"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sensor(${port}).clear();
+}
+`;
+};

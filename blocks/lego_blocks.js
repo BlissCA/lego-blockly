@@ -1020,3 +1020,21 @@ Blockly.Blocks['rcx_sensortype'] = {
     this.setTooltip("Sensor Types");
   }
 };
+
+Blockly.Blocks['rcx_sensorclear'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 input: %2 clrear rot.count",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+
+    this.setTooltip("Rotation clear count to 0");
+  }
+};
