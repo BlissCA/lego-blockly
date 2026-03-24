@@ -607,7 +607,13 @@ const toolbox = {
             }
           ]
         },
-        { "kind": "category", "name": "Sensors Config", "colour": 20, "contents": []},
+        { "kind": "category", "name": "Sensors Config", "colour": 20, "contents": [
+            {
+              "kind": "block",
+              "type": "rcx_sensortype"
+            }                        
+          ]
+        },
         { "kind": "category", "name": "Misc", "colour": 20, "contents": [
             {
               "kind": "block",

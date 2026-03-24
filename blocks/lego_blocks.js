@@ -962,6 +962,19 @@ Blockly.Blocks['Rcx_MotPort'] = {
   }
 };
 
+Blockly.Blocks['Rcx_InpPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["1", "0"], ["2", "1"], ["3", "2"]
+      ]), "INPPORT");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for RCX input ports.");
+  }
+};
+
 Blockly.Blocks['rcx_getval'] = {
   init: function() {
     this.jsonInit({
@@ -985,5 +998,25 @@ Blockly.Blocks['rcx_getval'] = {
 
     this.setFieldValue("9", "SOURCE");
     this.setTooltip("Sources: SV=Sensor Value, SR=Raw Value, SB=Boolean Value");
+  }
+};
+
+Blockly.Blocks['rcx_sensortype'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 input: %2 type: %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number", "shadow": { "type": "Rcx_InpPort", "fields": { "INPPORT": 0 } } },
+        { "type": "field_dropdown", "name": "TYPE", "options": [["RAW", "0"], ["TOUCH", "1"], ["TEMP", "2"], ["LIGHT", "3"], ["ROT", "4"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+
+    this.setFieldValue("1", "TYPE");
+    this.setTooltip("Sensor Types");
   }
 };

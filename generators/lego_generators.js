@@ -529,3 +529,18 @@ javascriptGenerator.forBlock["rcx_getval"] = function (block) {
     javascriptGenerator.ORDER_NONE
   ];
 };
+
+javascriptGenerator.forBlock["rcx_sensortype"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const type  = block.getFieldValue("TYPE"); //javascriptGenerator.valueToCode(block, "TYPE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sensor(${port}).type(${type});
+}
+`;
+};
