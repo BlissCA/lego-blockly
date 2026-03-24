@@ -1038,3 +1038,20 @@ Blockly.Blocks['rcx_sensorclear'] = {
     this.setTooltip("Rotation clear count to 0");
   }
 };
+
+Blockly.Blocks['rcx_getinpval'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 value of input: %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 20
+    });
+
+    this.setTooltip("Get Value of Input Port");
+  }
+};

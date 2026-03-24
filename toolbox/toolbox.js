@@ -657,7 +657,19 @@ const toolbox = {
             {
               "kind": "block",
               "type": "rcx_getval"
-            }                        
+            }
+            {
+              "kind": "block",
+              "type": "rcx_getinpval",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Rcx_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }            
+              }
+            }                                    
           ]
         }
       ]

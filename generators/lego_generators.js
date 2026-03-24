@@ -528,8 +528,8 @@ javascriptGenerator.forBlock["rcx_alive"] = function (block) {
 
 javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const source = block.getFieldValue("SOURCE"); //javascriptGenerator.valueToCode(block, "SOURCE", javascriptGenerator.ORDER_NONE) || "0";
-  const arg  = block.getFieldValue("ARG"); //javascriptGenerator.valueToCode(block, "ARG",  javascriptGenerator.ORDER_NONE) || "0";
+  const source = block.getFieldValue("SOURCE");
+  const arg  = block.getFieldValue("ARG");
 
   return [
     `await deviceManager.getDeviceByName("${dev}").getval(${source}, ${arg})`, 
@@ -537,10 +537,20 @@ javascriptGenerator.forBlock["rcx_getval"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["rcx_getinpval"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getval(9, ${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
 javascriptGenerator.forBlock["rcx_sensortype"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
-  const type  = block.getFieldValue("TYPE"); //javascriptGenerator.valueToCode(block, "TYPE",  javascriptGenerator.ORDER_NONE) || "0";
+  const type  = block.getFieldValue("TYPE");
 
   return `
 {
