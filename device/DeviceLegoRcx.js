@@ -128,13 +128,13 @@ async rcxCmd(cmd, vblen = 0) {
       await this.writeBytes(buff);
 
       // Allow IR tower to switch TX→RX
-      await new Promise(r => setTimeout(r, 20));
+      //await new Promise(r => setTimeout(r, 20));
 
       if (this.NoReply) {
         // No-reply command (e.g. msg) → return immediately
         return Uint8Array.from([0x00]);
       }
-      
+
       const reader = this.port.readable.getReader();
 
       try {
