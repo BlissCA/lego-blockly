@@ -610,8 +610,16 @@ const toolbox = {
         { "kind": "category", "name": "Sensors Config", "colour": 20, "contents": [
             {
               "kind": "block",
-              "type": "rcx_sensortype"
-            }                        
+              "type": "rcx_sensortype",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Rcx_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }            
+              } 
+            }                       
           ]
         },
         { "kind": "category", "name": "Misc", "colour": 20, "contents": [

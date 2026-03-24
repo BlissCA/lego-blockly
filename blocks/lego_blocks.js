@@ -1007,7 +1007,7 @@ Blockly.Blocks['rcx_sensortype'] = {
       "message0": "%1 input: %2 type: %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
-        { "type": "input_value", "name": "PORT", "check": "Number", "shadow": { "type": "Rcx_InpPort", "fields": { "INPPORT": 0 } } },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
         { "type": "field_dropdown", "name": "TYPE", "options": [["RAW", "0"], ["TOUCH", "1"], ["TEMP", "2"], ["LIGHT", "3"], ["ROT", "4"] ]}
       ],
       "inputsInline": true,
