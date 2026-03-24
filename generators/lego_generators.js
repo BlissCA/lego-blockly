@@ -586,15 +586,6 @@ javascriptGenerator.forBlock["rcx_stopall"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["rcx_alive"] = function (block) {
-  const dev = block.getFieldValue("DEVICE");
-
-  return [
-    `await deviceManager.getDeviceByName("${dev}").alive()`,
-    javascriptGenerator.ORDER_NONE
-  ];
-};
-
 javascriptGenerator.forBlock["rcx_pwroff"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
  
@@ -606,6 +597,15 @@ javascriptGenerator.forBlock["rcx_pwroff"] = function (block) {
   await dev.pwroff();
 }
 `;
+};
+
+javascriptGenerator.forBlock["rcx_alive"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").alive()`,
+    javascriptGenerator.ORDER_NONE
+  ];
 };
 
 javascriptGenerator.forBlock["rcx_getval"] = function (block) {

@@ -647,16 +647,6 @@ window.addEventListener("load", () => {
       "colour": 20
     },
     {
-      "type": "rcx_alive",
-      "message0": "%1 alive?",
-      "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown }
-      ],
-      "inputsInline": true,
-      "output": "Boolean",
-      "colour": 20
-    },
-    {
       "type": "rcx_pwroff",
       "message0": "%1 power off",
       "args0": [
@@ -665,6 +655,16 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "rcx_alive",
+      "message0": "%1 alive?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
       "colour": 20
     },
 
