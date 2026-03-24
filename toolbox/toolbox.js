@@ -683,7 +683,7 @@ const toolbox = {
                 "PROG": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": {"PROG": 1},
+                    "fields": {"NUM": 1},
                     "min": 1,
                     "max": 5,
                     "precision": 1
@@ -695,10 +695,10 @@ const toolbox = {
               "kind": "block",
               "type": "rcx_starttask",
               "inputs": {
-                "MSG": {
+                "TASK": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": {"TASK": 0},
+                    "fields": {"NUM": 0},
                     "min": 0,
                     "max": 9,
                     "precision": 1
@@ -710,10 +710,10 @@ const toolbox = {
               "kind": "block",
               "type": "rcx_stoptask",
               "inputs": {
-                "MSG": {
+                "TASK": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": {"TASK": 0},
+                    "fields": {"NUM": 0},
                     "min": 0,
                     "max": 9,
                     "precision": 1
