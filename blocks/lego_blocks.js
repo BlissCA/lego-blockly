@@ -1001,6 +1001,13 @@ Blockly.Blocks['rcx_getval'] = {
   }
 };
 
+/*
+    # TypeRaw = 0
+    # TypeTouch = 1
+    # TypeTemp = 2
+    # TypeLight = 3
+    # TypeRot = 4
+*/
 Blockly.Blocks['rcx_sensortype'] = {
   init: function() {
     this.jsonInit({
@@ -1018,6 +1025,39 @@ Blockly.Blocks['rcx_sensortype'] = {
 
     this.setFieldValue("1", "TYPE");
     this.setTooltip("Sensor Types");
+  }
+};
+
+/*
+    #    ModeRaw = 0x00		Value in 0...1023.
+    #    ModeBool = 0x20	Either 0 or 1. (default for Touch sensor type)
+    #    ModeEdge = 0x40	Number of boolean transitions.
+    #    ModePulse = 0x60	Number of boolean transitions divided by two. 
+    #    ModePct = 0x80		Raw value scaled to 0..100. (default for Light sensor type)
+    #    ModeTempC = 0xA0	1/10ths of a degree, -19.8..69.5. (default for Temperature sensor type)
+    #    ModeTempF = 0xC0	1/10ths of a degree, -3.6..157.1.
+    #    ModeAngle = 0xE0	1/16ths of a rotation, represented as a signed short.  (Default for Rotation sensor type)
+
+    # 	 Ex.: >>> rcx.sensor(rcx.inp1).mode(rcx.ModeRaw) # configures input 1 for raw value. (Slope 0)
+    # 	 Ex.: with slope >>> rcx.sensor(inp1).mode(rcx.ModeBool + 15) # configures input 1 for boolean value with slope of 15.
+*/
+Blockly.Blocks['rcx_sensormode'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 input: %2 mode: %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+        { "type": "field_dropdown", "name": "MODE", "options": [["RAW", "0x00"], ["BOOL", "0x20"], ["EDGE", "0x40"], ["PULSE", "0x60"], ["PCT", "0x80"], ["TEMP_C", "0xA0"], ["TEMP_F", "0xC0"], ["ANGLE", "0xE0"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+
+    this.setFieldValue("0x00", "MODE");
+    this.setTooltip("Sensor Modes");
   }
 };
 

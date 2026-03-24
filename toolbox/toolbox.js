@@ -622,6 +622,17 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "rcx_sensormode",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Rcx_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }            
+              } 
+            },            {
+              "kind": "block",
               "type": "rcx_sensorclear",
               "inputs": {
                 "PORT": {
