@@ -64,9 +64,40 @@
 
   <script>
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js");
+    navigator.serviceWorker.register("./service-worker.js").then(reg => {
+
+      function showUpdateBanner(worker) {
+        const banner = document.getElementById("update-banner");
+        banner.style.display = "flex";
+
+        document.getElementById("update-button").onclick = () => {
+          worker.postMessage({ action: "skipWaiting" });
+        };
+      }
+
+      // Detect new service worker
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            showUpdateBanner(newWorker);
+          }
+        });
+      });
+
+      // When the new SW activates, reload the page
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        window.location.reload();
+      });
+
+    });
   }
   </script>
-
+  
+  <div id="update-banner">
+    <span>A new version is available.</span>
+    <button id="update-button">Update</button>
+  </div>
 </body>
 </html>

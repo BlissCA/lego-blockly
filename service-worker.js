@@ -1,3 +1,7 @@
+self.addEventListener("install", event => {
+  self.skipWaiting(); // allow SW to move to "waiting" immediately
+});
+
 const CACHE_NAME = "lego-blockly-cache-v1";
 
 const ASSETS = [
@@ -49,4 +53,10 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
+});
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.action === "skipWaiting") {
+    self.skipWaiting();
+  }
 });
