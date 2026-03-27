@@ -672,3 +672,58 @@ javascriptGenerator.forBlock["rcx_sensorclear"] = function (block) {
 }
 `;
 };
+
+
+// ---------------- MQTT GENERATORS ----------------
+
+javascriptGenerator.forBlock["mqtt_config"] = function (block) {
+  const host = block.getFieldValue("HOST");
+  const port = block.getFieldValue("PORT");
+  const tls = block.getFieldValue("TLS") === "TRUE";
+  const username = block.getFieldValue("USERNAME");
+  const password = block.getFieldValue("PASSWORD");
+
+  const code = `
+await mqttClient.connect({
+  host: "${host}",
+  port: ${port},
+  useTls: ${tls},
+  username: "${username}",
+  password: "${password}"
+});
+`;
+  return code;
+};
+
+javascriptGenerator.forBlock["mqtt_publish"] = function (block) {
+  const topic = block.getFieldValue("TOPIC");
+  const msg = javascriptGenerator.valueToCode(block, "MSG", javascriptGenerator.ORDER_NONE) || '""';
+
+  const code = `
+await mqttClient.publish("${topic}", String(${msg}));
+`;
+  return code;
+};
+
+javascriptGenerator.forBlock["mqtt_subscribe"] = function (block) {
+  const topic = block.getFieldValue("TOPIC");
+
+  const code = `
+await mqttClient.subscribe("${topic}");
+`;
+  return code;
+};
+
+javascriptGenerator.forBlock["mqtt_on_message"] = function (block) {
+  const topic = block.getFieldValue("TOPIC");
+  const statements = javascriptGenerator.statementToCode(block, "DO");
+
+  const code = `
+mqttClient.onMessage("${topic}", async (topic, payload) => {
+  const MQTT_TOPIC = topic;
+  const MQTT_PAYLOAD = payload;
+  ${statements}
+});
+`;
+  return code;
+};

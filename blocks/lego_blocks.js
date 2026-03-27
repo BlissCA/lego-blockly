@@ -1191,3 +1191,69 @@ Blockly.Blocks['rcx_getinpval'] = {
     this.setTooltip("Get Value of Input Port");
   }
 };
+
+
+// ---------------- MQTT BLOCKS ----------------
+
+Blockly.Blocks["mqtt_config"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("MQTT connect to")
+      .appendField(new Blockly.FieldTextInput("192.168.1.10"), "HOST")
+      .appendField("port")
+      .appendField(new Blockly.FieldNumber(9001, 1, 65535), "PORT");
+
+    this.appendDummyInput()
+      .appendField("username")
+      .appendField(new Blockly.FieldTextInput(""), "USERNAME");
+
+    this.appendDummyInput()
+      .appendField("password")
+      .appendField(new Blockly.FieldPassword(""), "PASSWORD");
+
+    this.appendDummyInput()
+      .appendField("TLS")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "TLS");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks["mqtt_publish"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("MQTT publish topic")
+      .appendField(new Blockly.FieldTextInput("robot/status"), "TOPIC");
+    this.appendValueInput("MSG")
+      .setCheck("String")
+      .appendField("message");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks["mqtt_subscribe"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("MQTT subscribe topic")
+      .appendField(new Blockly.FieldTextInput("robot/cmd"), "TOPIC");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
+
+Blockly.Blocks["mqtt_on_message"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("when MQTT message on topic")
+      .appendField(new Blockly.FieldTextInput("robot/cmd"), "TOPIC");
+    this.appendStatementInput("DO")
+      .setCheck(null)
+      .appendField("do");
+    this.setColour(230);
+  }
+};

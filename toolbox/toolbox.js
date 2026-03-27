@@ -752,6 +752,30 @@ const toolbox = {
           ]
         }
       ]
+    },
+    {
+      "kind": "category",
+      "name": "MQTT",
+      "colour": 230,
+      "contents": [
+        {
+          "kind": "block",
+          "type": "mqtt_config"
+        },
+        {
+          "kind": "block",
+          "type": "mqtt_publish"
+        },
+        {
+          "kind": "block",
+          "type": "mqtt_subscribe"
+        },
+        {
+          "kind": "block",
+          "type": "mqtt_on_message"
+        }
+
+      ]
     }
 /*     {
       "kind": "category",
