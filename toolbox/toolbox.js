@@ -752,7 +752,8 @@ const toolbox = {
           ]
         }
       ]
-    },
+    }
+/*
     {
       "kind": "category",
       "name": "MQTT",
@@ -776,7 +777,8 @@ const toolbox = {
         }
 
       ]
-    }
+    } */
+   
 /*     {
       "kind": "category",
       "name": "HMI",

@@ -1,8 +1,8 @@
 // Blockly is loaded globally from blockly.min.js
 const javascriptGenerator = Blockly.JavaScript;
 
-import "./mqttClient.js";
-import "./field_password.js";
+// import "./mqttClient.js";
+// import "./field_password.js"; // (used by MQTT blocks)
 
 // Custom blocks + generators
 import "./blocks/lego_blocks.js";
@@ -337,7 +337,7 @@ document.getElementById("stopBtn").onclick = async () => {
       console.warn("Output stop error:", err);
     }
   }
-  mqttClient.stop();
+  // mqttClient.stop();
   logStatus("Program stopped (devices remain connected).");
 };
 

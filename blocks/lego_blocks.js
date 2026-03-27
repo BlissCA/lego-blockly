@@ -1193,6 +1193,7 @@ Blockly.Blocks['rcx_getinpval'] = {
 };
 
 
+/* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------
 
 Blockly.Blocks["mqtt_config"] = {
@@ -1257,3 +1258,4 @@ Blockly.Blocks["mqtt_on_message"] = {
     this.setColour(230);
   }
 };
+*/

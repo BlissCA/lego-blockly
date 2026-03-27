@@ -673,9 +673,8 @@ javascriptGenerator.forBlock["rcx_sensorclear"] = function (block) {
 `;
 };
 
-
+/* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
-
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {
   const host = block.getFieldValue("HOST");
   const port = block.getFieldValue("PORT");
@@ -731,3 +730,4 @@ mqttClient.onMessage("${topic}", async (topic, payload) => {
 `;
   return code;
 };
+*/
