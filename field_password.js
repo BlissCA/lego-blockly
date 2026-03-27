@@ -1,4 +1,4 @@
-class FieldPassword extends Blockly.FieldTextInput {
+export class FieldPassword extends Blockly.FieldTextInput {
   constructor(value, opt_validator) {
     super(value, opt_validator);
 

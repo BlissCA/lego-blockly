@@ -1,6 +1,9 @@
 // Blockly is loaded globally from blockly.min.js
 const javascriptGenerator = Blockly.JavaScript;
 
+import "./mqttClient.js";
+import "./field_password.js";
+
 // Custom blocks + generators
 import "./blocks/lego_blocks.js";
 //import "./blocks/hmi_blocks.js";
