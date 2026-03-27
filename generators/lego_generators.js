@@ -684,13 +684,17 @@ javascriptGenerator.forBlock["mqtt_config"] = function (block) {
   const password = block.getFieldValue("PASSWORD");
 
   const code = `
-await mqttClient.connect({
-  host: "${host}",
-  port: ${port},
-  useTls: ${tls},
-  username: "${username}",
-  password: "${password}"
-});
+try {
+  await mqttClient.connect({
+    host: "${host}",
+    port: ${port},
+    useTls: ${tls},
+    username: "${username}",
+    password: "${password}"
+  });
+} catch (e) {
+  logStatus("MQTT connection failed: " + e);
+}
 `;
   return code;
 };

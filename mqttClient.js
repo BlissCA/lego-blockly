@@ -26,6 +26,7 @@ class MqttClient {
 
       this.client.on("error", err => {
         window.logStatus?.(`MQTT error: ${err}`);
+        this.client.end(true);   // stop reconnect attempts
         reject(err);
       });
 
@@ -67,6 +68,15 @@ class MqttClient {
     }
     this.handlers.get(topic).push(cb);
   }
+
+  stop() {
+    if (this.client) {
+        try { this.client.end(true); } catch {}
+    }
+    this.connected = false;
+    this.handlers.clear();
+  }
+
 }
 
 window.mqttClient = new MqttClient();

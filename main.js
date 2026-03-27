@@ -337,7 +337,7 @@ document.getElementById("stopBtn").onclick = async () => {
       console.warn("Output stop error:", err);
     }
   }
-
+  mqttClient.stop();
   logStatus("Program stopped (devices remain connected).");
 };
 
