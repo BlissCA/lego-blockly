@@ -31,4 +31,5 @@ export class FieldPassword extends Blockly.FieldTextInput {
   }
 }
 
+Blockly.FieldPassword = FieldPassword;
 Blockly.fieldRegistry.register("field_password", FieldPassword);
