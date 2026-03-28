@@ -796,7 +796,49 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 20
-    }
+    },
+    {
+      "type": "logic_is_between",
+      "message0": "%1 %2 %3 %4 %5",
+      "args0": [
+        {
+          "type": "input_value",
+          "name": "A",
+          "check": "Number"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "OP1",
+          "options": [
+            ["<=", "LEQ"],
+            ["<", "LT"]
+          ]
+        },
+        {
+          "type": "input_value",
+          "name": "X",
+          "check": "Number"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "OP2",
+          "options": [
+            ["<=", "LEQ"],
+            ["<", "LT"]
+          ]
+        },
+        {
+          "type": "input_value",
+          "name": "B",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 210,
+      "tooltip": "Checks if X is between A and B. If A > B, the logic flips automatically.",
+      "helpUrl": ""
+    }    
 
   ]);
 });

@@ -23,7 +23,8 @@ const toolbox = {
             },
         { "kind": "block", "type": "logic_boolean" },
         { "kind": "block", "type": "logic_null" },
-        { "kind": "block", "type": "logic_ternary" }
+        { "kind": "block", "type": "logic_ternary" },
+        { "kind": "block", "type": "logic_is_between" }
       ]
     },
     {
