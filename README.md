@@ -18,3 +18,7 @@ https://github.com/BlissCA/lego-blockly/tree/main/Examples
 
 Go to the following post on Eurobricks forum for more informations
 https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464
+
+2026-03-27:
+- Now has support for intercommunication with RCX yellow brick using the IR tower Serial (NOT USB Tower)
+- it is now an "installable" (PWA) application.  In the adress bar of your Chromium browser, click on the small TV icon that has a down arrow on the right...  This should allow you to use the app offline with no internet.
