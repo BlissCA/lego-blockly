@@ -451,36 +451,6 @@ document.getElementById("clearWorkspaceBtn").onclick = () => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").then(reg => {
 
-    // Show the update banner
-    function showUpdateBanner(worker) {
-      const banner = document.getElementById("update-banner");
-      banner.style.display = "flex";
-
-      // Push Blockly up so scrollbars and toolbox stay visible
-      const workspaceDiv = document.getElementById("blocklyDiv");
-      workspaceDiv.style.paddingBottom = "48px";
-
-      // Force Blockly to recalc layout
-      Blockly.svgResize(workspace);
-
-      document.getElementById("update-button").onclick = () => {
-        worker.postMessage({ action: "skipWaiting" });
-      };
-    }
-
-    // Detect when a new service worker is found
-    reg.addEventListener("updatefound", () => {
-      const newWorker = reg.installing;
-
-      newWorker.addEventListener("statechange", () => {
-        // If it's installed AND there's already a controller,
-        // it means this is an update, not the first install.
-        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-          showUpdateBanner(newWorker);
-        }
-      });
-    });
-
     // When the new SW activates, reload the page
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       window.location.reload();

@@ -76,38 +76,3 @@ body {
   white-space: pre-wrap;
 }
 
-#update-banner {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #ffcc00;
-  color: #000;
-  padding: 10px;
-  display: none;
-  justify-content: space-between;
-  align-items: center;
-  font-family: sans-serif;
-  border-top: 2px solid #000;
-}
-
-#update-banner button {
-  background: #000;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-#update-banner {
-  height: 48px; /* or whatever your banner height is */
-}
-
-#blocklyDiv {
-  padding-bottom: 0;
-}
-
-#blocklyDiv {
-  transition: padding-bottom 0.25s ease;
-}
