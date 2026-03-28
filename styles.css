@@ -99,3 +99,15 @@ body {
   cursor: pointer;
   font-weight: bold;
 }
+
+#update-banner {
+  height: 48px; /* or whatever your banner height is */
+}
+
+#blocklyDiv {
+  padding-bottom: 0;
+}
+
+#blocklyDiv {
+  transition: padding-bottom 0.25s ease;
+}

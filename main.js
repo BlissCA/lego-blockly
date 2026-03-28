@@ -456,6 +456,13 @@ if ("serviceWorker" in navigator) {
       const banner = document.getElementById("update-banner");
       banner.style.display = "flex";
 
+      // Push Blockly up so scrollbars and toolbox stay visible
+      const workspaceDiv = document.getElementById("blocklyDiv");
+      workspaceDiv.style.paddingBottom = "48px";
+
+      // Force Blockly to recalc layout
+      Blockly.svgResize(workspace);
+
       document.getElementById("update-button").onclick = () => {
         worker.postMessage({ action: "skipWaiting" });
       };
