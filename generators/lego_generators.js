@@ -673,10 +673,10 @@ javascriptGenerator.forBlock["rcx_sensorclear"] = function (block) {
 `;
 };
 
-Blockly.JavaScript['logic_is_between'] = function(block) {
-  const A = Blockly.JavaScript.valueToCode(block, 'A', Blockly.JavaScript.ORDER_NONE) || '0';
-  const X = Blockly.JavaScript.valueToCode(block, 'X', Blockly.JavaScript.ORDER_NONE) || '0';
-  const B = Blockly.JavaScript.valueToCode(block, 'B', Blockly.JavaScript.ORDER_NONE) || '0';
+javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
+  const A = generator.valueToCode(block, 'A', javascriptGenerator.ORDER_NONE) || '0';
+  const X = generator.valueToCode(block, 'X', javascriptGenerator.ORDER_NONE) || '0';
+  const B = generator.valueToCode(block, 'B', javascriptGenerator.ORDER_NONE) || '0';
 
   const op1 = block.getFieldValue('OP1'); // LEQ or LT
   const op2 = block.getFieldValue('OP2'); // LEQ or LT
@@ -684,17 +684,15 @@ Blockly.JavaScript['logic_is_between'] = function(block) {
   const jsOp1 = (op1 === 'LEQ') ? '<=' : '<';
   const jsOp2 = (op2 === 'LEQ') ? '<=' : '<';
 
-  // Normal case: A <= B → (A <= X) AND (X <= B)
-  // Reverse case: A > B → (X >= A) OR (X <= B)
-
   const code =
-      `((${A} <= ${B}) ? ` +
-        `(${A} ${jsOp1} ${X} && ${X} ${jsOp2} ${B})` +
-        ` : ` +
-        `(${X} >= ${A} || ${X} <= ${B}))`;
+    `((${A} <= ${B}) ? ` +
+      `(${A} ${jsOp1} ${X} && ${X} ${jsOp2} ${B})` +
+      ` : ` +
+      `(${X} >= ${A} || ${X} <= ${B}))`;
 
-  return [code, Blockly.JavaScript.ORDER_LOGICAL_OR];
+  return [code, javascriptGenerator.ORDER_LOGICAL_OR];
 };
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
