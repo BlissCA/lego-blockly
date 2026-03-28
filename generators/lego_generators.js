@@ -688,10 +688,10 @@ Blockly.JavaScript['logic_is_between'] = function(block) {
   // Reverse case: A > B → (X >= A) OR (X <= B)
 
   const code =
-    `((${A} <= ${B}) ? ` +
-      `(${A} ${jsOp1} ${X} && ${X} ${jsOp2} ${B})` +
-      ` : ` +
-      `(${X} >= ${A} || ${X} <= ${B}))`;
+      `((${A} <= ${B}) ? ` +
+        `(${A} ${jsOp1} ${X} && ${X} ${jsOp2} ${B})` +
+        ` : ` +
+        `(${X} >= ${A} || ${X} <= ${B}))`;
 
   return [code, Blockly.JavaScript.ORDER_LOGICAL_OR];
 };
