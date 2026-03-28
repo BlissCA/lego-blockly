@@ -1,6 +1,8 @@
+/*
 self.addEventListener("install", event => {
   self.skipWaiting(); // allow SW to move to "waiting" immediately
 });
+*/
 
 const CACHE_NAME = "lego-blockly-cache-v2";
 
