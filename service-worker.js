@@ -4,7 +4,7 @@ self.addEventListener("install", event => {
 });
 */
 
-const CACHE_NAME = "lego-blockly-cache-v2";
+const CACHE_NAME = "lego-blockly-cache-v2.1";
 
 const ASSETS = [
   "./",
