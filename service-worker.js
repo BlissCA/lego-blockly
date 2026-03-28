@@ -1,8 +1,8 @@
-self.addEventListener("install", event => {
-  self.skipWaiting(); // allow SW to move to "waiting" immediately
-});
+// ------------------------------
+// FINAL AUTO-UPDATE SERVICE WORKER
+// ------------------------------
 
-const CACHE_NAME = "lego-blockly-cache-v6";
+const CACHE_NAME = "lego-blockly-cache-v7"; // bump on each deploy
 
 const ASSETS = [
   "./",
@@ -26,37 +26,37 @@ const ASSETS = [
 
   // Icons
   "./icons/icon-192.png",
-  "./icons/icon-512.png",
-
-  // External CDN scripts (optional but recommended)
-  "https://unpkg.com/blockly@12.4.1/blockly.min.js"
+  "./icons/icon-512.png"
 ];
 
-// Install: cache all assets
+// Install: cache all assets and activate immediately
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
+
+  // Auto-activate immediately
+  self.skipWaiting();
 });
 
-// Activate: remove old caches
+// Activate: remove old caches and take control immediately
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(key => key !== CACHE_NAME && caches.delete(key)))
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
     )
   );
+
+  self.clients.claim();
 });
 
-// Fetch: serve from cache first
+// Fetch: network-first, fallback to cache
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    fetch(event.request).catch(() => caches.match(event.request))
   );
-});
-
-self.addEventListener("message", event => {
-  if (event.data && event.data.action === "skipWaiting") {
-    self.skipWaiting();
-  }
 });
