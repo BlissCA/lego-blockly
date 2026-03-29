@@ -601,7 +601,8 @@ const toolbox = {
                 "PWR": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": { "NUM": 7 }
+                    "fields": { "NUM": 7 },
+                    "tooltip": "Power must be from 0 to 7"
                   }
                 }
               }
