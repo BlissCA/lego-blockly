@@ -59,13 +59,19 @@
 
   </main>
 
-  <footer>
-    <p>LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.</p>
-    <div class="footer-links">
-      <a href="https://github.com/BlissCA/lego-blockly">Source code</a> | Version: 2026-03-29-1433
+  <footer id="lego-footer">
+    <div class="footer-left">
+      LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.
+    </div>
+
+    <div class="footer-right">
+      <a id="source-link" href="https://github.com/BlissCA/lego-blockly" target="_blank">
+        Source Code
+      </a>
+      <span id="version-label"></span>
     </div>
   </footer>
-
+  
   <!-- Your ES‑module application -->
   <script type="module" src="./main.js"></script>
 

@@ -31,6 +31,11 @@ body {
   height: 100%;
 }
 
+#blocklyDiv {
+  padding-bottom: 32px;
+  box-sizing: border-box;
+}
+
 #right-panel {
   width: 260px;
   border-left: 1px solid #ccc;
@@ -76,16 +81,32 @@ body {
   white-space: pre-wrap;
 }
 
-footer {
-  position: fixed; /* Position the footer fixed to the bottom */
-  bottom: 0; /* Align the footer to the bottom */
-  width: 100%; /* Make the footer span the entire width */
-  background-color: #333;
+#lego-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #000;
   color: #fff;
-  padding: 3px;
-  padding-left: 12px;
   font-size: 12px;
+  padding: 6px 12px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  z-index: 9999;
+  box-sizing: border-box;
+}
+
+#lego-footer a {
+  color: #fff;
+  text-decoration: underline;
+  margin-right: 12px;
+}
+
+#lego-footer .footer-left {
+  max-width: 70%;
+}
+
+#lego-footer .footer-right {
+  white-space: nowrap;
 }

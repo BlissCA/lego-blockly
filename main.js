@@ -458,3 +458,9 @@ if ("serviceWorker" in navigator) {
 
   });
 }
+
+// Set your version here
+const LEGO_BLOCKLY_VERSION = "2026-03-29-1520";
+
+document.getElementById("version-label").textContent =
+  "Version: " + LEGO_BLOCKLY_VERSION;
