@@ -255,18 +255,24 @@ window.getDeviceByName = function (name) {
 };
 
 // ----------------------------------------------------
-// 1. PATCH: Make Blockly function blocks async
+// PATCH: Make Blockly function blocks async (Blockly 12.4.1)
 // ----------------------------------------------------
-const origReturn = Blockly.JavaScript['procedures_defreturn'];
-const origNoReturn = Blockly.JavaScript['procedures_defnoreturn'];
+(function() {
+  const gen = Blockly.JavaScript;
 
-Blockly.JavaScript['procedures_defreturn'] = function(block) {
-  return origReturn.call(this, block).replace(/^function /, "async function ");
-};
+  const origReturn = gen['procedures_defreturn'];
+  const origNoReturn = gen['procedures_defnoreturn'];
 
-Blockly.JavaScript['procedures_defnoreturn'] = function(block) {
-  return origNoReturn.call(this, block).replace(/^function /, "async function ");
-};
+  gen['procedures_defreturn'] = function(block) {
+    const code = origReturn.call(this, block);
+    return code.replace(/^function\s+/, "async function ");
+  };
+
+  gen['procedures_defnoreturn'] = function(block) {
+    const code = origNoReturn.call(this, block);
+    return code.replace(/^function\s+/, "async function ");
+  };
+})();
 
 // ---------------- BLOCKLY WORKSPACE ----------------
 
