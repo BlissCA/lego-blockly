@@ -1,8 +1,9 @@
 // ------------------------------
 // FINAL AUTO-UPDATE SERVICE WORKER
 // ------------------------------
+importScripts("./version.js");
 
-const CACHE_NAME = "lego-blockly-cache-v2026-03-29-1112"; // bump on each deploy
+const CACHE_NAME = "lego-blockly-cache-" + LEGO_BLOCKLY_VERSION;
 
 const ASSETS = [
   "./",
