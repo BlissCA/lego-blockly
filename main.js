@@ -258,17 +258,17 @@ window.getDeviceByName = function (name) {
 // PATCH: Make Blockly function blocks async (Blockly 12.4.1)
 // ----------------------------------------------------
 (function() {
-  const gen = Blockly.JavaScript;
+  const gen = javascriptGenerator;  // ← patch the alias, not Blockly.JavaScript
 
-  const origReturn = gen.procedures_defreturn;
-  const origNoReturn = gen.procedures_defnoreturn;
+  const origReturn = gen['procedures_defreturn'];
+  const origNoReturn = gen['procedures_defnoreturn'];
 
-  gen.procedures_defreturn = function(block) {
+  gen['procedures_defreturn'] = function(block) {
     const code = origReturn.call(this, block);
     return code.replace(/^function\s+/, "async function ");
   };
 
-  gen.procedures_defnoreturn = function(block) {
+  gen['procedures_defnoreturn'] = function(block) {
     const code = origNoReturn.call(this, block);
     return code.replace(/^function\s+/, "async function ");
   };
