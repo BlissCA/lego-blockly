@@ -260,15 +260,15 @@ window.getDeviceByName = function (name) {
 (function() {
   const gen = Blockly.JavaScript;
 
-  const origReturn = gen['procedures_defreturn'];
-  const origNoReturn = gen['procedures_defnoreturn'];
+  const origReturn = gen.procedures_defreturn;
+  const origNoReturn = gen.procedures_defnoreturn;
 
-  gen['procedures_defreturn'] = function(block) {
+  gen.procedures_defreturn = function(block) {
     const code = origReturn.call(this, block);
     return code.replace(/^function\s+/, "async function ");
   };
 
-  gen['procedures_defnoreturn'] = function(block) {
+  gen.procedures_defnoreturn = function(block) {
     const code = origNoReturn.call(this, block);
     return code.replace(/^function\s+/, "async function ");
   };
