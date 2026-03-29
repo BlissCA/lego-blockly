@@ -36,7 +36,6 @@ self.addEventListener("install", event => {
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
 
-  // Auto-activate immediately
   self.skipWaiting();
 });
 
@@ -55,8 +54,16 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// Fetch: network-first, fallback to cache
+// Fetch: network-only for version.js, network-first for everything else
 self.addEventListener("fetch", event => {
+  const url = event.request.url;
+
+  // Always fetch version.js fresh
+  if (url.endsWith("version.js")) {
+    return event.respondWith(fetch(event.request));
+  }
+
+  // Normal network-first strategy
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
