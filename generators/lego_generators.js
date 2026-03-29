@@ -1,5 +1,8 @@
 const javascriptGenerator = Blockly.JavaScript;
 
+console.log("Procedure generator keys:", Object.keys(javascriptGenerator).filter(k => k.includes("procedure")));
+
+
 // ----------------------------------------------------
 // Override procedure generators to make functions async
 // ----------------------------------------------------
