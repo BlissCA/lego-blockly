@@ -296,7 +296,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 20
+      "colour": 20,
+      "tooltip": "Power must be from 0 to 7"
     },
 
     {
@@ -1070,6 +1071,7 @@ Blockly.Blocks["lego_multi_pow"] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(20);
+    this.setTooltip("Power must be from 0 to 7");
   }
 };
 
