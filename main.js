@@ -274,7 +274,13 @@ const workspace = Blockly.inject("blocklyDiv", {
 
 document.getElementById("runBtn").onclick = async () => {
   // 1. Generate code
-  const code = javascriptGenerator.workspaceToCode(workspace);
+  let code = javascriptGenerator.workspaceToCode(workspace);
+
+  // 1b. Make all user-defined functions async
+  // Matches lines starting with "function NAME("
+  code = code.replace(/(^|\n)function\s+([A-Za-z0-9_]+)\s*\(/g,
+                      "$1async function $2(");
+
   console.log("Generated code:\n", code);
   logStatus("Running program...");
 
