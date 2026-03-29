@@ -789,8 +789,10 @@ window.addEventListener("load", () => {
           "check": "Number",
           "shadow": {
             "type": "math_number",
-            "fields": { "NUM": 7 }
-          }
+            "fields": { "NUM": 7 },
+            "tooltip": "Power must be from 0 to 7"
+          },
+          "tooltip": "Power must be from 0 to 7"
         }
       ],
       "inputsInline": true,
