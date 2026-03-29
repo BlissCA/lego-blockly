@@ -254,6 +254,20 @@ window.getDeviceByName = function (name) {
   return window.deviceManager.devices.find(d => d.name === name) || null;
 };
 
+// ----------------------------------------------------
+// 1. PATCH: Make Blockly function blocks async
+// ----------------------------------------------------
+const origReturn = Blockly.JavaScript['procedures_defreturn'];
+const origNoReturn = Blockly.JavaScript['procedures_defnoreturn'];
+
+Blockly.JavaScript['procedures_defreturn'] = function(block) {
+  return origReturn.call(this, block).replace(/^function /, "async function ");
+};
+
+Blockly.JavaScript['procedures_defnoreturn'] = function(block) {
+  return origNoReturn.call(this, block).replace(/^function /, "async function ");
+};
+
 // ---------------- BLOCKLY WORKSPACE ----------------
 
 const workspace = Blockly.inject("blocklyDiv", {
@@ -273,16 +287,17 @@ const workspace = Blockly.inject("blocklyDiv", {
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
+  // 1. Generate code
   const code = javascriptGenerator.workspaceToCode(workspace);
   console.log("Generated code:\n", code);
   logStatus("Running program...");
 
   stopRequested = false;
 
+  // 2. Wrap the generated code in an async IIFE
   const asyncWrapper = new Function(
     "getDeviceByName",
     "deviceManager",
-    "Blockly",
     "shouldStop",
     `
       return (async () => {
@@ -292,10 +307,10 @@ document.getElementById("runBtn").onclick = async () => {
   );
 
   try {
+    // 3. Execute the wrapped async program
     currentExecution = asyncWrapper(
       name => window.getDeviceByName(name),
       window.deviceManager,
-      Blockly,
       window.shouldStop
     );
 
