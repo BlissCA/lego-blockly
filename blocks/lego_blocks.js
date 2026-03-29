@@ -789,16 +789,15 @@ window.addEventListener("load", () => {
           "check": "Number",
           "shadow": {
             "type": "math_number",
-            "fields": { "NUM": 7 },
-            "tooltip": "Power must be from 0 to 7"
-          },
-          "tooltip": "Power must be from 0 to 7"
+            "fields": { "NUM": 7 }
+          }
         }
       ],
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 20
+      "colour": 20,
+      "tooltip": "Power must be from 0 to 7"
     },
     {
       "type": "logic_is_between",
