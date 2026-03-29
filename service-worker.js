@@ -2,7 +2,7 @@
 // FINAL AUTO-UPDATE SERVICE WORKER
 // ------------------------------
 
-const CACHE_NAME = "lego-blockly-cache-v2026-03-29-1105"; // bump on each deploy
+const CACHE_NAME = "lego-blockly-cache-v2026-03-29-1112"; // bump on each deploy
 
 const ASSETS = [
   "./",
