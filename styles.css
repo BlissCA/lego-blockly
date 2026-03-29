@@ -76,3 +76,16 @@ body {
   white-space: pre-wrap;
 }
 
+footer {
+  position: fixed; /* Position the footer fixed to the bottom */
+  bottom: 0; /* Align the footer to the bottom */
+  width: 100%; /* Make the footer span the entire width */
+  background-color: #333;
+  color: #fff;
+  padding: 3px;
+  padding-left: 12px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
