@@ -1,5 +1,71 @@
 const javascriptGenerator = Blockly.JavaScript;
 
+// ----------------------------------------------------
+// Override procedure generators to make functions async
+// ----------------------------------------------------
+javascriptGenerator['procedures_defnoreturn'] = function(block) {
+  const funcName =
+    javascriptGenerator.nameDB_.getName(
+      block.getFieldValue('NAME'),
+      Blockly.Names.NameType.PROCEDURE
+    );
+
+  const args = block.getVars().map(varName =>
+    javascriptGenerator.nameDB_.getName(
+      varName,
+      Blockly.Names.NameType.VARIABLE
+    )
+  );
+
+  let branch = javascriptGenerator.statementToCode(block, 'STACK');
+  if (!branch) branch = '';
+
+  const code =
+    `async function ${funcName}(${args.join(', ')}) {\n` +
+    branch +
+    '}\n';
+
+  javascriptGenerator.definitions_['%' + funcName] = code;
+  return '';
+};
+
+javascriptGenerator['procedures_defreturn'] = function(block) {
+  const funcName =
+    javascriptGenerator.nameDB_.getName(
+      block.getFieldValue('NAME'),
+      Blockly.Names.NameType.PROCEDURE
+    );
+
+  const args = block.getVars().map(varName =>
+    javascriptGenerator.nameDB_.getName(
+      varName,
+      Blockly.Names.NameType.VARIABLE
+    )
+  );
+
+  let branch = javascriptGenerator.statementToCode(block, 'STACK');
+  if (!branch) branch = '';
+
+  const returnValue =
+    javascriptGenerator.valueToCode(
+      block,
+      'RETURN',
+      javascriptGenerator.ORDER_NONE
+    ) || '';
+
+  const returnLine = returnValue ? `  return ${returnValue};\n` : '';
+
+  const code =
+    `async function ${funcName}(${args.join(', ')}) {\n` +
+    branch +
+    returnLine +
+    '}\n';
+
+  javascriptGenerator.definitions_['%' + funcName] = code;
+  return '';
+};
+
+
 javascriptGenerator.addReservedWords("shouldStop");
 
 // ---------------- INPUT BLOCKS ----------------
