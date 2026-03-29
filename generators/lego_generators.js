@@ -6,7 +6,7 @@ console.log("Procedure generator keys:", Object.keys(javascriptGenerator).filter
 // ----------------------------------------------------
 // Override procedure generators to make functions async
 // ----------------------------------------------------
-javascriptGenerator['procedures_defnoreturn'] = function(block) {
+javascriptGenerator['procedures_callnoreturn'] = function(block) {
   const funcName =
     javascriptGenerator.nameDB_.getName(
       block.getFieldValue('NAME'),
@@ -32,7 +32,7 @@ javascriptGenerator['procedures_defnoreturn'] = function(block) {
   return '';
 };
 
-javascriptGenerator['procedures_defreturn'] = function(block) {
+javascriptGenerator['procedures_callreturn'] = function(block) {
   const funcName =
     javascriptGenerator.nameDB_.getName(
       block.getFieldValue('NAME'),
