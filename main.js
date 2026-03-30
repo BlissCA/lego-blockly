@@ -638,9 +638,8 @@ function onShortcut(e) {
     return;
   }
 
-  // --- Ctrl+N → New Project ---
-  // Chrome normally opens a new window here — but capture+preventDefault stops it
-  if (e.ctrlKey && key === "n") {
+  // --- Ctrl+Shift+N → New Project ---
+  if (e.ctrlKey && e.shiftKey && key === "n") {
     e.preventDefault();
     document.getElementById("newProjectBtn").click();
     return;
