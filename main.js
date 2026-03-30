@@ -609,6 +609,8 @@ workspace.addChangeListener((event) => {
   }
 });
 
+
+// ------------------------------  Keyboard shortcuts ------------------------------
 document.addEventListener("keydown", onShortcut, { capture: true });
 
 function onShortcut(e) {
@@ -645,7 +647,6 @@ function onShortcut(e) {
     return;
   }
 }
-
 
 
 // ------------------------------
