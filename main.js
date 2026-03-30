@@ -524,7 +524,9 @@ document.getElementById("newProjectBtn").onclick = () => {
   logStatus("New project created.");
 };
 
-workspace.addChangeListener(() => {
+workspace.addChangeListener((event) => {
+  if (event.isUiEvent) return; // ignore toolbox clicks, selections, etc.
+
   if (!isDirty) {
     isDirty = true;
     updateProjectNameField();
