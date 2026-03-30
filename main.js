@@ -428,6 +428,7 @@ async function saveProjectAs() {
   const text = JSON.stringify(json, null, 2);
 
   const handle = await window.showSaveFilePicker({
+    id: currentProjectName,
     suggestedName: currentProjectName + ".json",
     types: [
       {
@@ -458,6 +459,7 @@ document.getElementById("saveAsBtn").onclick = saveProjectAs;
 
 document.getElementById("loadBtn").onclick = async () => {
   const [handle] = await window.showOpenFilePicker({
+    id: currentProjectName,
     types: [
       {
         description: "LEGO Project",
