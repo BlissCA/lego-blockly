@@ -110,3 +110,45 @@ body {
 #lego-footer .footer-right {
   white-space: nowrap;
 }
+
+
+dialog {
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.dialog-content {
+  padding: 16px 20px 14px 20px;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+.dialog-content p,
+.dialog-content label {
+  margin: 0 0 10px 0;
+}
+
+.dialog-content input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  margin-bottom: 12px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog-buttons button {
+  padding: 4px 12px;
+}
+
+.dialog-buttons .primary {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+}

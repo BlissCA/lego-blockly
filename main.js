@@ -30,6 +30,52 @@ let stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 
+
+// ---------- Non-blocking dialog helpers ----------
+
+function openConfirmDialog(message) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById("confirmDialog");
+    const msgEl = document.getElementById("confirmDialogMessage");
+
+    msgEl.textContent = message;
+
+    dialog.returnValue = "cancel";
+
+    dialog.onclose = () => {
+      resolve(dialog.returnValue === "ok");
+    };
+
+    dialog.showModal();
+  });
+}
+
+function openVariableDialog(defaultName = "") {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById("variableDialog");
+    const input = document.getElementById("variableNameInput");
+
+    input.value = defaultName;
+    input.select();
+
+    dialog.returnValue = "cancel";
+
+    dialog.onclose = () => {
+      const ok = dialog.returnValue === "ok";
+      const name = input.value.trim();
+      if (!ok || !name) {
+        resolve(null);
+      } else {
+        resolve(name);
+      }
+    };
+
+    dialog.showModal();
+    input.focus();
+  });
+}
+
+
 // ----------------- function to auto-select serial/bluetooth port ----------------
 window.autoSelectPort = async function () {
   const os = navigator.userAgentData?.platform || navigator.platform;
@@ -281,6 +327,16 @@ const workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
+// ---------- Override Blockly variable creation (non-blocking) ----------
+
+Blockly.Variables.createVariable = async function(workspace) {
+  const name = await openVariableDialog("");
+  if (!name) return;
+
+  Blockly.Variables.createVariableInternal_(workspace, null, name);
+};
+
+
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
@@ -458,7 +514,9 @@ document.getElementById("saveAsBtn").onclick = saveProjectAs;
 
 document.getElementById("loadBtn").onclick = async () => {
   if (isDirty) {
-    const ok = confirm("You have unsaved changes. Load project anyway?");
+    const ok = await openConfirmDialog(
+      "You have unsaved changes. Load another project anyway?"
+    );
     if (!ok) return;
   }
 
@@ -507,9 +565,11 @@ document.getElementById("debugPackets").onchange = e => {
   console.log("Debug packet logging:", debugLogPackets);
 };
 
-document.getElementById("newProjectBtn").onclick = () => {
+document.getElementById("newProjectBtn").onclick = async () => {
   if (isDirty) {
-    const ok = confirm("You have unsaved changes. Create a new project anyway?");
+    const ok = await openConfirmDialog(
+      "You have unsaved changes. Create a new project anyway?"
+    );
     if (!ok) return;
   }
 

@@ -55,6 +55,34 @@
     <input type="file" id="fileInput" accept=".json,application/json" style="display:none" />
   </header>
 
+  <!-- Non-blocking dialogs -->
+
+  <!-- Generic confirmation dialog -->
+  <dialog id="confirmDialog">
+    <form method="dialog" class="dialog-content">
+      <p id="confirmDialogMessage"></p>
+      <div class="dialog-buttons">
+        <button value="cancel">Cancel</button>
+        <button value="ok" class="primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- New variable dialog -->
+  <dialog id="variableDialog">
+    <form method="dialog" class="dialog-content">
+      <label for="variableNameInput">New variable name:</label>
+      <input id="variableNameInput" type="text" autocomplete="off">
+      <div class="dialog-buttons">
+        <button value="cancel">Cancel</button>
+        <button value="ok" class="primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <!-- Your Blockly container, etc. -->
+ 
   <main id="main-layout">
     <div id="blockly-container">
       <div id="blocklyDiv"></div>
