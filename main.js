@@ -678,5 +678,9 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-document.getElementById("version-label").textContent =
-  "Version: " + LEGO_BLOCKLY_VERSION;
+window.addEventListener("DOMContentLoaded", () => {
+  const label = document.getElementById("version-label");
+  if (label) {
+    label.textContent = "Version: " + LEGO_BLOCKLY_VERSION;
+  }
+});
