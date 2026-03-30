@@ -655,13 +655,25 @@ function onShortcut(e) {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").then(reg => {
 
-    // When the new SW activates, reload the page
+    // If there's an updated SW waiting, activate it immediately
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    }
+
+    // If a new SW is installed, activate it immediately
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          newWorker.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+    });
+
+    // Reload when the new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       window.location.reload();
     });
 
   });
 }
-
-document.getElementById("version-label").textContent =
-  "Version: " + LEGO_BLOCKLY_VERSION;
