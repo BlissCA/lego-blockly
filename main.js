@@ -609,33 +609,35 @@ workspace.addChangeListener((event) => {
   }
 });
 
-document.addEventListener("keydown", async (e) => {
+document.addEventListener("keydown", (e) => {
   // Avoid interfering with text fields
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
+  const key = e.key.toLowerCase();
+
   // Ctrl+S → Save
-  if (e.ctrlKey && !e.shiftKey && e.key === "s") {
+  if (e.ctrlKey && !e.shiftKey && key === "s") {
     e.preventDefault();
     document.getElementById("saveBtn").click();
     return;
   }
 
   // Ctrl+Shift+S → Save As
-  if (e.ctrlKey && e.shiftKey && e.key === "s") {
+  if (e.ctrlKey && e.shiftKey && key === "s") {
     e.preventDefault();
     document.getElementById("saveAsBtn").click();
     return;
   }
 
   // Ctrl+O → Load
-  if (e.ctrlKey && e.key === "o") {
+  if (e.ctrlKey && key === "o") {
     e.preventDefault();
     document.getElementById("loadBtn").click();
     return;
   }
 
   // Ctrl+N → New Project
-  if (e.ctrlKey && e.key === "n") {
+  if (e.ctrlKey && key === "n") {
     e.preventDefault();
     document.getElementById("newProjectBtn").click();
     return;
