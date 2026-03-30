@@ -50,24 +50,23 @@ function openConfirmDialog(message) {
   });
 }
 
-function openVariableDialog(defaultName = "") {
+async function openPromptDialog(message, defaultValue = "") {
   return new Promise((resolve) => {
     const dialog = document.getElementById("variableDialog");
     const input = document.getElementById("variableNameInput");
 
-    input.value = defaultName;
+    // Update label text dynamically
+    dialog.querySelector("label").textContent = message;
+
+    input.value = defaultValue;
     input.select();
 
     dialog.returnValue = "cancel";
 
     dialog.onclose = () => {
       const ok = dialog.returnValue === "ok";
-      const name = input.value.trim();
-      if (!ok || !name) {
-        resolve(null);
-      } else {
-        resolve(name);
-      }
+      const value = input.value.trim();
+      resolve(ok ? value : null);
     };
 
     dialog.showModal();
@@ -327,14 +326,12 @@ const workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-// ---------- Override Blockly variable creation (non-blocking) ----------
+// ---------- Override Blockly blocking dialogs ----------
+Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
+  const result = await openPromptDialog(message, defaultValue);
+  callback(result);
+});
 
-Blockly.Variables.createVariable = async function(workspace) {
-  const name = await openVariableDialog("");
-  if (!name) return;
-
-  Blockly.Variables.createVariableInternal_(workspace, null, name);
-};
 
 
 // ---------------- RUN PROGRAM ----------------
