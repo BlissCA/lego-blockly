@@ -542,6 +542,9 @@ document.getElementById("loadBtn").onclick = async () => {
 
 
   currentProjectFileHandle = handle;
+  // Request write permission immediately after loading
+  const perm = await currentProjectFileHandle.requestPermission({ mode: "readwrite" });
+
   currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
 
