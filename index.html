@@ -27,19 +27,34 @@
     <button id="connectBtnLegoB">Connect LEGO Interface B</button>
     <button id="connectBtnRcx">Connect LEGO RCX</button>
     <button id="disconnectBtn">Disconnect All</button>
-    <button id="saveBtn">Save Project</button>
+
+    <!-- New Save / Project Name / Save As / Load layout -->
+    <button id="saveBtn">Save</button>
+
+    <input
+      id="projectNameField"
+      type="text"
+      value="lego-project"
+      readonly
+      style="width: 160px; margin: 0 6px; text-align: center;"
+    />
+
+    <button id="saveAsBtn">Save As</button>
     <button id="loadBtn">Load Project</button>
+
     <button id="clearWorkspaceBtn">Clear</button>
     <button id="runBtn">Run</button>
     <button id="stopBtn">Stop</button>
+
     <div id="debugToggle">
       <label for="debugPackets">Debug Int.B: Log Device Packets</label>
       <input type="checkbox" id="debugPackets">
     </div>
-    <!-- Hidden file input for loading XML -->
+
+    <!-- Hidden file input for loading XML (kept for backward compatibility) -->
     <input type="file" id="fileInput" accept=".json,application/json" style="display:none" />
   </header>
-
+  
   <main id="main-layout">
     <div id="blockly-container">
       <div id="blocklyDiv"></div>

@@ -18,6 +18,10 @@ import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/deviceManager.js";
 
+let currentProjectName = "lego-project";
+let currentProjectFileHandle = null;
+let currentProjectFolderHandle = null;
+
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
 let currentExecution = null;
@@ -178,6 +182,10 @@ window.shouldStop = () => {
   }
 };
 
+// ---------------- helper to update the UI Project Name field ----------------
+function updateProjectNameField() {
+  document.getElementById("projectNameField").value = currentProjectName;
+}
 
 // ---------------- One Shot Management ----------------
 // Memory for all ONS blocks (keyed by block ID)
@@ -391,49 +399,90 @@ document.getElementById("disconnectBtn").onclick = async () => {
 
 // ---------------- SAVE PROJECT ----------------
 
-document.getElementById("saveBtn").addEventListener("click", () => {
+document.getElementById("saveBtn").onclick = async () => {
   const json = Blockly.serialization.workspaces.save(Blockly.getMainWorkspace());
   const text = JSON.stringify(json, null, 2);
 
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  if (currentProjectFileHandle) {
+    const writable = await currentProjectFileHandle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    logStatus(`Saved: ${currentProjectName}.json`);
+    return;
+  }
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "lego-project.json";
-  a.click();
+  await saveProjectAs();
+};
 
-  URL.revokeObjectURL(url);
-  logStatus("Project saved as lego-project.json");
-});
+// Helper for cross-browser parent folder
+async function getParentFolder(handle) {
+  if (handle.getParent) {
+    return await handle.getParent();
+  }
+  return null;
+}
+
+// ---------------- SAVE AS PROJECT ----------------
+async function saveProjectAs() {
+  const json = Blockly.serialization.workspaces.save(Blockly.getMainWorkspace());
+  const text = JSON.stringify(json, null, 2);
+
+  const handle = await window.showSaveFilePicker({
+    suggestedName: currentProjectName + ".json",
+    types: [
+      {
+        description: "LEGO Project",
+        accept: { "application/json": [".json"] }
+      }
+    ],
+    startIn: currentProjectFolderHandle || "downloads"
+  });
+
+  currentProjectFileHandle = handle;
+  currentProjectFolderHandle = await getParentFolder(handle);
+  currentProjectName = handle.name.replace(/\.json$/, "");
+
+  updateProjectNameField();
+
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+
+  logStatus(`Saved as: ${currentProjectName}.json`);
+}
+
+document.getElementById("saveAsBtn").onclick = saveProjectAs;
+
 
 // ---------------- LOAD PROJECT ----------------
 
-document.getElementById("loadBtn").onclick = () => {
-  const input = document.getElementById("fileInput");
-  input.value = "";
-  input.click();
+document.getElementById("loadBtn").onclick = async () => {
+  const [handle] = await window.showOpenFilePicker({
+    types: [
+      {
+        description: "LEGO Project",
+        accept: { "application/json": [".json"] }
+      }
+    ],
+    startIn: currentProjectFolderHandle || "downloads"
+  });
+
+  const file = await handle.getFile();
+  const text = await file.text();
+  const json = JSON.parse(text);
+
+  workspace.clear();
+  Blockly.serialization.workspaces.load(json, workspace);
+
+  currentProjectFileHandle = handle;
+  currentProjectFolderHandle = await getParentFolder(handle);
+  currentProjectName = handle.name.replace(/\.json$/, "");
+
+  updateProjectNameField();
+
+  logStatus(`Loaded: ${currentProjectName}.json`);
 };
 
-document.getElementById("fileInput").onchange = async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const json = JSON.parse(text);
-
-    // Clear current workspace
-    workspace.clear();
-
-    // Load JSON into workspace (Blockly 12)
-    Blockly.serialization.workspaces.load(json, workspace);
-
-    logStatus("Project loaded.");
-  } catch (err) {
-    logStatus("Load error: " + err);
-  }
-};
 
 document.getElementById("clearStatusBtn").onclick = () => {
   document.getElementById("statusLog").textContent = "";
