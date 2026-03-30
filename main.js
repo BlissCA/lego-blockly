@@ -21,6 +21,8 @@ import "./device/deviceManager.js";
 let currentProjectName = "lego-project";
 let currentProjectFileHandle = null;
 let currentProjectFileHandleForStartIn = null;
+let isDirty = false;
+
 
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
@@ -182,10 +184,19 @@ window.shouldStop = () => {
   }
 };
 
+workspace.addChangeListener(() => {
+  if (!isDirty) {
+    isDirty = true;
+    updateProjectNameField();
+  }
+});
+
 // ---------------- helper to update the UI Project Name field ----------------
 function updateProjectNameField() {
-  document.getElementById("projectNameField").value = currentProjectName;
+  const prefix = isDirty ? "● " : "";
+  document.getElementById("projectNameField").value = prefix + currentProjectName;
 }
+
 
 // ---------------- One Shot Management ----------------
 // Memory for all ONS blocks (keyed by block ID)
@@ -408,6 +419,7 @@ document.getElementById("saveBtn").onclick = async () => {
     await writable.write(text);
     await writable.close();
     logStatus(`Saved: ${currentProjectName}.json`);
+    isDirty = false;
     return;
   }
 
@@ -435,6 +447,7 @@ async function saveProjectAs() {
   currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
 
+  isDirty = false;
   updateProjectNameField();
 
   const writable = await handle.createWritable();
@@ -450,6 +463,11 @@ document.getElementById("saveAsBtn").onclick = saveProjectAs;
 // ---------------- LOAD PROJECT ----------------
 
 document.getElementById("loadBtn").onclick = async () => {
+  if (isDirty) {
+    const ok = confirm("You have unsaved changes. Load project anyway?");
+    if (!ok) return;
+  }
+
   const [handle] = await window.showOpenFilePicker({
   //  id: currentProjectName,
     types: [
@@ -472,6 +490,7 @@ document.getElementById("loadBtn").onclick = async () => {
   currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
 
+  isDirty = false;
   updateProjectNameField();
 
   logStatus(`Loaded: ${currentProjectName}.json`);
@@ -489,8 +508,11 @@ document.getElementById("debugPackets").onchange = e => {
 };
 
 document.getElementById("newProjectBtn").onclick = () => {
-  //if (confirm("Clear all blocks?")) {}
-  
+  if (isDirty) {
+    const ok = confirm("You have unsaved changes. Create a new project anyway?");
+    if (!ok) return;
+  }
+
   // Clear Blockly workspace
   workspace.clear();
   //workspace.clearUndo();
@@ -501,6 +523,7 @@ document.getElementById("newProjectBtn").onclick = () => {
   //currentProjectFileHandleForStartIn = null;
 
   // Update UI
+  isDirty = false;
   updateProjectNameField();
 
   logStatus("New project created.");
