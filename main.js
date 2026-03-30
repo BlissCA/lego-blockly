@@ -463,6 +463,12 @@ document.getElementById("saveBtn").onclick = async () => {
     isDirty = false;
     updateProjectNameField();
 
+    let perm = await currentProjectFileHandle.queryPermission({ mode: "readwrite" });
+
+    if (perm !== "granted") {
+      perm = await currentProjectFileHandle.requestPermission({ mode: "readwrite" });
+    }
+
     const writable = await currentProjectFileHandle.createWritable();
     await writable.write(text);
     await writable.close();
@@ -543,7 +549,7 @@ document.getElementById("loadBtn").onclick = async () => {
 
   currentProjectFileHandle = handle;
   // Request write permission immediately after loading
-  const perm = await currentProjectFileHandle.requestPermission({ mode: "readwrite" });
+  const perm = await currentProjectFileHandle.requestPermission({ mode: "read" });
 
   currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
