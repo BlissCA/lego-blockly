@@ -22,6 +22,7 @@ let currentProjectName = "lego-project";
 let currentProjectFileHandle = null;
 let currentProjectFileHandleForStartIn = null;
 let isDirty = false;
+let suppressDirty = false;
 
 
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
@@ -478,8 +479,10 @@ document.getElementById("loadBtn").onclick = async () => {
   const text = await file.text();
   const json = JSON.parse(text);
 
+  suppressDirty = true;
   workspace.clear();
   Blockly.serialization.workspaces.load(json, workspace);
+  suppressDirty = false;
 
   currentProjectFileHandle = handle;
   currentProjectFileHandleForStartIn = handle; // Remember for next time
@@ -509,8 +512,9 @@ document.getElementById("newProjectBtn").onclick = () => {
   }
 
   // Clear Blockly workspace
+  suppressDirty = true;
   workspace.clear();
-  //workspace.clearUndo();
+  suppressDirty = false;
 
   // Reset project metadata
   currentProjectName = "lego-project";
@@ -525,6 +529,7 @@ document.getElementById("newProjectBtn").onclick = () => {
 };
 
 workspace.addChangeListener((event) => {
+  if (suppressDirty) return;       // ignore changes during load/new
   if (event.isUiEvent) return; // ignore toolbox clicks, selections, etc.
 
   if (!isDirty) {
