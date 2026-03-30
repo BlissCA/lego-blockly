@@ -428,7 +428,7 @@ async function saveProjectAs() {
   const text = JSON.stringify(json, null, 2);
 
   const handle = await window.showSaveFilePicker({
-    id: currentProjectName,
+  //  id: currentProjectName,
     suggestedName: currentProjectName + ".json",
     types: [
       {
@@ -436,7 +436,7 @@ async function saveProjectAs() {
         accept: { "application/json": [".json"] }
       }
     ],
-    startIn: currentProjectFolderHandle || "downloads"
+    startIn: currentProjectFileHandle || "downloads"
   });
 
   currentProjectFileHandle = handle;
@@ -459,14 +459,14 @@ document.getElementById("saveAsBtn").onclick = saveProjectAs;
 
 document.getElementById("loadBtn").onclick = async () => {
   const [handle] = await window.showOpenFilePicker({
-    id: currentProjectName,
+  //  id: currentProjectName,
     types: [
       {
         description: "LEGO Project",
         accept: { "application/json": [".json"] }
       }
     ],
-    startIn: currentProjectFolderHandle || "downloads"
+    startIn: currentProjectFileHandle || "downloads"
   });
 
   const file = await handle.getFile();
