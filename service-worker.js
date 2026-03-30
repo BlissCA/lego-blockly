@@ -60,7 +60,9 @@ self.addEventListener("fetch", event => {
 
   // Always fetch version.js fresh
   if (url.endsWith("version.js")) {
-    return event.respondWith(fetch(event.request));
+    return event.respondWith(
+        fetch(event.request, { cache: "no-store" })
+    );
   }
 
   // Normal network-first strategy
