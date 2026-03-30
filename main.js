@@ -20,7 +20,6 @@ import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
 let currentProjectFileHandle = null;
-let currentProjectFolderHandle = null;
 
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
@@ -414,14 +413,6 @@ document.getElementById("saveBtn").onclick = async () => {
   await saveProjectAs();
 };
 
-// Helper for cross-browser parent folder
-async function getParentFolder(handle) {
-  if (handle.getParent) {
-    return await handle.getParent();
-  }
-  return null;
-}
-
 // ---------------- SAVE AS PROJECT ----------------
 async function saveProjectAs() {
   const json = Blockly.serialization.workspaces.save(Blockly.getMainWorkspace());
@@ -440,7 +431,6 @@ async function saveProjectAs() {
   });
 
   currentProjectFileHandle = handle;
-  currentProjectFolderHandle = await getParentFolder(handle);
   currentProjectName = handle.name.replace(/\.json$/, "");
 
   updateProjectNameField();
@@ -477,7 +467,6 @@ document.getElementById("loadBtn").onclick = async () => {
   Blockly.serialization.workspaces.load(json, workspace);
 
   currentProjectFileHandle = handle;
-  currentProjectFolderHandle = await getParentFolder(handle);
   currentProjectName = handle.name.replace(/\.json$/, "");
 
   updateProjectNameField();
