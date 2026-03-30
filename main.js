@@ -638,8 +638,8 @@ function onShortcut(e) {
     return;
   }
 
-  // --- Ctrl+Shift+N → New Project ---
-  if (e.ctrlKey && e.shiftKey && key === "n") {
+  // --- Ctrl+Alt+N → New Project ---
+  if (e.ctrlKey && e.altKey && key === "n") {
     e.preventDefault();
     document.getElementById("newProjectBtn").click();
     return;
