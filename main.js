@@ -413,6 +413,7 @@ document.getElementById("saveBtn").onclick = async () => {
     await writable.close();
     logStatus(`Saved: ${currentProjectName}.json`);
     isDirty = false;
+    updateProjectNameField();
     return;
   }
 
