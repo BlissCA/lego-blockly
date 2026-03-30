@@ -609,40 +609,43 @@ workspace.addChangeListener((event) => {
   }
 });
 
-document.addEventListener("keydown", (e) => {
-  // Avoid interfering with text fields
+document.addEventListener("keydown", onShortcut, { capture: true });
+
+function onShortcut(e) {
+  // Do not interfere with typing in text fields
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
   const key = e.key.toLowerCase();
 
-  // Ctrl+S → Save
+  // --- Ctrl+S → Save ---
   if (e.ctrlKey && !e.shiftKey && key === "s") {
     e.preventDefault();
     document.getElementById("saveBtn").click();
     return;
   }
 
-  // Ctrl+Shift+S → Save As
+  // --- Ctrl+Shift+S → Save As ---
   if (e.ctrlKey && e.shiftKey && key === "s") {
     e.preventDefault();
     document.getElementById("saveAsBtn").click();
     return;
   }
 
-  // Ctrl+O → Load
+  // --- Ctrl+O → Load ---
   if (e.ctrlKey && key === "o") {
     e.preventDefault();
     document.getElementById("loadBtn").click();
     return;
   }
 
-  // Ctrl+N → New Project
+  // --- Ctrl+N → New Project ---
+  // Chrome normally opens a new window here — but capture+preventDefault stops it
   if (e.ctrlKey && key === "n") {
     e.preventDefault();
     document.getElementById("newProjectBtn").click();
     return;
   }
-});
+}
 
 
 // ------------------------------
