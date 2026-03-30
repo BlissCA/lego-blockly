@@ -677,3 +677,6 @@ if ("serviceWorker" in navigator) {
 
   });
 }
+
+document.getElementById("version-label").textContent =
+  "Version: " + LEGO_BLOCKLY_VERSION;
