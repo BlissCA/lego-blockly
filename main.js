@@ -184,13 +184,6 @@ window.shouldStop = () => {
   }
 };
 
-workspace.addChangeListener(() => {
-  if (!isDirty) {
-    isDirty = true;
-    updateProjectNameField();
-  }
-});
-
 // ---------------- helper to update the UI Project Name field ----------------
 function updateProjectNameField() {
   const prefix = isDirty ? "● " : "";
@@ -528,6 +521,14 @@ document.getElementById("newProjectBtn").onclick = () => {
 
   logStatus("New project created.");
 };
+
+workspace.addChangeListener(() => {
+  if (!isDirty) {
+    isDirty = true;
+    updateProjectNameField();
+  }
+});
+
 
 // ------------------------------
 // PWA Service Worker Registration
