@@ -467,7 +467,7 @@ document.getElementById("saveBtn").onclick = async () => {
 
     if (perm !== "granted") {
       // Instead of requesting permission, fallback to Save As
-      return saveAsProject();
+      return saveProjectAs();
     }
 
     const writable = await currentProjectFileHandle.createWritable();
