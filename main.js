@@ -647,6 +647,7 @@ function onShortcut(e) {
 }
 
 
+
 // ------------------------------
 // PWA Service Worker Registration
 // ------------------------------
