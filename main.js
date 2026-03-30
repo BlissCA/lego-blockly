@@ -20,6 +20,7 @@ import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
 let currentProjectFileHandle = null;
+let currentProjectFileHandleForStartIn = null;
 
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
@@ -427,10 +428,11 @@ async function saveProjectAs() {
         accept: { "application/json": [".json"] }
       }
     ],
-    startIn: currentProjectFileHandle || "downloads"
+    startIn: currentProjectFileHandleForStartIn || "downloads"
   });
 
   currentProjectFileHandle = handle;
+  currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
 
   updateProjectNameField();
@@ -456,7 +458,7 @@ document.getElementById("loadBtn").onclick = async () => {
         accept: { "application/json": [".json"] }
       }
     ],
-    startIn: currentProjectFileHandle || "downloads"
+    startIn: currentProjectFileHandleForStartIn || "downloads"
   });
 
   const file = await handle.getFile();
@@ -467,6 +469,7 @@ document.getElementById("loadBtn").onclick = async () => {
   Blockly.serialization.workspaces.load(json, workspace);
 
   currentProjectFileHandle = handle;
+  currentProjectFileHandleForStartIn = handle; // Remember for next time
   currentProjectName = handle.name.replace(/\.json$/, "");
 
   updateProjectNameField();
@@ -485,11 +488,22 @@ document.getElementById("debugPackets").onchange = e => {
   console.log("Debug packet logging:", debugLogPackets);
 };
 
-document.getElementById("clearWorkspaceBtn").onclick = () => {
-  if (confirm("Clear all blocks?")) {
-    workspace.clear();
-    workspace.clearUndo();
-  }
+document.getElementById("newProjectBtn").onclick = () => {
+  //if (confirm("Clear all blocks?")) {}
+  
+  // Clear Blockly workspace
+  workspace.clear();
+  //workspace.clearUndo();
+
+  // Reset project metadata
+  currentProjectName = "lego-project";
+  currentProjectFileHandle = null;
+  //currentProjectFileHandleForStartIn = null;
+
+  // Update UI
+  updateProjectNameField();
+
+  logStatus("New project created.");
 };
 
 // ------------------------------
