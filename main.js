@@ -408,12 +408,13 @@ document.getElementById("saveBtn").onclick = async () => {
   const text = JSON.stringify(json, null, 2);
 
   if (currentProjectFileHandle) {
+    isDirty = false;
+    updateProjectNameField();
+
     const writable = await currentProjectFileHandle.createWritable();
     await writable.write(text);
     await writable.close();
     logStatus(`Saved: ${currentProjectName}.json`);
-    isDirty = false;
-    updateProjectNameField();
     return;
   }
 
