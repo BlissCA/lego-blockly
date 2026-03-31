@@ -363,12 +363,12 @@ class RcxMotor {
   }
 
   async on() {
-    if (!this.shouldSendMulti(this.motors, "on")) return;
+    if (!this.rcx.shouldSendMulti(this.motors, "on")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x80 | this.motors]));
   }
 
   async off() {
-    if (!this.shouldSendMulti(this.motors, "off")) return;
+    if (!this.rcx.shouldSendMulti(this.motors, "off")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x40 | this.motors]));
   }
 
