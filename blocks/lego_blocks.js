@@ -1,5 +1,12 @@
 // Blockly is global (loaded from blockly.min.js)
 
+Blockly.Variables.registerVariableType({
+  name: "task",
+  // Optional: give it a category name for the Variables flyout (we don't use it)
+  // but Blockly requires the field.
+  category: "Tasks"
+});
+
 // ---------------- DEVICE DROPDOWNS ----------------
 
 // All devices (if you still need it somewhere)
@@ -872,6 +879,8 @@ window.addEventListener("load", () => {
           "defaultType": "task"
         }
       ],
+      "previousStatement": null,
+      "nextStatement": null,
       "colour": 290,
       "tooltip": "Start a task (single instance)",
       "helpUrl": ""
@@ -887,6 +896,8 @@ window.addEventListener("load", () => {
           "defaultType": "task"
         }
       ],
+      "previousStatement": null,
+      "nextStatement": null,
       "colour": 290,
       "tooltip": "Stop a running task",
       "helpUrl": ""
