@@ -344,6 +344,15 @@ document.getElementById("runBtn").onclick = async () => {
   // Matches lines starting with "function NAME("
   code = code.replace(/(^|\n)function\s+([A-Za-z0-9_]+)\s*\(/g,
                       "$1async function $2(");
+  // 2. Extract all function names
+  const functionNames = [...code.matchAll(/async function\s+([A-Za-z0-9_]+)\s*\(/g)]
+    .map(m => m[1]);
+
+  // 3. Add await to calls of those functions
+  for (const name of functionNames) {
+    const callRegex = new RegExp(`(^|\\s)(${name})\\((.*?)\\);`, "gm");
+    code = code.replace(callRegex, `$1await $2($3);`);
+  }
 
   console.log("Generated code:\n", code);
   logStatus("Running program...");
