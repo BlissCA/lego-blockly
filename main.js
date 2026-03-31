@@ -400,7 +400,7 @@ window.getDeviceByName = function (name) {
 
 // ---------------- BLOCKLY WORKSPACE ----------------
 
-const workspace = Blockly.inject("blocklyDiv", {
+window.workspace = Blockly.inject("blocklyDiv", {
   toolbox,
   renderer: "geras",
   theme: Blockly.Themes.Classic,
