@@ -840,7 +840,105 @@ window.addEventListener("load", () => {
       "colour": 210,
       "tooltip": "Checks if X is between A and B. If A > B, the logic flips automatically.",
       "helpUrl": ""
-    }    
+    },    
+    {
+      "type": "task_definition",
+      "message0": "task %1 do %2",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variable": "Task1",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        },
+        {
+          "type": "input_statement",
+          "name": "DO"
+        }
+      ],
+      "colour": 290,
+      "tooltip": "Define a named asynchronous task",
+      "helpUrl": ""
+    },
+    {
+      "type": "task_start",
+      "message0": "start task %1",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        }
+      ],
+      "colour": 290,
+      "tooltip": "Start a task (single instance)",
+      "helpUrl": ""
+    },
+    {
+      "type": "task_stop",
+      "message0": "stop task %1",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        }
+      ],
+      "colour": 290,
+      "tooltip": "Stop a running task",
+      "helpUrl": ""
+    },
+    {
+      "type": "task_is_running",
+      "message0": "task %1 is running",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        }
+      ],
+      "output": "Boolean",
+      "colour": 290,
+      "tooltip": "True if the task is currently running",
+      "helpUrl": ""
+    },
+    {
+      "type": "task_is_done",
+      "message0": "task %1 is done",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        }
+      ],
+      "output": "Boolean",
+      "colour": 290,
+      "tooltip": "True if the task has completed",
+      "helpUrl": ""
+    },
+    {
+      "type": "task_has_error",
+      "message0": "task %1 has error",
+      "args0": [
+        {
+          "type": "field_variable",
+          "name": "TASK",
+          "variableTypes": ["task"],
+          "defaultType": "task"
+        }
+      ],
+      "output": "Boolean",
+      "colour": 290,
+      "tooltip": "True if the task encountered an error",
+      "helpUrl": ""
+    }
 
   ]);
 });

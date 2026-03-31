@@ -694,6 +694,74 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
 };
 
 
+// ---------------- NAMED TASK GENERATORS ----------------
+Blockly.JavaScript['task_definition'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  const statements = Blockly.JavaScript.statementToCode(block, 'DO');
+
+  const funcName = `__task_${taskName}`;
+
+  const code =
+`async function ${funcName}() {
+  try {
+    NamedTaskState["${taskName}"] = {
+      running: true,
+      done: false,
+      cancelled: false,
+      error: null
+    };
+
+    while (!TaskShouldStop("${taskName}")) {
+      ${statements}
+      break; // remove this if you want implicit looping
+    }
+
+    if (!NamedTaskState["${taskName}"].cancelled && !window.stopRequested) {
+      NamedTaskState["${taskName}"].done = true;
+    }
+  } catch (e) {
+    console.error("Task error in ${taskName}:", e);
+    NamedTaskState["${taskName}"].error = e;
+  } finally {
+    NamedTaskState["${taskName}"].running = false;
+  }
+}
+`;
+  return code;
+};
+
+Blockly.JavaScript['task_start'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  const funcName = `__task_${taskName}`;
+
+  const code =
+`NamedTask.start("${taskName}", ${funcName});
+`;
+  return code;
+};
+
+Blockly.JavaScript['task_stop'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  return `NamedTask.cancel("${taskName}");\n`;
+};
+
+Blockly.JavaScript['task_is_running'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  return [`NamedTask.isRunning("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+Blockly.JavaScript['task_is_done'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  return [`NamedTask.isDone("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+Blockly.JavaScript['task_has_error'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  return [`NamedTask.hasError("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {

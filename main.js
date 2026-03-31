@@ -26,7 +26,7 @@ let isDirty = false;
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
 let currentExecution = null;
-let stopRequested = false;
+window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 
@@ -130,7 +130,7 @@ window.TimerScheduler = {
   schedule(delaySeconds, callback) {
     const handle = setTimeout(async () => {
       // If program was stopped in the meantime, do nothing
-      if (stopRequested) return;
+      if (window.stopRequested) return;
 
       try {
         await callback();
@@ -168,7 +168,7 @@ window.NamedEventTimer = {
     };
 
     const handle = setTimeout(async () => {
-      if (stopRequested) return;
+      if (window.stopRequested) return;
 
       try {
         await callback();
@@ -221,9 +221,96 @@ window.NamedEventTimer = {
   }
 };
 
+window.NamedEventTimer.cancelAll = function() {
+  for (const name in window.NamedEventTimers) {
+    clearTimeout(window.NamedEventTimers[name].handle);
+    delete window.NamedEventTimers[name];
+  }
+};
+
+
+
+// ---------------- NAMED ASYNC TASKS ----------------
+
+window.NamedTasks = {};
+window.NamedTaskState = {};
+
+window.NamedTask = {
+  start(name, asyncFunc) {
+    // If program is stopping, do not start tasks
+    if (window.stopRequested) return;
+
+    // If already running, do not start another instance
+    const state = window.NamedTaskState[name];
+    if (state && state.running) {
+      return;
+    }
+
+    // Initialize state
+    window.NamedTaskState[name] = {
+      running: true,
+      done: false,
+      cancelled: false,
+      error: null
+    };
+
+    // Launch async task (fire-and-forget)
+    const handle = (async () => {
+      try {
+        await asyncFunc();
+        if (!window.NamedTaskState[name]?.cancelled && !window.stopRequested) {
+          window.NamedTaskState[name].done = true;
+        }
+      } catch (err) {
+        console.error("Named task error:", err);
+        window.logStatus?.("Task error: " + err);
+        if (window.NamedTaskState[name]) {
+          window.NamedTaskState[name].error = err;
+        }
+      } finally {
+        if (window.NamedTaskState[name]) {
+          window.NamedTaskState[name].running = false;
+        }
+      }
+    })();
+
+    window.NamedTasks[name] = handle;
+  },
+
+  cancel(name) {
+    const state = window.NamedTaskState[name];
+    if (state) {
+      state.cancelled = true;
+    }
+  },
+
+  isRunning(name) {
+    return window.NamedTaskState[name]?.running === true;
+  },
+
+  isDone(name) {
+    return window.NamedTaskState[name]?.done === true;
+  },
+
+  hasError(name) {
+    return window.NamedTaskState[name]?.error != null;
+  }
+};
+
+window.NamedTask.stopAll = function() {
+  for (const name in window.NamedTaskState) {
+    window.NamedTaskState[name].cancelled = true;
+  }
+};
+
+window.TaskShouldStop = function(name) {
+  return window.stopRequested || window.NamedTaskState[name]?.cancelled;
+};
+
+
 // Helper for generators to check stop condition
 window.shouldStop = () => {
-  if (stopRequested) {
+  if (window.stopRequested) {
     throw new Error("Program stopped");
   }
 };
@@ -340,16 +427,27 @@ document.getElementById("runBtn").onclick = async () => {
   // 1. Generate code
   let code = javascriptGenerator.workspaceToCode(workspace);
 
+  // ------------------------------------------------------------
   // 1b. Make all user-defined functions async
+  // ------------------------------------------------------------
   // Matches lines starting with "function NAME("
   code = code.replace(/(^|\n)function\s+([A-Za-z0-9_]+)\s*\(/g,
                       "$1async function $2(");
-  // 2. Extract all function names
+
+  // ------------------------------------------------------------
+  // 1c. Extract all user-defined function names
+  // ------------------------------------------------------------
   const functionNames = [...code.matchAll(/async function\s+([A-Za-z0-9_]+)\s*\(/g)]
     .map(m => m[1]);
 
-  // 3. Add await to calls of those functions
+  // ------------------------------------------------------------
+  // 1d. Add "await" ONLY to calls of those functions
+  // ------------------------------------------------------------
   for (const name of functionNames) {
+    // Skip task functions later (we will prefix them)
+    if (name.startsWith("__task_")) continue;
+
+    // Match standalone calls:   NAME(...);
     const callRegex = new RegExp(`(^|\\s)(${name})\\((.*?)\\);`, "gm");
     code = code.replace(callRegex, `$1await $2($3);`);
   }
@@ -357,7 +455,7 @@ document.getElementById("runBtn").onclick = async () => {
   console.log("Generated code:\n", code);
   logStatus("Running program...");
 
-  stopRequested = false;
+  window.stopRequested = false;
 
   // 2. Wrap the generated code in an async IIFE
   const asyncWrapper = new Function(
@@ -381,11 +479,11 @@ document.getElementById("runBtn").onclick = async () => {
 
     await currentExecution;
 
-    if (!stopRequested) {
+    if (!window.stopRequested) {
       logStatus("Program finished.");
     }
   } catch (err) {
-    if (!stopRequested) {
+    if (!window.stopRequested) {
       logStatus(err);
       console.error(err);
     }
@@ -397,7 +495,10 @@ document.getElementById("runBtn").onclick = async () => {
 // ---------------- STOP PROGRAM (Option A) ----------------
 
 document.getElementById("stopBtn").onclick = async () => {
-  stopRequested = true;
+  window.stopRequested = true;
+  NamedTask.stopAll();
+  NamedEventTimer.cancelAll();
+
   logStatus("Stopping program...");
 
   for (const dev of window.deviceManager.devices) {
