@@ -1278,6 +1278,7 @@ Blockly.Blocks['task_definition'] = {
     });
   }
 };
+
 Blockly.Blocks['task_start'] = {
   init: function() {
     this.appendDummyInput()
@@ -1291,6 +1292,7 @@ Blockly.Blocks['task_start'] = {
     this.setColour(290);
   }
 };
+
 Blockly.Blocks['task_stop'] = {
   init: function() {
     this.appendDummyInput()
@@ -1304,6 +1306,7 @@ Blockly.Blocks['task_stop'] = {
     this.setColour(290);
   }
 };
+
 Blockly.Blocks['task_is_running'] = {
   init: function() {
     this.appendDummyInput()
