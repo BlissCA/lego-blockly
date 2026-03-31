@@ -1272,19 +1272,22 @@ Blockly.Blocks['task_definition'] = {
   }
 };
 
-Blockly.Blocks['task_start'] = {
+Blockly.Blocks['task_definition'] = {
   init: function() {
     this.appendDummyInput()
-      .appendField("start task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK");
+      .appendField("task")
+      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
+      .appendField("do");
 
-    this.setPreviousStatement(true);
-    this.setNextStatement(true);
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
     this.setColour(290);
+    this.setTooltip("Define a named asynchronous task");
+    this.setHelpUrl("");
   }
 };
+
 
 Blockly.Blocks['task_stop'] = {
   init: function() {
