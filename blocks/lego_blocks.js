@@ -1258,24 +1258,17 @@ Blockly.Blocks['rcx_getinpval'] = {
 // ---------------- TASK BLOCKS ----------------
 Blockly.Blocks['task_definition'] = {
   init: function() {
-    this.jsonInit({
-      "type": "task_definition",
-      "message0": "task %1 do %2",
-      "args0": [
-        {
-          "type": "field_input",
-          "name": "TASK",
-          "text": "Task1"
-        },
-        {
-          "type": "input_statement",
-          "name": "DO"
-        }
-      ],
-      "colour": 290,
-      "tooltip": "Define a named asynchronous task",
-      "helpUrl": ""
-    });
+    this.appendDummyInput()
+      .appendField("task")
+      .appendField(new Blockly.FieldInput("Task1"), "TASK")
+      .appendField("do");
+
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
+    this.setColour(290);
+    this.setTooltip("Define a named asynchronous task");
+    this.setHelpUrl("");
   }
 };
 
