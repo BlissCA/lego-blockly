@@ -1260,22 +1260,6 @@ Blockly.Blocks['task_definition'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldInput("Task1"), "TASK")
-      .appendField("do");
-
-    this.appendStatementInput("DO")
-      .setCheck(null);
-
-    this.setColour(290);
-    this.setTooltip("Define a named asynchronous task");
-    this.setHelpUrl("");
-  }
-};
-
-Blockly.Blocks['task_definition'] = {
-  init: function() {
-    this.appendDummyInput()
-      .appendField("task")
       .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
       .appendField("do");
 
@@ -1288,6 +1272,19 @@ Blockly.Blocks['task_definition'] = {
   }
 };
 
+Blockly.Blocks['task_start'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("start task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
 
 Blockly.Blocks['task_stop'] = {
   init: function() {
