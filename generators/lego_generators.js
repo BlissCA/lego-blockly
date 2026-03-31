@@ -695,11 +695,10 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
 
 
 // ---------------- NAMED TASK GENERATORS ----------------
-Blockly.JavaScript['task_definition'] = function(block) {
+javascriptGenerator.forBlock['task_definition'] = function(block) {
   const taskName = block.getFieldValue('TASK');
-  const statements = Blockly.JavaScript.statementToCode(block, 'DO');
+  const statements = javascriptGenerator.statementToCode(block, 'DO');
 
-  // Register task if new
   if (!window.TaskRegistry.includes(taskName)) {
     window.TaskRegistry.push(taskName);
     updateTaskDropdowns();
@@ -707,8 +706,8 @@ Blockly.JavaScript['task_definition'] = function(block) {
 
   const funcName = `__task_${taskName}`;
 
-  const code =
-`async function ${funcName}() {
+  return `
+async function ${funcName}() {
   try {
     NamedTaskState["${taskName}"] = {
       running: true,
@@ -733,33 +732,32 @@ Blockly.JavaScript['task_definition'] = function(block) {
   }
 }
 `;
-  return code;
 };
 
-Blockly.JavaScript['task_start'] = function(block) {
+javascriptGenerator.forBlock['task_start'] = function(block) {
   const taskName = block.getFieldValue('TASK');
   return `NamedTask.start("${taskName}", __task_${taskName});\n`;
 };
 
 
-Blockly.JavaScript['task_stop'] = function(block) {
+javascriptGenerator.forBlock['task_stop'] = function(block) {
   const taskName = block.getFieldValue('TASK');
   return `NamedTask.cancel("${taskName}");\n`;
 };
 
-Blockly.JavaScript['task_is_running'] = function(block) {
+javascriptGenerator.forBlock['task_is_running'] = function(block) {
   const taskName = block.getFieldValue('TASK');
-  return [`NamedTask.isRunning("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+  return [`NamedTask.isRunning("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
-Blockly.JavaScript['task_is_done'] = function(block) {
+javascriptGenerator.forBlock['task_is_done'] = function(block) {
   const taskName = block.getFieldValue('TASK');
-  return [`NamedTask.isDone("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+  return [`NamedTask.isDone("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
-Blockly.JavaScript['task_has_error'] = function(block) {
+javascriptGenerator.forBlock['task_has_error'] = function(block) {
   const taskName = block.getFieldValue('TASK');
-  return [`NamedTask.hasError("${taskName}")`, Blockly.JavaScript.ORDER_ATOMIC];
+  return [`NamedTask.hasError("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 
