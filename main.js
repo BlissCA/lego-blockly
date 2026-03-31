@@ -572,6 +572,8 @@ document.getElementById("debugPackets").onchange = e => {
   console.log("Debug packet logging:", debugLogPackets);
 };
 
+// ---------------- NEW PROJECT ----------------
+
 document.getElementById("newProjectBtn").onclick = async () => {
   if (isDirty) {
     const ok = await openConfirmDialog(
@@ -599,6 +601,7 @@ document.getElementById("newProjectBtn").onclick = async () => {
 
   logStatus("New project created.");
 };
+
 
 workspace.addChangeListener((event) => {
   if (event.isUiEvent) return; // ignore toolbox clicks, selections, etc.

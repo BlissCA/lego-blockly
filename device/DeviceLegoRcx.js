@@ -373,6 +373,7 @@ class RcxMotor {
   }
 
   async float() {
+    if (!this.rcx.shouldSendMulti(this.motors, "float")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x00 | this.motors]));
   }
 
@@ -381,15 +382,18 @@ class RcxMotor {
   }
 
   async f() {
+    if (!this.rcx.shouldSendMulti(this.motors, "f")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0xE1, 0x80 | this.motors]));
   }
 
   async r() {
+    if (!this.rcx.shouldSendMulti(this.motors, "r")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0xE1, 0x00 | this.motors]));
   }
 
   async pow(power) {
     const p = power & 0x07;
+    if (!this.rcx.shouldSendMulti(this.motors, "pow", p)) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x13, this.motors, 0x02, p]));
   }
 }
