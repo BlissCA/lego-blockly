@@ -31,6 +31,23 @@ function getRcxDropdown() {
     : [['No RCX', 'NONE']];
 }
 
+// Update task dropdowns
+function updateTaskDropdowns() {
+  const blocks = workspace.getAllBlocks(false);
+
+  for (const block of blocks) {
+    if (block.getField && block.getField("TASK")) {
+      const field = block.getField("TASK");
+      const current = field.getValue();
+
+      field.menuGenerator_ = window.TaskRegistry.map(t => [t, t]);
+
+      if (!window.TaskRegistry.includes(current)) {
+        field.setValue(window.TaskRegistry[0]);
+      }
+    }
+  }
+}
 
 window.addEventListener("load", () => {
 
@@ -841,108 +858,6 @@ window.addEventListener("load", () => {
       "colour": 210,
       "tooltip": "Checks if X is between A and B. If A > B, the logic flips automatically.",
       "helpUrl": ""
-    },    
-    {
-      "type": "task_definition",
-      "message0": "task %1 do %2",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variable": "Task1",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        },
-        {
-          "type": "input_statement",
-          "name": "DO"
-        }
-      ],
-      "colour": 290,
-      "tooltip": "Define a named asynchronous task",
-      "helpUrl": ""
-    },
-    {
-      "type": "task_start",
-      "message0": "start task %1",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        }
-      ],
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": 290,
-      "tooltip": "Start a task (single instance)",
-      "helpUrl": ""
-    },
-    {
-      "type": "task_stop",
-      "message0": "stop task %1",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        }
-      ],
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": 290,
-      "tooltip": "Stop a running task",
-      "helpUrl": ""
-    },
-    {
-      "type": "task_is_running",
-      "message0": "task %1 is running",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        }
-      ],
-      "output": "Boolean",
-      "colour": 290,
-      "tooltip": "True if the task is currently running",
-      "helpUrl": ""
-    },
-    {
-      "type": "task_is_done",
-      "message0": "task %1 is done",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        }
-      ],
-      "output": "Boolean",
-      "colour": 290,
-      "tooltip": "True if the task has completed",
-      "helpUrl": ""
-    },
-    {
-      "type": "task_has_error",
-      "message0": "task %1 has error",
-      "args0": [
-        {
-          "type": "field_variable",
-          "name": "TASK",
-          "variableTypes": ["task"],
-          "defaultType": "task"
-        }
-      ],
-      "output": "Boolean",
-      "colour": 290,
-      "tooltip": "True if the task encountered an error",
-      "helpUrl": ""
     }
 
   ]);
@@ -1337,6 +1252,97 @@ Blockly.Blocks['rcx_getinpval'] = {
     });
 
     this.setTooltip("Get Value of Input Port");
+  }
+};
+
+// ---------------- TASK BLOCKS ----------------
+Blockly.Blocks['task_definition'] = {
+  init: function() {
+    this.jsonInit({
+      "type": "task_definition",
+      "message0": "task %1 do %2",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "TASK",
+          "text": "Task1"
+        },
+        {
+          "type": "input_statement",
+          "name": "DO"
+        }
+      ],
+      "colour": 290,
+      "tooltip": "Define a named asynchronous task",
+      "helpUrl": ""
+    });
+  }
+};
+Blockly.Blocks['task_start'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("start task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+Blockly.Blocks['task_stop'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("stop task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+  }
+};
+Blockly.Blocks['task_is_running'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK")
+      .appendField("is running");
+
+    this.setOutput(true, "Boolean");
+    this.setColour(290);
+  }
+};
+
+Blockly.Blocks['task_is_done'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK")
+      .appendField("is done");
+
+    this.setOutput(true, "Boolean");
+    this.setColour(290);
+  }
+};
+
+Blockly.Blocks['task_has_error'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("task")
+      .appendField(new Blockly.FieldDropdown(() =>
+        window.TaskRegistry.map(t => [t, t])
+      ), "TASK")
+      .appendField("has error");
+
+    this.setOutput(true, "Boolean");
+    this.setColour(290);
   }
 };
 

@@ -699,6 +699,12 @@ Blockly.JavaScript['task_definition'] = function(block) {
   const taskName = block.getFieldValue('TASK');
   const statements = Blockly.JavaScript.statementToCode(block, 'DO');
 
+  // Register task if new
+  if (!window.TaskRegistry.includes(taskName)) {
+    window.TaskRegistry.push(taskName);
+    updateTaskDropdowns();
+  }
+
   const funcName = `__task_${taskName}`;
 
   const code =
@@ -713,7 +719,7 @@ Blockly.JavaScript['task_definition'] = function(block) {
 
     while (!TaskShouldStop("${taskName}")) {
       ${statements}
-      break; // remove this if you want implicit looping
+      break;
     }
 
     if (!NamedTaskState["${taskName}"].cancelled && !window.stopRequested) {
@@ -732,13 +738,9 @@ Blockly.JavaScript['task_definition'] = function(block) {
 
 Blockly.JavaScript['task_start'] = function(block) {
   const taskName = block.getFieldValue('TASK');
-  const funcName = `__task_${taskName}`;
-
-  const code =
-`NamedTask.start("${taskName}", ${funcName});
-`;
-  return code;
+  return `NamedTask.start("${taskName}", __task_${taskName});\n`;
 };
+
 
 Blockly.JavaScript['task_stop'] = function(block) {
   const taskName = block.getFieldValue('TASK');
