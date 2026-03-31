@@ -1,7 +1,5 @@
 // Blockly is global (loaded from blockly.min.js)
 
-Blockly.Variables.registerVariableCategory("task");
-
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
