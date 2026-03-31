@@ -17,7 +17,14 @@ export class LegoRcx {
     this.lastOpCode = 0;
     this.opCodeEx = new Set([0xF7]);
     this.NoReply = false;
-  }
+
+    // Cache of last output states
+    // New Output Cache that work for both single and multiple commands.
+    this.portState = {};
+    for (let p = 1; p <= 3; p++) {
+      this.portState[p] = { mode: "off", power: 7 };
+    }
+}
 
   log(msg) {
     console.log(`[RCX ${this.name}] ${msg}`);
@@ -74,7 +81,7 @@ export class LegoRcx {
   // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
-    // console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
+     console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
     await this.writer.write(bytes);
   }
 
@@ -257,10 +264,43 @@ async rcxCmd(cmd, vblen = 0) {
     this.writer = null;
     this.port = null;
 
+    this.portState = {};
+    for (let p = 1; p <= 3; p++) {
+      this.portState[p] = { mode: "off", power: 7 };
+    }
+
     console.log(`[RCX ${this.name}] Disconnected.`);
     this.status = "Disconnected";
 
   }
+
+  // ---------------- Helper Method to Update Cache for multiple port commands ----------------
+   shouldSendMulti(mask, mode, power = null) {
+    let mustSend = false;
+
+    for (let p = 1; p <= 3; p++) {
+      if (mask & (1 << (p - 1))) {
+        const st = this.portState[p];
+
+        if (st.mode !== mode || (power !== null && st.power !== power)) {
+          mustSend = true;
+        }
+      }
+    }
+
+    // Update states
+    if (mustSend) {
+      for (let p = 1; p <= 3; p++) {
+        if (mask & (1 << (p - 1))) {
+          this.portState[p].mode = mode;
+          if (power !== null) this.portState[p].power = power;
+        }
+      }
+    }
+
+    return mustSend;
+  }
+
 
   // ---------------- High-level commands ----------------
 
@@ -323,10 +363,12 @@ class RcxMotor {
   }
 
   async on() {
+    if (!this.shouldSendMulti(this.motors, "on")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x80 | this.motors]));
   }
 
   async off() {
+    if (!this.shouldSendMulti(this.motors, "off")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x40 | this.motors]));
   }
 
