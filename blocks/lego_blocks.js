@@ -1,11 +1,7 @@
 // Blockly is global (loaded from blockly.min.js)
 
-Blockly.Variables.registerVariableType({
-  name: "task",
-  // Optional: give it a category name for the Variables flyout (we don't use it)
-  // but Blockly requires the field.
-  category: "Tasks"
-});
+Blockly.Variables.registerVariableCategory("task");
+
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
