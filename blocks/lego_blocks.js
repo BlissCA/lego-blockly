@@ -1277,18 +1277,19 @@ function taskDropdown() {
 // TASK DEFINITION
 Blockly.Blocks['task_definition'] = {
   init: function() {
+    const base = "Task";
+    let counter = 1;
+    while (window.TaskRegistry.includes(base + counter)) {
+      counter++;
+    }
+    const uniqueName = base + counter;
+
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
+      .appendField(new Blockly.FieldTextInput(uniqueName), "TASK")
       .appendField("do");
 
-    this.appendStatementInput("DO")
-      .setCheck(null);
-
-    this.setColour(290);
-
-    // Store initial name
-    this.oldTaskName = "Task1";
+    this.oldTaskName = uniqueName;
   },
 
   onchange: function(event) {
@@ -1320,12 +1321,18 @@ Blockly.Blocks['task_definition'] = {
 
     // --- 4. Update other blocks referencing this task ---
     for (const block of blocks) {
+      // Skip task definition blocks
+      if (block.type === "task_definition" || block.type === "task_loop_definition") {
+        continue;
+      }
+
       const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
-        field.getOptions(false);
-        field.setValue(newName);
+        field.getOptions(false);   // refresh dropdown options
+        field.setValue(newName);   // safe now
       }
     }
+
 
     this.oldTaskName = newName;
   }
@@ -1413,18 +1420,19 @@ Blockly.Blocks['task_stop_all'] = {
 // TASK LOOP DEFINITION
 Blockly.Blocks['task_loop_definition'] = {
   init: function() {
+    const base = "Task";
+    let counter = 1;
+    while (window.TaskRegistry.includes(base + counter)) {
+      counter++;
+    }
+    const uniqueName = base + counter;
+
     this.appendDummyInput()
-      .appendField("task loop")
-      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
+      .appendField("task")
+      .appendField(new Blockly.FieldTextInput(uniqueName), "TASK")
       .appendField("do");
 
-    this.appendStatementInput("DO")
-      .setCheck(null);
-
-    this.setColour(290);
-
-    // Store initial name
-    this.oldTaskName = "Task1";
+    this.oldTaskName = uniqueName;
   },
 
   onchange: function(event) {
@@ -1456,12 +1464,18 @@ Blockly.Blocks['task_loop_definition'] = {
 
     // --- 4. Update other blocks referencing this task ---
     for (const block of blocks) {
+      // Skip task definition blocks
+      if (block.type === "task_definition" || block.type === "task_loop_definition") {
+        continue;
+      }
+
       const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
-        field.getOptions(false);
-        field.setValue(newName);
+        field.getOptions(false);   // refresh dropdown options
+        field.setValue(newName);   // safe now
       }
     }
+
 
     this.oldTaskName = newName;
   }
