@@ -748,12 +748,73 @@ document.getElementById("newProjectBtn").onclick = async () => {
 };
 
 
-workspace.addChangeListener((event) => {
-  if (event.isUiEvent) return; // ignore toolbox clicks, selections, etc.
+workspace.addChangeListener(function(event) {
+  // --- 1. Ignore UI-only events (toolbox clicks, selections, drags) ---
+  if (event.isUiEvent) return;
 
+  // --- 2. Mark workspace as dirty (your existing logic) ---
   if (!isDirty) {
     isDirty = true;
     updateProjectNameField();
+  }
+
+  // --- 3. TASK DELETED (including trashcan move) ---
+  if (event.type === Blockly.Events.BLOCK_DELETE) {
+    const xml = event.oldXml;
+    const deletedNames = [];
+
+    // Recursively scan deleted XML for task_definition blocks
+    function scan(xmlNode) {
+      if (!xmlNode) return;
+
+      if (xmlNode.getAttribute &&
+          xmlNode.getAttribute("type") === "task_definition") {
+        const field = xmlNode.querySelector('field[name="TASK"]');
+        if (field) deletedNames.push(field.textContent);
+      }
+
+      for (const child of xmlNode.children || []) {
+        scan(child);
+      }
+    }
+
+    scan(xml);
+
+    // Remove deleted task names from registry
+    for (const name of deletedNames) {
+      const idx = window.TaskRegistry.indexOf(name);
+      if (idx !== -1) window.TaskRegistry.splice(idx, 1);
+    }
+
+    // Fix dropdowns in all blocks
+    const blocks = workspace.getAllBlocks(false);
+    for (const block of blocks) {
+      const field = block.getField("TASK");
+      if (field) {
+        const value = field.getValue();
+        if (!window.TaskRegistry.includes(value)) {
+          const fallback = window.TaskRegistry[0] || "__none__";
+          field.setValue(fallback);
+        }
+      }
+    }
+  }
+
+  // --- 4. TASK RESTORED FROM TRASH (BLOCK_CREATE) ---
+  if (event.type === Blockly.Events.BLOCK_CREATE) {
+    const ids = event.ids || [];
+
+    for (const id of ids) {
+      const block = workspace.getBlockById(id);
+      if (!block) continue;
+
+      if (block.type === "task_definition") {
+        const name = block.getFieldValue("TASK");
+        if (!window.TaskRegistry.includes(name)) {
+          window.TaskRegistry.push(name);
+        }
+      }
+    }
   }
 });
 
