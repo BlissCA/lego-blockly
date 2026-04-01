@@ -728,12 +728,12 @@ document.getElementById("newProjectBtn").onclick = async () => {
   }
 
   // Clear Blockly workspace
-  try {
-    Blockly.Events.disable();
+//  try {
+//    Blockly.Events.disable();
     workspace.clear();
-  } finally {
-    Blockly.Events.enable();
-  }
+//  } finally {
+//    Blockly.Events.enable();
+//  }
 
   // Reset project metadata
   currentProjectName = "lego-project";
