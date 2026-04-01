@@ -119,7 +119,8 @@ const toolbox = {
         { "kind": "block", "type": "task_is_running" },
         { "kind": "block", "type": "task_is_done" },
         { "kind": "block", "type": "task_has_error" },
-        { "kind": "block", "type": "task_stop_all"}
+        { "kind": "block", "type": "task_stop_all"},
+        { "kind": "block", "type": "task_sleep" }
 
       ]
     },
@@ -129,6 +130,8 @@ const toolbox = {
       "name": "Control",
       "colour": "180",
       "contents": [
+        { "kind": "block", "type": "loop_forever" },
+        { "kind": "block", "type": "yield" },
         {
           "kind": "block",
           "type": "lego_wait_until",
@@ -217,7 +220,6 @@ const toolbox = {
             }
           }
         },
-
         {
           "kind": "block",
           "type": "cancel_named_timer"

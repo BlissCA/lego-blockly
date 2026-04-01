@@ -693,6 +693,24 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   return [code, javascriptGenerator.ORDER_LOGICAL_OR];
 };
 
+// ---------------- LOOP FOREVER WITH YIELD GENERATORS ----------------
+javascriptGenerator.forBlock['loop_forever'] = function(block) {
+  const statements = javascriptGenerator.statementToCode(block, 'DO');
+
+  return `
+while (true) {
+  ${statements}
+  await Promise.resolve(); // implicit yield
+}
+`;
+};
+
+// ---------------- YIELD GENERATOR ----------------
+javascriptGenerator.forBlock['yield'] = function(block) {
+  return `await Promise.resolve();\n`;
+};
+
+
 
 // ---------------- NAMED TASK GENERATORS ----------------
 javascriptGenerator.forBlock['task_definition'] = function(block) {
@@ -801,6 +819,13 @@ async function ${funcName}() {
 `;
 };
 
+// ---------------- SLEEP GENERATOR ----------------
+javascriptGenerator.forBlock['task_sleep'] = function(block) {
+  const ms = block.getFieldValue('MS');
+  return `
+await new Promise(resolve => setTimeout(resolve, ${ms}));
+`;
+};
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.

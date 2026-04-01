@@ -1238,6 +1238,31 @@ Blockly.Blocks['rcx_getinpval'] = {
   }
 };
 
+//  LOOP FOREVER WITH YIELD (for cooperative multitasking)
+Blockly.Blocks['loop_forever'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("loop forever");
+
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
+    this.setColour(180);
+    this.setTooltip("Repeat forever with an implicit yield at each iteration.");
+  }
+};
+
+// YIELD CONTROL (for cooperative multitasking)
+Blockly.Blocks['yield'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("yield");
+
+    this.setColour(180);
+    this.setTooltip("Yield control to allow other tasks and the UI to run.");
+  }
+};
+
 
 // ---------------- TASK BLOCKS ----------------
 
@@ -1295,8 +1320,6 @@ Blockly.Blocks['task_definition'] = {
     this.oldTaskName = newName;
   }
 };
-
-
 
 // START TASK
 Blockly.Blocks['task_start'] = {
@@ -1422,6 +1445,19 @@ Blockly.Blocks['task_loop_definition'] = {
     }
 
     this.oldTaskName = newName;
+  }
+};
+
+// TASK SLEEP
+Blockly.Blocks['task_sleep'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("sleep")
+      .appendField(new Blockly.FieldNumber(100, 0), "MS")
+      .appendField("ms");
+
+    this.setColour(290);
+    this.setTooltip("Pause this task for a number of milliseconds without blocking.");
   }
 };
 
