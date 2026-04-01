@@ -720,8 +720,12 @@ async function ${funcName}() {
       NamedTaskState["${taskName}"].done = true;
     }
   } catch (e) {
-    console.error("Task error in ${taskName}:", e);
-    NamedTaskState["${taskName}"].error = e;
+    if (e && e.message === "Program stopped") {
+      NamedTaskState["${taskName}"].cancelled = true;
+    } else {
+      console.error("Task error in ${taskName}:", e);
+      NamedTaskState["${taskName}"].error = e;
+    }
   } finally {
     NamedTaskState["${taskName}"].running = false;
   }
