@@ -112,8 +112,8 @@ const toolbox = {
       "name": "Tasks",
       "colour": "290",
       "contents": [
-        { "kind": "block", "type": "task_definition" },
         { "kind": "block", "type": "task_loop_definition" },
+        { "kind": "block", "type": "task_definition" },
         { "kind": "block", "type": "task_start" },
         { "kind": "block", "type": "task_stop" },
         { "kind": "block", "type": "task_is_running" },
