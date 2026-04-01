@@ -1277,19 +1277,18 @@ function taskDropdown() {
 // TASK DEFINITION
 Blockly.Blocks['task_definition'] = {
   init: function() {
-    const base = "Task";
-    let counter = 1;
-    while (window.TaskRegistry.includes(base + counter)) {
-      counter++;
-    }
-    const uniqueName = base + counter;
-
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldTextInput(uniqueName), "TASK")
+      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
       .appendField("do");
 
-    this.oldTaskName = uniqueName;
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
+    this.setColour(290);
+
+    // Store initial name
+    this.oldTaskName = "Task1";
   },
 
   onchange: function(event) {
@@ -1420,19 +1419,18 @@ Blockly.Blocks['task_stop_all'] = {
 // TASK LOOP DEFINITION
 Blockly.Blocks['task_loop_definition'] = {
   init: function() {
-    const base = "Task";
-    let counter = 1;
-    while (window.TaskRegistry.includes(base + counter)) {
-      counter++;
-    }
-    const uniqueName = base + counter;
-
     this.appendDummyInput()
-      .appendField("task")
-      .appendField(new Blockly.FieldTextInput(uniqueName), "TASK")
+      .appendField("task loop")
+      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
       .appendField("do");
 
-    this.oldTaskName = uniqueName;
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
+    this.setColour(290);
+
+    // Store initial name
+    this.oldTaskName = "Task1";
   },
 
   onchange: function(event) {
