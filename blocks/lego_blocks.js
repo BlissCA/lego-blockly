@@ -1317,20 +1317,12 @@ Blockly.Blocks['task_definition'] = {
 
     // --- 3. Refresh ALL dropdowns BEFORE updating references ---
     const blocks = workspace.getAllBlocks(false);
-    for (const block of blocks) {
-      const field = block.getField("TASK");
-      if (field) {
-        // Force dropdown to rebuild its options
-        field.menuGenerator_ = taskDropdown;
-        field.forceRerender();
-        field.setValue(field.getValue()); // reapply safely
-      }
-    }
 
     // --- 4. Update other blocks referencing this task ---
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
+        field.getOptions(false);
         field.setValue(newName);
       }
     }
@@ -1461,18 +1453,6 @@ Blockly.Blocks['task_loop_definition'] = {
 
     // --- 3. Refresh ALL dropdowns BEFORE updating references ---
     const blocks = workspace.getAllBlocks(false);
-
-    /*
-    for (const block of blocks) {
-      const field = block.getField("TASK");
-      if (field) {
-        // Force dropdown to rebuild its options
-        field.menuGenerator_ = taskDropdown;
-        field.forceRerender();
-        field.setValue(field.getValue()); // reapply safely
-      }
-    }
-    */
 
     // --- 4. Update other blocks referencing this task ---
     for (const block of blocks) {
