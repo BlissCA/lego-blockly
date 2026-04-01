@@ -805,6 +805,7 @@ workspace.addChangeListener(function(event) {
   }
 
   // --- 4. TASK RESTORED FROM TRASH (BLOCK_CREATE) ---
+  // Unique name on creation + add to registry if new
   if (event.type === Blockly.Events.BLOCK_CREATE) {
     const ids = event.ids || [];
 
@@ -812,8 +813,30 @@ workspace.addChangeListener(function(event) {
       const block = workspace.getBlockById(id);
       if (!block) continue;
 
+      // --- A) Auto‑unique name assignment for new task blocks ---
       if (block.type === "task_definition" || block.type === "task_loop_definition") {
-        const name = block.getFieldValue("TASK");
+
+        // If the block came from the toolbox, its name is the default "Task1"
+        // or whatever is in the XML. We must ensure uniqueness.
+        let name = block.getFieldValue("TASK");
+
+        // If the name already exists, generate a unique one
+        if (window.TaskRegistry.includes(name)) {
+          const base = "Task";
+          let counter = 1;
+          while (window.TaskRegistry.includes(base + counter)) {
+            counter++;
+          }
+          name = base + counter;
+
+          // Assign the unique name to the block
+          block.setFieldValue(name, "TASK");
+        }
+
+        // Update oldTaskName so rename logic works correctly
+        block.oldTaskName = name;
+
+        // --- B) Add to registry if not already present ---
         if (!window.TaskRegistry.includes(name)) {
           window.TaskRegistry.push(name);
         }
