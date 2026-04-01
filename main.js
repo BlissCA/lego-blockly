@@ -820,6 +820,7 @@ workspace.addChangeListener(function(event) {
 
         // 1. Read the name from the block (usually "Task1")
         let name = block.getFieldValue("TASK");
+        if (block.getParent()) continue;
 
         // 2. If the name already exists, generate a unique one
         if (window.TaskRegistry.includes(name)) {
