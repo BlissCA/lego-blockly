@@ -1252,26 +1252,28 @@ Blockly.Blocks['task_definition'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(
-        new Blockly.FieldTextInput("Task1", this.onTaskNameChanged.bind(this)),
-        "TASK"
-      )
+      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
       .appendField("do");
 
     this.appendStatementInput("DO")
       .setCheck(null);
 
     this.setColour(290);
+
+    // Store initial name
+    this.oldTaskName = "Task1";
   },
 
-  onTaskNameChanged: function(newName) {
-    const oldName = this.oldTaskName || this.getFieldValue("TASK");
+  onchange: function(event) {
+    // Only react to UI changes (not loading, not programmatic)
+    if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
+    if (event.blockId !== this.id) return;
+    if (event.name !== "TASK") return;
 
-    // If unchanged, do nothing
-    if (newName === oldName) {
-      this.oldTaskName = newName;
-      return newName;
-    }
+    const oldName = this.oldTaskName;
+    const newName = this.getFieldValue("TASK");
+
+    if (oldName === newName) return;
 
     // Update registry
     const idx = window.TaskRegistry.indexOf(oldName);
@@ -1281,19 +1283,19 @@ Blockly.Blocks['task_definition'] = {
       window.TaskRegistry.push(newName);
     }
 
-    // Propagate rename to all blocks
+    // Update all blocks referencing this task
     const blocks = workspace.getAllBlocks(false);
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
-        field.setValue(newName);
+        field.setValue(newName); // SAFE: onchange does NOT fire for this
       }
     }
 
     this.oldTaskName = newName;
-    return newName;
   }
 };
+
 
 
 // START TASK
