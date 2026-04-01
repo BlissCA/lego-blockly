@@ -308,19 +308,38 @@ window.TaskShouldStop = function(name) {
   return window.stopRequested || window.NamedTaskState[name]?.cancelled;
 };
 
-function rebuildTaskRegistryFromWorkspace() {
-  window.TaskRegistry.length = 0; // clear
+function extractTasksFromJson(json) {
+  window.TaskRegistry.length = 0;
 
-  const blocks = workspace.getAllBlocks(false);
-  for (const block of blocks) {
-    if (block.type === "task_definition") {
-      const name = block.getFieldValue("TASK");
-      if (name && !window.TaskRegistry.includes(name)) {
+  function scan(obj) {
+    if (!obj) return;
+
+    if (obj.type === "task_definition" && obj.fields && obj.fields.TASK) {
+      const name = obj.fields.TASK;
+      if (!window.TaskRegistry.includes(name)) {
         window.TaskRegistry.push(name);
       }
     }
+
+    if (obj.children) {
+      for (const child of obj.children) scan(child);
+    }
+
+    if (obj.inputs) {
+      for (const key in obj.inputs) {
+        const input = obj.inputs[key];
+        if (input.block) scan(input.block);
+      }
+    }
+  }
+
+  if (json && json.blocks && json.blocks.blocks) {
+    for (const block of json.blocks.blocks) {
+      scan(block);
+    }
   }
 }
+
 
 
 // Helper for generators to check stop condition
@@ -663,12 +682,12 @@ document.getElementById("loadBtn").onclick = async () => {
   const file = await handle.getFile();
   const text = await file.text();
   const json = JSON.parse(text);
+  extractTasksFromJson(json);
 
   try {
     Blockly.Events.disable();
     workspace.clear();
     Blockly.serialization.workspaces.load(json, workspace);
-    rebuildTaskRegistryFromWorkspace();
   } finally {
     Blockly.Events.enable();
   }
