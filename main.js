@@ -807,24 +807,14 @@ workspace.addChangeListener(function(event) {
   // --- 4. TASK RESTORED FROM TRASH (BLOCK_CREATE) ---
   // Unique name on creation + add to registry if new
   if (event.type === Blockly.Events.BLOCK_CREATE) {
-
-    // --- FIX: Rebuild registry from workspace ---
-    window.TaskRegistry = [];
-    const allBlocks = workspace.getAllBlocks(false);
-    for (const b of allBlocks) {
-      if (b.type === "task_definition" || b.type === "task_loop_definition") {
-        const name = b.getFieldValue("TASK");
-        if (!window.TaskRegistry.includes(name)) {
-          window.TaskRegistry.push(name);
-        }
-      }
-    }
-
     const ids = event.ids || [];
 
     for (const id of ids) {
       const block = workspace.getBlockById(id);
       if (!block) continue;
+
+      // --- FIX: Ignore toolbox flyout clones ---
+      if (block.isInFlyout) continue;
 
       if (block.type === "task_definition" || block.type === "task_loop_definition") {
 
@@ -840,14 +830,13 @@ workspace.addChangeListener(function(event) {
           }
           name = base + counter;
 
-          // Assign the unique name to the block
           block.setFieldValue(name, "TASK");
         }
 
         // 3. Update oldTaskName for rename logic
         block.oldTaskName = name;
 
-        // 4. NOW add to registry (after uniqueness is guaranteed)
+        // 4. Add to registry
         if (!window.TaskRegistry.includes(name)) {
           window.TaskRegistry.push(name);
         }
