@@ -29,7 +29,7 @@ let currentExecution = null;
 window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
-window.TaskRegistry = ["Task1"];
+window.TaskRegistry = [];
 
 
 // ---------- Non-blocking dialog helpers ----------
