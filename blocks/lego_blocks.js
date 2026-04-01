@@ -1258,6 +1258,8 @@ Blockly.Blocks['yield'] = {
     this.appendDummyInput()
       .appendField("yield");
 
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
     this.setColour(180);
     this.setTooltip("Yield control to allow other tasks and the UI to run.");
   }
@@ -1456,6 +1458,8 @@ Blockly.Blocks['task_sleep'] = {
       .appendField(new Blockly.FieldNumber(100, 0), "MS")
       .appendField("ms");
 
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
     this.setColour(290);
     this.setTooltip("Pause this task for a number of milliseconds without blocking.");
   }
