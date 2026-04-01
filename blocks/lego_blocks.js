@@ -1303,7 +1303,6 @@ Blockly.Blocks['task_definition'] = {
 
     // --- 1. Prevent duplicate names ---
     if (window.TaskRegistry.includes(newName)) {
-      // Revert to old name
       this.setFieldValue(oldName, "TASK");
       return;
     }
@@ -1316,14 +1315,15 @@ Blockly.Blocks['task_definition'] = {
       window.TaskRegistry.push(newName);
     }
 
-    // --- 3. Refresh dropdowns BEFORE updating other blocks ---
+    // --- 3. Refresh ALL dropdowns BEFORE updating references ---
     const blocks = workspace.getAllBlocks(false);
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field) {
-        field.menuGenerator_ = taskDropdown; // ensure fresh options
-        field.setValidator(null);            // avoid stale validators
-        field.setValue(field.getValue());    // reapply current value safely
+        // Force dropdown to rebuild its options
+        field.menuGenerator_ = taskDropdown;
+        field.forceRerender();
+        field.setValue(field.getValue()); // reapply safely
       }
     }
 
@@ -1447,7 +1447,6 @@ Blockly.Blocks['task_loop_definition'] = {
 
     // --- 1. Prevent duplicate names ---
     if (window.TaskRegistry.includes(newName)) {
-      // Revert to old name
       this.setFieldValue(oldName, "TASK");
       return;
     }
@@ -1460,14 +1459,15 @@ Blockly.Blocks['task_loop_definition'] = {
       window.TaskRegistry.push(newName);
     }
 
-    // --- 3. Refresh dropdowns BEFORE updating other blocks ---
+    // --- 3. Refresh ALL dropdowns BEFORE updating references ---
     const blocks = workspace.getAllBlocks(false);
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field) {
-        field.menuGenerator_ = taskDropdown; // ensure fresh options
-        field.setValidator(null);            // avoid stale validators
-        field.setValue(field.getValue());    // reapply current value safely
+        // Force dropdown to rebuild its options
+        field.menuGenerator_ = taskDropdown;
+        field.forceRerender();
+        field.setValue(field.getValue()); // reapply safely
       }
     }
 
