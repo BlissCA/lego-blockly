@@ -1292,7 +1292,6 @@ Blockly.Blocks['task_definition'] = {
   },
 
   onchange: function(event) {
-    // Only react to UI changes (not loading, not programmatic)
     if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
     if (event.blockId !== this.id) return;
     if (event.name !== "TASK") return;
@@ -1302,25 +1301,43 @@ Blockly.Blocks['task_definition'] = {
 
     if (oldName === newName) return;
 
-    // Update registry
+    // --- 1. Prevent duplicate names ---
+    if (window.TaskRegistry.includes(newName)) {
+      // Revert to old name
+      this.setFieldValue(oldName, "TASK");
+      return;
+    }
+
+    // --- 2. Update registry ---
     const idx = window.TaskRegistry.indexOf(oldName);
     if (idx !== -1) {
       window.TaskRegistry[idx] = newName;
-    } else if (!window.TaskRegistry.includes(newName)) {
+    } else {
       window.TaskRegistry.push(newName);
     }
 
-    // Update all blocks referencing this task
+    // --- 3. Refresh dropdowns BEFORE updating other blocks ---
     const blocks = workspace.getAllBlocks(false);
     for (const block of blocks) {
       const field = block.getField("TASK");
+      if (field) {
+        field.menuGenerator_ = taskDropdown; // ensure fresh options
+        field.setValidator(null);            // avoid stale validators
+        field.setValue(field.getValue());    // reapply current value safely
+      }
+    }
+
+    // --- 4. Update other blocks referencing this task ---
+    for (const block of blocks) {
+      const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
-        field.setValue(newName); // SAFE: onchange does NOT fire for this
+        field.setValue(newName);
       }
     }
 
     this.oldTaskName = newName;
   }
+
 };
 
 // START TASK
@@ -1419,7 +1436,6 @@ Blockly.Blocks['task_loop_definition'] = {
   },
 
   onchange: function(event) {
-    // Only react to UI changes (not loading, not programmatic)
     if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
     if (event.blockId !== this.id) return;
     if (event.name !== "TASK") return;
@@ -1429,25 +1445,43 @@ Blockly.Blocks['task_loop_definition'] = {
 
     if (oldName === newName) return;
 
-    // Update registry
+    // --- 1. Prevent duplicate names ---
+    if (window.TaskRegistry.includes(newName)) {
+      // Revert to old name
+      this.setFieldValue(oldName, "TASK");
+      return;
+    }
+
+    // --- 2. Update registry ---
     const idx = window.TaskRegistry.indexOf(oldName);
     if (idx !== -1) {
       window.TaskRegistry[idx] = newName;
-    } else if (!window.TaskRegistry.includes(newName)) {
+    } else {
       window.TaskRegistry.push(newName);
     }
 
-    // Update all blocks referencing this task
+    // --- 3. Refresh dropdowns BEFORE updating other blocks ---
     const blocks = workspace.getAllBlocks(false);
     for (const block of blocks) {
       const field = block.getField("TASK");
+      if (field) {
+        field.menuGenerator_ = taskDropdown; // ensure fresh options
+        field.setValidator(null);            // avoid stale validators
+        field.setValue(field.getValue());    // reapply current value safely
+      }
+    }
+
+    // --- 4. Update other blocks referencing this task ---
+    for (const block of blocks) {
+      const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
-        field.setValue(newName); // SAFE: onchange does NOT fire for this
+        field.setValue(newName);
       }
     }
 
     this.oldTaskName = newName;
   }
+
 };
 
 // TASK SLEEP
