@@ -763,6 +763,44 @@ javascriptGenerator.forBlock['task_stop_all'] = function(block) {
   return `window.NamedTask.stopAll();\n`;
 };
 
+javascriptGenerator.forBlock['task_loop_definition'] = function(block) {
+  const taskName = block.getFieldValue('TASK');
+  const statements = javascriptGenerator.statementToCode(block, 'DO');
+
+  const funcName = `__task_${taskName}`;
+
+  return `
+async function ${funcName}() {
+  try {
+    NamedTaskState["${taskName}"] = {
+      running: true,
+      done: false,
+      cancelled: false,
+      error: null
+    };
+
+    while (!TaskShouldStop("${taskName}")) {
+      ${statements}
+      await Promise.resolve(); // implicit yield
+    }
+
+    if (!NamedTaskState["${taskName}"].cancelled && !window.stopRequested) {
+      NamedTaskState["${taskName}"].done = true;
+    }
+  } catch (e) {
+    if (e && e.message === "Program stopped") {
+      NamedTaskState["${taskName}"].cancelled = true;
+    } else {
+      console.error("Task error in ${taskName}:", e);
+      NamedTaskState["${taskName}"].error = e;
+    }
+  } finally {
+    NamedTaskState["${taskName}"].running = false;
+  }
+}
+`;
+};
+
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.

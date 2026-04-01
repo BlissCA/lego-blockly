@@ -1376,6 +1376,55 @@ Blockly.Blocks['task_stop_all'] = {
   }
 };
 
+// TASK LOOP DEFINITION
+Blockly.Blocks['task_loop_definition'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("task loop")
+      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
+      .appendField("do");
+
+    this.appendStatementInput("DO")
+      .setCheck(null);
+
+    this.setColour(290);
+
+    // Store initial name
+    this.oldTaskName = "Task1";
+  },
+
+  onchange: function(event) {
+    // Only react to UI changes (not loading, not programmatic)
+    if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
+    if (event.blockId !== this.id) return;
+    if (event.name !== "TASK") return;
+
+    const oldName = this.oldTaskName;
+    const newName = this.getFieldValue("TASK");
+
+    if (oldName === newName) return;
+
+    // Update registry
+    const idx = window.TaskRegistry.indexOf(oldName);
+    if (idx !== -1) {
+      window.TaskRegistry[idx] = newName;
+    } else if (!window.TaskRegistry.includes(newName)) {
+      window.TaskRegistry.push(newName);
+    }
+
+    // Update all blocks referencing this task
+    const blocks = workspace.getAllBlocks(false);
+    for (const block of blocks) {
+      const field = block.getField("TASK");
+      if (field && field.getValue() === oldName) {
+        field.setValue(newName); // SAFE: onchange does NOT fire for this
+      }
+    }
+
+    this.oldTaskName = newName;
+  }
+};
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------
