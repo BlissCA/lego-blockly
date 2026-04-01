@@ -813,14 +813,12 @@ workspace.addChangeListener(function(event) {
       const block = workspace.getBlockById(id);
       if (!block) continue;
 
-      // --- A) Auto‑unique name assignment for new task blocks ---
       if (block.type === "task_definition" || block.type === "task_loop_definition") {
 
-        // If the block came from the toolbox, its name is the default "Task1"
-        // or whatever is in the XML. We must ensure uniqueness.
+        // 1. Read the name from the block (usually "Task1")
         let name = block.getFieldValue("TASK");
 
-        // If the name already exists, generate a unique one
+        // 2. If the name already exists, generate a unique one
         if (window.TaskRegistry.includes(name)) {
           const base = "Task";
           let counter = 1;
@@ -833,16 +831,17 @@ workspace.addChangeListener(function(event) {
           block.setFieldValue(name, "TASK");
         }
 
-        // Update oldTaskName so rename logic works correctly
+        // 3. Update oldTaskName for rename logic
         block.oldTaskName = name;
 
-        // --- B) Add to registry if not already present ---
+        // 4. NOW add to registry (after uniqueness is guaranteed)
         if (!window.TaskRegistry.includes(name)) {
           window.TaskRegistry.push(name);
         }
       }
     }
   }
+
 });
 
 
