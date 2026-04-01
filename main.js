@@ -769,10 +769,12 @@ workspace.addChangeListener(function(event) {
     function scan(xmlNode) {
       if (!xmlNode) return;
 
-      if (xmlNode.getAttribute &&
-          xmlNode.getAttribute("type") === "task_definition") {
-        const field = xmlNode.querySelector('field[name="TASK"]');
-        if (field) deletedNames.push(field.textContent);
+      if (xmlNode.getAttribute) {
+        const type = xmlNode.getAttribute("type");
+        if (type === "task_definition" || type === "task_loop_definition") {
+          const field = xmlNode.querySelector('field[name="TASK"]');
+          if (field) deletedNames.push(field.textContent);
+        }
       }
 
       for (const child of xmlNode.children || []) {
@@ -810,7 +812,7 @@ workspace.addChangeListener(function(event) {
       const block = workspace.getBlockById(id);
       if (!block) continue;
 
-      if (block.type === "task_definition") {
+      if (block.type === "task_definition" || block.type === "task_loop_definition") {
         const name = block.getFieldValue("TASK");
         if (!window.TaskRegistry.includes(name)) {
           window.TaskRegistry.push(name);
