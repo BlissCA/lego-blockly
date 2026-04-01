@@ -314,7 +314,10 @@ function extractTasksFromJson(json) {
   function scan(obj) {
     if (!obj) return;
 
-    if (obj.type === "task_definition" && obj.fields && obj.fields.TASK) {
+    // Both task types must be recognized
+    if ((obj.type === "task_definition" || obj.type === "task_loop_definition")
+        && obj.fields && obj.fields.TASK) {
+
       const name = obj.fields.TASK;
       if (!window.TaskRegistry.includes(name)) {
         window.TaskRegistry.push(name);
@@ -339,7 +342,6 @@ function extractTasksFromJson(json) {
     }
   }
 }
-
 
 
 // Helper for generators to check stop condition
