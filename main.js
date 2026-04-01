@@ -807,6 +807,19 @@ workspace.addChangeListener(function(event) {
   // --- 4. TASK RESTORED FROM TRASH (BLOCK_CREATE) ---
   // Unique name on creation + add to registry if new
   if (event.type === Blockly.Events.BLOCK_CREATE) {
+
+    // --- FIX: Rebuild registry from workspace ---
+    window.TaskRegistry = [];
+    const allBlocks = workspace.getAllBlocks(false);
+    for (const b of allBlocks) {
+      if (b.type === "task_definition" || b.type === "task_loop_definition") {
+        const name = b.getFieldValue("TASK");
+        if (!window.TaskRegistry.includes(name)) {
+          window.TaskRegistry.push(name);
+        }
+      }
+    }
+
     const ids = event.ids || [];
 
     for (const id of ids) {
