@@ -308,6 +308,20 @@ window.TaskShouldStop = function(name) {
   return window.stopRequested || window.NamedTaskState[name]?.cancelled;
 };
 
+function rebuildTaskRegistryFromWorkspace() {
+  window.TaskRegistry.length = 0; // clear
+
+  const blocks = workspace.getAllBlocks(false);
+  for (const block of blocks) {
+    if (block.type === "task_definition") {
+      const name = block.getFieldValue("TASK");
+      if (name && !window.TaskRegistry.includes(name)) {
+        window.TaskRegistry.push(name);
+      }
+    }
+  }
+}
+
 
 // Helper for generators to check stop condition
 window.shouldStop = () => {
@@ -654,6 +668,7 @@ document.getElementById("loadBtn").onclick = async () => {
     Blockly.Events.disable();
     workspace.clear();
     Blockly.serialization.workspaces.load(json, workspace);
+    rebuildTaskRegistryFromWorkspace();
   } finally {
     Blockly.Events.enable();
   }

@@ -1262,17 +1262,39 @@ Blockly.Blocks['task_definition'] = {
       .setCheck(null);
 
     this.setColour(290);
-    this.setTooltip("Define a named asynchronous task");
   },
 
   onTaskNameChanged: function(newName) {
-    if (!window.TaskRegistry.includes(newName)) {
+    const oldName = this.oldTaskName || this.getFieldValue("TASK");
+
+    // If unchanged, do nothing
+    if (newName === oldName) {
+      this.oldTaskName = newName;
+      return newName;
+    }
+
+    // Update registry
+    const idx = window.TaskRegistry.indexOf(oldName);
+    if (idx !== -1) {
+      window.TaskRegistry[idx] = newName;
+    } else if (!window.TaskRegistry.includes(newName)) {
       window.TaskRegistry.push(newName);
     }
-    updateTaskDropdowns();
+
+    // Propagate rename to all blocks
+    const blocks = workspace.getAllBlocks(false);
+    for (const block of blocks) {
+      const field = block.getField("TASK");
+      if (field && field.getValue() === oldName) {
+        field.setValue(newName);
+      }
+    }
+
+    this.oldTaskName = newName;
     return newName;
   }
 };
+
 
 // START TASK
 Blockly.Blocks['task_start'] = {
