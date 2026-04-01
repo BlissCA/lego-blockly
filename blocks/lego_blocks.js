@@ -1363,6 +1363,19 @@ Blockly.Blocks['task_has_error'] = {
   }
 };
 
+// STOP ALL TASKS
+Blockly.Blocks['task_stop_all'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("stop all tasks");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(290);
+    this.setTooltip("Stops all running tasks");
+  }
+};
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------

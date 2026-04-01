@@ -106,7 +106,7 @@ const toolbox = {
       "custom": "PROCEDURE",
       "colour": 290
     },
-    
+
     {
       "kind": "category",
       "name": "Tasks",
@@ -117,7 +117,9 @@ const toolbox = {
         { "kind": "block", "type": "task_stop" },
         { "kind": "block", "type": "task_is_running" },
         { "kind": "block", "type": "task_is_done" },
-        { "kind": "block", "type": "task_has_error" }
+        { "kind": "block", "type": "task_has_error" },
+        { "kind": "block", "type": "task_stop_all"}
+
       ]
     },
 

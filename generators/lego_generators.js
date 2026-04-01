@@ -759,6 +759,10 @@ javascriptGenerator.forBlock['task_has_error'] = function(block) {
   return [`NamedTask.hasError("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock['task_stop_all'] = function(block) {
+  return `window.NamedTask.stopAll();\n`;
+};
+
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
