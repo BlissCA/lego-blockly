@@ -1291,6 +1291,7 @@ Blockly.Blocks['task_definition'] = {
     this.oldTaskName = this.getFieldValue("TASK");
   },
 
+  /*
   onchange: function(event) {
     if (!event || event.type !== Blockly.Events.BLOCK_CHANGE) return;
     if (event.blockId !== this.id) return;
@@ -1331,6 +1332,7 @@ Blockly.Blocks['task_definition'] = {
 
     this.oldTaskName = newName;
   }
+  */
 };
 
 // START TASK
