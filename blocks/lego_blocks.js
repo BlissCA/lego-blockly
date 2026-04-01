@@ -1461,6 +1461,8 @@ Blockly.Blocks['task_loop_definition'] = {
 
     // --- 3. Refresh ALL dropdowns BEFORE updating references ---
     const blocks = workspace.getAllBlocks(false);
+
+    /*
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field) {
@@ -1470,11 +1472,13 @@ Blockly.Blocks['task_loop_definition'] = {
         field.setValue(field.getValue()); // reapply safely
       }
     }
+    */
 
     // --- 4. Update other blocks referencing this task ---
     for (const block of blocks) {
       const field = block.getField("TASK");
       if (field && field.getValue() === oldName) {
+        field.getOptions(false);
         field.setValue(newName);
       }
     }
