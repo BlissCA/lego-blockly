@@ -31,23 +31,6 @@ function getRcxDropdown() {
     : [['No RCX', 'NONE']];
 }
 
-// Update task dropdowns
-function updateTaskDropdowns() {
-  const blocks = workspace.getAllBlocks(false);
-
-  for (const block of blocks) {
-    if (block.getField && block.getField("TASK")) {
-      const field = block.getField("TASK");
-      const current = field.getValue();
-
-      field.menuGenerator_ = window.TaskRegistry.map(t => [t, t]);
-
-      if (!window.TaskRegistry.includes(current)) {
-        field.setValue(window.TaskRegistry[0]);
-      }
-    }
-  }
-}
 
 window.addEventListener("load", () => {
 
@@ -1255,12 +1238,24 @@ Blockly.Blocks['rcx_getinpval'] = {
   }
 };
 
+
 // ---------------- TASK BLOCKS ----------------
+
+// Utility: dynamic dropdown with fallback
+function taskDropdown() {
+  const list = window.TaskRegistry;
+  return list.length ? list.map(t => [t, t]) : [["<no tasks>", "__none__"]];
+}
+
+// TASK DEFINITION
 Blockly.Blocks['task_definition'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldTextInput("Task1"), "TASK")
+      .appendField(
+        new Blockly.FieldTextInput("Task1", this.onTaskNameChanged.bind(this)),
+        "TASK"
+      )
       .appendField("do");
 
     this.appendStatementInput("DO")
@@ -1268,17 +1263,23 @@ Blockly.Blocks['task_definition'] = {
 
     this.setColour(290);
     this.setTooltip("Define a named asynchronous task");
-    this.setHelpUrl("");
+  },
+
+  onTaskNameChanged: function(newName) {
+    if (!window.TaskRegistry.includes(newName)) {
+      window.TaskRegistry.push(newName);
+    }
+    updateTaskDropdowns();
+    return newName;
   }
 };
 
+// START TASK
 Blockly.Blocks['task_start'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("start task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK");
+      .appendField(new Blockly.FieldDropdown(taskDropdown), "TASK");
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
@@ -1286,13 +1287,12 @@ Blockly.Blocks['task_start'] = {
   }
 };
 
+// STOP TASK
 Blockly.Blocks['task_stop'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("stop task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK");
+      .appendField(new Blockly.FieldDropdown(taskDropdown), "TASK");
 
     this.setPreviousStatement(true);
     this.setNextStatement(true);
@@ -1300,13 +1300,12 @@ Blockly.Blocks['task_stop'] = {
   }
 };
 
+// TASK IS RUNNING
 Blockly.Blocks['task_is_running'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK")
+      .appendField(new Blockly.FieldDropdown(taskDropdown), "TASK")
       .appendField("is running");
 
     this.setOutput(true, "Boolean");
@@ -1314,13 +1313,12 @@ Blockly.Blocks['task_is_running'] = {
   }
 };
 
+// TASK IS DONE
 Blockly.Blocks['task_is_done'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK")
+      .appendField(new Blockly.FieldDropdown(taskDropdown), "TASK")
       .appendField("is done");
 
     this.setOutput(true, "Boolean");
@@ -1328,13 +1326,12 @@ Blockly.Blocks['task_is_done'] = {
   }
 };
 
+// TASK HAS ERROR
 Blockly.Blocks['task_has_error'] = {
   init: function() {
     this.appendDummyInput()
       .appendField("task")
-      .appendField(new Blockly.FieldDropdown(() =>
-        window.TaskRegistry.map(t => [t, t])
-      ), "TASK")
+      .appendField(new Blockly.FieldDropdown(taskDropdown), "TASK")
       .appendField("has error");
 
     this.setOutput(true, "Boolean");

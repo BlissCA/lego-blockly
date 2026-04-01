@@ -699,11 +699,6 @@ javascriptGenerator.forBlock['task_definition'] = function(block) {
   const taskName = block.getFieldValue('TASK');
   const statements = javascriptGenerator.statementToCode(block, 'DO');
 
-  if (!window.TaskRegistry.includes(taskName)) {
-    window.TaskRegistry.push(taskName);
-    updateTaskDropdowns();
-  }
-
   const funcName = `__task_${taskName}`;
 
   return `
