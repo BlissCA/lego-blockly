@@ -71,6 +71,8 @@ export class LegoInterfaceA {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
 
+			await new Promise(r => setTimeout(r, 50));
+
       // Flush again to ensure clean state
       //await this._drainReadBuffer();
 
@@ -80,7 +82,7 @@ export class LegoInterfaceA {
 			// 4) Read until we see VERBOSE OFF (ignore empty lines)
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
-				let line2 = await this._readLine(1000);
+				let line2 = await this._readLine(200);
 				if (line2 === "VERBOSE OFF") {
 					echo = line2;
 					break;
