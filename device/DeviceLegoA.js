@@ -142,7 +142,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       for (let p = 0; p <= 5; p++) {
         await this._sendRaw(`PORT ${p} OFF`);
-				await new Promise(r => setTimeout(r, 5));   // small cooldown
+				await new Promise(r => setTimeout(r, 20));   // small cooldown
       }
     });
   }
