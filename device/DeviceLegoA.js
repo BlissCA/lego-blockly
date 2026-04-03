@@ -72,7 +72,7 @@ export class LegoInterfaceA {
       }
 
       // Flush again to ensure clean state
-      await this._drainReadBuffer();
+      //await this._drainReadBuffer();
 
       // 3) Send VERBOSE OFF
       await this._sendRaw("VERBOSE OFF");
@@ -142,7 +142,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       for (let p = 0; p <= 5; p++) {
         await this._sendRaw(`PORT ${p} OFF`);
-				await new Promise(r => setTimeout(r, 20));   // small cooldown
+				await new Promise(r => setTimeout(r, 100));   // small cooldown
       }
     });
   }
@@ -151,7 +151,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       this._assertOutputPort(port);
       await this._sendRaw(`PORT ${port} ON`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -159,7 +159,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       this._assertOutputPort(port);
       await this._sendRaw(`PORT ${port} OFF`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -168,7 +168,7 @@ export class LegoInterfaceA {
       this._assertOutputPort(port);
       const level = this._clamp(power, 0, 255);
       await this._sendRaw(`PWM ${port} ${level}`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -176,7 +176,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} LEFT`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -184,7 +184,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} RIGHT`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -192,7 +192,7 @@ export class LegoInterfaceA {
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} OFF`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -201,7 +201,7 @@ export class LegoInterfaceA {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
       await this._sendRaw(`CPWM ${c} LEFT ${level}`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
@@ -210,7 +210,7 @@ export class LegoInterfaceA {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
       await this._sendRaw(`CPWM ${c} RIGHT ${level}`);
-			await new Promise(r => setTimeout(r, 5));   // small cooldown
+			await new Promise(r => setTimeout(r, 100));   // small cooldown
     });
   }
 
