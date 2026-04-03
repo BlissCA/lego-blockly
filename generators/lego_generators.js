@@ -828,6 +828,181 @@ await new Promise(resolve => setTimeout(resolve, ${ms}));
 };
 
 
+// ---------------- LEGO INTERFACE A DEVICE GENERATORS ------------------
+
+// ---------------- Lego Interface A Combo Port Letters A to C = 0 to 2 ----------------
+javascriptGenerator.forBlock["Legoa_comboalpha"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+// ---------------- Lego Interface A Output Port Numbers 0, 1, 2, 3, 4, 5 = 0, 1, 2, 3, 4, 5 ----------------
+javascriptGenerator.forBlock["Legoa_outportnum"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('NUM');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+// ---------------- Lego Interface A Input Port Numbers 6, 7 = 6, 7 ----------------
+javascriptGenerator.forBlock["Legoa_inputnum"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('NUM');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["legoa_inp_on"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").inputOn(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["legoa_inp_val"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").inputVal(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["legoa_out_on"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outOn(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_out_off"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outOff(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_out_offall"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.portsOff();
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_out_pwm"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.pwm(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo_l"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.comboL(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo_r"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.comboR(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo_off"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.comboOff(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo_pwml"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.comboPwmL(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.comboPwmR(${port},${pwr});
+}
+`;
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {
