@@ -95,9 +95,9 @@ export class DeviceManager {
       return dev;
 
     } catch (err) {
-      console.warn("Connection failed:", err);
+      console.warn("Lego A Connection failed:", err);
       await dev.Disconnect();
-      this._freeName(name);
+      this._freeName(dev.name);
       return null;
     }
   }
@@ -115,9 +115,9 @@ export class DeviceManager {
       return dev;
 
     } catch (err) {
-      console.warn("Connection failed:", err);
+      console.warn("Lego B Connection failed:", err);
       await dev.forceDisconnect();
-      this._freeName(name);
+      this._freeName(dev.name);
       return null;
     }
   }
@@ -137,7 +137,7 @@ export class DeviceManager {
     } catch (err) {
       console.warn("RCX connection failed:", err);
       await dev.Disconnect();
-      this._freeName(name);
+      this._freeName(dev.name);
       return null;
     }
   }

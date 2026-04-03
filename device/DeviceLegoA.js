@@ -53,13 +53,26 @@ export class LegoInterfaceA {
       this._logStatus("Performing VERBOSE handshake…");
       await this._sendCommand("VERBOSE ON", false); // ignore reply
 
-      const ok = await this._waitForReply("VERBOSE OFF", 1000);
-      if (!ok) {
-        this._logStatus("Please connect Arduino (no VERBOSE OFF reply).");
-        await this._safeClose();
-        return false;
-      }
+        const ok = await this._waitForReply("VERBOSE OFF", 1000);
+        if (!ok) {
+            this._logStatus("Connection to LEGO Interface A failed (no reply to VERBOSE OFF).");
 
+            // Clean disconnect
+            await this._safeClose();
+
+            // Tell DeviceManager this device is not connected
+            this.connected = false;
+
+            // VERY IMPORTANT: free the name if it was allocated
+            if (this.name) {
+                this.manager._freeName(this.name);
+                this.name = null;
+            }
+
+            // Reject connect() so DeviceManager does NOT add the device
+            throw new Error("LEGO Interface A handshake failed");
+        }
+        
       this._logStatus("Arduino handshake OK. VERBOSE OFF, ready.");
       this.connected = true;
       return true;
@@ -190,9 +203,8 @@ export class LegoInterfaceA {
       this._logStatus("Writer not available, cannot send: " + cmd);
       return;
     }
-    const line = cmd + "\n";
-    this._logTx(line);
-    await this.writer.write(this._textEncoder.encode(line));
+    this._logTx(cmd);
+    await this.writer.write(this._textEncoder.encode(cmd));
     // logReply is kept for parity with other devices; here we don't wait for output replies.
   }
 
