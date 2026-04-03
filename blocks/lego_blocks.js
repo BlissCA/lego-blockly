@@ -851,6 +851,210 @@ window.addEventListener("load", () => {
       "colour": 210,
       "tooltip": "Checks if X is between A and B. If A > B, the logic flips automatically.",
       "helpUrl": ""
+    },
+    {
+      "type": "legoa_inp_on",
+      "message0": "%1 inp %2 ON",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 35,
+      "tooltip": "Returns true if the input port is ON, false if OFF"
+    },
+    {
+      "type": "legoa_inp_val",
+      "message0": "%1 inp %2 value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 35,
+      "tooltip": "Returns the Input value 0-1023"
+    },
+    {
+      "type": "legoa_out_on",
+      "message0": "%1 out %2 ON",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+    {
+      "type": "legoa_out_off",
+      "message0": "%1 out %2 OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
+      "type": "legoa_out_offall",
+      "message0": "%1 out ALL OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+    {
+      "type": "legoa_out_pwm",
+      "message0": "%1 out %2 power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Power must be from 0 to 255"
+    },
+    {
+      "type": "legoa_combo_l",
+      "message0": "%1 combo %2 ON Left",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+
+    {
+      "type": "legoa_combo_r",
+      "message0": "%1 combo %2 ON Right",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+
+    {
+      "type": "legoa_combo_off",
+      "message0": "%1 combo %2 OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+    {
+      "type": "legoa_combo_pwml",
+      "message0": "%1 combo %2 L power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Power must be from 0 to 255"
+    },
+    {
+      "type": "legoa_combo_pwmr",
+      "message0": "%1 combo %2 R power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Power must be from 0 to 255"
     }
 
   ]);
@@ -1084,6 +1288,46 @@ Blockly.Blocks["lego_multi_pow"] = {
     this.setNextStatement(true);
     this.setColour(20);
     this.setTooltip("Power must be from 0 to 7");
+  }
+};
+
+Blockly.Blocks['Legoa_outportnum'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["0", "0"], ["1", "1"], ["2", "2"], ["3", "3"],
+        ["4", "4"], ["5", "5"]
+      ]), "NUM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego A output ports.");
+  }
+};
+
+Blockly.Blocks['Legoa_comboalpha'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "0"], ["B", "1"], ["C", "2"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego A Combo ports.");
+  }
+};
+
+Blockly.Blocks['Legoa_inputnum'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["6", "6"], ["7", "7"]
+      ]), "NUM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego A output ports.");
   }
 };
 
