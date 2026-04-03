@@ -274,36 +274,54 @@ export class LegoInterfaceA {
     await this.writer.write(this._textEncoder.encode(cmd + "\n"));
   }
 
-  async _readLine(timeoutMs) {
-    if (!this.port || !this.port.readable) return "";
+	async _readLine(timeoutMs = 200) {
+		const reader = this.port.readable.getReader();
+		let buffer = "";
+		let done = false;
 
-    const reader = this.port.readable.getReader();
-    let buffer = "";
+		// Timeout promise
+		let timeoutId;
+		const timeoutPromise = new Promise(resolve => {
+			timeoutId = setTimeout(() => {
+				done = true;
+				resolve(null); // timeout
+			}, timeoutMs);
+		});
 
-    try {
-      const timeout = setTimeout(() => reader.cancel(), timeoutMs);
+		// Read loop promise
+		const readPromise = (async () => {
+			try {
+				while (!done) {
+					const { value, done: streamDone } = await reader.read();
+					if (streamDone) break;
+					if (!value) continue;
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (value) {
-          buffer += this._textDecoder.decode(value);
-          const idx = buffer.indexOf("\n");
-          if (idx !== -1) {
-            clearTimeout(timeout);
-            return buffer.slice(0, idx).trim();
-          }
-        }
-      }
+					buffer += this._textDecoder.decode(value);
 
-      return "";
+					// Check for newline
+					const nl = buffer.indexOf("\n");
+					if (nl !== -1) {
+						const line = buffer.slice(0, nl).trim();
+						buffer = buffer.slice(nl + 1);
+						done = true;
+						return line;
+					}
+				}
+			} catch (_) {
+				// Ignore read errors
+			}
+			return null;
+		})();
 
-    } catch (_) {
-      return "";
-    } finally {
-      try { reader.releaseLock(); } catch (_) {}
-    }
-  }
+		// Race timeout vs read
+		const result = await Promise.race([readPromise, timeoutPromise]);
+
+		clearTimeout(timeoutId);
+
+		try { reader.releaseLock(); } catch (_) {}
+
+		return result;
+	}
 
   async _drainReadBuffer() {
     if (!this.port || !this.port.readable) return;
