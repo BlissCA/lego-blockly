@@ -540,14 +540,14 @@ document.getElementById("stopBtn").onclick = async () => {
 
   for (const dev of window.deviceManager.devices) {
     try {
-      if (dev.outOff) {
+      if (dev.portsOff) {
+        // LEGO Interface A
+        await dev.portsOff();
+      } else if (dev.outOff) {
         // LEGO Interface B
         for (let port = 1; port <= 8; port++) {
           await dev.outOff(port);
         }
-      } else if (dev.portsOff) {
-        // LEGO Interface A
-        await dev.portsOff();
       } else if (dev.mot) {
         // RCX: stop all motors A, B, C
         await dev.mot(0x01).off();
