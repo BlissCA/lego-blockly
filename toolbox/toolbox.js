@@ -320,7 +320,7 @@ const toolbox = {
           "inputs": {
             "PORTS": {
               "shadow": {
-                "type": "Legoa_outportalpha",
+                "type": "Legoa_comboalpha",
                 "fields": { "LETTER": "0" }
               }
             }
@@ -332,7 +332,7 @@ const toolbox = {
           "inputs": {
             "PORTS": {
               "shadow": {
-                "type": "Legoa_outportalpha",
+                "type": "Legoa_comboalpha",
                 "fields": { "LETTER": "0" }
               }
             }
@@ -344,7 +344,7 @@ const toolbox = {
           "inputs": {
             "PORTS": {
               "shadow": {
-                "type": "Legoa_outportalpha",
+                "type": "Legoa_comboalpha",
                 "fields": { "LETTER": "0" }
               }
             }
@@ -356,7 +356,7 @@ const toolbox = {
           "inputs": {
             "PORTS": {
               "shadow": {
-                "type": "Legoa_outportalpha",
+                "type": "Legoa_comboalpha",
                 "fields": { "LETTER": "0" }
               }
             },
@@ -374,7 +374,7 @@ const toolbox = {
           "inputs": {
             "PORTS": {
               "shadow": {
-                "type": "Legoa_outportalpha",
+                "type": "Legoa_comboalpha",
                 "fields": { "LETTER": "0" }
               }
             },
