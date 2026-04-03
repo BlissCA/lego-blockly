@@ -122,27 +122,30 @@ export class LegoInterfaceA {
   // ------------------------------------------------------------
   // DISCONNECT
   // ------------------------------------------------------------
-  async disconnect() {
-    this._logStatus("Disconnecting LEGO Interface A…");
+	async disconnect() {
+		this._logStatus("Disconnecting LEGO Interface A…");
 
-    this.queueActive = false;
+		try {
+			// 1) Turn ports off while queue is still active
+			await this.portsOff();
+		} catch (e) {
+			this._logStatus("Error while turning ports off: " + e);
+		}
 
-    try {
-      await this.portsOff();
-    } catch (e) {
-      this._logStatus("Error while turning ports off: " + e);
-    }
+		// 2) Stop the queue AFTER portsOff()
+		this.queueActive = false;
 
-    await this._safeClose();
-    this.connected = false;
+		// 3) Close the port
+		await this._safeClose();
+		this.connected = false;
 
-    if (this.name) {
-      this.manager._freeName(this.name);
-      this.name = null;
-    }
+		if (this.name) {
+			this.manager._freeName(this.name);
+			this.name = null;
+		}
 
-    this._logStatus("Disconnected.");
-  }
+		this._logStatus("Disconnected.");
+	}
 
   // ------------------------------------------------------------
   // OUTPUT COMMANDS (queued, no reply expected)
