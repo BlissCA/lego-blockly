@@ -72,7 +72,7 @@ export class LegoInterfaceA {
             // Reject connect() so DeviceManager does NOT add the device
             throw new Error("LEGO Interface A handshake failed");
         }
-        
+
       this._logStatus("Arduino handshake OK. VERBOSE OFF, ready.");
       this.connected = true;
       return true;
@@ -231,23 +231,32 @@ export class LegoInterfaceA {
     });
   }
 
-  async _drainReadBuffer() {
+    async _drainReadBuffer() {
     if (!this.port || !this.port.readable) return;
 
+    let tempReader;
     try {
-      const tempReader = this.port.readable.getReader();
-      while (true) {
-        const { value, done } = await tempReader.read();
-        if (done || !value) break;
-        // discard everything
-      }
-      tempReader.releaseLock();
+        tempReader = this.port.readable.getReader();
+
+        // Try reading ONCE with a very short timeout
+        const readPromise = tempReader.read();
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10, { timeout: true }));
+
+        const result = await Promise.race([readPromise, timeoutPromise]);
+
+        // If we got data, discard it
+        if (result && result.value) {
+        // ignore
+        }
+
     } catch (e) {
-      // ignore errors while draining
+        // ignore
+    } finally {
+        try { tempReader?.releaseLock(); } catch (_) {}
     }
 
     this._rxBuffer = "";
-  }
+    }
 
   _startReadLoop() {
     if (!this.port || !this.port.readable) return;
