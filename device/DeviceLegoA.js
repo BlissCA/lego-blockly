@@ -80,7 +80,7 @@ export class LegoInterfaceA {
 			// 4) Read until we see VERBOSE OFF (ignore empty lines)
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
-				let line2 = await this._readLine(200);
+				let line2 = await this._readLine(1000);
 				if (line2 === "VERBOSE OFF") {
 					echo = line2;
 					break;
