@@ -14,6 +14,7 @@ import "./generators/lego_generators.js";
 import toolbox from "./toolbox/toolbox.js";
 
 // Device system
+import "./device/DeviceLegoA.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/deviceManager.js";
