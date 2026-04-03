@@ -545,6 +545,9 @@ document.getElementById("stopBtn").onclick = async () => {
         for (let port = 1; port <= 8; port++) {
           await dev.outOff(port);
         }
+      } else if (dev.portsOff) {
+        // LEGO Interface A
+        await dev.portsOff();
       } else if (dev.mot) {
         // RCX: stop all motors A, B, C
         await dev.mot(0x01).off();
@@ -557,6 +560,22 @@ document.getElementById("stopBtn").onclick = async () => {
   }
   // mqttClient.stop();
   logStatus("Program stopped (devices remain connected).");
+};
+
+// ---------------- CONNECT Lego Interface A ----------------
+
+document.getElementById("connectBtnLegoA").onclick = async () => {
+  const dev = await window.deviceManager.connectLegoInterfaceA();
+
+  if (dev) {
+    // Success is already logged by deviceManager._addDevice()
+    // So we don't log anything here.
+  } else {
+    // User cancelled OR handshake failed
+    logStatus("Connection cancelled or device not responding.");
+  }
+
+  refreshDevicesPanel();
 };
 
 // ---------------- CONNECT Lego Interface B ----------------
