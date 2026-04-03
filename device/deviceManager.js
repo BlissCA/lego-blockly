@@ -96,7 +96,7 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("Lego A Connection failed:", err);
-      await dev.Disconnect();
+      await dev.disconnect();
       this._freeName(dev.name);
       return null;
     }
