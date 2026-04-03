@@ -35,12 +35,6 @@ export class LegoInterfaceA {
         this.log("User cancelled port selection");
         throw err;  // bubble up to deviceManager
         }
-
-      // 2. NOW allocate the name
-
-      if (!this.name) {
-        this.name = this.manager._allocateName("LegoA");
-      }
     
       await this.port.open({ baudRate: 9600 });
 
@@ -74,7 +68,12 @@ export class LegoInterfaceA {
         }
 
       this._logStatus("Arduino handshake OK. VERBOSE OFF, ready.");
+ 
+      if (!this.name) {
+        this.name = this.manager._allocateName("LegoA");
+      }
       this.connected = true;
+
       return true;
     } catch (err) {
       this._logStatus("Error during connect: " + err);
