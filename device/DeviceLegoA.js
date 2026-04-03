@@ -323,24 +323,42 @@ export class LegoInterfaceA {
     }
   }
 
-  async _safeClose() {
-    try {
-      if (this.reader) {
-        try { await this.reader.cancel(); } catch (_) {}
-        this.reader = null;
-      }
-      if (this.writer) {
-        try { await this.writer.close(); } catch (_) {}
-        this.writer = null;
-      }
-      if (this.port) {
-        try { await this.port.close(); } catch (_) {}
-        this.port = null;
-      }
-    } catch (e) {
-      this._logStatus("Error while closing port: " + e);
-    }
-  }
+	async _safeClose() {
+		try {
+			// Stop any pending read loop
+			if (this.reader) {
+				try {
+					// Only cancel if the reader still has a lock
+					if (this.reader.releaseLock === undefined) {
+						// Old reader object, ignore
+					} else {
+						try { await this.reader.cancel(); } catch (_) {}
+						try { this.reader.releaseLock(); } catch (_) {}
+					}
+				} catch (_) {}
+				this.reader = null;
+			}
+
+			// Close writer
+			if (this.writer) {
+				try { await this.writer.close(); } catch (_) {}
+				try { this.writer.releaseLock(); } catch (_) {}
+				this.writer = null;
+			}
+
+			// Close port
+			if (this.port) {
+				try { await this.port.close(); } catch (_) {}
+				this.port = null;
+			}
+
+			// Give Web Serial time to fully release the port
+			await new Promise(r => setTimeout(r, 30));
+
+		} catch (e) {
+			this._logStatus("Error while closing port: " + e);
+		}
+	}
 
   // ------------------------------------------------------------
   // VALIDATION + UTILITIES
