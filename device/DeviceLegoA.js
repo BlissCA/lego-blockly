@@ -233,7 +233,7 @@ export class LegoInterfaceA {
 
 	async inputOn(port) {
 		const v = await this.inputVal(port);
-		return v >= 512;
+		return v >= 1020;
 	}
 
   async inputVal(port) {
