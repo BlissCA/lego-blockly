@@ -78,6 +78,7 @@ export class LegoInterfaceA {
     } catch (err) {
       this._logStatus("Error during connect: " + err);
       await this._safeClose();
+      throw err;
       return false;
     }
   }
