@@ -80,6 +80,15 @@ export class LegoInterfaceA {
     }
     await this._safeClose();
     this.connected = false;
+
+    // Free the name if it was allocated
+    if (this.name) {
+      this.manager._freeName(this.name);
+      this.name = null;
+    }
+
+ //   this.setStatus("disconnected", "Disconnected");
+
     this._logStatus("Disconnected.");
   }
 
