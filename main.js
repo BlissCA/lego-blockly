@@ -612,7 +612,7 @@ document.getElementById("connectBtnRcx").onclick = async () => {
 document.getElementById("disconnectBtn").onclick = async () => {
   try {
     await window.deviceManager.disconnectAll();
-    logStatus("Disconnected all devices.");
+  //  logStatus("Disconnected all devices.");  // Already in devicemanager
     refreshDevicesPanel();
   } catch (err) {
     logStatus("Disconnect error: " + err);
