@@ -11,6 +11,16 @@ function getDeviceDropdown() {
     : [['No devices', 'NONE']];
 }
 
+// Only LEGO Interface A devices
+function getLegoADropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("LegoA"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No Lego A', 'NONE']];
+}
+
 // Only LEGO Interface B devices
 function getLegoBDropdown() {
   const devices = window.deviceManager?.devices || [];

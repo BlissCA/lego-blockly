@@ -243,6 +243,9 @@ const toolbox = {
 
       ]
     },
+    {"kind": "category", "name": "Lego A", "colour": 30, "contents": [
+      ]
+    },
     {
       "kind": "category",
       "name": "Lego B",
