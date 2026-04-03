@@ -189,11 +189,19 @@ export class LegoInterfaceA {
     });
   }
 
-  async comboPwm(cmb, power) {
+  async comboPwmL(cmb, power) {
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
       await this._sendRaw(`CPWM ${c} LEFT ${level}`);
+    });
+  }
+
+  async comboPwmR(cmb, power) {
+    return this.enqueue(async () => {
+      const c = this._normalizeCombo(cmb);
+      const level = this._clamp(power, 0, 255);
+      await this._sendRaw(`CPWM ${c} RIGHT ${level}`);
     });
   }
 
