@@ -699,6 +699,7 @@ javascriptGenerator.forBlock['loop_forever'] = function(block) {
 
   return `
 while (true) {
+  if (shouldStop()) return;
   ${statements}
   await new Promise(r => setTimeout(r, 0));
 }
@@ -798,6 +799,7 @@ async function ${funcName}() {
     };
 
     while (!TaskShouldStop("${taskName}")) {
+      if (shouldStop()) return;
       ${statements}
       await new Promise(r => setTimeout(r, 0));
     }
