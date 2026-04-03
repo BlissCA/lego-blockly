@@ -83,6 +83,26 @@ export class DeviceManager {
   }
 
   // -------------------------
+  // Connect LEGO Interface A
+  // -------------------------
+
+  async connectLegoInterfaceA() {
+    const dev = new LegoInterfaceA(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Connection failed:", err);
+      await dev.Disconnect();
+      this._freeName(name);
+      return null;
+    }
+  }
+
+  // -------------------------
   // Connect LEGO Interface B
   // -------------------------
 

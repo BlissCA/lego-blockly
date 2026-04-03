@@ -6,10 +6,9 @@
 // DeviceLegoA.js
 
 export class LegoInterfaceA {
-  constructor(id, name = "LEGO Interface A") {
-    this.id = id;
+  constructor(name, manager) {
     this.name = name;
-    this.type = "LegoInterfaceA";
+    this.manager = manager;
 
     this.port = null;
     this.reader = null;
@@ -29,7 +28,20 @@ export class LegoInterfaceA {
   async connect() {
     try {
       this._logStatus("Requesting serial port for LEGO Interface A…");
-      this.port = await navigator.serial.requestPort();
+        // 1. User selects a port
+        try {
+        this.port = await window.autoSelectPort();  // WAS: await navigator.serial.requestPort();
+        } catch (err) {
+        this.log("User cancelled port selection");
+        throw err;  // bubble up to deviceManager
+        }
+
+      // 2. NOW allocate the name
+
+      if (!this.name) {
+        this.name = this.manager._allocateName("LegoA");
+      }
+    
       await this.port.open({ baudRate: 9600 });
 
       this._logStatus("Serial port opened. Draining buffer…");
