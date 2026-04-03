@@ -78,7 +78,7 @@ export class LegoInterfaceA {
     } catch (err) {
       this._logStatus("Error during connect: " + err);
       await this._safeClose();
-      throw err;
+      throw err;  // to make sure devicemanager gets the error and remove null device from list
       return false;
     }
   }
