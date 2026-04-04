@@ -109,6 +109,14 @@ class FieldInteractiveButton extends Blockly.Field {
     const id = block.id;
     window.BlocklyButtonEvents[id] = true;
   }
+  
+  saveState() {
+    return this.getValue();
+  }
+
+  loadState(state) {
+    this.setValue(state);
+  }  
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
