@@ -122,6 +122,7 @@ class FieldInteractiveButton extends Blockly.Field {
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
 
+/*
 Blockly.serialization.registry.register(
   'field_interactive_button',
   {
@@ -129,6 +130,7 @@ Blockly.serialization.registry.register(
     load: (state) => new FieldInteractiveButton(state)
   }
 );
+*/
 
 window.BlocklyButtonEvents = {};
 
