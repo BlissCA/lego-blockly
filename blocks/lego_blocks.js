@@ -105,15 +105,20 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   const buttonField = this.getField('BTN');
 
   editField.setOnClickHandler(() => {
-    const current = buttonField.getValue();
-    const newText = window.prompt('Button label:', current);
-    if (newText !== null) {
-      buttonField.setValue(newText);
-      buttonField.forceRerender();
-    }
+    // Create a temporary text input field
+    const temp = new Blockly.FieldTextInput(buttonField.getValue(), (newText) => {
+      if (newText !== null) {
+        buttonField.setValue(newText);
+      }
+    });
+
+    // Attach it to the same block
+    temp.setSourceBlock(this);
+
+    // Open the editor
+    temp.showEditor_();
   });
 });
-
 
 
 
