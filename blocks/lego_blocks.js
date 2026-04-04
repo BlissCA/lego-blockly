@@ -1100,7 +1100,9 @@ window.addEventListener("load", () => {
           "name": "DO"
         }
       ],
-      "colour": 230,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 180,
       "tooltip": "Runs the DO section when this block's button is clicked.",
       "helpUrl": ""
     }
