@@ -106,17 +106,23 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
 
   editField.setOnClickHandler(() => {
     // Create a temporary text input field
-    const temp = new Blockly.FieldTextInput(buttonField.getValue(), (newText) => {
+    const tempField = new Blockly.FieldTextInput(buttonField.getValue(), (newText) => {
       if (newText !== null) {
         buttonField.setValue(newText);
       }
     });
 
-    // Attach it to the same block
-    temp.setSourceBlock(this);
+    // Attach it to the block so Blockly can render it
+    this.appendDummyInput('_temp_input_').appendField(tempField);
 
     // Open the editor
-    temp.showEditor_();
+    tempField.showEditor_();
+
+    // Remove the temporary field after editing
+    setTimeout(() => {
+      this.removeInput('_temp_input_', true);
+      buttonField.forceRerender();
+    }, 0);
   });
 });
 
