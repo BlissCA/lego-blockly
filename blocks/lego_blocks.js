@@ -236,10 +236,14 @@ window.addEventListener("load", () => {
       "message0": "when button %1 %2 clicked %3 Do %4",
       "args0": [
         { "type": "field_interactive_button", "name": "BTN" },
-        { "type": "input_dummy", "name": "EDIT_WRAP" },
+
+        /* Inline dummy to hold the pencil */
+        { "type": "input_dummy", "name": "EDIT_WRAP", "align": "RIGHT" },
+
         { "type": "input_dummy" },
         { "type": "input_statement", "name": "DO" }
       ],
+      "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
       "colour": 180,
@@ -248,7 +252,7 @@ window.addEventListener("load", () => {
       "extensions": ["lego_button_event_edit"]
     }
   ]);
-  
+
 
   Blockly.defineBlocksWithJsonArray([
 
