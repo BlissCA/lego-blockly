@@ -71,8 +71,8 @@ function getRcxDropdown() {
 }
 
 
-//window.addEventListener("load", () => {
-Blockly.common.defineBlocks(() => {
+window.addEventListener("load", () => {
+//Blockly.common.defineBlocks(() => {
 
   Blockly.defineBlocksWithJsonArray([
     {
