@@ -6,7 +6,7 @@ class FieldInteractiveButton extends Blockly.Field {
   static SERIALIZABLE = true;
 
   constructor(text = "Click me") {
-    super(text);
+    super({ text });
     this.EDITABLE = false;
     this.size_ = new Blockly.utils.Size(0, 0);
   }
