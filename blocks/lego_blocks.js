@@ -121,7 +121,6 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
     svg.addEventListener("click", () => {
       // --- Simple HTML overlay editor (no WidgetDiv) ---
 
-      // Dark transparent backdrop
       const overlay = document.createElement("div");
       overlay.style.position = "fixed";
       overlay.style.top = "0";
@@ -134,7 +133,6 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
       overlay.style.justifyContent = "center";
       overlay.style.zIndex = "9999";
 
-      // Small panel
       const panel = document.createElement("div");
       panel.style.background = "#fff";
       panel.style.padding = "8px 12px";
@@ -164,11 +162,12 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
       input.focus();
       input.select();
 
-      // --- FIX: make close() safe to call multiple times ---
+      let closed = false;
+
       const close = () => {
-        if (overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
+        if (closed) return;
+        closed = true;
+        overlay.remove();
       };
 
       const apply = () => {
@@ -176,12 +175,16 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
         close();
       };
 
+      // Enter = apply
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") apply();
         if (e.key === "Escape") close();
       });
 
-      input.addEventListener("blur", apply);
+      // Clicking outside = close
+      overlay.addEventListener("mousedown", (e) => {
+        if (!panel.contains(e.target)) close();
+      });
     });
 
   });
