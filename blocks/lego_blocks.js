@@ -17,7 +17,6 @@ class FieldInteractiveButton extends Blockly.Field {
   initView() {
     const group = Blockly.utils.dom.createSvgElement('g', {}, this.fieldGroup_);
 
-    // Background rectangle
     this.rect_ = Blockly.utils.dom.createSvgElement('rect', {
       rx: 6,
       ry: 6,
@@ -26,7 +25,6 @@ class FieldInteractiveButton extends Blockly.Field {
       'stroke-width': 1
     }, group);
 
-    // Text
     this.textElement_ = Blockly.utils.dom.createSvgElement('text', {
       'class': 'blocklyText',
       x: 0,
@@ -36,52 +34,43 @@ class FieldInteractiveButton extends Blockly.Field {
     }, group);
 
     this.textElement_.textContent = this.getValue();
-
-    // Force black text (override theme)
     this.textElement_.style.fill = '#000';
 
-    // Click handler
     group.style.cursor = 'pointer';
     group.addEventListener('click', () => this.onClick_());
 
-    // Hover effects
     group.addEventListener('mouseenter', () => {
-      this.rect_.setAttribute('fill', '#F2CF00'); // slightly darker
+      this.rect_.setAttribute('fill', '#F2CF00');
     });
     group.addEventListener('mouseleave', () => {
-      this.rect_.setAttribute('fill', '#F4D800'); // base yellow
+      this.rect_.setAttribute('fill', '#F4D800');
     });
     group.addEventListener('mousedown', () => {
-      this.rect_.setAttribute('fill', '#D9B800'); // pressed
+      this.rect_.setAttribute('fill', '#D9B800');
     });
     group.addEventListener('mouseup', () => {
-      this.rect_.setAttribute('fill', '#F2CF00'); // hover
+      this.rect_.setAttribute('fill', '#F2CF00');
     });
 
     this.group_ = group;
   }
 
-  // Called after initView AND after DOM attach
   render_() {
     const paddingX = 10;
     const paddingY = 6;
 
-    // Measure text width AFTER DOM attach
     const textWidth = Blockly.utils.dom.getTextWidth(this.textElement_);
     const textHeight = 16;
 
     const width = textWidth + paddingX * 2;
     const height = textHeight + paddingY * 2;
 
-    // Resize background
     this.rect_.setAttribute('width', width);
     this.rect_.setAttribute('height', height);
 
-    // Center text
     this.textElement_.setAttribute('x', width / 2);
     this.textElement_.setAttribute('y', height / 2 + 1);
 
-    // Tell Blockly the size
     this.size_.width = width;
     this.size_.height = height;
   }
@@ -108,45 +97,53 @@ class FieldInteractiveButton extends Blockly.Field {
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
-
 window.BlocklyButtonEvents = {};
 
 
 Blockly.Extensions.register('lego_button_event_edit', function() {
-  const editField = this.getField('EDIT');
+  const wrap = this.getInput('EDIT_WRAP');
   const buttonField = this.getField('BTN');
 
-  editField.setOnClickHandler(() => {
-    const block = this; // anchor for the popup
+  const pencil = new Blockly.FieldImage(
+    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOC4zMzMzIDJMMTAgMy42NjY2N0wzLjY2NjY3IDEwSDIgVjguMzMzMzNMOCAyWiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=",
+    12, 12, "*"
+  );
 
-    // Create HTML input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = buttonField.getValue();
-    input.style.fontSize = '14px';
-    input.style.padding = '4px';
-    input.style.width = '120px';
+  wrap.appendField(pencil, "EDIT");
 
-    // Show popup anchored to the block (NOT the pencil)
-    Blockly.WidgetDiv.show(block, () => {});
-    const div = Blockly.WidgetDiv.DIV;
-    div.appendChild(input);
+  setTimeout(() => {
+    const svg = pencil.getSvgRoot();
+    if (!svg) return;
 
-    input.focus();
-    input.select();
+    svg.style.cursor = "pointer";
 
-    const apply = () => {
-      const newText = input.value;
-      buttonField.setValue(newText);
-      Blockly.WidgetDiv.hide();
-    };
+    svg.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = buttonField.getValue();
+      input.style.fontSize = "14px";
+      input.style.padding = "4px";
+      input.style.width = "120px";
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') apply();
-      if (e.key === 'Escape') Blockly.WidgetDiv.hide();
+      Blockly.WidgetDiv.show(this, () => {});
+      const div = Blockly.WidgetDiv.DIV;
+      div.appendChild(input);
+
+      input.focus();
+      input.select();
+
+      const apply = () => {
+        buttonField.setValue(input.value);
+        Blockly.WidgetDiv.hide();
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") apply();
+        if (e.key === "Escape") Blockly.WidgetDiv.hide();
+      });
+
+      input.addEventListener("blur", apply);
     });
-
-    input.addEventListener('blur', apply);
   });
 });
 
@@ -200,25 +197,10 @@ window.addEventListener("load", () => {
       "type": "lego_button_event",
       "message0": "when button %1 %2 clicked %3 Do %4",
       "args0": [
-        {
-          "type": "field_interactive_button",
-          "name": "BTN"
-        },
-        {
-          "type": "field_image",
-          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOC4zMzMzIDJMMTAgMy42NjY2N0wzLjY2NjY3IDEwSDIgVjguMzMzMzNMOCAyWiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=",
-          "width": 12,
-          "height": 12,
-          "alt": "edit",
-          "name": "EDIT"
-        },
-        {
-          "type": "input_dummy"
-        },
-        {
-          "type": "input_statement",
-          "name": "DO"
-        }
+        { "type": "field_interactive_button", "name": "BTN" },
+        { "type": "input_dummy", "name": "EDIT_WRAP" },
+        { "type": "input_dummy" },
+        { "type": "input_statement", "name": "DO" }
       ],
       "previousStatement": null,
       "nextStatement": null,
