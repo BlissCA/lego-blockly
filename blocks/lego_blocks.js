@@ -2,6 +2,7 @@
 
 
 class FieldInteractiveButton extends Blockly.Field {
+  static TYPE = 'field_interactive_button';
   static SERIALIZABLE = true;
 
   constructor(text = "Click me") {
