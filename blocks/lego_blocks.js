@@ -164,6 +164,7 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
       input.focus();
       input.select();
 
+      // --- FIX: make close() safe to call multiple times ---
       const close = () => {
         if (overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
@@ -182,6 +183,7 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
 
       input.addEventListener("blur", apply);
     });
+
   });
 });
 
