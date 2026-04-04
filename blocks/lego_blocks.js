@@ -4,7 +4,7 @@
 class FieldInteractiveButton extends Blockly.Field {
   static SERIALIZABLE = true;
 
-  constructor(text = "TEST") {
+  constructor(text = "Click") {
     super(text);
     this.EDITABLE = false;
     this.size_ = new Blockly.utils.Size(0, 0);
@@ -33,7 +33,11 @@ class FieldInteractiveButton extends Blockly.Field {
       y: 0,
       'dominant-baseline': 'middle'
     }, group);
+
     this.textElement_.textContent = this.getValue();
+
+    // Force black text (override theme)
+    this.textElement_.style.fill = '#000';
 
     // Click handler
     group.style.cursor = 'pointer';
@@ -48,12 +52,12 @@ class FieldInteractiveButton extends Blockly.Field {
     this.group_ = group;
   }
 
-  // Size the button
+  // Called after initView AND after DOM attach
   render_() {
     const paddingX = 10;
     const paddingY = 6;
 
-    // Measure text width properly
+    // Measure text width AFTER DOM attach
     const textWidth = Blockly.utils.dom.getTextWidth(this.textElement_);
     const textHeight = 16;
 
@@ -66,7 +70,7 @@ class FieldInteractiveButton extends Blockly.Field {
 
     // Center text
     this.textElement_.setAttribute('x', width / 2);
-    this.textElement_.setAttribute('y', height / 2 + 1); // +1 fixes vertical optical offset
+    this.textElement_.setAttribute('y', height / 2 + 1);
 
     // Tell Blockly the size
     this.size_.width = width;
