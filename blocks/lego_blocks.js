@@ -124,8 +124,8 @@ Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButto
 Blockly.serialization.registry.register(
   'field_interactive_button',
   {
-    save: (field) => field.saveState(),
-    load: (state) => FieldInteractiveButton.fromJson({text: state})
+    save: (field) => field.getValue(),
+    load: (state) => new FieldInteractiveButton(state)
   }
 );
 
@@ -272,7 +272,7 @@ window.addEventListener("load", () => {
       "type": "lego_button_event",
       "message0": "when button %1 %2 clicked %3 Do %4",
       "args0": [
-        { "type": "field_interactive_button", "name": "BTN" },
+        { "type": "field_interactive_button", "name": "BTN", "text": "Click me" },
 
         /* Inline dummy to hold the pencil */
         { "type": "input_dummy", "name": "EDIT_WRAP", "align": "RIGHT" },
