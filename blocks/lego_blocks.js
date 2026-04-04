@@ -1,6 +1,6 @@
 // Blockly is global (loaded from blockly.min.js)
 
-/*
+
 class FieldInteractiveButton extends Blockly.FieldLabel {
   constructor(text, opt_validator) {
     super(text, opt_validator);
@@ -27,8 +27,6 @@ class FieldInteractiveButton extends Blockly.FieldLabel {
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
-
-*/
 
 window.BlocklyButtonEvents = {};
 
@@ -82,10 +80,9 @@ window.addEventListener("load", () => {
       "message0": "when button %1 clicked %2 do %3",
       "args0": [
         {
-          "type": "field_button",
+          "type": "field_interactive_button",
           "name": "BTN",
-          "text": "Click",
-          "callbackKey": "ON_CLICK"
+          "text": "Click"
         },
         {
           "type": "input_dummy"
@@ -102,15 +99,6 @@ window.addEventListener("load", () => {
       "helpUrl": ""
     }
   ]);
-
-  const workspace = Blockly.getMainWorkspace();
-  workspace.registerButtonCallback("ON_CLICK", function(buttonField) {
-    const block = buttonField.getSourceBlock();
-    if (!block) return;
-
-    const id = block.id;
-    window.BlocklyButtonEvents[id] = true;
-  });
 
   Blockly.defineBlocksWithJsonArray([
 
