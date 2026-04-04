@@ -31,7 +31,8 @@ class FieldInteractiveButton extends Blockly.Field {
       'class': 'blocklyText',
       x: 0,
       y: 0,
-      'dominant-baseline': 'middle'
+      'dominant-baseline': 'middle',
+      'text-anchor': 'middle'
     }, group);
 
     this.textElement_.textContent = this.getValue();
