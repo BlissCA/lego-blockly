@@ -4,7 +4,7 @@
 class FieldInteractiveButton extends Blockly.Field {
   static SERIALIZABLE = true;
 
-  constructor(text) {
+  constructor(text = "Click") {
     super(text);
     this.EDITABLE = false;
     this.size_ = new Blockly.utils.Size(0, 0);
@@ -53,18 +53,22 @@ class FieldInteractiveButton extends Blockly.Field {
     const paddingX = 10;
     const paddingY = 6;
 
+    // Measure text width properly
     const textWidth = Blockly.utils.dom.getTextWidth(this.textElement_);
     const textHeight = 16;
 
     const width = textWidth + paddingX * 2;
     const height = textHeight + paddingY * 2;
 
+    // Resize background
     this.rect_.setAttribute('width', width);
     this.rect_.setAttribute('height', height);
 
+    // Center text
     this.textElement_.setAttribute('x', width / 2);
-    this.textElement_.setAttribute('y', height / 2);
+    this.textElement_.setAttribute('y', height / 2 + 1); // +1 fixes vertical optical offset
 
+    // Tell Blockly the size
     this.size_.width = width;
     this.size_.height = height;
   }
@@ -134,7 +138,6 @@ window.addEventListener("load", () => {
         {
           "type": "field_interactive_button",
           "name": "BTN",
-          "text": "Click"
         },
         {
           "type": "input_dummy"
