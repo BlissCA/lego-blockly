@@ -117,6 +117,8 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   const buttonField = this.getField('BTN');
 
   editField.setOnClickHandler(() => {
+    const block = this; // anchor for the popup
+
     // Create HTML input
     const input = document.createElement('input');
     input.type = 'text';
@@ -125,8 +127,8 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
     input.style.padding = '4px';
     input.style.width = '120px';
 
-    // Show inside Blockly popup
-    Blockly.WidgetDiv.show(editField, () => {});
+    // Show popup anchored to the block (NOT the pencil)
+    Blockly.WidgetDiv.show(block, () => {});
     const div = Blockly.WidgetDiv.DIV;
     div.appendChild(input);
 
@@ -147,6 +149,7 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
     input.addEventListener('blur', apply);
   });
 });
+
 
 
 // ---------------- DEVICE DROPDOWNS ----------------
