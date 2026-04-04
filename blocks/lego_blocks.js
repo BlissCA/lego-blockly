@@ -86,6 +86,18 @@ class FieldInteractiveButton extends Blockly.Field {
     this.size_.height = height;
   }
 
+  setValue(newValue) {
+    if (newValue === this.getValue()) return;
+
+    super.setValue(newValue);
+
+    if (this.textElement_) {
+      this.textElement_.textContent = newValue;
+    }
+
+    this.forceRerender();
+  }
+
   onClick_() {
     const block = this.getSourceBlock();
     if (!block) return;
@@ -105,27 +117,36 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   const buttonField = this.getField('BTN');
 
   editField.setOnClickHandler(() => {
-    // Create a temporary text input field
-    const tempField = new Blockly.FieldTextInput(buttonField.getValue(), (newText) => {
-      if (newText !== null) {
-        buttonField.setValue(newText);
-      }
+    // Create HTML input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = buttonField.getValue();
+    input.style.fontSize = '14px';
+    input.style.padding = '4px';
+    input.style.width = '120px';
+
+    // Show inside Blockly popup
+    Blockly.WidgetDiv.show(editField, () => {});
+    const div = Blockly.WidgetDiv.DIV;
+    div.appendChild(input);
+
+    input.focus();
+    input.select();
+
+    const apply = () => {
+      const newText = input.value;
+      buttonField.setValue(newText);
+      Blockly.WidgetDiv.hide();
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') apply();
+      if (e.key === 'Escape') Blockly.WidgetDiv.hide();
     });
 
-    // Attach it to the block so Blockly can render it
-    this.appendDummyInput('_temp_input_').appendField(tempField);
-
-    // Open the editor
-    tempField.showEditor_();
-
-    // Remove the temporary field after editing
-    setTimeout(() => {
-      this.removeInput('_temp_input_', true);
-      buttonField.forceRerender();
-    }, 0);
+    input.addEventListener('blur', apply);
   });
 });
-
 
 
 // ---------------- DEVICE DROPDOWNS ----------------
