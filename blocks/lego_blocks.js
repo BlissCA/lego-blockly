@@ -13,8 +13,32 @@ class FieldInteractiveButton extends Blockly.FieldLabel {
 
   initView() {
     super.initView();
-    this.getClickTarget_().style.cursor = 'pointer';
-    this.getClickTarget_().addEventListener('click', this.clickHandler_);
+
+    const target = this.getClickTarget_();
+    target.style.cursor = 'pointer';
+    target.style.padding = '4px 10px';
+    target.style.border = '1px solid #888';
+    target.style.borderRadius = '6px';
+    target.style.background = '#eee';
+    target.style.userSelect = 'none';
+
+    // Hover effect
+    target.addEventListener('mouseenter', () => {
+      target.style.background = '#ddd';
+    });
+    target.addEventListener('mouseleave', () => {
+      target.style.background = '#eee';
+    });
+
+    // Active effect
+    target.addEventListener('mousedown', () => {
+      target.style.background = '#ccc';
+    });
+    target.addEventListener('mouseup', () => {
+      target.style.background = '#ddd';
+    });
+
+    target.addEventListener('click', this.clickHandler_);
   }
 
   onClick_(e) {
