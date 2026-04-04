@@ -100,6 +100,25 @@ Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButto
 window.BlocklyButtonEvents = {};
 
 
+Blockly.Extensions.register('lego_button_event_edit', function() {
+  const editField = this.getField('EDIT');
+  const buttonField = this.getField('BTN');
+
+  editField.setOnClickHandler(() => {
+    Blockly.prompt(
+      'Button label:',
+      buttonField.getValue(),
+      (newText) => {
+        if (newText !== null) {
+          buttonField.setValue(newText);
+          buttonField.forceRerender();
+        }
+      }
+    );
+  });
+});
+
+
 // ---------------- DEVICE DROPDOWNS ----------------
 
 // All devices (if you still need it somewhere)
@@ -146,11 +165,19 @@ window.addEventListener("load", () => {
   Blockly.defineBlocksWithJsonArray([
     {
       "type": "lego_button_event",
-      "message0": "when button %1 clicked %2 Do %3",
+      "message0": "when button %1 %2 clicked %3 Do %4",
       "args0": [
         {
           "type": "field_interactive_button",
-          "name": "BTN",
+          "name": "BTN"
+        },
+        {
+          "type": "field_image",
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNOC4zMzMzIDJMMTAgMy42NjY2N0wzLjY2NjY3IDEwSDIgVjguMzMzMzNMOCAyWiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=",
+          "width": 12,
+          "height": 12,
+          "alt": "edit",
+          "name": "EDIT"
         },
         {
           "type": "input_dummy"
@@ -164,9 +191,11 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 180,
       "tooltip": "Runs the DO section when this block's button is clicked.",
-      "helpUrl": ""
+      "helpUrl": "",
+      "extensions": ["lego_button_event_edit"]
     }
   ]);
+
 
   Blockly.defineBlocksWithJsonArray([
 
