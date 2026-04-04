@@ -1004,7 +1004,7 @@ javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
 `;
 };
 
-Blockly.JavaScript['lego_button_event'] = function(block) {
+javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;
 
