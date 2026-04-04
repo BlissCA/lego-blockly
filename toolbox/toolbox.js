@@ -239,7 +239,8 @@ const toolbox = {
         {
           "kind": "block",
           "type": "named_timer_remaining"
-        }
+        },
+        { "kind": "block", "type": "lego_button_event" },
 
       ]
     },

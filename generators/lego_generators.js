@@ -1004,6 +1004,17 @@ javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
 `;
 };
 
+Blockly.JavaScript['lego_button_event'] = function(block) {
+  const branch = Blockly.JavaScript.statementToCode(block, 'DO');
+  const id = block.id;
+
+  return `
+    if (window.BlocklyButtonEvents["${id}"]) {
+      window.BlocklyButtonEvents["${id}"] = false;
+      ${branch}
+    }
+  `;
+};
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------

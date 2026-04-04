@@ -1,5 +1,32 @@
 // Blockly is global (loaded from blockly.min.js)
 
+class FieldInteractiveButton extends Blockly.FieldLabel {
+  constructor(text, opt_validator) {
+    super(text, opt_validator);
+    this.clickHandler_ = this.onClick_.bind(this);
+  }
+
+  static fromJson(options) {
+    return new FieldInteractiveButton(options['text']);
+  }
+
+  initView() {
+    super.initView();
+    this.getClickTarget_().style.cursor = 'pointer';
+    this.getClickTarget_().addEventListener('click', this.clickHandler_);
+  }
+
+  onClick_(e) {
+    const block = this.getSourceBlock();
+    if (!block) return;
+
+    const id = block.id;
+    window.BlocklyButtonEvents[id] = true;
+  }
+}
+
+Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
+
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
@@ -1055,6 +1082,27 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 30,
       "tooltip": "Power must be from 0 to 255"
+    },
+    {
+      "type": "lego_button_event",
+      "message0": "when button %1 clicked %2 do %3",
+      "args0": [
+        {
+          "type": "field_interactive_button",
+          "name": "BTN",
+          "text": "Click"
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
+          "type": "input_statement",
+          "name": "DO"
+        }
+      ],
+      "colour": 230,
+      "tooltip": "Runs the DO section when this block's button is clicked.",
+      "helpUrl": ""
     }
 
   ]);

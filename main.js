@@ -457,10 +457,12 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
 });
 
 
-
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
+  
+  window.BlocklyButtonEvents = {};
+
   // 1. Generate code
   let code = javascriptGenerator.workspaceToCode(workspace);
 
