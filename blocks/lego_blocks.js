@@ -71,8 +71,9 @@ function getRcxDropdown() {
 }
 
 
-window.addEventListener("load", () => {
-
+//window.addEventListener("load", () => {
+Blockly.common.defineBlocks(() => {
+  
   Blockly.defineBlocksWithJsonArray([
 
     // ---------------- INPUT BLOCKS ----------------
@@ -1084,6 +1085,29 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 30,
       "tooltip": "Power must be from 0 to 255"
+    },
+    {
+      "type": "lego_button_event",
+      "message0": "when button %1 clicked %2 do %3",
+      "args0": [
+        {
+          "type": "field_interactive_button",
+          "name": "BTN",
+          "text": "Click"
+        },
+        {
+          "type": "input_dummy"
+        },
+        {
+          "type": "input_statement",
+          "name": "DO"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 180,
+      "tooltip": "Runs the DO section when this block's button is clicked.",
+      "helpUrl": ""
     }
 
   ]);
@@ -1760,32 +1784,6 @@ Blockly.Blocks['task_loop_definition'] = {
   }
 
 };
-
-Blockly.defineBlocksWithJsonArray([
-  {
-    "type": "lego_button_event",
-    "message0": "when button %1 clicked %2 do %3",
-    "args0": [
-      {
-        "type": "field_interactive_button",
-        "name": "BTN",
-        "text": "Click"
-      },
-      {
-        "type": "input_dummy"
-      },
-      {
-        "type": "input_statement",
-        "name": "DO"
-      }
-    ],
-    "previousStatement": null,
-    "nextStatement": null,
-    "colour": 180,
-    "tooltip": "Runs the DO section when this block's button is clicked.",
-    "helpUrl": ""
-  }
-]);
 
 // TASK SLEEP
 Blockly.Blocks['task_sleep'] = {
