@@ -30,14 +30,6 @@ Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButto
 
 */
 
-Blockly.getMainWorkspace().registerButtonCallback("ON_CLICK", function(buttonField) {
-  const block = buttonField.getSourceBlock();
-  if (!block) return;
-
-  const id = block.id;
-  window.BlocklyButtonEvents[id] = true;
-});
-
 window.BlocklyButtonEvents = {};
 
 
@@ -110,6 +102,15 @@ window.addEventListener("load", () => {
       "helpUrl": ""
     }
   ]);
+
+  const workspace = Blockly.getMainWorkspace();
+  workspace.registerButtonCallback("ON_CLICK", function(buttonField) {
+    const block = buttonField.getSourceBlock();
+    if (!block) return;
+
+    const id = block.id;
+    window.BlocklyButtonEvents[id] = true;
+  });
 
   Blockly.defineBlocksWithJsonArray([
 
