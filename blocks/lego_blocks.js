@@ -1,18 +1,17 @@
 // Blockly is global (loaded from blockly.min.js)
 
 
-class FieldInteractiveButton extends Blockly.Field {
+class FieldInteractiveButton extends Blockly.FieldTextInput {
   static TYPE = 'field_interactive_button';
   static SERIALIZABLE = true;
 
   constructor(text = "Click me") {
     super(text);
     this.EDITABLE = false;
-    this.size_ = new Blockly.utils.Size(0, 0);
   }
 
   static fromJson(options) {
-    return new FieldInteractiveButton(options['text']);
+    return new FieldInteractiveButton(options.text);
   }
 
   initView() {
@@ -40,19 +39,6 @@ class FieldInteractiveButton extends Blockly.Field {
     group.style.cursor = 'pointer';
     group.addEventListener('click', () => this.onClick_());
 
-    group.addEventListener('mouseenter', () => {
-      this.rect_.setAttribute('fill', '#F2CF00');
-    });
-    group.addEventListener('mouseleave', () => {
-      this.rect_.setAttribute('fill', '#F4D800');
-    });
-    group.addEventListener('mousedown', () => {
-      this.rect_.setAttribute('fill', '#D9B800');
-    });
-    group.addEventListener('mouseup', () => {
-      this.rect_.setAttribute('fill', '#F2CF00');
-    });
-
     this.group_ = group;
   }
 
@@ -77,31 +63,14 @@ class FieldInteractiveButton extends Blockly.Field {
   }
 
   setValue(newValue) {
-    const oldValue = this.getValue();
-    if (newValue === oldValue) return;
-
     super.setValue(newValue);
 
     if (this.textElement_) {
       this.textElement_.textContent = newValue;
     }
 
-    // Tell Blockly that the field changed
-    if (this.sourceBlock_ && Blockly.Events.isEnabled()) {
-      Blockly.Events.fire(
-        new Blockly.Events.BlockChange(
-          this.sourceBlock_,
-          'field',
-          this.name,
-          oldValue,
-          newValue
-        )
-      );
-    }
-
     this.forceRerender();
   }
-
 
   onClick_() {
     const block = this.getSourceBlock();
@@ -110,14 +79,6 @@ class FieldInteractiveButton extends Blockly.Field {
     const id = block.id;
     window.BlocklyButtonEvents[id] = true;
   }
-
-  saveState() {
-    return this.getValue();
-  }
-
-  loadState(state) {
-    this.setValue(state);
-  }  
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
