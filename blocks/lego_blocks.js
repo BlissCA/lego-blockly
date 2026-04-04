@@ -1,10 +1,10 @@
 // Blockly is global (loaded from blockly.min.js)
 
 
-class FieldInteractiveButton extends Blockly.FieldLabel {
-  constructor(text, opt_validator) {
-    super(text, opt_validator);
-    this.clickHandler_ = this.onClick_.bind(this);
+class FieldInteractiveButton extends Blockly.Field {
+  constructor(text) {
+    super(text);
+    this.size_ = new Blockly.utils.Size(0, 0);
   }
 
   static fromJson(options) {
@@ -12,36 +12,61 @@ class FieldInteractiveButton extends Blockly.FieldLabel {
   }
 
   initView() {
-    super.initView();
+    const group = Blockly.utils.dom.createSvgElement('g', {}, this.fieldGroup_);
 
-    const target = this.getClickTarget_();
-    target.style.cursor = 'pointer';
-    target.style.padding = '4px 10px';
-    target.style.border = '1px solid #888';
-    target.style.borderRadius = '6px';
-    target.style.background = '#eee';
-    target.style.userSelect = 'none';
+    // Background rectangle
+    this.rect_ = Blockly.utils.dom.createSvgElement('rect', {
+      rx: 6,
+      ry: 6,
+      fill: '#eee',
+      stroke: '#888',
+      'stroke-width': 1
+    }, group);
 
-    // Hover effect
-    target.addEventListener('mouseenter', () => {
-      target.style.background = '#ddd';
-    });
-    target.addEventListener('mouseleave', () => {
-      target.style.background = '#eee';
-    });
+    // Text
+    this.textElement_ = Blockly.utils.dom.createSvgElement('text', {
+      'class': 'blocklyText',
+      x: 0,
+      y: 0,
+      'dominant-baseline': 'middle'
+    }, group);
+    this.textElement_.textContent = this.getValue();
 
-    // Active effect
-    target.addEventListener('mousedown', () => {
-      target.style.background = '#ccc';
-    });
-    target.addEventListener('mouseup', () => {
-      target.style.background = '#ddd';
-    });
+    // Click handler
+    group.style.cursor = 'pointer';
+    group.addEventListener('click', () => this.onClick_());
 
-    target.addEventListener('click', this.clickHandler_);
+    // Hover effects
+    group.addEventListener('mouseenter', () => this.rect_.setAttribute('fill', '#ddd'));
+    group.addEventListener('mouseleave', () => this.rect_.setAttribute('fill', '#eee'));
+    group.addEventListener('mousedown', () => this.rect_.setAttribute('fill', '#ccc'));
+    group.addEventListener('mouseup', () => this.rect_.setAttribute('fill', '#ddd'));
+
+    this.group_ = group;
   }
 
-  onClick_(e) {
+  // Size the button
+  render_() {
+    const paddingX = 10;
+    const paddingY = 6;
+
+    const textWidth = Blockly.utils.dom.getTextWidth(this.textElement_);
+    const textHeight = 16;
+
+    const width = textWidth + paddingX * 2;
+    const height = textHeight + paddingY * 2;
+
+    this.rect_.setAttribute('width', width);
+    this.rect_.setAttribute('height', height);
+
+    this.textElement_.setAttribute('x', width / 2);
+    this.textElement_.setAttribute('y', height / 2);
+
+    this.size_.width = width;
+    this.size_.height = height;
+  }
+
+  onClick_() {
     const block = this.getSourceBlock();
     if (!block) return;
 
