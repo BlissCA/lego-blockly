@@ -76,7 +76,8 @@ class FieldInteractiveButton extends Blockly.Field {
   }
 
   setValue(newValue) {
-    if (newValue === this.getValue()) return;
+    const oldValue = this.getValue();
+    if (newValue === oldValue) return;
 
     super.setValue(newValue);
 
@@ -84,8 +85,22 @@ class FieldInteractiveButton extends Blockly.Field {
       this.textElement_.textContent = newValue;
     }
 
+    // Tell Blockly that the field changed
+    if (this.sourceBlock_ && Blockly.Events.isEnabled()) {
+      Blockly.Events.fire(
+        new Blockly.Events.BlockChange(
+          this.sourceBlock_,
+          'field',
+          this.name,
+          oldValue,
+          newValue
+        )
+      );
+    }
+
     this.forceRerender();
   }
+
 
   onClick_() {
     const block = this.getSourceBlock();
