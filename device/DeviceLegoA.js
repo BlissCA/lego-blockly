@@ -47,7 +47,7 @@ export class LegoInterfaceA {
         throw err;
       }
 
-      await this.port.open({ baudRate: 9600 });
+      await this.port.open({ baudRate: 19200 });
       this._logStatus("Serial port opened.");
 
       this.writer = this.port.writable.getWriter();
