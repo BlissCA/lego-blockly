@@ -27,6 +27,8 @@ class FieldInteractiveButton extends Blockly.FieldLabel {
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
 
+window.BlocklyButtonEvents = {};
+
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
