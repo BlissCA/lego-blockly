@@ -21,8 +21,8 @@ class FieldInteractiveButton extends Blockly.Field {
     this.rect_ = Blockly.utils.dom.createSvgElement('rect', {
       rx: 6,
       ry: 6,
-      fill: '#eee',
-      stroke: '#888',
+      fill: '#F4D800',
+      stroke: '#C4A000',
       'stroke-width': 1
     }, group);
 
@@ -45,10 +45,18 @@ class FieldInteractiveButton extends Blockly.Field {
     group.addEventListener('click', () => this.onClick_());
 
     // Hover effects
-    group.addEventListener('mouseenter', () => this.rect_.setAttribute('fill', '#ddd'));
-    group.addEventListener('mouseleave', () => this.rect_.setAttribute('fill', '#eee'));
-    group.addEventListener('mousedown', () => this.rect_.setAttribute('fill', '#ccc'));
-    group.addEventListener('mouseup', () => this.rect_.setAttribute('fill', '#ddd'));
+    group.addEventListener('mouseenter', () => {
+      this.rect_.setAttribute('fill', '#F2CF00'); // slightly darker
+    });
+    group.addEventListener('mouseleave', () => {
+      this.rect_.setAttribute('fill', '#F4D800'); // base yellow
+    });
+    group.addEventListener('mousedown', () => {
+      this.rect_.setAttribute('fill', '#D9B800'); // pressed
+    });
+    group.addEventListener('mouseup', () => {
+      this.rect_.setAttribute('fill', '#F2CF00'); // hover
+    });
 
     this.group_ = group;
   }
@@ -138,7 +146,7 @@ window.addEventListener("load", () => {
   Blockly.defineBlocksWithJsonArray([
     {
       "type": "lego_button_event",
-      "message0": "when button %1 clicked %2 do %3",
+      "message0": "when button %1 clicked %2 Do %3",
       "args0": [
         {
           "type": "field_interactive_button",
