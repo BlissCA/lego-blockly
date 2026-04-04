@@ -105,19 +105,15 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   const buttonField = this.getField('BTN');
 
   editField.setOnClickHandler(() => {
-    // Temporarily allow editing
-    buttonField.EDITABLE = true;
-
-    // Open Blockly's built‑in text editor
-    buttonField.showEditor_();
-
-    // After editing, restore non‑editable mode
-    setTimeout(() => {
-      buttonField.EDITABLE = false;
+    const current = buttonField.getValue();
+    const newText = window.prompt('Button label:', current);
+    if (newText !== null) {
+      buttonField.setValue(newText);
       buttonField.forceRerender();
-    }, 0);
+    }
   });
 });
+
 
 
 
