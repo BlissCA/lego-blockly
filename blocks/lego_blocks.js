@@ -111,6 +111,7 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
 
   wrap.appendField(pencil, "EDIT");
 
+  // Wait for SVG to exist
   setTimeout(() => {
     const svg = pencil.getSvgRoot();
     if (!svg) return;
@@ -118,28 +119,65 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
     svg.style.cursor = "pointer";
 
     svg.addEventListener("click", () => {
+      // --- Simple HTML overlay editor (no WidgetDiv) ---
+
+      // Dark transparent backdrop
+      const overlay = document.createElement("div");
+      overlay.style.position = "fixed";
+      overlay.style.top = "0";
+      overlay.style.left = "0";
+      overlay.style.width = "100%";
+      overlay.style.height = "100%";
+      overlay.style.background = "rgba(0,0,0,0.2)";
+      overlay.style.display = "flex";
+      overlay.style.alignItems = "center";
+      overlay.style.justifyContent = "center";
+      overlay.style.zIndex = "9999";
+
+      // Small panel
+      const panel = document.createElement("div");
+      panel.style.background = "#fff";
+      panel.style.padding = "8px 12px";
+      panel.style.borderRadius = "4px";
+      panel.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+      panel.style.display = "flex";
+      panel.style.gap = "8px";
+      panel.style.alignItems = "center";
+
+      const label = document.createElement("span");
+      label.textContent = "Button label:";
+      label.style.fontFamily = "sans-serif";
+      label.style.fontSize = "13px";
+
       const input = document.createElement("input");
       input.type = "text";
       input.value = buttonField.getValue();
-      input.style.fontSize = "14px";
-      input.style.padding = "4px";
-      input.style.width = "120px";
+      input.style.fontSize = "13px";
+      input.style.padding = "3px 5px";
+      input.style.minWidth = "140px";
 
-      Blockly.WidgetDiv.show(this, () => {});
-      const div = Blockly.WidgetDiv.DIV;
-      div.appendChild(input);
+      panel.appendChild(label);
+      panel.appendChild(input);
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
 
       input.focus();
       input.select();
 
+      const close = () => {
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      };
+
       const apply = () => {
         buttonField.setValue(input.value);
-        Blockly.WidgetDiv.hide();
+        close();
       };
 
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") apply();
-        if (e.key === "Escape") Blockly.WidgetDiv.hide();
+        if (e.key === "Escape") close();
       });
 
       input.addEventListener("blur", apply);
@@ -210,7 +248,7 @@ window.addEventListener("load", () => {
       "extensions": ["lego_button_event_edit"]
     }
   ]);
-
+  
 
   Blockly.defineBlocksWithJsonArray([
 
