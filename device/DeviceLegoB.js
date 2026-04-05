@@ -376,7 +376,7 @@ export class LegoInterfaceB {
 
     // Free the name if it was allocated
     if (this.name) {
-      this.manager.removeDevice(this);
+      this.manager._removeDevice(this);
       this.name = null;
     }
 
