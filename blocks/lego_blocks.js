@@ -79,6 +79,17 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
     const id = block.id;
     window.BlocklyButtonEvents[id] = true;
   }
+
+  showEditor_() {
+    // Disable the default text editor
+    return;
+  }
+
+  isClickable_() {
+    // Prevent Blockly from treating this as an editable text field
+    return false;
+  }
+
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
