@@ -137,7 +137,6 @@ export class DeviceManager {
         this._addDevice(dev);
         return dev;
       } else {
-        dev = null;
         return null;
       }
 
