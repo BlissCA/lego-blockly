@@ -64,17 +64,18 @@ export class LegoRcx {
     const ok = await this.alive();
     if (!ok) {
       this.log("RCX did not respond. Power it on.");
-      window.logStatus(`RCX ${this.name}: Please power on the RCX and Reconnect.`);
+      window.logStatus(`RCX: Please power on the RCX and Reconnect.`);
       this.disconnect();
-    }
+    } else {
 
-    // ⭐ Allocate name ONLY NOW
-    if (!this.name) {
-      this.name = this.manager._allocateName("Rcx");
-    }
+      // ⭐ Allocate name ONLY NOW
+      if (!this.name) {
+        this.name = this.manager._allocateName("Rcx");
+      }
 
-    this.log("Connected.");
-    this.status = "Connected";
+      this.log("Connected.");
+      this.status = "Connected";
+    }
 
   }
 
