@@ -131,8 +131,15 @@ export class DeviceManager {
 
     try {
       await dev.connect();
-      this._addDevice(dev);
-      return dev;
+      if (!dev.name) {
+        dev.name = this._allocateName("Rcx");
+      
+        this._addDevice(dev);
+        return dev;
+      } else {
+        dev = null;
+        return null;
+      }
 
     } catch (err) {
       console.warn("RCX connection failed:", err);
