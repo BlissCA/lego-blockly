@@ -180,18 +180,7 @@ const toolbox = {
             }
           }
         },
-        {
-          "kind": "block",
-          "type": "val_changed",
-          "inputs": {
-            "VALUE": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 0 }
-              }
-            }
-          }
-        },
+
         {
           "kind": "category",
           "name": "Timers",
