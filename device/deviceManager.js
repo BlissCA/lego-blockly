@@ -131,7 +131,7 @@ export class DeviceManager {
 
     try {
       await dev.connect();
-      if (!dev.name) {
+      if (dev.status === "Connected") {
         dev.name = this._allocateName("Rcx");
       
         this._addDevice(dev);
