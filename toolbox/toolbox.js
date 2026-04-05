@@ -130,72 +130,14 @@ const toolbox = {
       "name": "Control",
       "colour": "180",
       "contents": [
-        { "kind": "block", "type": "loop_forever" },
-        { "kind": "block", "type": "yield" },
-        { "kind": "block", "type": "lego_button_event" },
-        {
-          "kind": "block",
-          "type": "lego_wait_until",
-          "inputs": {
-            "COND": {
-              "shadow": {
-                "type": "logic_boolean"
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "lego_print_value",
-          "inputs": {
-            "VALUE": {
-              "shadow": {
-                "type": "text",
-                "fields": { "TEXT": "Hello" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "ons_rising",
-          "inputs": {
-            "BOOL": {
-              "shadow": {
-                "type": "logic_boolean",
-                "fields": { "BOOL": "TRUE" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "ons_falling",
-          "inputs": {
-            "BOOL": {
-              "shadow": {
-                "type": "logic_boolean",
-                "fields": { "BOOL": "TRUE" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "val_changed",
-          "inputs": {
-            "VALUE": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 0 }
-              }
-            }
-          }
-        },
         {
           "kind": "category",
-          "name": "Timers",
+          "name": "Loop, Wait, Button, Print",
           "contents": [
+
+            { "kind": "block", "type": "loop_forever" },
+            { "kind": "block", "type": "yield" },
+            { "kind": "block", "type": "lego_button_event" },
             {
               "kind": "block",
               "type": "lego_wait_time",
@@ -208,6 +150,79 @@ const toolbox = {
                 }
               }
             },
+            {
+              "kind": "block",
+              "type": "lego_wait_until",
+              "inputs": {
+                "COND": {
+                  "shadow": {
+                    "type": "logic_boolean"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_print_value",
+              "inputs": {
+                "VALUE": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": { "TEXT": "Hello" }
+                  }
+                }
+              }
+            }
+          ]
+        },
+
+        {
+          "kind": "category",
+          "name": "One Shot",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "ons_rising",
+              "inputs": {
+                "BOOL": {
+                  "shadow": {
+                    "type": "logic_boolean",
+                    "fields": { "BOOL": "TRUE" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "ons_falling",
+              "inputs": {
+                "BOOL": {
+                  "shadow": {
+                    "type": "logic_boolean",
+                    "fields": { "BOOL": "TRUE" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "val_changed",
+              "inputs": {
+                "VALUE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            }
+          ]
+        },
+
+        {
+          "kind": "category",
+          "name": "Timers",
+          "contents": [
             {
               "kind": "block",
               "type": "after_time_do",
