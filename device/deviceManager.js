@@ -149,7 +149,9 @@ export class DeviceManager {
   async disconnectAll() {
     for (const dev of [...this.devices]) {
       await dev.disconnect();
-      this._removeDevice(dev);
+      if (dev.name) {
+        this._removeDevice(dev);
+      }
     }
 
     this.devices = [];

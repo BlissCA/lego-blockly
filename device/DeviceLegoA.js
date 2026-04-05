@@ -95,7 +95,7 @@ export class LegoInterfaceA {
 				throw new Error("LEGO Interface A handshake failed");
 			}
 
-      this._logStatus("Arduino handshake OK. VERBOSE OFF, numeric-only mode.");
+      this._logStatus("Arduino handshake OK. VERBOSE OFF.");
 
       // Allocate name only after successful handshake
       if (!this.name) {

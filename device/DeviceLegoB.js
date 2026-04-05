@@ -374,6 +374,12 @@ export class LegoInterfaceB {
       this.log(`Port close error: ${err.message || err}`);
     }
 
+    // Free the name if it was allocated
+    if (this.name) {
+      this.manager.removeDevice(this);
+      this.name = null;
+    }
+
     this.port = null;
     this.setStatus("disconnected", "Disconnected");
     document.dispatchEvent(new Event("serial-disconnected"));
