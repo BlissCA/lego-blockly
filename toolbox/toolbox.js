@@ -132,6 +132,7 @@ const toolbox = {
       "contents": [
         { "kind": "block", "type": "loop_forever" },
         { "kind": "block", "type": "yield" },
+        { "kind": "block", "type": "lego_button_event" },
         {
           "kind": "block",
           "type": "lego_wait_until",
@@ -139,18 +140,6 @@ const toolbox = {
             "COND": {
               "shadow": {
                 "type": "logic_boolean"
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "lego_wait_time",
-          "inputs": {
-            "SECS": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 1.00 }
               }
             }
           }
@@ -192,56 +181,72 @@ const toolbox = {
           }
         },
         {
-          "kind": "block",
-          "type": "after_time_do",
-          "inputs": {
-            "TIME": {
-              "shadow": {
-                "type": "math_number",
-                "fields": {
-                  "NUM": 5
+          "kind": "category",
+          "name": "Timers",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lego_wait_time",
+              "inputs": {
+                "SECS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 1.00 }
+                  }
                 }
               }
-            }
-          }
-        },
-
-        {
-          "kind": "block",
-          "type": "after_named_time_do",
-          "inputs": {
-            "TIME": {
-              "shadow": {
-                "type": "math_number",
-                "fields": {
-                  "NUM": 5
+            },
+            {
+              "kind": "block",
+              "type": "after_time_do",
+              "inputs": {
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 5
+                    }
+                  }
                 }
               }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "cancel_named_timer"
-        },
-        {
-          "kind": "block",
-          "type": "named_timer_done"
-        },
-        {
-          "kind": "block",
-          "type": "named_timer_running"
-        },
-        {
-          "kind": "block",
-          "type": "named_timer_elapsed"
-        },
-        {
-          "kind": "block",
-          "type": "named_timer_remaining"
-        },
-        { "kind": "block", "type": "lego_button_event" },
+            },
 
+            {
+              "kind": "block",
+              "type": "after_named_time_do",
+              "inputs": {
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 5
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "cancel_named_timer"
+            },
+            {
+              "kind": "block",
+              "type": "named_timer_done"
+            },
+            {
+              "kind": "block",
+              "type": "named_timer_running"
+            },
+            {
+              "kind": "block",
+              "type": "named_timer_elapsed"
+            },
+            {
+              "kind": "block",
+              "type": "named_timer_remaining"
+            }
+          ]
+        }
       ]
     },
     {"kind": "category", "name": "Lego A", "colour": 30, "contents": [
