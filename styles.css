@@ -153,3 +153,12 @@ dialog {
   color: white;
   border: none;
 }
+
+#runBtn {
+  background-color: #888; /* grey */
+  transition: background-color 0.2s ease;
+}
+
+#runBtn.running {
+  background-color: #4CAF50; /* green */
+}

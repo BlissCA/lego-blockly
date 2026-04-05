@@ -31,6 +31,7 @@ window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
 window.TaskRegistry = [];
+window.isProgramRunning = false;
 
 
 // ---------- Non-blocking dialog helpers ----------
@@ -467,8 +468,18 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
-  
+  if (window.isProgramRunning) {
+    console.log("Program already running — ignoring Run click.");
+    logStatus("Program already running...  Press stop then Run again...");
+    return;
+  }
+  window.isProgramRunning = true;
+
   window.BlocklyButtonEvents = {};
+
+  // Turn button green
+  const btn = document.getElementById("runBtn");
+  btn.classList.add("running");
 
   // 1. Generate code
   let code = javascriptGenerator.workspaceToCode(workspace);
@@ -541,6 +552,8 @@ document.getElementById("runBtn").onclick = async () => {
 // ---------------- STOP PROGRAM (Option A) ----------------
 
 document.getElementById("stopBtn").onclick = async () => {
+  if (!window.isProgramRunning) return;
+
   window.stopRequested = true;
   NamedTask.stopAll();
   NamedEventTimer.cancelAll();
@@ -569,6 +582,11 @@ document.getElementById("stopBtn").onclick = async () => {
   }
   // mqttClient.stop();
   logStatus("Program stopped (devices remain connected).");
+
+  window.isProgramRunning = false;
+  const btn = document.getElementById("runBtn");
+  btn.classList.remove("running");
+
 };
 
 // ---------------- CONNECT Lego Interface A ----------------
