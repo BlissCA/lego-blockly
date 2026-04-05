@@ -648,12 +648,11 @@ window.addEventListener("load", () => {
       "output": "Boolean",
       "colour": 180
     },
-
     {
       "type": "val_changed",
       "message0": "Value changed? %1",
       "args0": [
-        { "type": "input_value", "name": "VALUE", "check": "null" }
+        { "type": "input_value", "name": "VALUE", "check": null }
       ],
       "output": "Boolean",
       "colour": 180
