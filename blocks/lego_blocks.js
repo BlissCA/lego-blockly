@@ -89,7 +89,7 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
     // Prevent Blockly from treating this as an editable text field
     return false;
   }
-  
+
   isEditable() {
     return false;
   }
@@ -644,6 +644,16 @@ window.addEventListener("load", () => {
       "message0": "one-shot falling of %1",
       "args0": [
         { "type": "input_value", "name": "BOOL", "check": "Boolean" }
+      ],
+      "output": "Boolean",
+      "colour": 180
+    },
+
+    {
+      "type": "val_changed",
+      "message0": "Value changed? %1",
+      "args0": [
+        { "type": "input_value", "name": "VALUE", "check": "null" }
       ],
       "output": "Boolean",
       "colour": 180

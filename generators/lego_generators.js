@@ -183,6 +183,12 @@ javascriptGenerator.forBlock["ons_falling"] = function(block) {
   return [`ONSF("${id}", ${bool})`, javascriptGenerator.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["val_changed"] = function(block) {
+  const value = javascriptGenerator.valueToCode(block, "VALUE", javascriptGenerator.ORDER_NONE) || "false";
+  const id = block.id;
+  return [`ONCHG("${id}", ${value})`, javascriptGenerator.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["lego_multi_out_on"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   let mask = 0;

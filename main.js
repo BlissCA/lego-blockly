@@ -379,6 +379,13 @@ window.ONSF = function(id, currentValue) {
   return (prev && !currentValue);
 };
 
+window.ONCHG = function(id, currentValue) {
+  const prev = window._onsMemory[id] ?? currentValue;
+  window._onsMemory[id] = currentValue;
+
+  // Value Changed
+  return (prev !== currentValue);
+};
 
 /* // ---------------- HMI STATE ----------------
 window.hmi = {
