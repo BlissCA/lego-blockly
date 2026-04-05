@@ -89,6 +89,10 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
     // Prevent Blockly from treating this as an editable text field
     return false;
   }
+  
+  isEditable() {
+    return false;
+  }
 
 }
 
