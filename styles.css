@@ -155,7 +155,7 @@ dialog {
 }
 
 #runBtn {
-  background-color: #888; /* grey */
+  background-color: #f0f0f0; /* grey */
   transition: background-color 0.2s ease;
 }
 

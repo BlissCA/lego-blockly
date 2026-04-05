@@ -465,6 +465,15 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
 });
 
 
+function onProgramFinished() {
+  window.isProgramRunning = false;
+
+  const btn = document.getElementById("runBtn");
+  btn.classList.remove("running");
+
+  logStatus("Program finished.");
+}
+
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
@@ -546,6 +555,7 @@ document.getElementById("runBtn").onclick = async () => {
     }
   } finally {
     currentExecution = null;
+    onProgramFinished();
   }
 };
 
