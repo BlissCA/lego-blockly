@@ -130,7 +130,7 @@ export class LegoInterfaceB {
 
 
     this.log("Handshake complete.");
-    this.setStatus("active", "Connected");
+    this.setStatus("Connected", "Connected");
     document.dispatchEvent(new Event("serial-connected"));
 
     // 5. Start background tasks

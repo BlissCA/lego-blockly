@@ -16,7 +16,7 @@ export class LegoInterfaceA {
     this._textDecoder = new TextDecoder();
     this._textEncoder = new TextEncoder();
 
-    this.connected = false;
+    this.status = "idle";
 
     // ---------------- Queue (RCX-style) ----------------
     this.queue = Promise.resolve();
@@ -101,7 +101,7 @@ export class LegoInterfaceA {
       if (!this.name) {
         this.name = this.manager._allocateName("LegoA");
       }
-      this.connected = true;
+      this.status = "Connected";
 
       return true;
 
@@ -137,7 +137,8 @@ export class LegoInterfaceA {
 
 		// 3) Close the port
 		await this._safeClose();
-		this.connected = false;
+
+    this.status = "Disconnected";
 
 		if (this.name) {
 			this.manager._removeDevice(this);
@@ -239,7 +240,7 @@ export class LegoInterfaceA {
   async inputVal(port) {
     return this.enqueue(async () => {
       this._assertInputPort(port);
-      if (!this.connected || !this.port) {
+      if ((!this.status === "Connected") || !this.port) {
         this._logStatus("inputVal called while not connected.");
         return 0;
       }
