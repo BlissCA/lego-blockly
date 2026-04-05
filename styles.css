@@ -162,3 +162,11 @@ dialog {
 #runBtn.running {
   background-color: #4CAF50; /* green */
 }
+
+#runBtn:hover {
+  background-color: #e4e4e4; /* hover when NOT running */
+}
+
+#runBtn.running:hover {
+  background-color: #5ecf5e; /* lighter green on hover */
+}
