@@ -49,12 +49,6 @@ export class LegoRcx {
       throw err;  // bubble up to deviceManager
     }
 
-    // ⭐ Allocate name ONLY NOW
-    if (!this.name) {
-      this.name = this.manager._allocateName("Rcx");
-    }
-
-
     // 2. Open the port
     await this.port.open({
       baudRate: 2400,
@@ -66,15 +60,22 @@ export class LegoRcx {
 
     this.writer = this.port.writable.getWriter();
 
-    this.log("Connected.");
-    this.status = "Connected";
-
     // 3. Try alive ping
     const ok = await this.alive();
     if (!ok) {
       this.log("RCX did not respond. Power it on.");
-      window.logStatus(`RCX ${this.name}: Please power on the RCX.`);
+      window.logStatus(`RCX ${this.name}: Please power on the RCX and Reconnect.`);
+      this.disconnect();
     }
+
+    // ⭐ Allocate name ONLY NOW
+    if (!this.name) {
+      this.name = this.manager._allocateName("Rcx");
+    }
+
+    this.log("Connected.");
+    this.status = "Connected";
+
   }
 
 
