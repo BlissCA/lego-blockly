@@ -111,7 +111,7 @@ export class LegoInterfaceA {
 
       // Free name if allocated
       if (this.name) {
-        this.manager._freeName(this.name);
+        this.manager._removeDevice(this);
         this.name = null;
       }
 
@@ -140,7 +140,7 @@ export class LegoInterfaceA {
 		this.connected = false;
 
 		if (this.name) {
-			this.manager._freeName(this.name);
+			this.manager._removeDevice(this);
 			this.name = null;
 		}
 

@@ -268,14 +268,16 @@ async rcxCmd(cmd, vblen = 0) {
     for (let p = 1; p <= 3; p++) {
       this.portState[p] = { mode: "off", power: 7 };
     }
+
+    console.log(`[RCX ${this.name}] Disconnected.`);
     
     // Free the name if it was allocated
     if (this.name) {
-      this.manager._freeName(this.name);
+      this.manager._removeDevice(this);
       this.name = null;
     }
+    
 
-    console.log(`[RCX ${this.name}] Disconnected.`);
     this.status = "Disconnected";
 
   }
