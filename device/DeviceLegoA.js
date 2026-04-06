@@ -53,7 +53,7 @@ export class LegoInterfaceA {
         stopBits: 1,
         parity: "none"
       });
-      
+
       this._logStatus("Serial port opened.");
 
       this.writer = this.port.writable.getWriter();
@@ -67,7 +67,7 @@ export class LegoInterfaceA {
       //await this._drainReadBuffer();
 
       // 1) Send VERBOSE ON
-      await this._sendRaw("VERBOSE ON");
+      //await this._sendRaw("VERBOSE ON");
 
       // 2) Try reading optional echo
       /*
