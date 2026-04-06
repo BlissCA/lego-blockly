@@ -80,6 +80,7 @@ export class LegoInterfaceA {
       await this._sendRaw("VERBOSE OFF");
 
 			// 4) Read until we see VERBOSE OFF (ignore empty lines)
+      /*
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
 				let line2 = await this._readLine(200);
@@ -94,7 +95,8 @@ export class LegoInterfaceA {
 				await this._safeClose();
 				throw new Error("LEGO Interface A handshake failed");
 			}
-
+      */
+     
       this._logStatus("Arduino handshake OK. VERBOSE OFF.");
 
       // Allocate name only after successful handshake
