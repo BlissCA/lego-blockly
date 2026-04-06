@@ -545,9 +545,10 @@ document.getElementById("runBtn").onclick = async () => {
 
     await currentExecution;
 
-    if (!window.stopRequested) {
-      logStatus("Program finished.");
-    }
+//    if (!window.stopRequested) {
+//      logStatus("Program finished.");
+//    }
+
   } catch (err) {
     if (!window.stopRequested) {
       logStatus(err);
