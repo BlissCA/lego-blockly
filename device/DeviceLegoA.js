@@ -294,7 +294,7 @@ export class LegoInterfaceA {
 		const timeoutPromise = new Promise(resolve => {
 			timeoutId = setTimeout(() => {
 				done = true;
-				resolve(null); // timeout
+				resolve("TIMEOUT"); // timeout
 			}, timeoutMs);
 		});
 
@@ -320,7 +320,7 @@ export class LegoInterfaceA {
 			} catch (_) {
 				// Ignore read errors
 			}
-			return null;
+			return "READ_ERROR";
 		})();
 
 		// Race timeout vs read
