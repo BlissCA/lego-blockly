@@ -63,10 +63,8 @@ export class LegoInterfaceA {
       //            VERBOSE OFF → (mandatory echo)
       // --------------------------------------------------------
 
-      // Flush any garbage
-      //await this._drainReadBuffer();
-
-      await new Promise(r => setTimeout(r, 2000));
+      // Wait for Arduino to reboot and send READY
+      await this.waitForLine("READY", 3000);
 
       // 1) Send VERBOSE ON
       await this._sendRaw("VERBOSE ON");
@@ -433,5 +431,56 @@ export class LegoInterfaceA {
 
   _logTx(line) {
     console.log(`[LegoInterfaceA TX] ${line.trim()}`);
+  }
+
+  async waitForLine(expected, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      let buffer = "";
+      let timeoutId;
+
+      // Timeout handler
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Timeout waiting for line: "${expected}"`));
+      }, timeoutMs);
+
+      // Start reading from the serial port
+      const reader = window.serialPort.readable
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      function readLoop() {
+        reader.read().then(({ value, done }) => {
+          if (done) {
+            clearTimeout(timeoutId);
+            reject(new Error("Serial port closed while waiting for line"));
+            return;
+          }
+
+          buffer += value;
+
+          // Split into lines
+          let lines = buffer.split(/\r?\n/);
+
+          // Keep the last partial line in the buffer
+          buffer = lines.pop();
+
+          // Check each complete line
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed === expected) {
+              clearTimeout(timeoutId);
+              reader.cancel();
+              resolve();
+              return;
+            }
+          }
+
+          // Continue reading
+          readLoop();
+        });
+      }
+
+      readLoop();
+    });
   }
 }
