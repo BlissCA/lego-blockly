@@ -72,15 +72,14 @@ export class LegoInterfaceA {
       await this._sendRaw("VERBOSE ON");
 
       // 2) Try reading optional echo
-      /*
+      
       let line = await this._readLine(100);
       if (line === "VERBOSE ON") {
         this._logStatus("VERBOSE ON echo received.");
       } else {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
-      */
-
+      
 			await new Promise(r => setTimeout(r, 200));
 
       // 3) Send VERBOSE OFF
@@ -90,8 +89,7 @@ export class LegoInterfaceA {
       
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
-				let line2 = await this._readLine(1000);
-        this._logStatus(line2);
+				let line2 = await this._readLine(100);
 				if (line2 === "VERBOSE OFF") {
 					echo = line2;
 					break;
@@ -295,7 +293,7 @@ export class LegoInterfaceA {
 		const timeoutPromise = new Promise(resolve => {
 			timeoutId = setTimeout(() => {
 				done = true;
-				resolve("TIMEOUT"); // timeout
+				resolve(null); // timeout
 			}, timeoutMs);
 		});
 
@@ -308,7 +306,6 @@ export class LegoInterfaceA {
 					if (!value) continue;
 
 					buffer += this._textDecoder.decode(value);
-          this._logStatus(buffer);
 
 					// Check for newline
 					const nl = buffer.indexOf("\n");
@@ -322,7 +319,7 @@ export class LegoInterfaceA {
 			} catch (_) {
 				// Ignore read errors
 			}
-			return "READ_ERROR";
+			return null;
 		})();
 
 		// Race timeout vs read
