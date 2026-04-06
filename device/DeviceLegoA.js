@@ -66,7 +66,7 @@ export class LegoInterfaceA {
       // Flush any garbage
       //await this._drainReadBuffer();
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 2000));
 
       // 1) Send VERBOSE ON
       await this._sendRaw("VERBOSE ON");
