@@ -67,28 +67,25 @@ export class LegoInterfaceA {
       //await this._drainReadBuffer();
 
       // 1) Send VERBOSE ON
-      //await this._sendRaw("VERBOSE ON");
+      await this._sendRaw("VERBOSE ON");
 
       // 2) Try reading optional echo
-      /*
+      
       let line = await this._readLine(100);
       if (line === "VERBOSE ON") {
         this._logStatus("VERBOSE ON echo received.");
       } else {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
-      */
+      
 
-			await new Promise(r => setTimeout(r, 1000));
-
-      // Flush again to ensure clean state
-      //await this._drainReadBuffer();
+			await new Promise(r => setTimeout(r, 100));
 
       // 3) Send VERBOSE OFF
       await this._sendRaw("VERBOSE OFF");
 
 			// 4) Read until we see VERBOSE OFF (ignore empty lines)
-      /*
+      
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
 				let line2 = await this._readLine(200);
@@ -103,7 +100,7 @@ export class LegoInterfaceA {
 				await this._safeClose();
 				throw new Error("LEGO Interface A handshake failed");
 			}
-      */
+      
 
       this._logStatus("Arduino handshake OK. VERBOSE OFF.");
 
