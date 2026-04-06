@@ -70,14 +70,14 @@ export class LegoInterfaceA {
       await this._sendRaw("VERBOSE ON");
 
       // 2) Try reading optional echo
-      
+      /*
       let line = await this._readLine(100);
       if (line === "VERBOSE ON") {
         this._logStatus("VERBOSE ON echo received.");
       } else {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
-      
+      */
 
 			await new Promise(r => setTimeout(r, 100));
 
@@ -89,6 +89,7 @@ export class LegoInterfaceA {
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
 				let line2 = await this._readLine(200);
+        this._logStatus(line2);
 				if (line2 === "VERBOSE OFF") {
 					echo = line2;
 					break;
