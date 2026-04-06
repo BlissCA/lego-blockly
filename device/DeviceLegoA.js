@@ -434,46 +434,16 @@ export class LegoInterfaceA {
   }
 
   async waitForLine(expected, timeoutMs) {
-    return new Promise((resolve, reject) => {
-      let buffer = "";
-      let timeoutId;
+    const deadline = Date.now() + timeoutMs;
 
-      timeoutId = setTimeout(() => {
-        reject(new Error(`Timeout waiting for line: "${expected}"`));
-      }, timeoutMs);
+    while (Date.now() < deadline) {
+      const line = await this._readLine(200); // reuse your existing reader logic
+      if (line && line.trim() === expected) {
+        return;
+      }
+    }
 
-      const reader = this.port.readable
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
-
-      const readLoop = () => {
-        reader.read().then(({ value, done }) => {
-          if (done) {
-            clearTimeout(timeoutId);
-            reject(new Error("Serial port closed while waiting for line"));
-            return;
-          }
-
-          buffer += value;
-
-          let lines = buffer.split(/\r?\n/);
-          buffer = lines.pop();
-
-          for (const line of lines) {
-            if (line.trim() === expected) {
-              clearTimeout(timeoutId);
-              reader.cancel();
-              resolve();
-              return;
-            }
-          }
-
-          readLoop();
-        });
-      };
-
-      readLoop();
-    });
+    throw new Error(`Timeout waiting for line: "${expected}"`);
   }
 
 }
