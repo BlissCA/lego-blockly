@@ -102,7 +102,7 @@ class Lego9750
 
  private:
    int _D0,_D1,_D2,_D3,_D4,_D5,_A6,_A7;
-   int _Verbose = HIGH;
+   int _Verbose = LOW;
    int _Port_PWM[6] = {0, 0, 0, 0, 0, 0};
    void _Parse_PWM_Command(String Port, String Value);
    void _Parse_Verbose_Command(String Value);
