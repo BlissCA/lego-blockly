@@ -79,7 +79,7 @@ export class LegoInterfaceA {
       }
       */
 
-			await new Promise(r => setTimeout(r, 100));
+			await new Promise(r => setTimeout(r, 1000));
 
       // 3) Send VERBOSE OFF
       await this._sendRaw("VERBOSE OFF");
