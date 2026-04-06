@@ -15,6 +15,8 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
   }
 
   initView() {
+    super.initView();   // ⭐ IMPORTANT — gives us this.clickTarget_
+
     const group = Blockly.utils.dom.createSvgElement('g', {}, this.fieldGroup_);
 
     this.rect_ = Blockly.utils.dom.createSvgElement('rect', {
@@ -37,9 +39,15 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
     this.textElement_.style.fill = '#000';
 
     group.style.cursor = 'pointer';
-    group.addEventListener('click', () => this.onClick_());
-
     this.group_ = group;
+
+    // ⭐ Correct way to attach interactive field events
+    Blockly.browserEvents.conditionalBind(
+      this.group_,
+      "pointerdown",
+      this,
+      this.onClick_
+    );
   }
 
   render_() {
@@ -72,31 +80,31 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
     this.forceRerender();
   }
 
-  onClick_() {
+  onClick_(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
     const block = this.getSourceBlock();
     if (!block) return;
 
-    const id = block.id;
-    window.BlocklyButtonEvents[id] = true;
+    window.BlocklyButtonEvents[block.id] = true;
   }
 
   showEditor_() {
-    // Disable the default text editor
-    return;
+    return; // disable text editor
   }
 
   isClickable_() {
-    // Prevent Blockly from treating this as an editable text field
     return false;
   }
 
   isEditable() {
     return false;
   }
-
 }
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
+
 
 /*
 Blockly.serialization.registry.register(
