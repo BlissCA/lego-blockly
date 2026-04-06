@@ -8,7 +8,8 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(19200);
-  brick.Port_Initialize();  
+  brick.Port_Initialize();
+  Serial.println("READY");
 }
 
 void loop() {
