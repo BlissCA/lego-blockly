@@ -71,7 +71,7 @@ export class LegoInterfaceA {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
 
-			await new Promise(r => setTimeout(r, 50));
+			await new Promise(r => setTimeout(r, 100));
 
       // Flush again to ensure clean state
       //await this._drainReadBuffer();
