@@ -438,17 +438,15 @@ export class LegoInterfaceA {
       let buffer = "";
       let timeoutId;
 
-      // Timeout handler
       timeoutId = setTimeout(() => {
         reject(new Error(`Timeout waiting for line: "${expected}"`));
       }, timeoutMs);
 
-      // Start reading from the serial port
-      const reader = window.serialPort.readable
+      const reader = this.port.readable
         .pipeThrough(new TextDecoderStream())
         .getReader();
 
-      function readLoop() {
+      const readLoop = () => {
         reader.read().then(({ value, done }) => {
           if (done) {
             clearTimeout(timeoutId);
@@ -458,16 +456,11 @@ export class LegoInterfaceA {
 
           buffer += value;
 
-          // Split into lines
           let lines = buffer.split(/\r?\n/);
-
-          // Keep the last partial line in the buffer
           buffer = lines.pop();
 
-          // Check each complete line
           for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed === expected) {
+            if (line.trim() === expected) {
               clearTimeout(timeoutId);
               reader.cancel();
               resolve();
@@ -475,12 +468,12 @@ export class LegoInterfaceA {
             }
           }
 
-          // Continue reading
           readLoop();
         });
-      }
+      };
 
       readLoop();
     });
   }
+
 }
