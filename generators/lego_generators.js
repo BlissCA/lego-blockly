@@ -2,7 +2,7 @@ const javascriptGenerator = Blockly.JavaScript;
 
 javascriptGenerator.addReservedWords("shouldStop");
 
-function sanitizeTaskName(name) {
+function sanitizeCustomName(name) {
   return name
     .trim()
     .replace(/\s+/g, "_")      // replace spaces with _
@@ -730,7 +730,7 @@ javascriptGenerator.forBlock['yield'] = function(block) {
 // ---------------- NAMED TASK GENERATORS ----------------
 javascriptGenerator.forBlock['task_definition'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   const statements = javascriptGenerator.statementToCode(block, 'DO');
 
   const funcName = `__task_${taskName}`;
@@ -769,32 +769,32 @@ async function ${funcName}() {
 
 javascriptGenerator.forBlock['task_start'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   return `NamedTask.start("${taskName}", __task_${taskName});\n`;
 };
 
 
 javascriptGenerator.forBlock['task_stop'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   return `NamedTask.cancel("${taskName}");\n`;
 };
 
 javascriptGenerator.forBlock['task_is_running'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   return [`NamedTask.isRunning("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['task_is_done'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   return [`NamedTask.isDone("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['task_has_error'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   return [`NamedTask.hasError("${taskName}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
@@ -804,7 +804,7 @@ javascriptGenerator.forBlock['task_stop_all'] = function(block) {
 
 javascriptGenerator.forBlock['task_loop_definition'] = function(block) {
   const rawTaskName = block.getFieldValue('TASK');
-  const taskName = sanitizeTaskName(rawTaskName);
+  const taskName = sanitizeCustomName(rawTaskName);
   const statements = javascriptGenerator.statementToCode(block, 'DO');
 
   const funcName = `__task_${taskName}`;
