@@ -58,7 +58,7 @@ export class LegoInterfaceA {
       // --------------------------------------------------------
 
       // Flush any garbage
-      await this._drainReadBuffer();
+      //await this._drainReadBuffer();
 
       // 1) Send VERBOSE ON
       await this._sendRaw("VERBOSE ON");
@@ -71,7 +71,7 @@ export class LegoInterfaceA {
         this._logStatus("No VERBOSE ON echo (verbose was OFF before).");
       }
 
-			await new Promise(r => setTimeout(r, 100));
+			await new Promise(r => setTimeout(r, 1000));
 
       // Flush again to ensure clean state
       //await this._drainReadBuffer();
@@ -96,7 +96,7 @@ export class LegoInterfaceA {
 				throw new Error("LEGO Interface A handshake failed");
 			}
       */
-     
+
       this._logStatus("Arduino handshake OK. VERBOSE OFF.");
 
       // Allocate name only after successful handshake
