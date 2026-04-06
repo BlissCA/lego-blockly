@@ -257,7 +257,7 @@ export class LegoInterfaceA {
       }
 
       // Flush before reading
-      await this._drainReadBuffer();
+//      await this._drainReadBuffer();
 
       // Send INPUT command
       await this._sendRaw(`INPUT ${port}`);
