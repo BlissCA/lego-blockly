@@ -168,6 +168,7 @@ export class LegoInterfaceA {
         await this._sendRaw(`PORT ${p} OFF`);
 				await new Promise(r => setTimeout(r, 5));   // small cooldown
       }
+      await this._sendRaw(`VERBOSE OFF`);
     });
   }
 
