@@ -275,7 +275,7 @@ export class LegoInterfaceA {
       this._logStatus("Writer not available, cannot send: " + cmd);
       return;
     }
-    //this._logTx(cmd);
+    this._logTx(cmd);
     await this.writer.write(this._textEncoder.encode(cmd + "\n"));
   }
 
