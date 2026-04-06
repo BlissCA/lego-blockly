@@ -88,7 +88,7 @@ export class LegoInterfaceA {
       
 			let echo = "";
 			for (let i = 0; i < 10; i++) {   // up to 10 attempts
-				let line2 = await this._readLine(200);
+				let line2 = await this._readLine(1000);
         this._logStatus(line2);
 				if (line2 === "VERBOSE OFF") {
 					echo = line2;
@@ -307,7 +307,8 @@ export class LegoInterfaceA {
 					if (!value) continue;
 
 					buffer += this._textDecoder.decode(value);
-
+          this._logStatus(buffer);
+          
 					// Check for newline
 					const nl = buffer.indexOf("\n");
 					if (nl !== -1) {
