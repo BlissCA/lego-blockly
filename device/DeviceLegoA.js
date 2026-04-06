@@ -66,6 +66,8 @@ export class LegoInterfaceA {
       // Flush any garbage
       //await this._drainReadBuffer();
 
+      await new Promise(r => setTimeout(r, 3000));
+
       // 1) Send VERBOSE ON
       await this._sendRaw("VERBOSE ON");
 
@@ -79,7 +81,7 @@ export class LegoInterfaceA {
       }
       */
 
-			await new Promise(r => setTimeout(r, 1000));
+			await new Promise(r => setTimeout(r, 200));
 
       // 3) Send VERBOSE OFF
       await this._sendRaw("VERBOSE OFF");
@@ -166,7 +168,6 @@ export class LegoInterfaceA {
         await this._sendRaw(`PORT ${p} OFF`);
 				await new Promise(r => setTimeout(r, 5));   // small cooldown
       }
-      await this._sendRaw(`VERBOSE OFF`);
     });
   }
 
@@ -308,7 +309,7 @@ export class LegoInterfaceA {
 
 					buffer += this._textDecoder.decode(value);
           this._logStatus(buffer);
-          
+
 					// Check for newline
 					const nl = buffer.indexOf("\n");
 					if (nl !== -1) {
