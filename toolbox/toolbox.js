@@ -139,7 +139,7 @@ const toolbox = {
                 "COND": {
                   "shadow": {
                     "type": "logic_boolean",
-                    "fields": { "COND": "TRUE" }
+                    "fields": { "BOOL": "TRUE" }
                   }
                 }
               }
