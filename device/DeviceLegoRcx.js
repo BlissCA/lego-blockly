@@ -5,6 +5,39 @@ export class LegoRcx {
     this.name = name;
     this.manager = manager;
 
+    // ---------------- RCX vs CyberMaster configuration ----------------
+    this.isCM = !!window.useCyberMaster;
+
+    if (this.isCM) {
+      // CyberMaster
+      this.devicePrefix = "CM";
+
+      // CM header: 0xFE 0x00 0x00 0xFF
+      this.headerBytes = Uint8Array.from([0xFE, 0x00, 0x00, 0xFF]);
+
+      // CM reply signature: only 0xFF (we still append replyCode + replyComp later)
+      this.replySignatureBase = Uint8Array.from([0xFF]);
+
+      // CM handshake: A5 + "Do you byte, when I knock?" → expect "Just a bit off the block!"
+      this.handshakeOpcode = 0xA5;
+      this.handshakePhrase = "Do you byte, when I knock?";
+      this.expectedReplyPhrase = "Just a bit off the block!";
+    } else {
+      // RCX
+      this.devicePrefix = "Rcx";
+
+      // RCX header: 0x55 0xFF 0x00
+      this.headerBytes = Uint8Array.from([0x55, 0xFF, 0x00]);
+
+      // RCX reply signature base: 0x55 0xFF 0x00
+      this.replySignatureBase = Uint8Array.from([0x55, 0xFF, 0x00]);
+
+      // RCX handshake: alive opcode 0x10
+      this.handshakeOpcode = 0x10;
+      this.handshakePhrase = null;
+      this.expectedReplyPhrase = null;
+    }
+
     this.port = null;
     this.reader = null;
     this.writer = null;
@@ -27,7 +60,7 @@ export class LegoRcx {
   }
 
   log(msg) {
-    console.log(`[RCX ${this.name}] ${msg}`);
+    console.log(`[${this.devicePrefix} ${this.name}] ${msg}`);
   }
 
   // ---------------- Queue ----------------
@@ -55,39 +88,68 @@ export class LegoRcx {
       dataBits: 8,
       stopBits: 1,
       parity: "odd",
-      bufferSize: 3*32*1024
+      bufferSize: 3 * 32 * 1024
     });
 
     this.writer = this.port.writable.getWriter();
 
-    // 3. Try alive ping
-    const ok = await this.alive();
+    // 3. Handshake
+    let ok;
+    if (this.isCM) {
+      ok = await this._handshakeCM();
+    } else {
+      ok = await this.alive();
+    }
+
     if (!ok) {
-      this.log("RCX did not respond. Power it on.");
-      window.logStatus(`RCX: Please power on the RCX and Reconnect.`);
+      this.log(`${this.devicePrefix} did not respond. Power it on.`);
+      window.logStatus(`${this.devicePrefix}: Please power on the device and Reconnect.`);
       this.disconnect();
     } else {
 
       // ⭐ Allocate name ONLY NOW
       if (!this.name) {
-        this.name = this.manager._allocateName("Rcx");
+        this.name = this.manager._allocateName(this.devicePrefix);
       }
 
       this.log("Connected.");
       this.status = "Connected";
     }
-
   }
 
+  // ---------------- CyberMaster handshake (using rcxCmd) ----------------
+  async _handshakeCM() {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    const phrase = this.handshakePhrase;           // "Do you byte, when I knock?"
+    const expected = this.expectedReplyPhrase;     // "Just a bit off the block!"
+
+    // Build command: [A5] + phrase bytes
+    const cmd = Uint8Array.from([
+      this.handshakeOpcode,                        // 0xA5
+      ...encoder.encode(phrase)
+    ]);
+
+    // Expected reply length (ASCII chars)
+    const replyLen = expected.length;
+
+    // Use rcxCmd — it handles retries, signature, complements, buffering
+    const replyBytes = await this.rcxCmd(cmd, replyLen);
+    if (!replyBytes) return false;
+
+    const replyText = decoder.decode(replyBytes);
+    return replyText.includes(expected);
+  }
 
   // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
-     //console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
+    //console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
     await this.writer.write(bytes);
   }
 
-  // ---------------- RCX Protocol ----------------
+  // ---------------- RCX / CM Protocol ----------------
   mkSerBuffWr(cmd) {
     if (!cmd || cmd.length === 0) cmd = new Uint8Array([0x10]);
 
@@ -118,7 +180,8 @@ export class LegoRcx {
     buff.push(sum & 0xFF);
     buff.push((-1 - sum) & 0xFF);
 
-    return Uint8Array.from([0x55, 0xFF, 0x00, ...buff]);
+    // Header is now dynamic (RCX vs CM)
+    return Uint8Array.from([...this.headerBytes, ...buff]);
   }
 
   async rcxCmd(cmd, vblen = 0) {
@@ -126,9 +189,18 @@ export class LegoRcx {
 
       const buff = this.mkSerBuffWr(cmd);
 
-      const replyCode = buff[4];
-      const replyComp = buff[3];
-      const signature = Uint8Array.from([0x55, 0xFF, 0x00, replyCode, replyComp]);
+      // For RCX: headerBytes = [0x55, 0xFF, 0x00]
+      // For CM:  headerBytes = [0xFE, 0x00, 0x00, 0xFF]
+      // replyCode and replyComp are always the first two bytes after header
+      const replyCode = buff[this.headerBytes.length + 1];
+      const replyComp = buff[this.headerBytes.length];
+
+      // Signature = base signature (RCX: 55 FF 00, CM: FF) + replyCode + replyComp
+      const signature = Uint8Array.from([
+        ...this.replySignatureBase,
+        replyCode,
+        replyComp
+      ]);
 
       // Try up to 3 times
       for (let attempt = 1; attempt <= 3; attempt++) {
@@ -170,7 +242,7 @@ export class LegoRcx {
               if (err?.name === "ParityError" || err?.message?.includes("Parity")) {
                 continue;
               }
-              console.warn(`[RCX ${this.name}] Read error:`, err);
+              console.warn(`[${this.devicePrefix} ${this.name}] Read error:`, err);
               break;
             }
 
@@ -183,7 +255,7 @@ export class LegoRcx {
             tmp.set(value, collected.length);
             collected = tmp;
 
-            if (collected.length >= 6) {
+            if (collected.length >= signature.length + 2) {
               found = this.findSignature(collected, signature);
               if (found !== -1) break;
             }
@@ -214,18 +286,18 @@ export class LegoRcx {
               for (let i = 0; i < vblen; i++) {
                 vals.push(collected[found + signature.length + i * 2]);
               }
-              // ⭐ Mandatory cool‑down delay after successful RCX command
+              // ⭐ Mandatory cool‑down delay after successful RCX/CM command
               await new Promise(r => setTimeout(r, 20));
               return Uint8Array.from(vals);
             }
 
-            // ⭐ Mandatory cool‑down delay after successful RCX command
+            // ⭐ Mandatory cool‑down delay after successful RCX/CM command
             await new Promise(r => setTimeout(r, 20));
             return Uint8Array.from([0x00]);
           }
 
           // No reply → retry
-          console.warn(`[RCX ${this.name}] No reply for cmd ${cmd[0].toString(16)} (attempt ${attempt})`);
+          console.warn(`[${this.devicePrefix} ${this.name}] No reply for cmd ${cmd[0].toString(16)} (attempt ${attempt})`);
 
         } finally {
           try { reader.releaseLock(); } catch {}
@@ -236,11 +308,13 @@ export class LegoRcx {
       }
 
       // All retries failed
-      console.warn(`[RCX ${this.name}] Command failed after 3 attempts: ${cmd[0].toString(16)}`);
+      console.warn(
+        `[${this.devicePrefix} ${this.name}] Command failed after 3 attempts: ${cmd[0].toString(16)}`
+      );
       return null;
     });
   }
-  
+
   findSignature(buffer, signature) {
     for (let i = 0; i <= buffer.length - signature.length; i++) {
       let ok = true;
@@ -277,14 +351,12 @@ export class LegoRcx {
       this.manager._removeDevice(this);
       this.name = null;
     }
-    
 
     this.status = "Disconnected";
-
   }
 
   // ---------------- Helper Method to Update Cache for multiple port commands ----------------
-   shouldSendMulti(mask, mode, power = null) {
+  shouldSendMulti(mask, mode, power = null) {
     let mustSend = false;
 
     for (let p = 1; p <= 3; p++) {
@@ -309,7 +381,6 @@ export class LegoRcx {
 
     return mustSend;
   }
-
 
   // ---------------- High-level commands ----------------
 
@@ -362,8 +433,8 @@ export class LegoRcx {
   sensor(port) {
     return new RcxSensor(this, port);
   }
-
 }
+
 
 class RcxMotor {
   constructor(rcx, motors) {
