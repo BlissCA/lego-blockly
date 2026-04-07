@@ -721,12 +721,14 @@ while (true) {
 };
 
 // ---------------- LOOP UNTIL WITH YIELD GENERATORS ----------------
-javascriptGenerator.forBlock['loop_until'] = function(block) {
+javascriptGenerator.forBlock['loop_while_until'] = function(block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
+  const mode = block.getFieldValue("MODE"); // WHILE or UNTIL
+  const finalCond = (mode === "WHILE") ? `!(${cond})` : cond;
   const statements = javascriptGenerator.statementToCode(block, 'DO');
 
   return `
-while (!(${cond})) {
+while (!(${finalCond})) {
   if (shouldStop()) return;
   ${statements}
   await new Promise(r => setTimeout(r, 0));
