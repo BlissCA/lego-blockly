@@ -241,14 +241,19 @@ function getLegoBDropdown() {
     : [['No Lego B', 'NONE']];
 }
 
-// Only RCX devices
+// RCX + CyberMaster devices
 function getRcxDropdown() {
   const devices = window.deviceManager?.devices || [];
-  const list = devices.filter(d => d.name.startsWith("Rcx"));
+
+  // Accept both "Rcx" and "CM" prefixes
+  const list = devices.filter(d =>
+    d.name.startsWith("Rcx") ||
+    d.name.startsWith("CM")
+  );
 
   return list.length
     ? list.map(d => [d.name, d.name])
-    : [['No RCX', 'NONE']];
+    : [['No RCX/CM', 'NONE']];
 }
 
 
