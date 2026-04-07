@@ -1746,7 +1746,7 @@ Blockly.Blocks['loop_forever'] = {
       .setCheck(null);
 
     this.setPreviousStatement(true);
-    this.setNextStatement(true);
+    this.setNextStatement(false);
     this.setColour(180);
     this.setTooltip("Repeat forever with an implicit yield at each iteration.");
   }
