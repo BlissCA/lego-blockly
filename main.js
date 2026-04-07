@@ -30,6 +30,8 @@ let currentExecution = null;
 window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
+let useCyberMaster = false;
+window.useCyberMaster = useCyberMaster;
 window.TaskRegistry = [];
 window.isProgramRunning = false;
 
@@ -775,6 +777,12 @@ document.getElementById("debugPackets").onchange = e => {
   debugLogPackets = e.target.checked;
   window.debugLogPackets = debugLogPackets;
   console.log("Debug packet logging:", debugLogPackets);
+};
+
+document.getElementById("useCyberMaster").onchange = e => {
+  useCyberMaster = e.target.checked;
+  window.useCyberMaster = useCyberMaster;
+  console.log("Using CyberMaster:", useCyberMaster);
 };
 
 // ---------------- NEW PROJECT ----------------
