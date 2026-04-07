@@ -1742,7 +1742,7 @@ Blockly.Blocks['rcx_getinpval'] = {
 };
 
 //  LOOP WHILE / UNTIL WITH YIELD (for cooperative multitasking)
-Blockly.Blocks['loop_while_until'] = {
+Blockly.Blocks['loop_forever'] = {
   init: function() {
     this.appendValueInput("COND")
       .setCheck("Boolean")

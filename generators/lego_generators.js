@@ -708,7 +708,7 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
 };
 
 // ---------------- LOOP WHILE/UNTIL WITH YIELD GENERATORS ----------------
-javascriptGenerator.forBlock['loop_while_until'] = function(block) {
+javascriptGenerator.forBlock['loop_forever'] = function(block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
   const mode = block.getFieldValue("MODE"); // WHILE or UNTIL
   const finalCond = (mode === "WHILE") ? `!(${cond})` : cond;
