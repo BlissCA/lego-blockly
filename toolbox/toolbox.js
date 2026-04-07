@@ -136,6 +136,7 @@ const toolbox = {
           "contents": [
 
             { "kind": "block", "type": "loop_forever" },
+            { "kind": "block", "type": "loop_until" },
             { "kind": "block", "type": "yield" },
             { "kind": "block", "type": "lego_button_event" },
             {

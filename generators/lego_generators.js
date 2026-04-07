@@ -720,6 +720,20 @@ while (true) {
 `;
 };
 
+// ---------------- LOOP UNTIL WITH YIELD GENERATORS ----------------
+javascriptGenerator.forBlock['loop_until'] = function(block) {
+  const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
+  const statements = javascriptGenerator.statementToCode(block, 'DO');
+
+  return `
+while (!(${cond})) {
+  if (shouldStop()) return;
+  ${statements}
+  await new Promise(r => setTimeout(r, 0));
+}
+`;
+};
+
 // ---------------- YIELD GENERATOR ----------------
 javascriptGenerator.forBlock['yield'] = function(block) {
   return `await new Promise(r => setTimeout(r, 0));\n`;

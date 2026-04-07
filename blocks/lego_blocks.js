@@ -1752,6 +1752,25 @@ Blockly.Blocks['loop_forever'] = {
   }
 };
 
+//  LOOP UNTIL WITH YIELD (for cooperative multitasking)
+Blockly.Blocks['loop_until'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField("loop until")
+      this.appendValueInput("COND")
+        .setCheck("Boolean");
+
+    this.appendStatementInput("DO")
+      .setCheck(null);
+      
+    this.setInputsInline(true);
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(180);
+    this.setTooltip("Repeat until the condition is met with an implicit yield at each iteration.");
+  }
+};
+
 // YIELD CONTROL (for cooperative multitasking)
 Blockly.Blocks['yield'] = {
   init: function() {
