@@ -24,7 +24,7 @@ export class LegoRcx {
     for (let p = 1; p <= 3; p++) {
       this.portState[p] = { mode: "off", power: 7 };
     }
-}
+  }
 
   log(msg) {
     console.log(`[RCX ${this.name}] ${msg}`);
