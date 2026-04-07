@@ -1757,10 +1757,11 @@ Blockly.Blocks['loop_while_until'] = {
   init: function() {
     this.appendValueInput("COND")
       .setCheck("Boolean")
-        .appendField(new Blockly.FieldDropdown([
-            ["Loop while", "WHILE"],
-            ["Loopt until", "UNTIL"]
-        ]), 'MODE');
+      .appendField("loop")
+      .appendField(new Blockly.FieldDropdown([
+          ["while", "WHILE"],
+          ["until", "UNTIL"]
+      ]), 'MODE');
     this.appendStatementInput("DO")
       .setCheck(null);
 
