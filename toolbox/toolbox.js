@@ -134,8 +134,6 @@ const toolbox = {
           "kind": "category",
           "name": "Loop, Wait, Button, Print",
           "contents": [
-
-            { "kind": "block", "type": "loop_forever" },
             { "kind": "block", "type": "loop_while_until",
               "inputs": {
                 "COND": {
