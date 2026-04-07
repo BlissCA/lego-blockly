@@ -1736,23 +1736,7 @@ Blockly.Blocks['rcx_getinpval'] = {
   }
 };
 
-//  LOOP FOREVER WITH YIELD (for cooperative multitasking)
-Blockly.Blocks['loop_forever'] = {
-  init: function() {
-    this.appendDummyInput()
-      .appendField("loop forever");
-
-    this.appendStatementInput("DO")
-      .setCheck(null);
-
-    this.setPreviousStatement(true);
-    this.setNextStatement(false);
-    this.setColour(180);
-    this.setTooltip("Repeat forever with an implicit yield at each iteration.");
-  }
-};
-
-//  LOOP UNTIL WITH YIELD (for cooperative multitasking)
+//  LOOP WHILE / UNTIL WITH YIELD (for cooperative multitasking)
 Blockly.Blocks['loop_while_until'] = {
   init: function() {
     this.appendValueInput("COND")

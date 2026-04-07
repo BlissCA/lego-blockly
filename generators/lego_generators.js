@@ -707,20 +707,7 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   return [code, javascriptGenerator.ORDER_LOGICAL_OR];
 };
 
-// ---------------- LOOP FOREVER WITH YIELD GENERATORS ----------------
-javascriptGenerator.forBlock['loop_forever'] = function(block) {
-  const statements = javascriptGenerator.statementToCode(block, 'DO');
-
-  return `
-while (true) {
-  if (shouldStop()) return;
-  ${statements}
-  await new Promise(r => setTimeout(r, 0));
-}
-`;
-};
-
-// ---------------- LOOP UNTIL WITH YIELD GENERATORS ----------------
+// ---------------- LOOP WHILE/UNTIL WITH YIELD GENERATORS ----------------
 javascriptGenerator.forBlock['loop_while_until'] = function(block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
   const mode = block.getFieldValue("MODE"); // WHILE or UNTIL
