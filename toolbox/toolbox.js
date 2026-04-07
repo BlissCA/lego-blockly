@@ -136,7 +136,16 @@ const toolbox = {
           "contents": [
 
             { "kind": "block", "type": "loop_forever" },
-            { "kind": "block", "type": "loop_while_until" },
+            { "kind": "block", "type": "loop_while_until",
+              "inputs": {
+                "COND": {
+                  "shadow": {
+                    "type": "logic_boolean",
+                    "fields": { "COND": "TRUE" }
+                  }
+                }
+              }
+            },
             { "kind": "block", "type": "yield" },
             { "kind": "block", "type": "lego_button_event" },
             {
