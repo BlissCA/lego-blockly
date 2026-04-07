@@ -1755,14 +1755,13 @@ Blockly.Blocks['loop_forever'] = {
 //  LOOP UNTIL WITH YIELD (for cooperative multitasking)
 Blockly.Blocks['loop_until'] = {
   init: function() {
-    this.appendDummyInput()
-      .appendField("loop until")
-      this.appendValueInput("COND")
-        .setCheck("Boolean");
+    this.appendValueInput("COND")
+      .setCheck("Boolean")
+      .appendField("loop until");
 
     this.appendStatementInput("DO")
       .setCheck(null);
-      
+
     this.setInputsInline(true);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
