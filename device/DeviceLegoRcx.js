@@ -258,7 +258,7 @@ export class LegoRcx {
             tmp.set(value, collected.length);
             collected = tmp;
 
-            if (collected.length >= signature.length + 2) {
+            if (collected.length >= buff.length + signature.length + 2) {
               found = this.findSignature(collected, signature);
               if (found !== -1) break;
             }
