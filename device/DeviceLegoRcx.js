@@ -145,7 +145,8 @@ export class LegoRcx {
   // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
-    if (this.isCM) console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
+    //if (this.isCM) 
+    console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
     await this.writer.write(bytes);
   }
 
