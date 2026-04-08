@@ -145,7 +145,7 @@ export class LegoRcx {
   // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
-    console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
+    if (this.isCM) console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
     await this.writer.write(bytes);
   }
 
@@ -201,6 +201,8 @@ export class LegoRcx {
         replyCode,
         replyComp
       ]);
+
+      if (this.isCM) console.log("Signature:", signature.toHex().match(/.{1,2}/g).join(' '));
 
       // Try up to 3 times
       for (let attempt = 1; attempt <= 3; attempt++) {
@@ -260,6 +262,7 @@ export class LegoRcx {
               if (found !== -1) break;
             }
           }
+          if (this.isCM) console.log("collected:", collected.toHex().match(/.{1,2}/g).join(' '));
 
           // If reply found → extract values and return
           if (found !== -1) {
