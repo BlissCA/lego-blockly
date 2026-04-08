@@ -245,7 +245,7 @@ export class LegoRcx {
               const readPromise = reader.read();
               const timeoutPromise = new Promise(r => setTimeout(() => {
                 r({ value: null, done: false });
-              }, 340)); // was 20
+              }, 1000)); // was 340
 
               ({ value, done } = await Promise.race([readPromise, timeoutPromise]));
 
@@ -318,7 +318,7 @@ export class LegoRcx {
 
         // Small delay before retry
         if (this.isCM) {
-          await new Promise(r => setTimeout(r, 200));
+          await new Promise(r => setTimeout(r, 500));
         } else {
           await new Promise(r => setTimeout(r, 30));
         }
