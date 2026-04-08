@@ -96,6 +96,7 @@ export class LegoRcx {
     // 3. Handshake
     let ok;
     if (this.isCM) {
+      ok = await this.alive();
       ok = await this._handshakeCM();
     } else {
       ok = await this.alive();
