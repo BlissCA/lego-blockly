@@ -91,12 +91,20 @@ export class LegoRcx {
       bufferSize: 3 * 32 * 1024
     });
 
+    if (this.isCM) {
+      await this.port.setSignals({ 
+        dataTerminalReady: true, 
+        requestToSend: false 
+      });
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
     this.writer = this.port.writable.getWriter();
 
     // 3. Handshake
     let ok;
     if (this.isCM) {
-      ok = await this.alive();
+      //ok = await this.alive();
       ok = await this._handshakeCM();
     } else {
       ok = await this.alive();
