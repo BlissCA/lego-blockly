@@ -267,7 +267,7 @@ export class LegoRcx {
             tmp.set(value, collected.length);
             collected = tmp;
 
-            if (collected.length >= buff.length + signature.length + 2) {
+            if (collected.length >= signature.length + 2) {
               found = this.findSignature(collected, signature);
               if (found !== -1) break;
             }
@@ -317,7 +317,11 @@ export class LegoRcx {
         }
 
         // Small delay before retry
-        await new Promise(r => setTimeout(r, 30));
+        if (this.isCM) {
+          await new Promise(r => setTimeout(r, 200));
+        } else {
+          await new Promise(r => setTimeout(r, 30));
+        }
       }
 
       // All retries failed
