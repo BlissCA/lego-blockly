@@ -96,7 +96,7 @@ export class LegoRcx {
         dataTerminalReady: true, 
         requestToSend: false 
       });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
     this.writer = this.port.writable.getWriter();
