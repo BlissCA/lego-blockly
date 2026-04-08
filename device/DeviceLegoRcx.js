@@ -263,7 +263,7 @@ export class LegoRcx {
               if (found !== -1) break;
             }
           }
-          console.log("collected:", collected.toHex().match(/.{1,2}/g).join(' '));
+          if (collected) console.log("collected:", collected.toHex().match(/.{1,2}/g).join(' '));
 
           // If reply found → extract values and return
           if (found !== -1) {
