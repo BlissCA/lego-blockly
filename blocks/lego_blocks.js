@@ -2012,26 +2012,28 @@ Blockly.Blocks['task_sleep'] = {
   }
 };
 
-Blockly.Blocks['display_value'] = {
-  init: function() {
-    // Left side: label + live value + arrow
-    this.appendDummyInput()
-        .appendField("display")
-        .appendField(new Blockly.FieldLabel("?", undefined, {
-          "style": "fill:##0275d8; font-weight:bold;"
-        }), "DISPLAY_FIELD")
-        .appendField("←");
-
-    // Right side: inline external input
-    this.appendValueInput("VALUE")
-        .setCheck(null);   // IMPORTANT: no appendField here
-
-    this.setInputsInline(true);   // ← keep inline
-    this.setPreviousStatement(true);
-    this.setNextStatement(true);
-    this.setColour(180);
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "display_value",
+    "message0": "display %1 ← %2",
+    "args0": [
+      {
+        "type": "field_label",
+        "name": "DISPLAY_FIELD",
+        "text": "?",
+        "style": "font-weight:bold; fill:#d9534f;"
+      },
+      {
+        "type": "input_value",
+        "name": "VALUE"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "inputsInline": true,
+    "colour": 180
   }
-};
+]);
 
 
 
