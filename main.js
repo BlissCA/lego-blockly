@@ -577,11 +577,12 @@ document.getElementById("runBtn").onclick = async () => {
 // ---------------- STOP PROGRAM (Option A) ----------------
 
 document.getElementById("stopBtn").onclick = async () => {
+  NamedTask.stopAll();
+  NamedEventTimer.cancelAll();
+
   if (!window.isProgramRunning) return;
 
   window.stopRequested = true;
-  NamedTask.stopAll();
-  NamedEventTimer.cancelAll();
 
   logStatus("Stopping program...");
 
@@ -651,51 +652,6 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
   refreshDevicesPanel();
 };
 
-/*
-// ---------------- CONNECT Lego Interface A ----------------
-
-document.getElementById("connectBtnLegoA").onclick = async () => {
-  const dev = await window.deviceManager.connectLegoInterfaceA();
-
-  if (dev) {
-    // Success is already logged by deviceManager._addDevice()
-    // So we don't log anything here.
-  } else {
-    // User cancelled OR handshake failed
-    logStatus("Connection cancelled or device not responding.");
-  }
-
-  refreshDevicesPanel();
-};
-
-// ---------------- CONNECT Lego Interface B ----------------
-
-document.getElementById("connectBtnLegoB").onclick = async () => {
-  const dev = await window.deviceManager.connectLegoInterfaceB();
-
-  if (dev) {
-    // Success is already logged by deviceManager._addDevice()
-    // So we don't log anything here.
-  } else {
-    // User cancelled OR handshake failed
-    logStatus("Connection cancelled or device not responding.");
-  }
-
-  refreshDevicesPanel();
-};
-
-// ---------------- CONNECT Lego RCX ----------------
-
-document.getElementById("connectBtnRcx").onclick = async () => {
-  const dev = await window.deviceManager.connectRcx();
-
-  if (!dev) {
-    logStatus("RCX connection cancelled or device not responding.");
-  }
-
-  refreshDevicesPanel();
-};
-*/
 
 // ---------------- DISCONNECT ALL ----------------
 
