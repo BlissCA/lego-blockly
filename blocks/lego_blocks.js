@@ -2023,7 +2023,7 @@ Blockly.Blocks['display_value'] = {
 
     this.appendValueInput("VALUE");
 
-    this.setInputsInline(true);
+    this.setInputsInline(false);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(180);
