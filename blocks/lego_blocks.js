@@ -2028,7 +2028,7 @@ Blockly.Blocks['display_value'] = {
     
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour(180);
+    this.setColour(160);
   }
 };
 
