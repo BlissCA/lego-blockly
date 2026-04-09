@@ -2018,12 +2018,13 @@ Blockly.Blocks['display_value'] = {
     displayField.setClass("blockly-watch-display"); // Add a custom class for styling 
     this.appendDummyInput()
         .appendField("display")
-        .appendField(new Blockly.FieldLabel("?"), "DISPLAY_FIELD")
+        .appendField(displayField, "DISPLAY_FIELD")
         .appendField("←");
 
-    this.appendValueInput("VALUE");
+    this.appendValueInput("VALUE")
+      .setCheck(null);
 
-    this.setInputsInline(false);
+    this.setInputsInline(true);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(180);
