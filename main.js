@@ -451,16 +451,23 @@ window.getDeviceByName = function (name) {
 };
 
 Blockly.Css.register(`
+  /* The background box - needs more height/width for bigger text */
   .blockly-watch-display .blocklyFieldRect {
-    fill: #000 !important;         /* Black background box */
-    stroke: #0f0 !important;       /* Green border */
+    fill: #000 !important;
+    stroke: #0f0 !important;
     fill-opacity: 1 !important;
+    height: 24px; /* Adjust height to match your new font size */
   }
+
+  /* The actual text */
   .blockly-watch-display .blocklyText {
-    fill: #0f0 !important;         /* Neon green text */
+    fill: #0f0 !important;
     font-family: monospace !important;
+    font-size: 18px !important; /* Set your desired size here */
+    font-weight: bold !important;
   }
 `);
+
 
 // ---------------- BLOCKLY WORKSPACE ----------------
 
