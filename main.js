@@ -823,11 +823,13 @@ document.getElementById("debugPackets").onchange = e => {
   console.log("Debug packet logging:", debugLogPackets);
 };
 
+/*
 document.getElementById("useCyberMaster").onchange = e => {
   useCyberMaster = e.target.checked;
   window.useCyberMaster = useCyberMaster;
   console.log("Using CyberMaster:", useCyberMaster);
 };
+*/
 
 // ---------------- NEW PROJECT ----------------
 
