@@ -406,7 +406,7 @@ window.resetHMI = function () {
 }; */
 
 window.onbeforeunload = (e) => {
-  if (window.isDirty) {
+  if (isDirty) {
     e.preventDefault();
     e.returnValue = "";   // Required for Chrome
   }
