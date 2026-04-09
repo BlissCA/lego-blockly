@@ -450,20 +450,15 @@ window.getDeviceByName = function (name) {
   return window.deviceManager.devices.find(d => d.name === name) || null;
 };
 
-Blockly.Css.register(`
-  /* The background box of the field */
+BBlockly.Css.register(`
   .blockly-watch-display .blocklyFieldRect {
-    fill: #1a1a1a !important;      /* Dark 'screen' background */
-    stroke: #00ff00 !important;    /* Neon green border */
-    stroke-width: 1px;
+    fill: #000 !important;         /* Black background box */
+    stroke: #0f0 !important;       /* Green border */
     fill-opacity: 1 !important;
   }
-
-  /* The actual text inside the box */
   .blockly-watch-display .blocklyText {
-    fill: #00ff00 !important;      /* Neon green text */
-    font-family: 'Courier New', monospace !important;
-    font-weight: bold !important;
+    fill: #0f0 !important;         /* Neon green text */
+    font-family: monospace !important;
   }
 `);
 
