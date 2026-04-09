@@ -451,17 +451,14 @@ window.getDeviceByName = function (name) {
 };
 
 Blockly.Css.register(`
-  /* Make the label bold and a distinct bright color */
-  .blockly-watch-display {
-    fill: #00ff00 !important;      /* Bright green text */
-    font-weight: bold !important;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
+  .blockly-watch-display .blocklyFieldRect {
+    fill: #222 !important;         /* Dark background box */
+    stroke: #00ff00 !important;    /* Green border */
+    rx: 4; ry: 4;                  /* Rounded corners */
   }
-  
-  /* Optional: Add a subtle 'glow' or shadow effect */
-  .blockly-watch-display {
-    filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
+  .blockly-watch-display .blocklyText {
+    fill: #00ff00 !important;      /* Neon green text */
+    font-family: 'Courier New', monospace;
   }
 `);
 

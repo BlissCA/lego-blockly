@@ -2014,8 +2014,9 @@ Blockly.Blocks['task_sleep'] = {
 
 Blockly.Blocks['display_value'] = {
   init: function() {
-    const displayField = new Blockly.FieldLabel("?");
-    displayField.setClass("blockly-watch-display"); // Add a custom class for styling 
+    const displayField = new Blockly.FieldInput("?");
+    displayField.setEditable(false); // User can't click to edit
+    this.getField("DISPLAY_FIELD").getSvgRoot().classList.add("blockly-watch-display");
     this.appendDummyInput()
         .appendField("display")
         .appendField(displayField, "DISPLAY_FIELD")
