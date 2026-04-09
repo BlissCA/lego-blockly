@@ -451,14 +451,19 @@ window.getDeviceByName = function (name) {
 };
 
 Blockly.Css.register(`
+  /* The background box of the field */
   .blockly-watch-display .blocklyFieldRect {
-    fill: #222 !important;         /* Dark background box */
-    stroke: #00ff00 !important;    /* Green border */
-    rx: 4; ry: 4;                  /* Rounded corners */
+    fill: #1a1a1a !important;      /* Dark 'screen' background */
+    stroke: #00ff00 !important;    /* Neon green border */
+    stroke-width: 1px;
+    fill-opacity: 1 !important;
   }
+
+  /* The actual text inside the box */
   .blockly-watch-display .blocklyText {
     fill: #00ff00 !important;      /* Neon green text */
-    font-family: 'Courier New', monospace;
+    font-family: 'Courier New', monospace !important;
+    font-weight: bold !important;
   }
 `);
 
