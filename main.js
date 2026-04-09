@@ -602,6 +602,44 @@ document.getElementById("stopBtn").onclick = async () => {
 
 };
 
+document.getElementById("connectDeviceBtn").onclick = async () => {
+  const sel = document.getElementById("deviceSelect").value;
+  const dev = null;
+
+  switch (sel) {
+    case "A":
+      dev = await window.deviceManager.connectLegoInterfaceA();
+      break;
+
+    case "B":
+      dev = await window.deviceManager.connectLegoInterfaceB();
+      break;
+
+    case "RCX":
+      window.useCyberMaster = false;
+      dev = await window.deviceManager.connectRcx();   // your unified RCX/CM class
+      break;
+
+    case "CM":
+      window.useCyberMaster = true;
+      dev = await window.deviceManager.connectRcx();   // your unified RCX/CM class
+      break;
+
+    default:
+      console.warn("Unknown device type:", sel);
+  }
+  if (dev) {
+    // Success is already logged by deviceManager._addDevice()
+    // So we don't log anything here.
+  } else {
+    // User cancelled OR handshake failed
+    logStatus("Connection cancelled or device not responding.");
+  }
+
+  refreshDevicesPanel();
+};
+
+
 // ---------------- CONNECT Lego Interface A ----------------
 
 document.getElementById("connectBtnLegoA").onclick = async () => {
