@@ -2015,11 +2015,8 @@ Blockly.Blocks['task_sleep'] = {
 Blockly.Blocks['display_value'] = {
   init: function() {
     // 1. Create a simple label
-    const displayField = new Blockly.FieldLabel("?");
+    const displayField = new Blockly.FieldLabel("?", "blockly-watch-display");
     
-    // 2. Add our custom class
-    displayField.setClass("blockly-watch-display");
-
     this.appendDummyInput()
         .appendField("display")
         .appendField(displayField, "DISPLAY_FIELD")

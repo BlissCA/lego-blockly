@@ -450,24 +450,14 @@ window.getDeviceByName = function (name) {
   return window.deviceManager.devices.find(d => d.name === name) || null;
 };
 
+
 Blockly.Css.register(`
-  /* Target the text field's container group */
-  .blockly-watch-display {
-    background-color: #000; /* For modern browsers that support SVG background */
-  }
-
-  /* Style the actual text to be big and neon */
-  .blockly-watch-display .blocklyText {
+  /* Target the text element directly to override default styles */
+  .blockly-watch-display.blocklyText {
     fill: #00ff00 !important;
-    font-family: 'Courier New', monospace !important;
-    font-size: 20px !important; /* BIG FONT */
+    font-size: 24px !important;    /* Much larger font */
     font-weight: bold !important;
-    dominant-baseline: middle; /* Better vertical centering */
-  }
-
-  /* Add a neon border/glow effect to the text itself */
-  .blockly-watch-display .blocklyText {
-    filter: drop-shadow(0px 0px 3px rgba(0, 255, 0, 0.7));
+    font-family: 'Courier New', monospace !important;
   }
 `);
 
