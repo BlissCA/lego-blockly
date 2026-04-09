@@ -236,7 +236,7 @@ export class LegoRcx {
           let found = -1;
 
           // Read until signature found or timeout
-          while (performance.now() < t0 + 200) {  // was 200
+          while (performance.now() < t0 + 1000) {  // was 200
 
             let value = null;
             let done = false;
@@ -245,7 +245,7 @@ export class LegoRcx {
               const readPromise = reader.read();
               const timeoutPromise = new Promise(r => setTimeout(() => {
                 r({ value: null, done: false });
-              }, 340)); // was 340
+              }, 1000)); // was 340
 
               ({ value, done } = await Promise.race([readPromise, timeoutPromise]));
 
