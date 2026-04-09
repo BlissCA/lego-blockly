@@ -450,6 +450,21 @@ window.getDeviceByName = function (name) {
   return window.deviceManager.devices.find(d => d.name === name) || null;
 };
 
+Blockly.Css.register(`
+  /* Make the label bold and a distinct bright color */
+  .blockly-watch-display {
+    fill: #00ff00 !important;      /* Bright green text */
+    font-weight: bold !important;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+  }
+  
+  /* Optional: Add a subtle 'glow' or shadow effect */
+  .blockly-watch-display {
+    filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
+  }
+`);
+
 // ---------------- BLOCKLY WORKSPACE ----------------
 
 window.workspace = Blockly.inject("blocklyDiv", {
