@@ -2012,28 +2012,30 @@ Blockly.Blocks['task_sleep'] = {
   }
 };
 
-Blockly.defineBlocksWithJsonArray([
-  {
-    "type": "display_value",
-    "message0": "display %1 ← %2",
-    "args0": [
-      {
-        "type": "field_label",
-        "name": "DISPLAY_FIELD",
-        "text": "?",
-        "style": "font-weight:bold; fill:#d9534f;"
-      },
-      {
-        "type": "input_value",
-        "name": "VALUE"
+Blockly.Blocks['display_value'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("display")
+        .appendField(new Blockly.FieldLabel("?"), "DISPLAY_FIELD")
+        .appendField("←");
+
+    this.appendValueInput("VALUE");
+
+    this.setInputsInline(true);
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+
+    // Apply color AFTER rendering
+    this.setOnChange(function() {
+      const field = this.getField("DISPLAY_FIELD");
+      if (field && field.textElement_) {
+        field.textElement_.setAttribute("fill", "#d9534f");
+        field.textElement_.setAttribute("font-weight", "bold");
       }
-    ],
-    "previousStatement": null,
-    "nextStatement": null,
-    "inputsInline": true,
-    "colour": 180
+    });
   }
-]);
+};
 
 
 
