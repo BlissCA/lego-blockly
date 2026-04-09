@@ -450,7 +450,7 @@ window.getDeviceByName = function (name) {
   return window.deviceManager.devices.find(d => d.name === name) || null;
 };
 
-BBlockly.Css.register(`
+Blockly.Css.register(`
   .blockly-watch-display .blocklyFieldRect {
     fill: #000 !important;         /* Black background box */
     stroke: #0f0 !important;       /* Green border */
