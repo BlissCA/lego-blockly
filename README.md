@@ -22,3 +22,8 @@ https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-i
 2026-03-27:
 - Now has support for intercommunication with RCX yellow brick using the IR tower Serial (NOT USB Tower)
 - it is now an "installable" (PWA) application.  In the adress bar of your Chromium browser, click on the small TV icon that has a down arrow on the right...  This should allow you to use the app offline with no internet.
+
+2026-04-09
+- Added support for Lego CyberMaster and Lego Interface A
+- For Interface A, since it uses parallel lines, you need a Serial to parallel lines adapter which can be an Arduino type board.
+- So for Interface A, it is only supported though the use of an Arduino with the Sketch provided in the Sketch Folder.  This sketch works with no modification for UNO and NANO.
