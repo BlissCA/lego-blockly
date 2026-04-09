@@ -2012,6 +2012,20 @@ Blockly.Blocks['task_sleep'] = {
   }
 };
 
+Blockly.Blocks['display_value'] = {
+  init: function() {
+    this.appendValueInput("VALUE")
+        .setCheck(null)
+        .appendField("display");
+    this.appendDummyInput()
+        .appendField("→")
+        .appendField(new Blockly.FieldLabel("?"), "DISPLAY_FIELD");
+    this.setInputsInline(true);
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(230);
+  }
+};
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------

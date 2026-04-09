@@ -1040,6 +1040,12 @@ javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   `;
 };
 
+javascript.javascriptGenerator.forBlock['display_value'] = function(block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', javascript.Order.ATOMIC) || 'null';
+  // This generates a function call that your interpreter will handle
+  return `updateBlockDisplay('${block.id}', ${value});\n`;
+};
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {

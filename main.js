@@ -472,6 +472,12 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
   callback(result);
 });
 
+window.updateBlockDisplay = function(blockId, value) {
+  const block = window.workspace.getBlockById(blockId);
+  if (block) {
+    block.setFieldValue(String(value), "DISPLAY_FIELD");
+  }
+};
 
 function onProgramFinished() {
   window.isProgramRunning = false;
