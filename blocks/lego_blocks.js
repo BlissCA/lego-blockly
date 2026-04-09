@@ -2014,34 +2014,27 @@ Blockly.Blocks['task_sleep'] = {
 
 Blockly.Blocks['display_value'] = {
   init: function() {
-    const displayField = new Blockly.FieldTextInput("?");
-    displayField.EDITABLE = false; 
-    displayField.getExtraAttributes = function() {
-      return {'class': 'blockly-watch-display'};
-    };
-    // MANUALLY ADJUST SIZE: Force Blockly to reserve more space
-    const originalGetSize = displayField.getSize;
-    displayField.getSize = function() {
-      const size = originalGetSize.call(this);
-      size.width += 10;  // Add extra padding for the bigger font
-      size.height = 26;  // Match your CSS box height
-      return size;
-    };
+    // 1. Create a simple label
+    const displayField = new Blockly.FieldLabel("?");
+    
+    // 2. Add our custom class
+    displayField.setClass("blockly-watch-display");
 
     this.appendDummyInput()
         .appendField("display")
         .appendField(displayField, "DISPLAY_FIELD")
         .appendField("←");
 
-    this.appendValueInput("VALUE")
-      .setCheck(null);
-
+    // 3. Keep it inline for the single-row look
+    this.appendValueInput("VALUE").setCheck(null);
     this.setInputsInline(true);
+    
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(180);
   }
 };
+
 
 
 

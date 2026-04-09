@@ -451,22 +451,26 @@ window.getDeviceByName = function (name) {
 };
 
 Blockly.Css.register(`
-  /* The background box - needs more height/width for bigger text */
-  .blockly-watch-display .blocklyFieldRect {
-    fill: #000 !important;
-    stroke: #0f0 !important;
-    fill-opacity: 1 !important;
-    height: 24px; /* Adjust height to match your new font size */
+  /* Target the text field's container group */
+  .blockly-watch-display {
+    background-color: #000; /* For modern browsers that support SVG background */
   }
 
-  /* The actual text */
+  /* Style the actual text to be big and neon */
   .blockly-watch-display .blocklyText {
-    fill: #0f0 !important;
-    font-family: monospace !important;
-    font-size: 18px !important; /* Set your desired size here */
+    fill: #00ff00 !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 20px !important; /* BIG FONT */
     font-weight: bold !important;
+    dominant-baseline: middle; /* Better vertical centering */
+  }
+
+  /* Add a neon border/glow effect to the text itself */
+  .blockly-watch-display .blocklyText {
+    filter: drop-shadow(0px 0px 3px rgba(0, 255, 0, 0.7));
   }
 `);
+
 
 
 // ---------------- BLOCKLY WORKSPACE ----------------
