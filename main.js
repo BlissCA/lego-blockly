@@ -405,6 +405,12 @@ window.resetHMI = function () {
   }
 }; */
 
+window.onbeforeunload = (e) => {
+  if (window.isDirty) {
+    e.preventDefault();
+    e.returnValue = "";   // Required for Chrome
+  }
+};
 
 // ---------------- STATUS LOG ----------------
 
@@ -639,7 +645,7 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
   refreshDevicesPanel();
 };
 
-
+/*
 // ---------------- CONNECT Lego Interface A ----------------
 
 document.getElementById("connectBtnLegoA").onclick = async () => {
@@ -683,7 +689,7 @@ document.getElementById("connectBtnRcx").onclick = async () => {
 
   refreshDevicesPanel();
 };
-
+*/
 
 // ---------------- DISCONNECT ALL ----------------
 
