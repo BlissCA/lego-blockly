@@ -256,6 +256,17 @@ function getRcxDropdown() {
     : [['No RCX/CM', 'NONE']];
 }
 
+// CyberMaster devices
+function getCMDropdown() {
+  const devices = window.deviceManager?.devices || [];
+
+  // Accept both "Rcx" and "CM" prefixes
+  const list = devices.filter(d => d.name.startsWith("CM"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No CyberMaster', 'NONE']];
+}
 
 window.addEventListener("load", () => {
 
