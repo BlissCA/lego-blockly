@@ -2014,22 +2014,25 @@ Blockly.Blocks['task_sleep'] = {
 
 Blockly.Blocks['display_value'] = {
   init: function() {
+    // Left side: label + live value + arrow
     this.appendDummyInput()
         .appendField("display")
         .appendField(new Blockly.FieldLabel("?", undefined, {
-          "style": "font-weight:bold; fill:#f0ad4e;"
+          "style": "fill:##0275d8; font-weight:bold;"
         }), "DISPLAY_FIELD")
-        .appendField("→");
+        .appendField("←");
 
+    // Right side: inline external input
     this.appendValueInput("VALUE")
-        .setCheck(null);
+        .setCheck(null);   // IMPORTANT: no appendField here
 
-    this.setInputsInline(true);
+    this.setInputsInline(true);   // ← keep inline
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(180);
   }
 };
+
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
