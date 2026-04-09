@@ -2024,16 +2024,7 @@ Blockly.Blocks['display_value'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour(230);
-
-    // Apply color AFTER rendering
-    this.setOnChange(function() {
-      const field = this.getField("DISPLAY_FIELD");
-      if (field && field.textElement_) {
-        field.textElement_.setAttribute("fill", "#d9534f");
-        field.textElement_.setAttribute("font-weight", "bold");
-      }
-    });
+    this.setColour(180);
   }
 };
 
