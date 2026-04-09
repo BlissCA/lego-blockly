@@ -146,6 +146,7 @@ const toolbox = {
             },
             { "kind": "block", "type": "yield" },
             { "kind": "block", "type": "lego_button_event" },
+            { "kind": "block", "type": "display_value" },
             {
               "kind": "block",
               "type": "lego_wait_time",
