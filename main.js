@@ -604,7 +604,7 @@ document.getElementById("stopBtn").onclick = async () => {
 
 document.getElementById("connectDeviceBtn").onclick = async () => {
   const sel = document.getElementById("deviceSelect").value;
-  const dev = null;
+  let dev = null;
 
   switch (sel) {
     case "A":
