@@ -2019,6 +2019,15 @@ Blockly.Blocks['display_value'] = {
     displayField.getExtraAttributes = function() {
       return {'class': 'blockly-watch-display'};
     };
+    // MANUALLY ADJUST SIZE: Force Blockly to reserve more space
+    const originalGetSize = displayField.getSize;
+    displayField.getSize = function() {
+      const size = originalGetSize.call(this);
+      size.width += 10;  // Add extra padding for the bigger font
+      size.height = 26;  // Match your CSS box height
+      return size;
+    };
+
     this.appendDummyInput()
         .appendField("display")
         .appendField(displayField, "DISPLAY_FIELD")
