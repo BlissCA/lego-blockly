@@ -608,6 +608,7 @@ document.getElementById("runBtn").onclick = async () => {
   } finally {
     currentExecution = null;
     onProgramFinished();
+    workspace.highlightBlock(null);
   }
 };
 
