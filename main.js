@@ -30,6 +30,8 @@ let currentExecution = null;
 window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
+let highlightToggle  = false;
+window.highlightToggle = highlightToggle;
 let useCyberMaster = false;
 window.useCyberMaster = useCyberMaster;
 window.TaskRegistry = [];
@@ -501,6 +503,16 @@ function onProgramFinished() {
   logStatus("Program finished.");
 }
 
+function highlightBlock(id) {
+  const isEnabled = window.highlightToggle;
+  
+  if (isEnabled) {
+    workspace.highlightBlock(id);
+  } else {
+    workspace.highlightBlock(null); // Instantly removes current highlights
+  }
+}
+
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
@@ -516,6 +528,18 @@ document.getElementById("runBtn").onclick = async () => {
   // Turn button green
   const btn = document.getElementById("runBtn");
   btn.classList.add("running");
+
+  if (highlightToggle.checked) {
+    // Inject the highlight call into generated code
+    javascriptGenerator.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+    javascriptGenerator.addReservedWords('highlightBlock');
+  } else {
+    // Disable highlighting by clearing the prefix
+    javascriptGenerator.STATEMENT_PREFIX = null;
+    // Clear any remaining highlights on the workspace
+    window.workspace.highlightBlock(null);
+  }
+
 
   // 1. Generate code
   let code = javascriptGenerator.workspaceToCode(workspace);
@@ -796,6 +820,12 @@ document.getElementById("debugPackets").onchange = e => {
   debugLogPackets = e.target.checked;
   window.debugLogPackets = debugLogPackets;
   console.log("Debug packet logging:", debugLogPackets);
+};
+
+document.getElementById("highlightToggle").onchange = e => {
+  highlightToggle = e.target.checked;
+  window.highlightToggle = highlightToggle;
+  console.log("Highlight execution:", highlightToggle);
 };
 
 /*
