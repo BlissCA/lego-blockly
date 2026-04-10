@@ -503,15 +503,15 @@ function onProgramFinished() {
   logStatus("Program finished.");
 }
 
-function highlightBlock(id) {
+window.highlightBlock = function(id) {
   const isEnabled = highlightToggle;
-  
+
   if (isEnabled) {
-    workspace.highlightBlock(id);
+    window.workspace.highlightBlock(id);
   } else {
-    workspace.highlightBlock(null); // Instantly removes current highlights
+    window.workspace.highlightBlock(null);
   }
-}
+};
 
 // ---------------- RUN PROGRAM ----------------
 
