@@ -285,7 +285,7 @@ const toolbox = {
         }
       ]
     },
-    {"kind": "category", "name": "Lego A", "colour": 30, "contents": [
+    {"kind": "category", "name": "Int. A", "colour": 30, "contents": [
         {
           "kind": "block",
           "type": "legoa_inp_on",
@@ -433,7 +433,7 @@ const toolbox = {
     },
     {
       "kind": "category",
-      "name": "Lego B",
+      "name": "Int. B",
       "colour": "20",
       "contents": [
         {
@@ -717,7 +717,7 @@ const toolbox = {
     },
     {
       "kind": "category",
-      "name": "Lego RCX",
+      "name": "RCX/CM",
       "colour": 20,
       "contents": [
         { "kind": "category", "name": "Motors", "colour": 20, "contents": [
