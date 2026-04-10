@@ -537,7 +537,7 @@ document.getElementById("runBtn").onclick = async () => {
     // Disable highlighting by clearing the prefix
     javascriptGenerator.STATEMENT_PREFIX = null;
     // Clear any remaining highlights on the workspace
-    window.workspace.highlightBlock(null);
+    workspace.highlightBlock(null);
   }
 
 
