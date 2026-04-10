@@ -504,7 +504,7 @@ function onProgramFinished() {
 }
 
 function highlightBlock(id) {
-  const isEnabled = window.highlightToggle;
+  const isEnabled = highlightToggle;
   
   if (isEnabled) {
     workspace.highlightBlock(id);
@@ -529,7 +529,7 @@ document.getElementById("runBtn").onclick = async () => {
   const btn = document.getElementById("runBtn");
   btn.classList.add("running");
 
-  if (highlightToggle.checked) {
+  if (highlightToggle) {
     // Inject the highlight call into generated code
     javascriptGenerator.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
     javascriptGenerator.addReservedWords('highlightBlock');
