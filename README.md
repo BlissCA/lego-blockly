@@ -27,3 +27,8 @@ https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-i
 - Added support for Lego CyberMaster and Lego Interface A
 - For Interface A, since it uses parallel lines, you need a Serial to parallel lines adapter which can be an Arduino type board.
 - So for Interface A, it is only supported though the use of an Arduino with the Sketch provided in the Sketch Folder.  This sketch works with no modification for UNO and NANO.
+
+2026-04-09
+- Added support for Lego CyberMaster and Lego Interface A
+- For Interface A, since it uses parallel lines, you need a Serial to parallel lines adapter which can be an Arduino type board.
+- So for Interface A, it is only supported though the use of an Arduino with the Sketch provided in the Sketch Folder.  This sketch works with no modification for UNO and NANO.
