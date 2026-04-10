@@ -356,7 +356,7 @@ javascriptGenerator.forBlock['after_time_do'] = function(block) {
 };
 
 javascriptGenerator.forBlock['after_named_time_do'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   const time = javascriptGenerator.valueToCode(block, 'TIME', javascriptGenerator.ORDER_ATOMIC) || '0';
   const branch = javascriptGenerator.statementToCode(block, 'DO');
 
@@ -372,7 +372,7 @@ javascriptGenerator.forBlock['after_named_time_do'] = function(block) {
 };
 
 javascriptGenerator.forBlock['cancel_named_timer'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return `
 {
   shouldStop();
@@ -382,22 +382,22 @@ javascriptGenerator.forBlock['cancel_named_timer'] = function(block) {
 };
 
 javascriptGenerator.forBlock['named_timer_done'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.isDone("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_running'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.isRunning("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_elapsed'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.elapsed("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_remaining'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.remaining("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
