@@ -163,7 +163,7 @@ export class DeviceManager {
       }
 
     } catch (err) {
-      console.warn("RCX connection failed:", err);
+      console.warn("WeDo 1.0 connection failed:", err);
       await dev.disconnect();
       return null;
     }
