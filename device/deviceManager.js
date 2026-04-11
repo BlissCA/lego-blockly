@@ -146,6 +146,29 @@ export class DeviceManager {
   }
 
   // -------------------------
+  // Connect LEGO WeDo 1.0
+  // -------------------------
+
+  async connectLegoWeDo1() {
+    const dev = new LegoWeDo1(null, this);
+
+    try {
+      await dev.connect();
+      if (dev.status === "Connected") {
+        this._addDevice(dev);
+        return dev;
+      } else {
+        return null;
+      }
+
+    } catch (err) {
+      console.warn("RCX connection failed:", err);
+      await dev.disconnect();
+      return null;
+    }
+  }
+
+  // -------------------------
   // Disconnect All
   // -------------------------
 
