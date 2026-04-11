@@ -1,7 +1,9 @@
 // device/DeviceLegoWeDo1.js
-// LEGO WeDo 1.0 USB Hub (Vendor 0x0694, Product 0x0003)
-// WebUSB implementation
-// Asynchronous queued commands (like Interface A)
+// LEGO WeDo 1.0 Hub (WebHID)
+// HID Input:  [type, value]
+// HID Output: [command, value]
+// Sensors: tilt, distance, rotation, button
+// Commands are queued (Blockly-compatible)
 
 export class LegoWeDo1 {
   constructor(name, manager) {
@@ -9,17 +11,20 @@ export class LegoWeDo1 {
     this.manager = manager;
 
     this.device = null;
-    this.interfaceNumber = 0;
-    this.endpointOut = 1;
-    this.endpointIn = 1;
-
     this.status = "idle";
 
     // Queue (same pattern as Interface A)
     this.queue = Promise.resolve();
     this.queueActive = true;
 
-    this._decoder = new TextDecoder();
+    // Sensor state
+    this.tilt = 0;
+    this.distance = 0;
+    this.rotation = 0;
+    this.button = 0;
+
+    // Last raw HID packet (optional)
+    this.lastPacket = [0, 0];
   }
 
   // ------------------------------------------------------------
@@ -36,34 +41,51 @@ export class LegoWeDo1 {
   // ------------------------------------------------------------
   async connect() {
     try {
-      this._logStatus("Requesting LEGO WeDo 1.0 device…");
+      this._log("Requesting LEGO WeDo 1.0 HID device…");
 
-      // User selects the USB device
-      this.device = await navigator.usb.requestDevice({
+      // User must select the device
+      const devices = await navigator.hid.requestDevice({
         filters: [{ vendorId: 0x0694, productId: 0x0003 }]
       });
 
-      await this.device.open();
-
-      if (this.device.configuration === null) {
-        await this.device.selectConfiguration(1);
+      if (!devices || devices.length === 0) {
+        throw new Error("No WeDo 1.0 device selected");
       }
 
-      await this.device.claimInterface(0);
+      this.device = devices[0];
 
-      this._logStatus("WeDo 1.0 USB interface claimed.");
+      await this.device.open();
 
-      // Allocate name only after successful connection
+      this._log("HID device opened.");
+
+      // Listen for sensor updates
+      this.device.addEventListener("inputreport", e => {
+        const data = new Uint8Array(e.data.buffer);
+        const type = data[0];
+        const value = data[1];
+
+        this.lastPacket = [type, value];
+
+        switch (type) {
+          case 0x00: this.tilt = value; break;
+          case 0x01: this.distance = value; break;
+          case 0x02: this.rotation = value; break;
+          case 0x03: this.button = value; break;
+        }
+      });
+
+      // Allocate name after successful connection
       if (!this.name) {
         this.name = this.manager._allocateName("WD1_");
       }
 
       this.status = "Connected";
+      this._log("Connected.");
 
       return true;
 
     } catch (err) {
-      this._logStatus("Error during connect: " + err);
+      this._log("Error during connect: " + err);
       await this._safeClose();
 
       if (this.name) {
@@ -79,13 +101,12 @@ export class LegoWeDo1 {
   // DISCONNECT
   // ------------------------------------------------------------
   async disconnect() {
-    this._logStatus("Disconnecting LEGO WeDo 1.0…");
+    this._log("Disconnecting LEGO WeDo 1.0…");
 
     try {
-      // Stop motors before closing
-      await this.stopAll();
+      await this.stopMotor();
     } catch (e) {
-      this._logStatus("Error while stopping motors: " + e);
+      this._log("Error while stopping motor: " + e);
     }
 
     this.queueActive = false;
@@ -99,18 +120,18 @@ export class LegoWeDo1 {
       this.name = null;
     }
 
-    this._logStatus("Disconnected.");
+    this._log("Disconnected.");
   }
 
   // ------------------------------------------------------------
-  // COMMANDS (queued)
+  // MOTOR COMMANDS (queued)
   // ------------------------------------------------------------
 
-  // Motor: 0x01 = motor command, second byte = speed (0–127)
+  // speed: 0–127
   async motor(speed) {
     return this.enqueue(async () => {
       const s = Math.max(0, Math.min(127, speed));
-      await this._sendBytes([0x01, s]);
+      await this._sendHID([0x01, s]);
     });
   }
 
@@ -122,36 +143,34 @@ export class LegoWeDo1 {
     return this.motor(0);
   }
 
-  async stopAll() {
-    return this.enqueue(async () => {
-      await this._sendBytes([0x01, 0]);
-    });
+  async stopMotor() {
+    return this.motor(0);
   }
 
   // ------------------------------------------------------------
-  // SENSORS (queued)
+  // SENSOR READ (queued)
   // ------------------------------------------------------------
-
   async readSensor() {
-    return this.enqueue(async () => {
-      const result = await this.device.transferIn(this.endpointIn, 2);
-      if (!result || !result.data) return 0;
-
-      return result.data.getUint8(0);
-    });
+    return this.enqueue(async () => ({
+      tilt: this.tilt,
+      distance: this.distance,
+      rotation: this.rotation,
+      button: this.button,
+      raw: this.lastPacket
+    }));
   }
 
   // ------------------------------------------------------------
-  // INTERNAL SEND
+  // INTERNAL HID SEND
   // ------------------------------------------------------------
-  async _sendBytes(arr) {
-    if (!this.device) {
-      this._logStatus("Device not available, cannot send.");
+  async _sendHID(arr) {
+    if (!this.device || !this.device.opened) {
+      this._log("Cannot send HID report: device not open.");
       return;
     }
 
     const data = new Uint8Array(arr);
-    await this.device.transferOut(this.endpointOut, data);
+    await this.device.sendReport(0x00, data);
   }
 
   // ------------------------------------------------------------
@@ -159,20 +178,20 @@ export class LegoWeDo1 {
   // ------------------------------------------------------------
   async _safeClose() {
     try {
-      if (this.device) {
+      if (this.device && this.device.opened) {
         try { await this.device.close(); } catch (_) {}
-        this.device = null;
       }
+      this.device = null;
       await new Promise(r => setTimeout(r, 30));
     } catch (e) {
-      this._logStatus("Error while closing device: " + e);
+      this._log("Error while closing device: " + e);
     }
   }
 
   // ------------------------------------------------------------
   // LOGGING
   // ------------------------------------------------------------
-  _logStatus(msg) {
+  _log(msg) {
     console.log(`[LegoWeDo1] ${msg}`);
   }
 }
