@@ -1,7 +1,7 @@
 // device/DeviceLegoWeDo1.js
 // LEGO WeDo 1.0 Hub (WebHID)
-// HID Input:  [type, value]
-// HID Output: [command, value]
+// HID Input:  reportId = 1 → [type, value]
+// HID Output: reportId = 0 → [command, value]
 // Sensors: tilt, distance, rotation, button
 // Commands are queued (Blockly-compatible)
 
@@ -23,7 +23,7 @@ export class LegoWeDo1 {
     this.rotation = 0;
     this.button = 0;
 
-    // Last raw HID packet (optional)
+    // Last raw HID packet
     this.lastPacket = [0, 0];
   }
 
@@ -43,7 +43,6 @@ export class LegoWeDo1 {
     try {
       this._log("Requesting LEGO WeDo 1.0 HID device…");
 
-      // User must select the device
       const devices = await navigator.hid.requestDevice({
         filters: [{ vendorId: 0x0694, productId: 0x0003 }]
       });
@@ -55,11 +54,18 @@ export class LegoWeDo1 {
       this.device = devices[0];
 
       await this.device.open();
-
       this._log("HID device opened.");
+
+      // Enable receiving input reports
+      if (this.device.receiveReports) {
+        await this.device.receiveReports(true);
+      }
 
       // Listen for sensor updates
       this.device.addEventListener("inputreport", e => {
+        // IMPORTANT: Only reportId 1 contains real sensor data
+        if (e.reportId !== 1) return;
+
         const data = new Uint8Array(e.data.buffer);
         const type = data[0];
         const value = data[1];
@@ -124,19 +130,24 @@ export class LegoWeDo1 {
   }
 
   // ------------------------------------------------------------
-  // MOTOR COMMANDS (queued)
+  // MOTOR COMMANDS (queued) — supports reverse
   // ------------------------------------------------------------
 
-  // speed: 0–127
+  // speed: -100..100 (percent)
   async motor(speed) {
     return this.enqueue(async () => {
-      const s = Math.max(0, Math.min(127, speed));
-      await this._sendHID([0x01, s]);
+      let s = Math.max(-100, Math.min(100, speed));
+      let raw = Math.round(s * 1.27);   // convert to -127..127
+      await this._sendHID([0x01, raw & 0xFF]);  // signed byte
     });
   }
 
-  async motorOn() {
+  async motorOnR() {   // forward
     return this.motor(100);
+  }
+
+  async motorOnL() {   // reverse
+    return this.motor(-100);
   }
 
   async motorOff() {
