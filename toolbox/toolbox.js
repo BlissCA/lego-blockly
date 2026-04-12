@@ -960,7 +960,83 @@ const toolbox = {
           ]
         }
       ]
+    },
+    {"kind": "category", "name": "WeDo 1.0", "colour": 40, "contents": [
+        { "kind": "block", "type": "wedo1_tiltval" },
+        {
+          "kind": "block",
+          "type": "wedo1_tilt",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_tiltraw",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_distance",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_distanceraw",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_motor",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portmot",
+                "fields": { "LETTER": "1" }
+              }
+            },
+            "SPEED": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 100 }
+              }
+            }
+
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_motorstop",
+        }
+      ]
     }
+
 /*
     {
       "kind": "category",

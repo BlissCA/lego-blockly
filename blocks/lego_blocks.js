@@ -268,6 +268,16 @@ function getCMDropdown() {
     : [['No CyberMaster', 'NONE']];
 }
 
+// Only WeDo 1.0 devices
+function getWedo1Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("WD1_"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No WeDo 1.0', 'NONE']];
+}
+
 window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
@@ -1631,6 +1641,45 @@ Blockly.Blocks['Rcx_InpPort'] = {
   }
 };
 
+Blockly.Blocks['wedo1_portinp'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 ports.");
+  }
+};
+
+Blockly.Blocks['wedo1_portmot'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"], ["C", "3"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 ports.");
+  }
+};
+
+Blockly.Blocks['wedo1_tiltval'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["FLAT", "0"], ["FWD", "1"], ["LEFT", "2"], ["RIGHT", "3"], ["BACK", "4"]
+      ]), "TILTVAL");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 Tilt Sensor values.");
+  }
+};
+
 Blockly.Blocks['rcx_getval'] = {
   init: function() {
     this.jsonInit({
@@ -1749,6 +1798,118 @@ Blockly.Blocks['rcx_getinpval'] = {
     });
 
     this.setTooltip("Get Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_tilt'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 tilt value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Tilt Value of Input Port (0=Flat, 1=fwd, 2=left, 3=right, 4=back)");
+  }
+};
+
+Blockly.Blocks['wedo1_tiltraw'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 tilt raw val",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Tilt Raw Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_distance'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 distance value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Distance Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_distanceraw'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 distance raw value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Distance Raw Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_motor'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 motor %2 speed %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 40,
+     });
+
+    this.setTooltip("Speed must be from -100 to 100, 0=Stop");
+  }
+};
+
+Blockly.Blocks['wedo1_motorstop'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 stop motors",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 40,
+     });
+
+    this.setTooltip("Speed must be from -100 to 100, 0=Stop");
   }
 };
 
