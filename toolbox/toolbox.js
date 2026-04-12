@@ -1017,7 +1017,7 @@ const toolbox = {
           "inputs": {
             "PORT": {
               "shadow": {
-                "type": "wedo1_portmot",
+                "type": "wedo1_motport",
                 "fields": { "LETTER": "1" }
               }
             },

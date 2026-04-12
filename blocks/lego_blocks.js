@@ -1654,7 +1654,7 @@ Blockly.Blocks['wedo1_portinp'] = {
   }
 };
 
-Blockly.Blocks['wedo1_portmot'] = {
+Blockly.Blocks['wedo1_motport'] = {
   init: function() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([

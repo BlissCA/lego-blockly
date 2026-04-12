@@ -1028,6 +1028,30 @@ javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
 `;
 };
 
+
+// ---------------- LEGO WeDo 1.0 GENERATORS ----------------
+
+javascriptGenerator.forBlock["wedo1_portinp"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo1_motport"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo1_tiltval"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('TILTVAL');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["wedo1_tilt"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
