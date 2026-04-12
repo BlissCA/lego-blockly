@@ -490,9 +490,15 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
 
 window.updateBlockDisplay = function(blockId, value) {
   const block = window.workspace.getBlockById(blockId);
-  if (block) {
-    block.setFieldValue(String(value), "DISPLAY_FIELD");
+  if (!block) return;
+
+  let formatted = value;
+
+  if (typeof value === "number") {
+    formatted = Number(value.toFixed(4)).toString();
   }
+
+  block.setFieldValue(formatted, "DISPLAY_FIELD");
 };
 
 function onProgramFinished() {
