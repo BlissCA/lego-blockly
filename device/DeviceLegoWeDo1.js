@@ -1,8 +1,8 @@
 // device/DeviceLegoWeDo1.js
-// LEGO WeDo 1.0 Hub (WebHID)
-// HID Input:  reportId = 1 → [type, value]
-// HID Output: reportId = 0 → [command, value]
-// Sensors: tilt, distance, rotation, button
+// LEGO WeDo 1.0 Hub (WebHID, late firmware, 8‑byte packets)
+// HID Input:  reportId = 0 → [flag, status, dataA, typeA, dataB, typeB, 0, 0]
+// HID Output: reportId = 0 → [64, motorA, motorB, 0, 0, 0, 0, 0]
+// Sensors: tilt + distance (per port 1/2), no button, no rotation
 // Commands are queued (Blockly-compatible)
 
 export class LegoWeDo1 {
@@ -17,14 +17,18 @@ export class LegoWeDo1 {
     this.queue = Promise.resolve();
     this.queueActive = true;
 
-    // Sensor state
-    this.tilt = 0;
-    this.distance = 0;
-    this.rotation = 0;
-    this.button = 0;
+    // Raw sensor state per port
+    this.rawTilt1 = 0;
+    this.rawTilt2 = 0;
+    this.rawDistance1 = 0;
+    this.rawDistance2 = 0;
 
-    // Last raw HID packet
-    this.lastPacket = [0, 0];
+    // Last commanded motor speeds (-100..100)
+    this.lastMotorA = 0;
+    this.lastMotorB = 0;
+
+    // Last raw HID packet (8 bytes)
+    this.lastPacket = new Uint8Array(8);
   }
 
   // ------------------------------------------------------------
@@ -56,28 +60,32 @@ export class LegoWeDo1 {
       await this.device.open();
       this._log("HID device opened.");
 
-      // Enable receiving input reports
+      // Enable receiving input reports (if supported)
       if (this.device.receiveReports) {
         await this.device.receiveReports(true);
       }
 
-      // Listen for sensor updates
+      // Listen for sensor updates (8‑byte packets on reportId 0)
       this.device.addEventListener("inputreport", e => {
-        // IMPORTANT: Only reportId 1 contains real sensor data
-        if (e.reportId !== 1) return;
+        if (e.reportId !== 0) return;
 
-        const data = new Uint8Array(e.data.buffer);
-        const type = data[0];
-        const value = data[1];
+        const d = new Uint8Array(e.data.buffer);
+        this.lastPacket = d;
 
-        this.lastPacket = [type, value];
+        // Packet format:
+        // [flag, status, dataA, typeA, dataB, typeB, 0, 0]
+        const dataA = d[2];
+        const typeA = d[3];
+        const dataB = d[4];
+        const typeB = d[5];
 
-        switch (type) {
-          case 0x00: this.tilt = value; break;
-          case 0x01: this.distance = value; break;
-          case 0x02: this.rotation = value; break;
-          case 0x03: this.button = value; break;
-        }
+        // Port 1 (A)
+        if (LegoWeDo1.TILT_TYPES.includes(typeA)) this.rawTilt1 = dataA;
+        if (LegoWeDo1.DIST_TYPES.includes(typeA)) this.rawDistance1 = dataA;
+
+        // Port 2 (B)
+        if (LegoWeDo1.TILT_TYPES.includes(typeB)) this.rawTilt2 = dataB;
+        if (LegoWeDo1.DIST_TYPES.includes(typeB)) this.rawDistance2 = dataB;
       });
 
       // Allocate name after successful connection
@@ -130,61 +138,174 @@ export class LegoWeDo1 {
   }
 
   // ------------------------------------------------------------
-  // MOTOR COMMANDS (queued) — supports reverse
+  // MOTOR COMMANDS (queued) — numeric ports, Python conversion
   // ------------------------------------------------------------
-
+  // ports: 1 = A, 2 = B, 3 = A+B (bitmask)
   // speed: -100..100 (percent)
-    async motor(speed, port = "A") {
+  _convertSpeed(v) {
+    if (v > 0) return v + 27;     // 28..127
+    if (v < 0) return v - 27;     // -28..-127
+    return 0;
+  }
+
+  async motor(ports, speed) {
     return this.enqueue(async () => {
-        let s = Math.max(-100, Math.min(100, speed));
-        let magnitude = Math.round(Math.abs(s) * 1.27); // 0..127
+      if (!this.device || !this.device.opened) {
+        this._log("Cannot send motor command: device not open.");
+        return;
+      }
 
-        // Determine port bits
-        let portBits = 0;
-        if (port === "A") portBits = 0x01;
-        else if (port === "B") portBits = 0x02;
-        else if (port === "AB") portBits = 0x03;
+      // Clamp speed
+      let s = Math.max(-100, Math.min(100, speed));
 
-        // Direction bit
-        let directionBit = (s < 0) ? 0x80 : 0x00;
+      // Update stored last speeds
+      if (ports & 1) this.lastMotorA = s;
+      if (ports & 2) this.lastMotorB = s;
 
-        let command = portBits | directionBit;
+      // Convert to HID values
+      let A = (ports & 1) ? this._convertSpeed(this.lastMotorA) : 0;
+      let B = (ports & 2) ? this._convertSpeed(this.lastMotorB) : 0;
 
-        await this._sendHID([command, magnitude]);
+      // Build 8‑byte HID packet
+      const data = new Uint8Array([
+        64,   // command frame marker
+        A & 0xFF,
+        B & 0xFF,
+        0, 0, 0, 0, 0
+      ]);
+
+      await this.device.sendReport(0, data);
     });
-    }
-
-  async motorOnR() {   // forward
-    return this.motor(100);
-  }
-
-  async motorOnL() {   // reverse
-    return this.motor(-100);
-  }
-
-  async motorOff() {
-    return this.motor(0);
   }
 
   async stopMotor() {
-    return this.motor(0);
+    // 3 = 1|2 = A+B
+    return this.motor(3, 0);
+  }
+
+  getMotor(port) {
+    if (port === 1) return this.lastMotorA;
+    if (port === 2) return this.lastMotorB;
+    return 0;
   }
 
   // ------------------------------------------------------------
-  // SENSOR READ (queued)
+  // SENSOR READ (queued) — returns snapshot + raw packet
   // ------------------------------------------------------------
   async readSensor() {
     return this.enqueue(async () => ({
-      tilt: this.tilt,
-      distance: this.distance,
-      rotation: this.rotation,
-      button: this.button,
-      raw: this.lastPacket
+      tilt1: this.getTilt(1),
+      tilt2: this.getTilt(2),
+      distance1: this.getDistance(1),
+      distance2: this.getDistance(2),
+      rawTilt1: this.rawTilt1,
+      rawTilt2: this.rawTilt2,
+      rawDistance1: this.rawDistance1,
+      rawDistance2: this.rawDistance2,
+      rawPacket: this.lastPacket
     }));
   }
 
   // ------------------------------------------------------------
-  // INTERNAL HID SEND
+  // TILT INTERPRETATION
+  // ------------------------------------------------------------
+  // 0 = FLAT
+  // 1 = TILT_FORWARD
+  // 2 = TILT_LEFT
+  // 3 = TILT_RIGHT
+  // 4 = TILT_BACK
+
+  static TILT_TYPES = [38, 39, 40];
+  static DIST_TYPES = [176, 177, 178, 179, 180];
+
+  _interpretTilt(raw) {
+    if (raw >= 10 && raw <= 40) return 4;   // BACK
+    if (raw >= 60 && raw <= 90) return 3;   // RIGHT
+    if (raw >= 170 && raw <= 190) return 1; // FORWARD
+    if (raw >= 220 && raw <= 240) return 2; // LEFT
+    return 0;                               // FLAT
+  }
+
+  getTiltRaw(port) {
+    return (port === 1) ? this.rawTilt1 : this.rawTilt2;
+  }
+
+  getTilt(port) {
+    return this._interpretTilt(this.getTiltRaw(port));
+  }
+
+  // ------------------------------------------------------------
+  // DISTANCE INTERPRETATION (Python interpolation, cm)
+  // ------------------------------------------------------------
+  static RAW_MEASURES = {
+    210: 46,
+    208: 39,
+    207: 34,
+    206: 32,
+    205: 30.5,
+    204: 29,
+    203: 27,
+    202: 26,
+    201: 25,
+    200: 24.5,
+    199: 23.5,
+    198: 22.5,
+    197: 22,
+    196: 21.5,
+    195: 20,
+    194: 19.5,
+    193: 18,
+    192: 17.5,
+    191: 17,
+    180: 15,
+    170: 13,
+    160: 12.5,
+    150: 11,
+    140: 10.5,
+    130: 10,
+    120: 9.5,
+    100: 7.5,
+    71: 6.5,
+    70: 6,
+    69: 5.3,
+    68: 0
+  };
+
+  static RAW_KEYS = Object.keys(LegoWeDo1.RAW_MEASURES)
+    .map(k => parseInt(k))
+    .sort((a, b) => a - b);
+
+  _interpolateDistance(raw) {
+    const keys = LegoWeDo1.RAW_KEYS;
+
+    let leftIndex = keys.findIndex(k => k >= raw) - 1;
+    if (leftIndex < 0) leftIndex = 0;
+
+    let rightIndex = (leftIndex === keys.length - 1) ? leftIndex : leftIndex + 1;
+
+    const left = keys[leftIndex];
+    const right = keys[rightIndex];
+
+    const mLeft = LegoWeDo1.RAW_MEASURES[left];
+    const mRight = LegoWeDo1.RAW_MEASURES[right];
+
+    if (left > raw) return mLeft;
+    if (mLeft === mRight) return mLeft;
+
+    const ratio = (raw - left) / (right - left);
+    return mLeft + ratio * (mRight - mLeft);
+  }
+
+  getDistanceRaw(port) {
+    return (port === 1) ? this.rawDistance1 : this.rawDistance2;
+  }
+
+  getDistance(port) {
+    return this._interpolateDistance(this.getDistanceRaw(port));
+  }
+
+  // ------------------------------------------------------------
+  // INTERNAL HID SEND (kept for compatibility, not used by motor)
   // ------------------------------------------------------------
   async _sendHID(arr) {
     if (!this.device || !this.device.opened) {
