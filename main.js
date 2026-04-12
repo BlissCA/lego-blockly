@@ -646,7 +646,11 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.mot(0x01).off();
         await dev.mot(0x02).off();
         await dev.mot(0x04).off();
+      } else if (dev.stopMotor) {
+        // WeDo 1.0: stop all motors
+        await dev.stopMotor();
       }
+
     } catch (err) {
       console.warn("Output stop error:", err);
     }
