@@ -134,13 +134,25 @@ export class LegoWeDo1 {
   // ------------------------------------------------------------
 
   // speed: -100..100 (percent)
-  async motor(speed) {
+    async motor(speed, port = "A") {
     return this.enqueue(async () => {
-      let s = Math.max(-100, Math.min(100, speed));
-      let raw = Math.round(s * 1.27);   // convert to -127..127
-      await this._sendHID([0x01, raw & 0xFF]);  // signed byte
+        let s = Math.max(-100, Math.min(100, speed));
+        let magnitude = Math.round(Math.abs(s) * 1.27); // 0..127
+
+        // Determine port bits
+        let portBits = 0;
+        if (port === "A") portBits = 0x01;
+        else if (port === "B") portBits = 0x02;
+        else if (port === "AB") portBits = 0x03;
+
+        // Direction bit
+        let directionBit = (s < 0) ? 0x80 : 0x00;
+
+        let command = portBits | directionBit;
+
+        await this._sendHID([command, magnitude]);
     });
-  }
+    }
 
   async motorOnR() {   // forward
     return this.motor(100);
