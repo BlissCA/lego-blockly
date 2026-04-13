@@ -1909,7 +1909,7 @@ Blockly.Blocks['wedo1_motorstop'] = {
       "colour": 40,
      });
 
-    this.setTooltip("Speed must be from -100 to 100, 0=Stop");
+    this.setTooltip("Stops all motors on the selected device");
   }
 };
 
