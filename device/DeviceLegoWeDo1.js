@@ -183,6 +183,7 @@ export class LegoWeDo1 {
   }
 
   async motor(ports, speed) {
+    if (!this.shouldSendMulti(ports, "?", speed)) return;
     return this.enqueue(async () => {
       if (!this.device || !this.device.opened) {
         this._log("Cannot send motor command: device not open.");
