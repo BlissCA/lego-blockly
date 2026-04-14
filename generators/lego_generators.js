@@ -71,7 +71,7 @@ javascriptGenerator.forBlock["Legob_outportalpha"] = function (block) {
 javascriptGenerator.forBlock["lego_out"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
-  const method  = javascriptGenerator.valueToCode(block, "CMD",  javascriptGenerator.ORDER_NONE) || "0";
+  const method  = block.getFieldValue("CMD");
 
   return `
 {

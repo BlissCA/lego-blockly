@@ -406,7 +406,7 @@ window.addEventListener("load", () => {
           "name": "PORT",
           "check": "Number",
         },
-        { "type": "field_dropdown", "name": "CMD", "options": [["ON LEFT", "outOn"], ["ON RIGHT", "outOnR"], ["OFF", "outOff"], ["FLOAT", "outFloat"], ["SET LEFT", "outL"], ["SET RIGHT", "outR"], ["REVERSE", "outRev"] ]}
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "outOn"],["ON LEFT", "outOnL"], ["ON RIGHT", "outOnR"], ["OFF", "outOff"], ["FLOAT", "outFloat"], ["SET LEFT", "outL"], ["SET RIGHT", "outR"], ["REVERSE", "outRev"] ]}
       ],
       "inputsInline": true,
       "previousStatement": null,
