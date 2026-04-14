@@ -1348,6 +1348,41 @@ window.addEventListener("load", () => {
   ]);
 });
 
+Blockly.Blocks["lego_multi_out"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
+      .appendField("Multi Out ")
+      .appendField(new Blockly.FieldDropdown([
+        ["ON", "multiOutOn"], ["OFF", "multiOutOff"], ["FLOAT", "multiOutFloat"],["SET LEFT", "multiOutL"], ["SET RIGHT", "multiOutR"], ["REVERSE", "multiOutRev"]
+      ]), "CMD");
+
+    this.appendDummyInput()
+      .appendField("A")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
+      .appendField("B")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
+      .appendField("C")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
+      .appendField("D")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
+
+    this.appendDummyInput()
+      .appendField("E")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
+      .appendField("F")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
+      .appendField("G")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
+      .appendField("H")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(20);
+  }
+};
+
 Blockly.Blocks["lego_multi_out_on"] = {
   init: function () {
     this.appendDummyInput()

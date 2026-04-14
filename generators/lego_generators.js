@@ -212,6 +212,28 @@ javascriptGenerator.forBlock["val_changed"] = function(block) {
   return [`ONCHG("${id}", ${value})`, javascriptGenerator.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["lego_multi_out"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const method  = block.getFieldValue("CMD");
+
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(0x${mask.toString(16)});
+}
+`;
+};
+
 javascriptGenerator.forBlock["lego_multi_out_on"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   let mask = 0;

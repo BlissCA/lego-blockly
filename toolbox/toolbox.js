@@ -681,6 +681,10 @@ const toolbox = {
           "contents": [
             {
               "kind": "block",
+              "type": "lego_multi_out"
+            },
+            {
+              "kind": "block",
               "type": "lego_multi_out_on"
             },
             {
