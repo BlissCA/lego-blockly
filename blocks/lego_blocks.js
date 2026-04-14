@@ -397,6 +397,24 @@ window.addEventListener("load", () => {
     // ---------------- OUTPUT BLOCKS ----------------
 
     {
+      "type": "lego_out",
+      "message0": "%1 out %2 #3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON LEFT", "outOn"], ["ON RIGHT", "outOnR"], ["OFF", "outOff"], ["FLOAT", "outFloat"], ["SET LEFT", "outL"], ["SET RIGHT", "outR"], ["REVERSE", "outRev"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+
+    {
       "type": "lego_out_on",
       "message0": "%1 out %2 ON",
       "args0": [

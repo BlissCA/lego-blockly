@@ -528,6 +528,18 @@ const toolbox = {
             { "kind": "block", "type": "Legob_outportalpha" },
             {
               "kind": "block",
+              "type": "lego_out",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
               "type": "lego_out_on",
               "inputs": {
                 "PORT": {

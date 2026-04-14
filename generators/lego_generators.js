@@ -68,6 +68,21 @@ javascriptGenerator.forBlock["Legob_outportalpha"] = function (block) {
 
 // ---------------- OUTPUT BLOCKS ----------------
 
+javascriptGenerator.forBlock["lego_out"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method  = javascriptGenerator.valueToCode(block, "CMD",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
+}
+`;
+};
+
 function legoCmd(block, method) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
