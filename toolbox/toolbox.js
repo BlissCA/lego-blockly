@@ -312,6 +312,18 @@ const toolbox = {
         },
         {
           "kind": "block",
+          "type": "legoa_out",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "Legoa_outportnum",
+                "fields": { "NUM": "0" }
+              }
+            }
+          }
+        },        
+        {
+          "kind": "block",
           "type": "legoa_out_on",
           "inputs": {
             "PORT": {
@@ -357,6 +369,17 @@ const toolbox = {
           }
         },
         {
+          "kind": "block",
+          "type": "legoa_combo",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "Legoa_comboalpha",
+                "fields": { "LETTER": "0" }
+              }
+            }
+          }
+        },        {
           "kind": "block",
           "type": "legoa_combo_l",
           "inputs": {

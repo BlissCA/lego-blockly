@@ -937,6 +937,21 @@ javascriptGenerator.forBlock["legoa_inp_val"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["legoa_out"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method  = block.getFieldValue("CMD");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
+}
+`;
+};
+
 javascriptGenerator.forBlock["legoa_out_on"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
@@ -989,6 +1004,21 @@ javascriptGenerator.forBlock["legoa_out_pwm"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.pwm(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method = block.getFieldValue("CMD");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
 }
 `;
 };

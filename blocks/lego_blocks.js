@@ -1172,6 +1172,23 @@ window.addEventListener("load", () => {
       "tooltip": "Returns the Input value 0-1023"
     },
     {
+      "type": "legoa_out",
+      "message0": "%1 out %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "outOn"], ["OFF", "outOff"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+    {
       "type": "legoa_out_on",
       "message0": "%1 out %2 ON",
       "args0": [
@@ -1241,6 +1258,25 @@ window.addEventListener("load", () => {
       "colour": 30,
       "tooltip": "Power must be from 0 to 255"
     },
+
+    {
+      "type": "legoa_combo",
+      "message0": "%1 combo %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON Left", "comboL"],["ON Right", "comboR"], ["OFF", "comboOff"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30
+    },
+
     {
       "type": "legoa_combo_l",
       "message0": "%1 combo %2 ON Left",
