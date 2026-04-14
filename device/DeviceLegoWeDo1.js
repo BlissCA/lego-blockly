@@ -29,6 +29,14 @@ export class LegoWeDo1 {
 
     // Last raw HID packet (8 bytes)
     this.lastPacket = new Uint8Array(8);
+
+    // Cache of last output states
+    // New Output Cache that work for both single and multiple commands.
+    this.portState = {};
+    for (let p = 0; p <= 1; p++) {
+      this.portState[p] = { mode: "?", power: -1 };
+    }
+
   }
 
   // ------------------------------------------------------------
@@ -137,6 +145,32 @@ export class LegoWeDo1 {
     this._log("Disconnected.");
   }
 
+  // ---------------- Helper Method to Update Cache for multiple port commands ----------------
+  shouldSendMulti(mask, mode, power = null) {
+    let mustSend = false;
+
+    for (let p = 0; p <= 1; p++) {
+      if (mask & (1 << p)) {
+        const st = this.portState[p];
+
+        if (st.mode !== mode || (power !== null && st.power !== power)) {
+          mustSend = true;
+        }
+      }
+    }
+
+    // Update states
+    if (mustSend) {
+      for (let p = 0; p <= 1; p++) {
+        if (mask & (1 << p)) {
+          this.portState[p].mode = mode;
+          if (power !== null) this.portState[p].power = power;
+        }
+      }
+    }
+
+    return mustSend;
+  }
   // ------------------------------------------------------------
   // MOTOR COMMANDS (queued) — numeric ports, Python conversion
   // ------------------------------------------------------------

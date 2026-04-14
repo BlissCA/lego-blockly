@@ -22,10 +22,6 @@ export class LegoInterfaceA {
     for (let p = 0; p <= 5; p++) {
       this.portState[p] = { mode: "?", power: -1 };
     }
-    this.comboState = {};
-    for (let p = 0; p <= 2; p++) {
-      this.comboState[p] = { mode: "?", power: -1 };
-    }
 
     this.status = "idle";
 
