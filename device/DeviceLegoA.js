@@ -16,6 +16,17 @@ export class LegoInterfaceA {
     this._textDecoder = new TextDecoder();
     this._textEncoder = new TextEncoder();
 
+    // Cache of last output states
+    // New Output Cache that work for both single and multiple commands.
+    this.portState = {};
+    for (let p = 0; p <= 5; p++) {
+      this.portState[p] = { mode: "?", power: -1 };
+    }
+    this.comboState = {};
+    for (let p = 0; p <= 2; p++) {
+      this.comboState[p] = { mode: "?", power: -1 };
+    }
+
     this.status = "idle";
 
     // ---------------- Queue (RCX-style) ----------------
@@ -155,6 +166,33 @@ export class LegoInterfaceA {
 		this._logStatus("Disconnected.");
 	}
 
+  // ---------------- Helper Method to Update Cache for port commands ----------------
+  shouldSend(port, mode, power = null) {
+    const st = this.portState[port];
+
+    if (st.mode === mode && (power === null || st.power === power)) {
+      return false; // no change → skip sending
+    }
+
+    st.mode = mode;
+    if (power !== null) st.power = power;
+
+    return true;    // changed → send command
+  }
+
+  shouldSendCombo(port, mode, power = null) {
+    const st = this.comboState[port];
+
+    if (st.mode === mode && (power === null || st.power === power)) {
+      return false; // no change → skip sending
+    }
+
+    st.mode = mode;
+    if (power !== null) st.power = power;
+
+    return true;    // changed → send command
+  }
+
   // ------------------------------------------------------------
   // OUTPUT COMMANDS (queued, no reply expected)
   // ------------------------------------------------------------
@@ -162,13 +200,16 @@ export class LegoInterfaceA {
   async portsOff() {
     return this.enqueue(async () => {
       for (let p = 0; p <= 5; p++) {
-        await this._sendRaw(`PORT ${p} OFF`);
-				await new Promise(r => setTimeout(r, 5));   // small cooldown
+        if (this.shouldSend(p, "off", 0)) {
+          await this._sendRaw(`PORT ${p} OFF`);
+          await new Promise(r => setTimeout(r, 5));   // small cooldown
+        }
       }
     });
   }
 
   async outOn(port) {
+    if (!this.shouldSend(port, "on", 255)) return;
     return this.enqueue(async () => {
       this._assertOutputPort(port);
       await this._sendRaw(`PORT ${port} ON`);
@@ -177,6 +218,7 @@ export class LegoInterfaceA {
   }
 
   async outOff(port) {
+    if (!this.shouldSend(port, "off", 0)) return;
     return this.enqueue(async () => {
       this._assertOutputPort(port);
       await this._sendRaw(`PORT ${port} OFF`);
@@ -185,6 +227,7 @@ export class LegoInterfaceA {
   }
 
   async pwm(port, power) {
+    if (!this.shouldSend(port, "on", this._clamp(power, 0, 255))) return;
     return this.enqueue(async () => {
       this._assertOutputPort(port);
       const level = this._clamp(power, 0, 255);
@@ -194,6 +237,7 @@ export class LegoInterfaceA {
   }
 
   async comboL(cmb) {
+    if (!this.shouldSendCombo(cmb, "onL", 255)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} LEFT`);
@@ -202,6 +246,7 @@ export class LegoInterfaceA {
   }
 
   async comboR(cmb) {
+    if (!this.shouldSendCombo(cmb, "onR", 255)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} RIGHT`);
@@ -210,6 +255,7 @@ export class LegoInterfaceA {
   }
 
   async comboOff(cmb) {
+    if (!this.shouldSendCombo(cmb, "off", 0)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} OFF`);
@@ -218,6 +264,7 @@ export class LegoInterfaceA {
   }
 
   async comboPwmL(cmb, power) {
+    if (!this.shouldSendCombo(cmb, "onL", this._clamp(power, 0, 255))) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
@@ -227,6 +274,7 @@ export class LegoInterfaceA {
   }
 
   async comboPwmR(cmb, power) {
+    if (!this.shouldSendCombo(cmb, "onR", this._clamp(power, 0, 255))) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
