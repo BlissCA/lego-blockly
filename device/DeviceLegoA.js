@@ -180,19 +180,6 @@ export class LegoInterfaceA {
     return true;    // changed → send command
   }
 
-  shouldSendCombo(port, mode, power = null) {
-    const st = this.comboState[port];
-
-    if (st.mode === mode && (power === null || st.power === power)) {
-      return false; // no change → skip sending
-    }
-
-    st.mode = mode;
-    if (power !== null) st.power = power;
-
-    return true;    // changed → send command
-  }
-
   // ------------------------------------------------------------
   // OUTPUT COMMANDS (queued, no reply expected)
   // ------------------------------------------------------------
@@ -237,7 +224,7 @@ export class LegoInterfaceA {
   }
 
   async comboL(cmb) {
-    if (!this.shouldSendCombo(cmb, "onL", 255)) return;
+    if (!this.shouldSend(cmb*2, "on", 255) && !this.shouldSend(cmb*2+1, "off", 0)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} LEFT`);
@@ -246,7 +233,7 @@ export class LegoInterfaceA {
   }
 
   async comboR(cmb) {
-    if (!this.shouldSendCombo(cmb, "onR", 255)) return;
+    if (!this.shouldSend(cmb*2, "off", 0) && !this.shouldSend(cmb*2+1, "on", 255)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} RIGHT`);
@@ -255,7 +242,7 @@ export class LegoInterfaceA {
   }
 
   async comboOff(cmb) {
-    if (!this.shouldSendCombo(cmb, "off", 0)) return;
+    if (!this.shouldSend(cmb*2, "off", 0) && !this.shouldSend(cmb*2+1, "off", 0)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       await this._sendRaw(`COMBO ${c} OFF`);
@@ -264,7 +251,7 @@ export class LegoInterfaceA {
   }
 
   async comboPwmL(cmb, power) {
-    if (!this.shouldSendCombo(cmb, "onL", this._clamp(power, 0, 255))) return;
+    if (!this.shouldSend(cmb*2, "on", this._clamp(power, 0, 255)) && !this.shouldSend(cmb*2+1, "off", 0)) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
@@ -274,7 +261,7 @@ export class LegoInterfaceA {
   }
 
   async comboPwmR(cmb, power) {
-    if (!this.shouldSendCombo(cmb, "onR", this._clamp(power, 0, 255))) return;
+    if (!this.shouldSend(cmb*2, "off", 0) && !this.shouldSend(cmb*2+1, "on", this._clamp(power, 0, 255))) return;
     return this.enqueue(async () => {
       const c = this._normalizeCombo(cmb);
       const level = this._clamp(power, 0, 255);
