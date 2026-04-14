@@ -398,7 +398,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "lego_out",
-      "message0": "%1 out %2 #3",
+      "message0": "%1 out %2 %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
         {
