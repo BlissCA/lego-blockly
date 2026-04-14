@@ -318,7 +318,7 @@ const toolbox = {
         },
         {
           "kind": "category",
-          "name": "Output",
+          "name": "Output single port",
           "contents": [
             {
               "kind": "block",
@@ -353,7 +353,13 @@ const toolbox = {
                   }
                 }
               }
-            },
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output combo port",
+          "contents": [
             {
               "kind": "block",
               "type": "legoa_combo",
@@ -403,7 +409,7 @@ const toolbox = {
               }
             }       
           ]
-        },
+        },        
         {
           "kind": "category",
           "name": "Obsolete",
