@@ -604,109 +604,6 @@ const toolbox = {
                   }
                 }
               }
-            },
-            {
-              "kind": "category",
-              "name": "Obsolete",
-              "contents": [
-                {
-                  "kind": "block",
-                  "type": "lego_out_on",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_onl",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_onr",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_off",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_float",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_rev",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_l",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_out_r",
-                  "inputs": {
-                    "PORT": {
-                      "shadow": {
-                        "type": "Legob_outportalpha",
-                        "fields": { "LETTER": "1" }
-                      }
-                    }
-                  }
-                }
-
-              ]
             }
  
           ]
@@ -736,41 +633,136 @@ const toolbox = {
             {
               "kind": "block",
               "type": "lego_out_offall",
-            },
-            {
-              "kind": "category",
-              "name": "Obsolete",
-              "contents": [
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_on"
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_off"
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_float"
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_Rev"
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_L"
-                },
-                {
-                  "kind": "block",
-                  "type": "lego_multi_out_R"
-                }
-
-              ]
             }
           ]
-        }
+        },
+        {
+          "kind": "category",
+          "name": "Obsolete",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lego_out_on",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_onl",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_onr",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_off",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_float",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_rev",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_l",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_r",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_on"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_off"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_float"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_Rev"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_L"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_out_R"
+            }
 
+          ]
+        }
       ]
     },
     {
