@@ -197,8 +197,10 @@ export class LegoWeDo1 {
       if (ports & 2) this.lastMotorB = s;
 
       // Convert to HID values
-      let A = (ports & 1) ? this._convertSpeed(this.lastMotorA) : 0;
-      let B = (ports & 2) ? this._convertSpeed(this.lastMotorB) : 0;
+      //let A = (ports & 1) ? this._convertSpeed(this.lastMotorA) : 0;
+      //let B = (ports & 2) ? this._convertSpeed(this.lastMotorB) : 0;
+      let A = this._convertSpeed(this.lastMotorA);
+      let B = this._convertSpeed(this.lastMotorB);
 
       // Build 8‑byte HID packet
       const data = new Uint8Array([
