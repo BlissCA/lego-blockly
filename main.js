@@ -241,7 +241,7 @@ window.NamedEventTimer.cancelAll = function() {
 // Global counter storage
 window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
 
-window.__counter_step = function(name, dir, preset, trigger, blockId) {
+window.__counter_step = function(name, dir, preset, trigger, blockId, autoReset) {
 
   // Create counter if needed
   if (!window.__counters[name] || typeof window.__counters[name] !== "object") {
@@ -280,8 +280,14 @@ window.__counter_step = function(name, dir, preset, trigger, blockId) {
     }
   }
 
-  // Return boolean: done when acc >= preset
-  return (c.acc >= preset);
+  const done = (c.acc >= preset);
+
+  // Auto-reset AFTER returning DONE
+  if (done && autoReset) {
+    c.acc = 0;
+  }
+
+  return done;
 };
 
 

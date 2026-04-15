@@ -209,6 +209,37 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   });
 });
 
+Blockly.defineClass("counter_mutator", {
+  // Called when the mutator dialog opens
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("autoreset", this.autoReset ? "true" : "false");
+    return container;
+  },
+
+  // Called when loading from XML / JSON
+  domToMutation: function(xmlElement) {
+    const val = xmlElement.getAttribute("autoreset");
+    this.autoReset = (val !== "false"); // default = true
+  },
+
+  // Mutator UI
+  decompose: function(workspace) {
+    const containerBlock = workspace.newBlock("counter_mutator_container");
+    containerBlock.initSvg();
+    containerBlock.render();
+
+    containerBlock.getField("AUTORESET").setValue(
+      this.autoReset ? "TRUE" : "FALSE"
+    );
+
+    return containerBlock;
+  },
+
+  compose: function(containerBlock) {
+    this.autoReset = containerBlock.getField("AUTORESET").getValue() === "TRUE";
+  }
+});
 
 
 // ---------------- DEVICE DROPDOWNS ----------------
@@ -1186,7 +1217,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30
+      "colour": 30,
+      "tooltip": "Turn ON or OFF the output port using MAX speed. For variable speed use the PWM block."
     },
     {
       "type": "legoa_out_on",
@@ -1230,7 +1262,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 20
+      "colour": 20,
+      "tooltip": "Turn off all output ports"
     },
     {
       "type": "legoa_out_pwm",
@@ -1256,7 +1289,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Power ON using PWM value from 0 to 255 (0=Stop)"
     },
 
     {
@@ -1274,7 +1307,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30
+      "colour": 30,
+      "tooltip": "Turn ON (Left/Right) or OFF the motor using combo port."
     },
 
     {
@@ -1325,7 +1359,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30
+      "colour": 30,
+      "tooltip": "Turn off both sides of the motor"
     },
     {
       "type": "legoa_combo_pwml",
@@ -1351,7 +1386,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
     },
     {
       "type": "legoa_combo_pwmr",
@@ -1377,7 +1412,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
     }
 
 
@@ -1417,6 +1452,7 @@ window.addEventListener("load", () => {
           "check": "Boolean"
         }
       ],
+      "mutator": "counter_mutator",
       "inputsInline": true,
       "output": "Boolean",
       "colour": 190,
@@ -1476,6 +1512,21 @@ window.addEventListener("load", () => {
       "helpUrl": ""
     }
   ]);
+
+  Blockly.defineBlocksWithJsonArray([{
+    "type": "counter_mutator_container",
+    "message0": "Auto-reset when done %1",
+    "args0": [
+      {
+        "type": "field_checkbox",
+        "name": "AUTORESET",
+        "checked": true
+      }
+    ],
+    "colour": 230,
+    "tooltip": "Automatically reset accumulator after DONE is reached.",
+    "helpUrl": ""
+  }]);
 
 });
 

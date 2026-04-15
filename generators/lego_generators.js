@@ -1215,8 +1215,10 @@ javascriptGenerator.forBlock['counter_block'] = function(block) {
     javascriptGenerator.valueToCode(block, 'PRESET', javascriptGenerator.ORDER_NONE) || '0';
   const trigger =
     javascriptGenerator.valueToCode(block, 'TRIGGER', javascriptGenerator.ORDER_NONE) || 'false';
+  
+  const autoReset = block.autoReset ? "true" : "false";
 
-  const code = `__counter_step("${name}", "${dir}", ${preset}, ${trigger}, "${block.id}")`;
+  const code = `__counter_step("${name}", "${dir}", ${preset}, ${trigger}, "${block.id}", ${autoReset})`;
   return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
 };
 
