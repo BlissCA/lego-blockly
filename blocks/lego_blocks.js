@@ -1417,6 +1417,7 @@ window.addEventListener("load", () => {
           "check": "Boolean"
         }
       ],
+      "inputsInline": true,
       "output": "Boolean",
       "colour": 190,
       "tooltip": "Counts on false→true transitions. Returns true when accumulated count reaches preset.",
