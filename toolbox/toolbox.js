@@ -282,7 +282,57 @@ const toolbox = {
               "type": "named_timer_remaining"
             }
           ]
-        }
+        },
+        {
+          "kind": "category",
+          "name": "Counters",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "counter_block",
+              "inputs": {
+                "PRESET": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 5
+                    }
+                  }
+                },
+                "TRIGGER": {
+                  "shadow": {
+                    "type": "logic_boolean",
+                    "fields": {
+                      "BOOL": "FALSE"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "counter_reset"
+            },
+            {
+              "kind": "block",
+              "type": "counter_set",
+              "inputs": {
+                "VALUE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "counter_get"
+            }
+          ]
+        }        
       ]
     },
     {"kind": "category", "name": "Int. A", "colour": 30, "contents": [

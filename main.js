@@ -237,6 +237,72 @@ window.NamedEventTimer.cancelAll = function() {
 };
 
 
+// ---------------- NAMED COUNTERS ----------------
+// Global counter storage
+window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
+
+window.__counter_step = function(name, dir, preset, trigger, blockId) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  }
+
+  const c = window.__counters[name];
+
+  // Ensure preset is a positive integer
+  let p = Number(preset);
+  if (!Number.isFinite(p)) p = 0;
+  p = Math.max(0, Math.floor(p));
+
+  const trig = !!trigger;
+
+  // false -> true edge
+  if (!c.last && trig) {
+    if (dir === "UP") {
+      c.acc++;
+    } else {
+      c.acc = Math.max(0, c.acc - 1);
+    }
+  }
+
+  c.last = trig;
+
+  // Update block ACC field
+  if (window.workspace) {
+    const block = window.workspace.getBlockById(blockId);
+    if (block) {
+      block.setFieldValue(String(c.acc), "ACC");
+    }
+  }
+
+  // Return boolean: done when acc >= preset
+  return (c.acc >= p);
+};
+
+window.__counter_reset = function(name) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  } else {
+    window.__counters[name].acc = 0;
+  }
+};
+
+window.__counter_set = function(name, value) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  }
+  let v = Number(value);
+  if (!Number.isFinite(v)) v = 0;
+  v = Math.max(0, Math.floor(v));
+  window.__counters[name].acc = v;
+};
+
+window.__counter_get = function(name) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  }
+  return window.__counters[name].acc;
+};
+
 
 // ---------------- NAMED ASYNC TASKS ----------------
 

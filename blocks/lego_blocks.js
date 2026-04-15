@@ -1382,6 +1382,100 @@ window.addEventListener("load", () => {
 
 
   ]);
+
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "counter_block",
+      "message0": "%1 Count %2 Pre: %3 Acc: %4 on: %5",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "DIR",
+          "options": [
+            ["▲", "UP"],
+            ["▼", "DOWN"]
+          ]
+        },
+        {
+          "type": "input_value",
+          "name": "PRESET",
+          "check": "Number"
+        },
+        {
+          "type": "field_label",
+          "name": "ACC",
+          "text": "0"
+        },
+        {
+          "type": "input_value",
+          "name": "TRIGGER",
+          "check": "Boolean"
+        }
+      ],
+      "output": "Boolean",
+      "colour": 190,
+      "tooltip": "Counts on false→true transitions. Returns true when accumulated count reaches preset.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_reset",
+      "message0": "%1 Reset",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 190,
+      "tooltip": "Reset the counter accumulated value to 0.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_set",
+      "message0": "Set %1 acc to %2",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        },
+        {
+          "type": "input_value",
+          "name": "VALUE",
+          "check": "Number"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 190,
+      "tooltip": "Set the counter accumulated value.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_get",
+      "message0": "Get %1 acc value",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        }
+      ],
+      "output": "Number",
+      "colour": 190,
+      "tooltip": "Get the counter accumulated value.",
+      "helpUrl": ""
+    }
+  ]);
+
 });
 
 Blockly.Blocks["lego_multi_out"] = {

@@ -1206,6 +1206,44 @@ javascript.javascriptGenerator.forBlock['display_value'] = function(block, gener
   return `updateBlockDisplay('${block.id}', ${value});\n`;
 };
 
+// ---------------- COUNTER GENERATORS ----------------
+javascriptGenerator.forBlock['counter_block'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const dir = block.getFieldValue('DIR');
+  const preset =
+    javascriptGenerator.valueToCode(block, 'PRESET', javascriptGenerator.ORDER_NONE) || '0';
+  const trigger =
+    javascriptGenerator.valueToCode(block, 'TRIGGER', javascriptGenerator.ORDER_NONE) || 'false';
+
+  const code = `__counter_step("${name}", "${dir}", ${preset}, ${trigger}, "${block.id}")`;
+  return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
+javascriptGenerator.forBlock['counter_reset'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const code = `__counter_reset("${name}");\n`;
+  return code;
+};
+
+javascriptGenerator.forBlock['counter_set'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const value =
+    javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_NONE) || '0';
+  const code = `__counter_set("${name}", ${value});\n`;
+  return code;
+};
+
+javascriptGenerator.forBlock['counter_get'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const code = `__counter_get("${name}")`;
+  return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {
