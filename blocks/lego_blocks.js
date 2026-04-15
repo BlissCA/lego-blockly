@@ -209,37 +209,58 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   });
 });
 
-Blockly.defineClass("counter_mutator", {
-  // Called when the mutator dialog opens
+const counterMutator = {
+  autoReset: true,
+
+  // Save mutation to XML
   mutationToDom: function() {
     const container = document.createElement("mutation");
     container.setAttribute("autoreset", this.autoReset ? "true" : "false");
     return container;
   },
 
-  // Called when loading from XML / JSON
+  // Load mutation from XML
   domToMutation: function(xmlElement) {
     const val = xmlElement.getAttribute("autoreset");
-    this.autoReset = (val !== "false"); // default = true
+    this.autoReset = (val !== "false"); // default true
   },
 
-  // Mutator UI
+  // Save to JSON (Blockly 12+)
+  saveExtraState: function() {
+    return { autoreset: this.autoReset };
+  },
+
+  // Load from JSON
+  loadExtraState: function(state) {
+    this.autoReset = state.autoreset !== false;
+  },
+
+  // Build mutator UI
   decompose: function(workspace) {
     const containerBlock = workspace.newBlock("counter_mutator_container");
     containerBlock.initSvg();
     containerBlock.render();
 
-    containerBlock.getField("AUTORESET").setValue(
-      this.autoReset ? "TRUE" : "FALSE"
-    );
+    containerBlock.getField("AUTORESET")
+      .setValue(this.autoReset ? "TRUE" : "FALSE");
 
     return containerBlock;
   },
 
+  // Apply mutator UI changes
   compose: function(containerBlock) {
-    this.autoReset = containerBlock.getField("AUTORESET").getValue() === "TRUE";
+    this.autoReset =
+      containerBlock.getField("AUTORESET").getValue() === "TRUE";
   }
-});
+};
+
+Blockly.Extensions.registerMutator(
+  "counter_mutator",
+  counterMutator,
+  null,
+  []
+);
+
 
 
 // ---------------- DEVICE DROPDOWNS ----------------
@@ -1523,7 +1544,7 @@ window.addEventListener("load", () => {
         "checked": true
       }
     ],
-    "colour": 230,
+    "colour": 190,
     "tooltip": "Automatically reset accumulator after DONE is reached.",
     "helpUrl": ""
   }]);
