@@ -1239,7 +1239,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Turn ON or OFF the output port using MAX speed. For variable speed use the PWM block."
+      "tooltip": "Turn ON (max speed) or OFF the output port. For variable speed use the PWM block."
     },
     {
       "type": "legoa_out_on",
@@ -1310,7 +1310,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power ON using PWM value from 0 to 255 (0=Stop)"
+      "tooltip": "Turn ON using PWM value from 0 to 255 (0=OFF)"
     },
 
     {
@@ -1329,7 +1329,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Turn ON (Left/Right) or OFF the motor using combo port."
+      "tooltip": "Turn ON (Left/Right) at max speed or turn OFF the motor using combo port."
     },
 
     {
