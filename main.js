@@ -244,11 +244,16 @@ window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
 window.__counter_step = function(name, dir, preset, trigger, blockId) {
 
   // Create counter if needed
-  if (!window.__counters[name]) {
+  if (!window.__counters[name] || typeof window.__counters[name] !== "object") {
     window.__counters[name] = { acc: 0, last: {} };
   }
 
   const c = window.__counters[name];
+
+  // If last was a boolean from old version → fix it
+  if (typeof c.last !== "object") {
+    c.last = {};
+  }
 
   // Ensure last exists for this block instance
   if (c.last[blockId] === undefined) {
