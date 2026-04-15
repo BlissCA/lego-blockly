@@ -242,31 +242,32 @@ window.NamedEventTimer.cancelAll = function() {
 window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
 
 window.__counter_step = function(name, dir, preset, trigger, blockId) {
+
+  // Create counter if needed
   if (!window.__counters[name]) {
-    window.__counters[name] = { acc: 0, last: false };
+    window.__counters[name] = { acc: 0, last: {} };
   }
 
   const c = window.__counters[name];
 
-  // Ensure preset is a positive integer
-  let p = Number(preset);
-  if (!Number.isFinite(p)) p = 0;
-  p = Math.max(0, Math.floor(p));
-
-  const trig = !!trigger;
-
-  // false -> true edge
-  if (!c.last && trig) {
-    if (dir === "UP") {
-      c.acc++;
-    } else {
-      c.acc = Math.max(0, c.acc - 1);
-    }
+  // Ensure last exists for this block instance
+  if (c.last[blockId] === undefined) {
+    c.last[blockId] = false;
   }
 
-  c.last = trig;
+  const prev = c.last[blockId];
+  const trig = !!trigger;
 
-  // Update block ACC field
+  // false → true transition for THIS block instance
+  if (!prev && trig) {
+    if (dir === "UP") c.acc++;
+    else c.acc = Math.max(0, c.acc - 1);
+  }
+
+  // Update last for THIS block instance
+  c.last[blockId] = trig;
+
+  // Update ACC field on block
   if (window.workspace) {
     const block = window.workspace.getBlockById(blockId);
     if (block) {
@@ -275,8 +276,9 @@ window.__counter_step = function(name, dir, preset, trigger, blockId) {
   }
 
   // Return boolean: done when acc >= preset
-  return (c.acc >= p);
+  return (c.acc >= preset);
 };
+
 
 window.__counter_reset = function(name) {
   if (!window.__counters[name]) {
