@@ -89,7 +89,7 @@ export class LegoVLL {
 		this._logStatus("Disconnected.");
 	}
 
-  sleepPrecise(ms) {
+  async sleepPrecise(ms) {
     const start = performance.now();
     while (performance.now() - start < ms) {
       // Busy wait
@@ -98,20 +98,20 @@ export class LegoVLL {
 
   async pulse(on, durationMs) {
     await this.port.setSignals({ dtr: on });
-    sleepPrecise(durationMs);
+    await this.sleepPrecise(durationMs);
   }
 
   async sendVLL(data7) {
     const unit = 20;
 
-    function bit0() {
-      pulse(true, 2 * unit);
-      pulse(false, 1 * unit);
+    const bit0 = async () => {
+      await this.pulse(true, 2 * unit);
+      await this.pulse(false, 1 * unit);
     }
 
-    function bit1() {
-      pulse(true, 1 * unit);
-      pulse(false, 2 * unit);
+    const bit1 = async () => {
+      await this.pulse(true, 1 * unit);
+      await this.pulse(false, 2 * unit);
     }
 
     function checksum(n) {
@@ -119,10 +119,10 @@ export class LegoVLL {
     }
 
     // 1. Preamble
-    pulse(true, 400);
+    await this.pulse(true, 400);
 
     // 2. Start bit
-    pulse(false, unit);
+    await this.pulse(false, unit);
 
     // 3. Checksum (3 bits, MSB first)
     let c = checksum(data7);
