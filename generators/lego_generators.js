@@ -1218,7 +1218,7 @@ javascriptGenerator.forBlock['counter_block'] = function(block) {
   
   const autoReset = block.autoReset ? "true" : "false";
 
-  const code = `__counter_step("${name}", "${dir}", ${preset}, ${trigger}, "${block.id}", ${autoReset})`;
+  const code = `__counter_step("${name}", ${dir}, ${preset}, ${trigger}, "${block.id}", ${autoReset})`;
   return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
 };
 
@@ -1250,7 +1250,7 @@ javascriptGenerator.forBlock["counter_dir"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('COUNTDIR');
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
-  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+  return ["'" + code + "'", javascriptGenerator.ORDER_ATOMIC];
 };
 
 
