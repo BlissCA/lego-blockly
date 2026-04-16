@@ -1250,7 +1250,7 @@ javascriptGenerator.forBlock["counter_dir"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('COUNTDIR');
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
-  return ["'" + code + "'", Blockly.JavaScript.ORDER_ATOMIC];
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
 
