@@ -287,10 +287,17 @@ const toolbox = {
           "kind": "category",
           "name": "Counters",
           "contents": [
+            { "kind": "block", "type": "counter_dir" },
             {
               "kind": "block",
               "type": "counter_block",
               "inputs": {
+                "DIR": {
+                  "shadow": {
+                    "type": "counter_dir",
+                    "fields": { "COUNTDIR": "UP" }
+                  }
+                },
                 "PRESET": {
                   "shadow": {
                     "type": "math_number",

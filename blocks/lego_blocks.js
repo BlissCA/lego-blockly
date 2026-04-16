@@ -1452,10 +1452,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "DIR",
-          "check": "String",
-          "shadow": {
-            "type": "counter_dir"
-          }
+          "check": "String"
         },
         {
           "type": "input_value",
@@ -1557,7 +1554,7 @@ Blockly.Blocks['counter_dir'] = {
       .appendField(new Blockly.FieldDropdown([
             ["▲", "UP"],
             ["▼", "DOWN"]
-          ]), "DIR");
+          ]), "COUNTDIR");
 
     this.setOutput(true, "String");
     this.setColour(230);
