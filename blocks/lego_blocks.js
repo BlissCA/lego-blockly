@@ -2183,7 +2183,7 @@ Blockly.Blocks['wedo1_motorstop'] = {
 Blockly.Blocks['vll_senddata'] = {
   init: function() {
     this.jsonInit({
-      "message0": "VLL send data %2",
+      "message0": "VLL send data %1",
       "args0": [
         { "type": "input_value", "name": "DATA", "check": "Number" }
       ],
@@ -2199,7 +2199,7 @@ Blockly.Blocks['vll_senddata'] = {
 Blockly.Blocks['vll_preamblems'] = {
   init: function() {
     this.jsonInit({
-      "message0": "VLL set preamble %2",
+      "message0": "VLL set preamble %1",
       "args0": [
         { "type": "input_value", "name": "MS", "check": "Number" }
       ],
