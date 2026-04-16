@@ -1245,6 +1245,14 @@ javascriptGenerator.forBlock['counter_get'] = function(block) {
   return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
 };
 
+// ---------------- COUNTER DIRECTION ----------------
+javascriptGenerator.forBlock["counter_dir"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('COUNTDIR');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
