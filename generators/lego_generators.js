@@ -1210,7 +1210,7 @@ javascript.javascriptGenerator.forBlock['display_value'] = function(block, gener
 javascriptGenerator.forBlock['counter_block'] = function(block) {
   const rawName = block.getFieldValue('NAME');
   const name = sanitizeCustomName(rawName);
-  const dir = block.getFieldValue('DIR');
+  const dir = javascriptGenerator.valueToCode(block, 'DIR', javascriptGenerator.ORDER_NONE) || "'UP'";
   const preset =
     javascriptGenerator.valueToCode(block, 'PRESET', javascriptGenerator.ORDER_NONE) || '0';
   const trigger =
