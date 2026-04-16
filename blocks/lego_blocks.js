@@ -1450,12 +1450,12 @@ window.addEventListener("load", () => {
           "text": "C1"
         },
         {
-          "type": "field_dropdown",
+          "type": "input_value",
           "name": "DIR",
-          "options": [
-            ["▲", "UP"],
-            ["▼", "DOWN"]
-          ]
+          "check": "String",
+          "shadow": {
+            "type": "counter_dir"
+          }
         },
         {
           "type": "input_value",
@@ -1550,6 +1550,20 @@ window.addEventListener("load", () => {
   }]);
 
 });
+
+Blockly.Blocks['counter_dir'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+            ["▲", "UP"],
+            ["▼", "DOWN"]
+          ]), "DIR");
+
+    this.setOutput(true, "String");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined string for Counter Direction.");
+  }
+};
 
 Blockly.Blocks["lego_multi_out"] = {
   init: function () {
