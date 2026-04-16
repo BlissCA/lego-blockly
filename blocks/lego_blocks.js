@@ -209,6 +209,58 @@ Blockly.Extensions.register('lego_button_event_edit', function() {
   });
 });
 
+const counterMutator = {
+  autoReset: true,
+
+  // Save mutation to XML
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("autoreset", this.autoReset ? "true" : "false");
+    return container;
+  },
+
+  // Load mutation from XML
+  domToMutation: function(xmlElement) {
+    const val = xmlElement.getAttribute("autoreset");
+    this.autoReset = (val !== "false"); // default true
+  },
+
+  // Save to JSON (Blockly 12+)
+  saveExtraState: function() {
+    return { autoreset: this.autoReset };
+  },
+
+  // Load from JSON
+  loadExtraState: function(state) {
+    this.autoReset = state.autoreset !== false;
+  },
+
+  // Build mutator UI
+  decompose: function(workspace) {
+    const containerBlock = workspace.newBlock("counter_mutator_container");
+    containerBlock.initSvg();
+    containerBlock.render();
+
+    containerBlock.getField("AUTORESET")
+      .setValue(this.autoReset ? "TRUE" : "FALSE");
+
+    return containerBlock;
+  },
+
+  // Apply mutator UI changes
+  compose: function(containerBlock) {
+    this.autoReset =
+      containerBlock.getField("AUTORESET").getValue() === "TRUE";
+  }
+};
+
+Blockly.Extensions.registerMutator(
+  "counter_mutator",
+  counterMutator,
+  null,
+  []
+);
+
 
 
 // ---------------- DEVICE DROPDOWNS ----------------
@@ -266,6 +318,16 @@ function getCMDropdown() {
   return list.length
     ? list.map(d => [d.name, d.name])
     : [['No CyberMaster', 'NONE']];
+}
+
+// Only WeDo 1.0 devices
+function getWedo1Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("WD1_"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No WeDo 1.0', 'NONE']];
 }
 
 window.addEventListener("load", () => {
@@ -385,6 +447,24 @@ window.addEventListener("load", () => {
 
 
     // ---------------- OUTPUT BLOCKS ----------------
+
+    {
+      "type": "lego_out",
+      "message0": "%1 out %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "outOn"],["ON LEFT", "outOnL"], ["ON RIGHT", "outOnR"], ["OFF", "outOff"], ["FLOAT", "outFloat"], ["SET LEFT", "outL"], ["SET RIGHT", "outR"], ["REVERSE", "outRev"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
 
     {
       "type": "lego_out_on",
@@ -1144,6 +1224,24 @@ window.addEventListener("load", () => {
       "tooltip": "Returns the Input value 0-1023"
     },
     {
+      "type": "legoa_out",
+      "message0": "%1 out %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "outOn"], ["OFF", "outOff"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Turn ON (max speed) or OFF the output port. For variable speed use the PWM block."
+    },
+    {
       "type": "legoa_out_on",
       "message0": "%1 out %2 ON",
       "args0": [
@@ -1185,7 +1283,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 20
+      "colour": 20,
+      "tooltip": "Turn off all output ports"
     },
     {
       "type": "legoa_out_pwm",
@@ -1211,8 +1310,28 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Turn ON using PWM value from 0 to 255 (0=OFF)"
     },
+
+    {
+      "type": "legoa_combo",
+      "message0": "%1 combo %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON Left", "comboL"],["ON Right", "comboR"], ["OFF", "comboOff"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Turn ON (Left/Right) at max speed or turn OFF the motor using combo port."
+    },
+
     {
       "type": "legoa_combo_l",
       "message0": "%1 combo %2 ON Left",
@@ -1261,7 +1380,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30
+      "colour": 30,
+      "tooltip": "Turn off both sides of the motor"
     },
     {
       "type": "legoa_combo_pwml",
@@ -1287,7 +1407,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
     },
     {
       "type": "legoa_combo_pwmr",
@@ -1313,12 +1433,169 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 30,
-      "tooltip": "Power must be from 0 to 255"
+      "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
     }
 
 
   ]);
+
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "counter_block",
+      "message0": "%1 Count %2 Pre: %3 Acc: %4 on: %5",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        },
+        {
+          "type": "input_value",
+          "name": "DIR",
+          "check": "String"
+        },
+        {
+          "type": "input_value",
+          "name": "PRESET",
+          "check": "Number"
+        },
+        {
+          "type": "field_label",
+          "name": "ACC",
+          "text": "0"
+        },
+        {
+          "type": "input_value",
+          "name": "TRIGGER",
+          "check": "Boolean"
+        }
+      ],
+      "mutator": "counter_mutator",
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 190,
+      "tooltip": "Counts on false→true transitions. Returns true when accumulated count reaches preset.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_reset",
+      "message0": "%1 Reset",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 190,
+      "tooltip": "Reset the counter accumulated value to 0.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_set",
+      "message0": "Set %1 acc to %2",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        },
+        {
+          "type": "input_value",
+          "name": "VALUE",
+          "check": "Number"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 190,
+      "tooltip": "Set the counter accumulated value.",
+      "helpUrl": ""
+    },
+    {
+      "type": "counter_get",
+      "message0": "Get %1 acc value",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "C1"
+        }
+      ],
+      "output": "Number",
+      "colour": 190,
+      "tooltip": "Get the counter accumulated value.",
+      "helpUrl": ""
+    }
+  ]);
+
+  Blockly.defineBlocksWithJsonArray([{
+    "type": "counter_mutator_container",
+    "message0": "Auto-reset when done %1",
+    "args0": [
+      {
+        "type": "field_checkbox",
+        "name": "AUTORESET",
+        "checked": true
+      }
+    ],
+    "colour": 190,
+    "tooltip": "Automatically reset accumulator after DONE is reached.",
+    "helpUrl": ""
+  }]);
+
 });
+
+Blockly.Blocks['counter_dir'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+            ["▲", "UP"],
+            ["▼", "DOWN"]
+          ]), "COUNTDIR");
+
+    this.setOutput(true, "String");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined string for Counter Direction.");
+  }
+};
+
+Blockly.Blocks["lego_multi_out"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown(getLegoBDropdown), "DEVICE")
+      .appendField("Multi Out ")
+      .appendField(new Blockly.FieldDropdown([
+        ["ON", "multiOutOn"], ["OFF", "multiOutOff"], ["FLOAT", "multiOutFloat"],["SET LEFT", "multiOutL"], ["SET RIGHT", "multiOutR"], ["REVERSE", "multiOutRev"]
+      ]), "CMD");
+
+    this.appendDummyInput()
+      .appendField("A")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P1")
+      .appendField("B")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P2")
+      .appendField("C")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P3")
+      .appendField("D")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P4");
+
+    this.appendDummyInput()
+      .appendField("E")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P5")
+      .appendField("F")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P6")
+      .appendField("G")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P7")
+      .appendField("H")
+      .appendField(new Blockly.FieldCheckbox("FALSE"), "P8");
+
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(20);
+  }
+};
 
 Blockly.Blocks["lego_multi_out_on"] = {
   init: function () {
@@ -1631,6 +1908,45 @@ Blockly.Blocks['Rcx_InpPort'] = {
   }
 };
 
+Blockly.Blocks['wedo1_portinp'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 ports.");
+  }
+};
+
+Blockly.Blocks['wedo1_motport'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "1"], ["B", "2"], ["A+B", "3"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 ports.");
+  }
+};
+
+Blockly.Blocks['wedo1_tiltval'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["FLAT", "0"], ["FWD", "1"], ["LEFT", "2"], ["RIGHT", "3"], ["BACK", "4"]
+      ]), "TILTVAL");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for WeDo 1.0 Tilt Sensor values.");
+  }
+};
+
 Blockly.Blocks['rcx_getval'] = {
   init: function() {
     this.jsonInit({
@@ -1749,6 +2065,118 @@ Blockly.Blocks['rcx_getinpval'] = {
     });
 
     this.setTooltip("Get Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_tilt'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 tilt value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Tilt Value of Input Port (0=Flat, 1=fwd, 2=left, 3=right, 4=back)");
+  }
+};
+
+Blockly.Blocks['wedo1_tiltraw'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 tilt raw val",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Tilt Raw Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_distance'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 distance value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Distance Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_distanceraw'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 inp %2 distance raw value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 40
+    });
+
+    this.setTooltip("Get Distance Raw Value of Input Port");
+  }
+};
+
+Blockly.Blocks['wedo1_motor'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 motor %2 speed %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown },
+        { "type": "input_value", "name": "PORT", "check": "Number" },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 40,
+     });
+
+    this.setTooltip("Speed must be from -100 to 100, 0=Stop");
+  }
+};
+
+Blockly.Blocks['wedo1_motorstop'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 stop motors",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWedo1Dropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 40,
+     });
+
+    this.setTooltip("Stops all motors on the selected device");
   }
 };
 

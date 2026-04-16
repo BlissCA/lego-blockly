@@ -3,6 +3,7 @@
 import { LegoInterfaceA } from './DeviceLegoA.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
+import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 
 export class DeviceManager {
   constructor() {
@@ -140,6 +141,29 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("RCX connection failed:", err);
+      await dev.disconnect();
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO WeDo 1.0
+  // -------------------------
+
+  async connectLegoWeDo1() {
+    const dev = new LegoWeDo1(null, this);
+
+    try {
+      await dev.connect();
+      if (dev.status === "Connected") {
+        this._addDevice(dev);
+        return dev;
+      } else {
+        return null;
+      }
+
+    } catch (err) {
+      console.warn("WeDo 1.0 connection failed:", err);
       await dev.disconnect();
       return null;
     }

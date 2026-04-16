@@ -282,163 +282,268 @@ const toolbox = {
               "type": "named_timer_remaining"
             }
           ]
-        }
+        },
+        {
+          "kind": "category",
+          "name": "Counters",
+          "contents": [
+            { "kind": "block", "type": "counter_dir" },
+            {
+              "kind": "block",
+              "type": "counter_block",
+              "inputs": {
+                "DIR": {
+                  "shadow": {
+                    "type": "counter_dir",
+                    "fields": { "COUNTDIR": "UP" }
+                  }
+                },
+                "PRESET": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 5
+                    }
+                  }
+                },
+                "TRIGGER": {
+                  "shadow": {
+                    "type": "logic_boolean",
+                    "fields": {
+                      "BOOL": "FALSE"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "counter_reset"
+            },
+            {
+              "kind": "block",
+              "type": "counter_set",
+              "inputs": {
+                "VALUE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "counter_get"
+            }
+          ]
+        }        
       ]
     },
-    {"kind": "category", "name": "Lego A", "colour": 30, "contents": [
+    {"kind": "category", "name": "Int. A", "colour": 30, "contents": [
         {
-          "kind": "block",
-          "type": "legoa_inp_on",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_inputnum",
-                "fields": { "NUM": "6" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_inp_val",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_inputnum",
-                "fields": { "NUM": "6" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_out_on",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_outportnum",
-                "fields": { "NUM": "0" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_out_off",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_outportnum",
-                "fields": { "NUM": "0" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_out_offall",
-        },
-        {
-          "kind": "block",
-          "type": "legoa_out_pwm",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_outportnum",
-                "fields": { "NUM": "0" }
+          "kind": "category",
+          "name": "Input",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa_inp_on",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                }
               }
             },
-            "PWR": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 255 }
+            {
+              "kind": "block",
+              "type": "legoa_inp_val",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                }
               }
             }
-          }
+          ]
         },
         {
-          "kind": "block",
-          "type": "legoa_combo_l",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_comboalpha",
-                "fields": { "LETTER": "0" }
+          "kind": "category",
+          "name": "Output single port",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa_out",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                }
+              }
+            },        
+            {
+              "kind": "block",
+              "type": "legoa_out_offall",
+            },
+            {
+              "kind": "block",
+              "type": "legoa_out_pwm",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
               }
             }
-          }
+          ]
         },
         {
-          "kind": "block",
-          "type": "legoa_combo_r",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_comboalpha",
-                "fields": { "LETTER": "0" }
+          "kind": "category",
+          "name": "Output combo port",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa_combo",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
               }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_combo_off",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_comboalpha",
-                "fields": { "LETTER": "0" }
-              }
-            }
-          }
-        },
-        {
-          "kind": "block",
-          "type": "legoa_combo_pwml",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_comboalpha",
-                "fields": { "LETTER": "0" }
+            },        
+            {
+              "kind": "block",
+              "type": "legoa_combo_pwml",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
               }
             },
-            "PWR": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 255 }
+            {
+              "kind": "block",
+              "type": "legoa_combo_pwmr",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
               }
-            }
-          }
-        },
+            }       
+          ]
+        },        
         {
-          "kind": "block",
-          "type": "legoa_combo_pwmr",
-          "inputs": {
-            "PORT": {
-              "shadow": {
-                "type": "Legoa_comboalpha",
-                "fields": { "LETTER": "0" }
+          "kind": "category",
+          "name": "Obsolete",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa_out_on",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                }
               }
             },
-            "PWR": {
-              "shadow": {
-                "type": "math_number",
-                "fields": { "NUM": 255 }
+            {
+              "kind": "block",
+              "type": "legoa_out_off",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa_combo_l",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa_combo_r",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa_combo_off",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
               }
             }
-          }
-        }
 
+          ]
+        }
       ]
     },
     {
       "kind": "category",
-      "name": "Lego B",
+      "name": "Int. B",
       "colour": "20",
       "contents": [
         {
           "kind": "category",
-          "name": "Inputs",
+          "name": "Input",
           "contents": [
             {
               "kind": "block",
@@ -523,9 +628,93 @@ const toolbox = {
         },
         {
           "kind": "category",
-          "name": "Outputs Single Port",
+          "name": "Output Single Port",
           "contents": [
             { "kind": "block", "type": "Legob_outportalpha" },
+            {
+              "kind": "block",
+              "type": "lego_out",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                }
+              }
+            },
+
+            {
+              "kind": "block",
+              "type": "lego_out_pow",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 7 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_onfor",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                },
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                }
+              }
+            }
+ 
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output Multi Ports",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lego_multi_out"
+            },
+            {
+              "kind": "block",
+              "type": "lego_multi_pow",
+              "inputs": {
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 7
+                    }
+                  }
+                }
+              }              
+            },
+            {
+              "kind": "block",
+              "type": "lego_out_offall",
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Obsolete",
+          "contents": [
             {
               "kind": "block",
               "type": "lego_out_on",
@@ -622,51 +811,6 @@ const toolbox = {
                 }
               }
             },
-
-            {
-              "kind": "block",
-              "type": "lego_out_pow",
-              "inputs": {
-                "PORT": {
-                  "shadow": {
-                    "type": "Legob_outportalpha",
-                    "fields": { "LETTER": "1" }
-                  }
-                },
-                "PWR": {
-                  "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 7 }
-                  }
-                }
-              }
-            },
-
-            {
-              "kind": "block",
-              "type": "lego_out_onfor",
-              "inputs": {
-                "PORT": {
-                  "shadow": {
-                    "type": "Legob_outportalpha",
-                    "fields": { "LETTER": "1" }
-                  }
-                },
-                "TIME": {
-                  "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 50 }
-                  }
-                }
-              }
-            }
-
-          ]
-        },
-        {
-          "kind": "category",
-          "name": "Outputs Multi Ports",
-          "contents": [
             {
               "kind": "block",
               "type": "lego_multi_out_on"
@@ -690,34 +834,15 @@ const toolbox = {
             {
               "kind": "block",
               "type": "lego_multi_out_R"
-            },
-
-            {
-              "kind": "block",
-              "type": "lego_multi_pow",
-              "inputs": {
-                "PWR": {
-                  "shadow": {
-                    "type": "math_number",
-                    "fields": {
-                      "NUM": 7
-                    }
-                  }
-                }
-              }              
-            },
-            {
-              "kind": "block",
-              "type": "lego_out_offall",
             }
+
           ]
         }
-
       ]
     },
     {
       "kind": "category",
-      "name": "Lego RCX",
+      "name": "RCX/CM",
       "colour": 20,
       "contents": [
         { "kind": "category", "name": "Motors", "colour": 20, "contents": [
@@ -960,7 +1085,83 @@ const toolbox = {
           ]
         }
       ]
+    },
+    {"kind": "category", "name": "WeDo 1.0", "colour": 40, "contents": [
+        { "kind": "block", "type": "wedo1_tiltval" },
+        {
+          "kind": "block",
+          "type": "wedo1_tilt",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_tiltraw",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_distance",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_distanceraw",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_portinp",
+                "fields": { "LETTER": "1" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_motor",
+          "inputs": {
+            "PORT": {
+              "shadow": {
+                "type": "wedo1_motport",
+                "fields": { "LETTER": "1" }
+              }
+            },
+            "SPEED": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 100 }
+              }
+            }
+
+          }
+        },
+        {
+          "kind": "block",
+          "type": "wedo1_motorstop",
+        }
+      ]
     }
+
 /*
     {
       "kind": "category",

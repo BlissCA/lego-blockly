@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
 
+  <meta name="usb" content="0x0694:0x0003">
+
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffcc00">
 
@@ -30,6 +32,7 @@
         <option value="B">Interface B</option>
         <option value="RCX">RCX</option>
         <option value="CM">CyberMaster</option>
+        <option value="WD1">WeDo 1.0</option>
       </select>
       <button id="connectDeviceBtn">Connect</button>
     </div>
@@ -61,6 +64,11 @@
     <button id="newProjectBtn">New</button>
     <button id="runBtn">Run</button>
     <button id="stopBtn">Stop</button>
+
+    <div id="highlightExecutionToggle">
+      <label for="highlightToggle">Highlight Execution</label>
+      <input type="checkbox" id="highlightToggle">
+    </div>
 
     <div id="debugToggle">
       <label for="debugPackets">Log Int.B Read Packets</label>

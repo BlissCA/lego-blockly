@@ -17,6 +17,7 @@ import toolbox from "./toolbox/toolbox.js";
 import "./device/DeviceLegoA.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
+import "./device/DeviceLegoWeDo1.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
@@ -30,6 +31,8 @@ let currentExecution = null;
 window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
+let highlightToggle  = false;
+window.highlightToggle = highlightToggle;
 let useCyberMaster = false;
 window.useCyberMaster = useCyberMaster;
 window.TaskRegistry = [];
@@ -233,6 +236,85 @@ window.NamedEventTimer.cancelAll = function() {
   }
 };
 
+
+// ---------------- NAMED COUNTERS ----------------
+// Global counter storage
+window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
+
+window.__counter_step = function(name, dir, preset, trigger, blockId, autoReset) {
+
+  // Create counter if needed
+  if (!window.__counters[name] || typeof window.__counters[name] !== "object") {
+    window.__counters[name] = { acc: 0, last: {} };
+  }
+
+  const c = window.__counters[name];
+
+  // If last was a boolean from old version → fix it
+  if (typeof c.last !== "object") {
+    c.last = {};
+  }
+
+  // Ensure last exists for this block instance
+  if (c.last[blockId] === undefined) {
+    c.last[blockId] = false;
+  }
+
+  const prev = c.last[blockId];
+  const trig = !!trigger;
+
+  // false → true transition for THIS block instance
+  if (!prev && trig) {
+    if (dir === "UP") c.acc++;
+    else c.acc = Math.max(0, c.acc - 1);
+  }
+
+  // Update last for THIS block instance
+  c.last[blockId] = trig;
+
+  // Update ACC field on block
+  if (window.workspace) {
+    const block = window.workspace.getBlockById(blockId);
+    if (block) {
+      block.setFieldValue(String(c.acc), "ACC");
+    }
+  }
+
+  const done = (c.acc >= preset);
+
+  // Auto-reset AFTER returning DONE
+  if (done && autoReset) {
+    c.acc = 0;
+  }
+
+  return done;
+};
+
+
+window.__counter_reset = function(name) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  } else {
+    window.__counters[name].acc = 0;
+  }
+};
+
+window.__counter_set = function(name, value) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  }
+  let v = Number(value);
+  if (!Number.isFinite(v)) v = 0;
+  v = Math.max(0, Math.floor(v));
+  window.__counters[name].acc = v;
+};
+
+window.__counter_get = function(name) {
+  if (!window.__counters[name]) {
+    window.__counters[name] = { acc: 0, last: false };
+  }
+  return window.__counters[name].acc;
+};
 
 
 // ---------------- NAMED ASYNC TASKS ----------------
@@ -487,9 +569,15 @@ Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
 
 window.updateBlockDisplay = function(blockId, value) {
   const block = window.workspace.getBlockById(blockId);
-  if (block) {
-    block.setFieldValue(String(value), "DISPLAY_FIELD");
+  if (!block) return;
+
+  let formatted = value;
+
+  if (typeof value === "number") {
+    formatted = Number(value.toFixed(4)).toString();
   }
+
+  block.setFieldValue(formatted, "DISPLAY_FIELD");
 };
 
 function onProgramFinished() {
@@ -500,6 +588,16 @@ function onProgramFinished() {
 
   logStatus("Program finished.");
 }
+
+window.highlightBlock = function(id) {
+  const isEnabled = highlightToggle;
+
+  if (isEnabled) {
+    window.workspace.highlightBlock(id);
+  } else {
+    window.workspace.highlightBlock(null);
+  }
+};
 
 // ---------------- RUN PROGRAM ----------------
 
@@ -516,6 +614,18 @@ document.getElementById("runBtn").onclick = async () => {
   // Turn button green
   const btn = document.getElementById("runBtn");
   btn.classList.add("running");
+
+  if (highlightToggle) {
+    // Inject the highlight call into generated code
+    javascriptGenerator.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+    javascriptGenerator.addReservedWords('highlightBlock');
+  } else {
+    // Disable highlighting by clearing the prefix
+    javascriptGenerator.STATEMENT_PREFIX = null;
+    // Clear any remaining highlights on the workspace
+    workspace.highlightBlock(null);
+  }
+
 
   // 1. Generate code
   let code = javascriptGenerator.workspaceToCode(workspace);
@@ -584,6 +694,7 @@ document.getElementById("runBtn").onclick = async () => {
   } finally {
     currentExecution = null;
     onProgramFinished();
+    workspace.highlightBlock(null);
   }
 };
 
@@ -614,7 +725,11 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.mot(0x01).off();
         await dev.mot(0x02).off();
         await dev.mot(0x04).off();
+      } else if (dev.stopMotor) {
+        // WeDo 1.0: stop all motors
+        await dev.stopMotor();
       }
+
     } catch (err) {
       console.warn("Output stop error:", err);
     }
@@ -649,6 +764,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
     case "CM":
       window.useCyberMaster = true;
       dev = await window.deviceManager.connectRcx();   // your unified RCX/CM class
+      break;
+
+    case "WD1":
+      dev = await window.deviceManager.connectLegoWeDo1();   // your unified RCX/CM class
       break;
 
     default:
@@ -796,6 +915,12 @@ document.getElementById("debugPackets").onchange = e => {
   debugLogPackets = e.target.checked;
   window.debugLogPackets = debugLogPackets;
   console.log("Debug packet logging:", debugLogPackets);
+};
+
+document.getElementById("highlightToggle").onchange = e => {
+  highlightToggle = e.target.checked;
+  window.highlightToggle = highlightToggle;
+  console.log("Highlight execution:", highlightToggle);
 };
 
 /*

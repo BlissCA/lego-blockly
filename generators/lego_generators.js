@@ -68,6 +68,22 @@ javascriptGenerator.forBlock["Legob_outportalpha"] = function (block) {
 
 // ---------------- OUTPUT BLOCKS ----------------
 
+javascriptGenerator.forBlock["lego_out"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method  = block.getFieldValue("CMD");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
+}
+`;
+};
+
+
 function legoCmd(block, method) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
@@ -86,6 +102,10 @@ javascriptGenerator.forBlock["lego_out_on"]    = b => legoCmd(b, "outOn");
 javascriptGenerator.forBlock["lego_out_onl"]   = b => legoCmd(b, "outOnL");
 javascriptGenerator.forBlock["lego_out_onr"]   = b => legoCmd(b, "outOnR");
 javascriptGenerator.forBlock["lego_out_off"]   = b => legoCmd(b, "outOff");
+javascriptGenerator.forBlock["lego_out_float"] = b => legoCmd(b, "outFloat");
+javascriptGenerator.forBlock["lego_out_rev"]   = b => legoCmd(b, "outRev");
+javascriptGenerator.forBlock["lego_out_l"]     = b => legoCmd(b, "outL");
+javascriptGenerator.forBlock["lego_out_r"]     = b => legoCmd(b, "outR");
 
 javascriptGenerator.forBlock["lego_out_offall"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
@@ -99,11 +119,6 @@ javascriptGenerator.forBlock["lego_out_offall"] = function (block) {
 }
 `;
 };
-
-javascriptGenerator.forBlock["lego_out_float"] = b => legoCmd(b, "outFloat");
-javascriptGenerator.forBlock["lego_out_rev"]   = b => legoCmd(b, "outRev");
-javascriptGenerator.forBlock["lego_out_l"]     = b => legoCmd(b, "outL");
-javascriptGenerator.forBlock["lego_out_r"]     = b => legoCmd(b, "outR");
 
 javascriptGenerator.forBlock["lego_out_pow"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
@@ -195,6 +210,28 @@ javascriptGenerator.forBlock["val_changed"] = function(block) {
   const value = javascriptGenerator.valueToCode(block, "VALUE", javascriptGenerator.ORDER_NONE) || "false";
   const id = block.id;
   return [`ONCHG("${id}", ${value})`, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["lego_multi_out"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const method  = block.getFieldValue("CMD");
+
+  let mask = 0;
+
+  for (let p = 1; p <= 8; p++) {
+    if (block.getFieldValue("P" + p) === "TRUE") {
+      mask |= (1 << (p - 1));
+    }
+  }
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(0x${mask.toString(16)});
+}
+`;
 };
 
 javascriptGenerator.forBlock["lego_multi_out_on"] = function (block) {
@@ -356,7 +393,7 @@ javascriptGenerator.forBlock['after_time_do'] = function(block) {
 };
 
 javascriptGenerator.forBlock['after_named_time_do'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   const time = javascriptGenerator.valueToCode(block, 'TIME', javascriptGenerator.ORDER_ATOMIC) || '0';
   const branch = javascriptGenerator.statementToCode(block, 'DO');
 
@@ -372,7 +409,7 @@ javascriptGenerator.forBlock['after_named_time_do'] = function(block) {
 };
 
 javascriptGenerator.forBlock['cancel_named_timer'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return `
 {
   shouldStop();
@@ -382,22 +419,22 @@ javascriptGenerator.forBlock['cancel_named_timer'] = function(block) {
 };
 
 javascriptGenerator.forBlock['named_timer_done'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.isDone("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_running'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.isRunning("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_elapsed'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.elapsed("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock['named_timer_remaining'] = function(block) {
-  const name = block.getFieldValue('TIMER_NAME');
+  const name = sanitizeCustomName(block.getFieldValue('TIMER_NAME'));
   return [`NamedEventTimer.remaining("${name}")`, javascriptGenerator.ORDER_ATOMIC];
 };
 
@@ -900,6 +937,21 @@ javascriptGenerator.forBlock["legoa_inp_val"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["legoa_out"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method  = block.getFieldValue("CMD");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
+}
+`;
+};
+
 javascriptGenerator.forBlock["legoa_out_on"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
@@ -952,6 +1004,21 @@ javascriptGenerator.forBlock["legoa_out_pwm"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.pwm(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa_combo"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const method = block.getFieldValue("CMD");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.${method}(${port});
 }
 `;
 };
@@ -1028,6 +1095,99 @@ javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
 `;
 };
 
+
+// ---------------- LEGO WeDo 1.0 GENERATORS ----------------
+
+javascriptGenerator.forBlock["wedo1_portinp"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo1_motport"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo1_tiltval"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('TILTVAL');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo1_tilt"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getTilt(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo1_tiltraw"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getTiltRaw(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo1_distance"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getDistance(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo1_distanceraw"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getDistanceRaw(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo1_motor"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const speed  = javascriptGenerator.valueToCode(block, "SPEED",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motor(${port},${speed});
+}
+`;
+};
+
+javascriptGenerator.forBlock["wedo1_motorstop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopMotor();
+}
+`;
+};
+
+
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;
@@ -1045,6 +1205,54 @@ javascript.javascriptGenerator.forBlock['display_value'] = function(block, gener
   // This generates a function call that your interpreter will handle
   return `updateBlockDisplay('${block.id}', ${value});\n`;
 };
+
+// ---------------- COUNTER GENERATORS ----------------
+javascriptGenerator.forBlock['counter_block'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const dir = javascriptGenerator.valueToCode(block, 'DIR', javascriptGenerator.ORDER_NONE) || "'UP'";
+  const preset =
+    javascriptGenerator.valueToCode(block, 'PRESET', javascriptGenerator.ORDER_NONE) || '0';
+  const trigger =
+    javascriptGenerator.valueToCode(block, 'TRIGGER', javascriptGenerator.ORDER_NONE) || 'false';
+  
+  const autoReset = block.autoReset ? "true" : "false";
+
+  const code = `__counter_step("${name}", ${dir}, ${preset}, ${trigger}, "${block.id}", ${autoReset})`;
+  return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
+javascriptGenerator.forBlock['counter_reset'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const code = `__counter_reset("${name}");\n`;
+  return code;
+};
+
+javascriptGenerator.forBlock['counter_set'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const value =
+    javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_NONE) || '0';
+  const code = `__counter_set("${name}", ${value});\n`;
+  return code;
+};
+
+javascriptGenerator.forBlock['counter_get'] = function(block) {
+  const rawName = block.getFieldValue('NAME');
+  const name = sanitizeCustomName(rawName);
+  const code = `__counter_get("${name}")`;
+  return [code, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
+// ---------------- COUNTER DIRECTION ----------------
+javascriptGenerator.forBlock["counter_dir"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('COUNTDIR');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return ["'" + code + "'", javascriptGenerator.ORDER_ATOMIC];
+};
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------

@@ -565,12 +565,12 @@ export class LegoInterfaceB {
     await this.writeBytes(cmd);
   }
   async multiOutL(mask) {
-    const cmd = new Uint8Array([0x93, mask]);
+    const cmd = new Uint8Array([0x94, mask]);
     if (!this.shouldSendMulti(mask, "L")) return;
     await this.writeBytes(cmd);
   }
   async multiOutR(mask) {
-    const cmd = new Uint8Array([0x94, mask]);
+    const cmd = new Uint8Array([0x93, mask]);
     if (!this.shouldSendMulti(mask, "R")) return;
     await this.writeBytes(cmd);
   }
