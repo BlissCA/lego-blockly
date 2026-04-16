@@ -9,6 +9,8 @@ export class LegoVLL {
     this.port = null;
     this.status = "idle";
 
+    this.preambleMs = 1000;
+
     // ---------------- Queue ----------------
     this.queue = Promise.resolve();
     this.queueActive = true;
@@ -121,7 +123,7 @@ export class LegoVLL {
     }
 
     // 1. Preamble
-    await this.pulse(true, 1000);
+    await this.pulse(true, this.preambleMs);
 
     // 2. Start bit
     await this.pulse(false, unit);
