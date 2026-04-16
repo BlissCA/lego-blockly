@@ -124,7 +124,7 @@ export class LegoVLL {
     }
 
     // 1. Preamble
-    //await this.pulse(true, this.preambleMs);
+    await this.pulse(true, this.preambleMs);
 
     // 2. Start bit
     await this.pulse(false, unit);
@@ -145,7 +145,7 @@ export class LegoVLL {
     await this.pulse(false, 3 * unit);
 
     //6. Postamble
-    await this.pulse(false, 1000);
+    //await this.pulse(false, 1000);
   }
   
 
