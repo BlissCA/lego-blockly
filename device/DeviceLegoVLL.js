@@ -127,12 +127,12 @@ export class LegoVLL {
     // 3. Checksum (3 bits, MSB first)
     let c = checksum(data7);
     for (let i = 2; i >= 0; i--) {
-      (c >> i & 1) ? bit1() : bit0();
+      (c >> i & 1) ? await bit1() : await bit0();
     }
 
     // 4. Data (7 bits, MSB first)
     for (let i = 6; i >= 0; i--) {
-      (data7 >> i & 1) ? bit1() : bit0();
+      (data7 >> i & 1) ? await bit1() : await bit0();
     }
 
     // 5. Stop bit
