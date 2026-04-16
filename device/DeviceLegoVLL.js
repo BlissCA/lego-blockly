@@ -102,7 +102,7 @@ export class LegoVLL {
   }
 
   async sendVLL(data7) {
-    const unit = 1000;
+    const unit = 20;
 
     const bit0 = async () => {
       await this.pulse(true, 2 * unit);
