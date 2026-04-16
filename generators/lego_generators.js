@@ -1187,6 +1187,34 @@ javascriptGenerator.forBlock["wedo1_motorstop"] = function (block) {
 `;
 };
 
+// ------------------ LEGO VLL Serial GENERATORS ----------------
+javascriptGenerator.forBlock["vll_senddata"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const data = javascriptGenerator.valueToCode(block, "DATA", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sendVLL(${data});
+}
+`;
+};
+
+javascriptGenerator.forBlock["vll_setpreamble"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.preambleMs = ${ms};
+}
+`;
+};
 
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');

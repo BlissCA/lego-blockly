@@ -2180,6 +2180,39 @@ Blockly.Blocks['wedo1_motorstop'] = {
   }
 };
 
+Blockly.Blocks['vll_senddata'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "VLL send data %2",
+      "args0": [
+        { "type": "input_value", "name": "DATA", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Send data via VLL serial connection");
+  }
+};
+Blockly.Blocks['vll_preamblems'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "VLL set preamble %2",
+      "args0": [
+        { "type": "input_value", "name": "MS", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Send data via VLL serial connection");
+  }
+};
+
 //  LOOP WHILE / UNTIL WITH YIELD (for cooperative multitasking)
 Blockly.Blocks['loop_forever'] = {
   init: function() {

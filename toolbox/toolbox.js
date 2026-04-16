@@ -1160,6 +1160,33 @@ const toolbox = {
           "type": "wedo1_motorstop",
         }
       ]
+    },
+    {"kind": "category", "name": "VLL Serial", "colour": 50, "contents": [
+        {
+          "kind": "block",
+          "type": "vll_senddata",
+          "inputs": {
+            "DATA": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 6 }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "vll_preamblems",
+          "inputs": {
+            "MS": {
+              "shadow": {
+                "type": "math_number",
+                "fields": { "NUM": 1000 }
+              }
+            }
+          }
+        }
+      ]
     }
 
 /*

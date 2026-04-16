@@ -10,6 +10,7 @@ export class LegoVLL {
     this.status = "idle";
 
     this.preambleMs = 1000;
+    this.unitMs = 20;
 
     // ---------------- Queue ----------------
     this.queue = Promise.resolve();
@@ -106,7 +107,7 @@ export class LegoVLL {
   }
 
   async sendVLL(data7) {
-    const unit = 20;
+    const unit = this.unitMs;
 
     const bit0 = async () => {
       await this.pulse(true, 2 * unit);
@@ -123,7 +124,7 @@ export class LegoVLL {
     }
 
     // 1. Preamble
-    await this.pulse(true, this.preambleMs);
+    //await this.pulse(true, this.preambleMs);
 
     // 2. Start bit
     await this.pulse(false, unit);
@@ -143,8 +144,8 @@ export class LegoVLL {
     await this.pulse(true, unit);
     await this.pulse(false, 3 * unit);
 
-    // 6. Postamble
-    //await this.pulse(true, 120);
+    //6. Postamble
+    await this.pulse(false, 1000);
   }
   
 
