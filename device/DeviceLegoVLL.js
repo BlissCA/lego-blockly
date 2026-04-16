@@ -45,6 +45,8 @@ export class LegoVLL {
         parity: "none"
       });
 
+      await this.port.setSignals({ dataTerminalReady: false });
+
       this._logStatus("Serial port opened.");
 
       // Allocate name only after successful handshake
