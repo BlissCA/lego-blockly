@@ -121,7 +121,7 @@ export class LegoVLL {
     }
 
     // 1. Preamble
-    await this.pulse(true, 500);
+    await this.pulse(true, 1000);
 
     // 2. Start bit
     await this.pulse(false, unit);
