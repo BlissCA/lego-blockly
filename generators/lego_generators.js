@@ -1202,7 +1202,7 @@ javascriptGenerator.forBlock["vll_senddata"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["vll_setpreamble"] = function (block) {
+javascriptGenerator.forBlock["vll_preamblems"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "0";
 

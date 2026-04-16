@@ -330,6 +330,17 @@ function getWedo1Dropdown() {
     : [['No WeDo 1.0', 'NONE']];
 }
 
+// Only VLL devices
+function getVLLDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("VLL"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No VLL', 'NONE']];
+}
+
+
 window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
@@ -2183,8 +2194,9 @@ Blockly.Blocks['wedo1_motorstop'] = {
 Blockly.Blocks['vll_senddata'] = {
   init: function() {
     this.jsonInit({
-      "message0": "VLL send data %1",
+      "message0": "%1 VLL send data %2",
       "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
         { "type": "input_value", "name": "DATA", "check": "Number" }
       ],
       "inputsInline": true,
@@ -2199,8 +2211,9 @@ Blockly.Blocks['vll_senddata'] = {
 Blockly.Blocks['vll_preamblems'] = {
   init: function() {
     this.jsonInit({
-      "message0": "VLL set preamble %1",
+      "message0": "%1 VLL set preamble %2",
       "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
         { "type": "input_value", "name": "MS", "check": "Number" }
       ],
       "inputsInline": true,
