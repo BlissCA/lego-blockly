@@ -136,8 +136,8 @@ export class LegoVLL {
     }
 
     // 5. Stop bit
-    pulse(true, unit);
-    pulse(false, 3 * unit);
+    await this.pulse(true, unit);
+    await this.pulse(false, 3 * unit);
   }
   
 
@@ -184,7 +184,7 @@ export class LegoVLL {
   // ------------------------------------------------------------
 
   _logStatus(msg) {
-    console.log(`[LegoInterfaceA] ${msg}`);
+    console.log(`[VLL Serial] ${msg}`);
   }
 
 }
