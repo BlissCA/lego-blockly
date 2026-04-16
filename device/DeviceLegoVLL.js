@@ -97,7 +97,7 @@ export class LegoVLL {
   }
 
   async pulse(on, durationMs) {
-    await this.port.setSignals({ dtr: on });
+    await this.port.setSignals({ dataTerminalReady: on });
     await this.sleepPrecise(durationMs);
   }
 
