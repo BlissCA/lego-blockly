@@ -2197,7 +2197,7 @@ Blockly.Blocks['vll_senddata'] = {
       "message0": "%1 VLL send data %2",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
-        { "type": "input_value", "name": "DATA", "check": "Number" }
+        { "type": "input_value", "name": "DATA", "check": "Number, String" }
       ],
       "inputsInline": true,
       "previousStatement": null,

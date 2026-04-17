@@ -1197,7 +1197,7 @@ javascriptGenerator.forBlock["vll_senddata"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.sendVLL(${data});
+  await dev.sendVLL(parseInt(${data}, 10));
 }
 `;
 };
