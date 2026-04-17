@@ -2205,7 +2205,7 @@ Blockly.Blocks['vll_senddata'] = {
       "colour": 50,
      });
 
-    this.setTooltip("Send data via VLL serial connection");
+    this.setTooltip("Send data via VLL serial connection DTR pin");
   }
 };
 Blockly.Blocks['vll_preamblems'] = {
@@ -2222,7 +2222,7 @@ Blockly.Blocks['vll_preamblems'] = {
       "colour": 50,
      });
 
-    this.setTooltip("Send data via VLL serial connection");
+    this.setTooltip("Set the preamble duration");
   }
 };
 Blockly.Blocks['vll_unitms'] = {
@@ -2239,7 +2239,7 @@ Blockly.Blocks['vll_unitms'] = {
       "colour": 50,
      });
 
-    this.setTooltip("Send data via VLL serial connection");
+    this.setTooltip("Set the unit duration for VLL min pulse width");
   }
 };
 
