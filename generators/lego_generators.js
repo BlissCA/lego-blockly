@@ -1216,6 +1216,22 @@ javascriptGenerator.forBlock["vll_preamblems"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["vll_unitms"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.unitMs = ${ms};
+}
+`;
+};
+
+
+
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;

@@ -2211,7 +2211,24 @@ Blockly.Blocks['vll_senddata'] = {
 Blockly.Blocks['vll_preamblems'] = {
   init: function() {
     this.jsonInit({
-      "message0": "%1 VLL set preamble %2",
+      "message0": "%1 VLL set preamble (ms) %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
+        { "type": "input_value", "name": "MS", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Send data via VLL serial connection");
+  }
+};
+Blockly.Blocks['vll_unitms'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 VLL set unit (ms) %2",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
         { "type": "input_value", "name": "MS", "check": "Number" }
