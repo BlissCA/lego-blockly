@@ -7,7 +7,7 @@ Lego9750 brick;
 void setup() 
 {
   // put your setup code here, to run once:
-  Serial.begin(19200);
+  Serial.begin(115200);
   brick.Port_Initialize();
   Serial.println("READY");
 }

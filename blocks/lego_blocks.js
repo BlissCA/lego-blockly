@@ -330,6 +330,17 @@ function getWedo1Dropdown() {
     : [['No WeDo 1.0', 'NONE']];
 }
 
+// Only VLL devices
+function getVLLDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("VLL"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No VLL', 'NONE']];
+}
+
+
 window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
@@ -2177,6 +2188,58 @@ Blockly.Blocks['wedo1_motorstop'] = {
      });
 
     this.setTooltip("Stops all motors on the selected device");
+  }
+};
+
+Blockly.Blocks['vll_senddata'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 VLL send data %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
+        { "type": "input_value", "name": "DATA", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Send data via VLL serial connection DTR pin");
+  }
+};
+Blockly.Blocks['vll_preamblems'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 VLL set preamble (ms) %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
+        { "type": "input_value", "name": "MS", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Set the preamble duration");
+  }
+};
+Blockly.Blocks['vll_unitms'] = {
+  init: function() {
+    this.jsonInit({
+      "message0": "%1 VLL set unit (ms) %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
+        { "type": "input_value", "name": "MS", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 50,
+     });
+
+    this.setTooltip("Set the unit duration for VLL min pulse width");
   }
 };
 

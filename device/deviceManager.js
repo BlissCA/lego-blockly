@@ -4,6 +4,7 @@ import { LegoInterfaceA } from './DeviceLegoA.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
+import { LegoVLL } from './DeviceLegoVLL.js';
 
 export class DeviceManager {
   constructor() {
@@ -165,6 +166,26 @@ export class DeviceManager {
     } catch (err) {
       console.warn("WeDo 1.0 connection failed:", err);
       await dev.disconnect();
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO VLL Serial
+  // -------------------------
+
+  async connectLegoVLL() {
+    const dev = new LegoVLL(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego VLL Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
       return null;
     }
   }
