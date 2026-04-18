@@ -46,8 +46,11 @@ window.__interactive_value = function(blockId) {
   const block = window.workspace.getBlockById(blockId);
   if (!block) return null;
 
+  const val = (block.committedValue !== undefined)
+    ? block.committedValue
+    : block.getFieldValue("VALUE");
+
   const mode = block.mode || "NUMBER";
-  const val = block.getFieldValue("VALUE");
 
   switch (mode) {
     case "NUMBER": return Number(val);
@@ -56,6 +59,7 @@ window.__interactive_value = function(blockId) {
     case "DROPDOWN": return val;
   }
 };
+
 
 
 // ---------- Non-blocking dialog helpers ----------

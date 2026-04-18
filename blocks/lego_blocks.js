@@ -295,15 +295,13 @@ const interactiveValueMutator = {
     const containerBlock = workspace.newBlock("interactive_value_mutator_container");
     containerBlock.initSvg();
 
-    // MODE
     containerBlock.getField("MODE").setValue(this.mode);
 
-    // OPTIONS ROW (added dynamically)
+    // Add OPTIONS row dynamically
     const optionsRow = containerBlock.appendDummyInput("OPTIONS_ROW")
       .appendField("Options (comma separated)")
       .appendField(new Blockly.FieldTextInput(this.options.join(",")), "OPTIONS");
 
-    // Hide unless DROPDOWN
     optionsRow.setVisible(this.mode === "DROPDOWN");
 
     containerBlock.render();
@@ -321,7 +319,6 @@ const interactiveValueMutator = {
         .filter(Boolean);
     }
 
-    // Hide OPTIONS row unless DROPDOWN
     const optionsRow = containerBlock.getInput("OPTIONS_ROW");
     if (optionsRow) {
       optionsRow.setVisible(this.mode === "DROPDOWN");
@@ -338,13 +335,22 @@ const interactiveValueMutator = {
 
     this.appendDummyInput("VALUE_INPUT");
 
+    // IMPORTANT: This prevents mid-typing updates
+    function blockWhileTyping(newValue) {
+      if (this.htmlInput_) return null; // still typing
+      return newValue;                 // final commit
+    }
+
     switch (this.mode) {
 
       case "NUMBER": {
-        const field = new Blockly.FieldNumber(0);
-        field.onFinishEditing_ = function(value) {
-          field.setValue(value);   // commit final value
+        const field = new Blockly.FieldNumber(0, null, null, null, blockWhileTyping);
+
+        field.onFinishEditing_ = function(finalValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = finalValue;
         };
+
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
         this.setFieldValue("Number", "VALUE_LABEL");
@@ -352,10 +358,13 @@ const interactiveValueMutator = {
       }
 
       case "TEXT": {
-        const field = new Blockly.FieldTextInput("text");
-        field.onFinishEditing_ = function(value) {
-          field.setValue(value);   // commit final value
+        const field = new Blockly.FieldTextInput("text", blockWhileTyping);
+
+        field.onFinishEditing_ = function(finalValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = finalValue;
         };
+
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
         this.setFieldValue("Text", "VALUE_LABEL");
@@ -379,7 +388,6 @@ const interactiveValueMutator = {
       }
     }
   }
-
 };
 
 Blockly.Extensions.registerMutator(
