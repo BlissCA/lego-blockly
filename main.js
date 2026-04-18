@@ -40,6 +40,24 @@ window.TaskRegistry = [];
 window.isProgramRunning = false;
 
 
+window.__interactiveValues = window.__interactiveValues || {};
+
+window.__interactive_value = function(blockId) {
+  const block = window.workspace.getBlockById(blockId);
+  if (!block) return null;
+
+  const mode = block.mode || "NUMBER";
+  const val = block.getFieldValue("VALUE");
+
+  switch (mode) {
+    case "NUMBER": return Number(val);
+    case "TEXT": return String(val);
+    case "BOOLEAN": return val === "TRUE";
+    case "DROPDOWN": return val;
+  }
+};
+
+
 // ---------- Non-blocking dialog helpers ----------
 
 function openConfirmDialog(message) {

@@ -1298,6 +1298,11 @@ javascriptGenerator.forBlock["counter_dir"] = function (block) {
 };
 
 
+javascriptGenerator.forBlock['interactive_value'] = function(block) {
+  return [`__interactive_value("${block.id}")`, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {

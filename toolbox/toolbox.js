@@ -181,7 +181,12 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "interactive_value"
             }
+
           ]
         },
 

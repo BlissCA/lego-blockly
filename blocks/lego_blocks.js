@@ -262,6 +262,113 @@ Blockly.Extensions.registerMutator(
 );
 
 
+const interactiveValueMutator = {
+
+  mode: "NUMBER",
+  options: ["A", "B", "C"],
+
+  // --- Save to XML ---
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("mode", this.mode);
+    container.setAttribute("options", this.options.join(","));
+    return container;
+  },
+
+  // --- Load from XML ---
+  domToMutation: function(xmlElement) {
+    this.mode = xmlElement.getAttribute("mode") || "NUMBER";
+    const opt = xmlElement.getAttribute("options");
+    this.options = opt ? opt.split(",") : ["A", "B", "C"];
+    this.updateShape_();
+  },
+
+  // --- Save to JSON ---
+  saveExtraState: function() {
+    return {
+      mode: this.mode,
+      options: this.options
+    };
+  },
+
+  // --- Load from JSON ---
+  loadExtraState: function(state) {
+    this.mode = state.mode || "NUMBER";
+    this.options = state.options || ["A", "B", "C"];
+    this.updateShape_();
+  },
+
+  // --- Build mutator UI ---
+  decompose: function(workspace) {
+    const containerBlock = workspace.newBlock("interactive_value_mutator_container");
+    containerBlock.initSvg();
+    containerBlock.render();
+
+    containerBlock.getField("MODE").setValue(this.mode);
+    containerBlock.getField("OPTIONS").setValue(this.options.join(","));
+
+    return containerBlock;
+  },
+
+  // --- Apply mutator changes ---
+  compose: function(containerBlock) {
+    this.mode = containerBlock.getField("MODE").getValue();
+    this.options = containerBlock.getField("OPTIONS").getValue().split(",");
+
+    this.updateShape_();
+  },
+
+  // --- Update block UI based on mode ---
+  updateShape_: function() {
+    // Remove old VALUE field if present
+    if (this.getField("VALUE")) {
+      this.removeInput("VALUE_INPUT", /* no error */ true);
+    }
+
+    // Create new input
+    this.appendDummyInput("VALUE_INPUT");
+
+    switch (this.mode) {
+      case "NUMBER":
+        this.getInput("VALUE_INPUT")
+          .appendField(new Blockly.FieldNumber(0), "VALUE");
+        this.setOutput(true, "Number");
+        this.setFieldValue("Number", "VALUE_LABEL");
+        break;
+
+      case "TEXT":
+        this.getInput("VALUE_INPUT")
+          .appendField(new Blockly.FieldTextInput("text"), "VALUE");
+        this.setOutput(true, "String");
+        this.setFieldValue("Text", "VALUE_LABEL");
+        break;
+
+      case "BOOLEAN":
+        this.getInput("VALUE_INPUT")
+          .appendField(new Blockly.FieldCheckbox("TRUE"), "VALUE");
+        this.setOutput(true, "Boolean");
+        this.setFieldValue("Boolean", "VALUE_LABEL");
+        break;
+
+      case "DROPDOWN":
+        const opts = this.options.map(o => [o, o]);
+        this.getInput("VALUE_INPUT")
+          .appendField(new Blockly.FieldDropdown(opts), "VALUE");
+        this.setOutput(true, null);
+        this.setFieldValue("Choice", "VALUE_LABEL");
+        break;
+    }
+  }
+};
+
+Blockly.Extensions.registerMutator(
+  "interactive_value_mutator",
+  interactiveValueMutator,
+  null,
+  []
+);
+
+
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
@@ -2523,7 +2630,47 @@ Blockly.Blocks['display_value'] = {
   }
 };
 
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_value",
+  "message0": "Interactive %1",
+  "args0": [
+    {
+      "type": "field_label",
+      "name": "VALUE_LABEL",
+      "text": ""
+    }
+  ],
+  "output": null,
+  "colour": '#F4D800',
+  "mutator": "interactive_value_mutator",
+  "tooltip": "A live-editable value that updates during program execution.",
+  "helpUrl": ""
+}]);
 
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_value_mutator_container",
+  "message0": "Mode %1 Options (comma separated) %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "MODE",
+      "options": [
+        ["Number", "NUMBER"],
+        ["Text", "TEXT"],
+        ["Boolean", "BOOLEAN"],
+        ["Dropdown", "DROPDOWN"]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "OPTIONS",
+      "text": "A,B,C"
+    }
+  ],
+  "colour": 210,
+  "tooltip": "Configure the interactive value block.",
+  "helpUrl": ""
+}]);
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
