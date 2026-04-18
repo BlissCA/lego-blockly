@@ -338,16 +338,13 @@ const interactiveValueMutator = {
 
     this.appendDummyInput("VALUE_INPUT");
 
-    // Commit-only-on-finish validator
-    function commitOnlyOnFinish(newValue) {
-      if (this.htmlInput_) return null; // still typing
-      return newValue; // commit final
-    }
-
     switch (this.mode) {
 
       case "NUMBER": {
-        const field = new Blockly.FieldNumber(0, null, null, null, commitOnlyOnFinish);
+        const field = new Blockly.FieldNumber(0);
+        field.onFinishEditing_ = function(value) {
+          field.setValue(value);   // commit final value
+        };
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
         this.setFieldValue("Number", "VALUE_LABEL");
@@ -355,7 +352,10 @@ const interactiveValueMutator = {
       }
 
       case "TEXT": {
-        const field = new Blockly.FieldTextInput("text", commitOnlyOnFinish);
+        const field = new Blockly.FieldTextInput("text");
+        field.onFinishEditing_ = function(value) {
+          field.setValue(value);   // commit final value
+        };
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
         this.setFieldValue("Text", "VALUE_LABEL");
@@ -379,6 +379,7 @@ const interactiveValueMutator = {
       }
     }
   }
+
 };
 
 Blockly.Extensions.registerMutator(
