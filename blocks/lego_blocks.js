@@ -279,7 +279,9 @@ const interactiveValueMutator = {
   domToMutation: function(xmlElement) {
     this.mode = xmlElement.getAttribute("mode") || "NUMBER";
     const opt = xmlElement.getAttribute("options");
-    this.options = opt ? opt.split(",") : ["A", "B", "C"];
+    this.options = opt
+      ? opt.split(",").map(s => s.trim()).filter(Boolean)
+      : ["A", "B", "C"];
     this.updateShape_();
   },
 
@@ -294,7 +296,8 @@ const interactiveValueMutator = {
   // --- Load from JSON ---
   loadExtraState: function(state) {
     this.mode = state.mode || "NUMBER";
-    this.options = state.options || ["A", "B", "C"];
+    this.options = (state.options || ["A", "B", "C"])
+      .map(s => s.trim()).filter(Boolean);
     this.updateShape_();
   },
 
@@ -307,10 +310,12 @@ const interactiveValueMutator = {
     containerBlock.getField("MODE").setValue(this.mode);
     containerBlock.getField("OPTIONS").setValue(this.options.join(","));
 
-    // Hide options unless dropdown mode
-    const optionsField = containerBlock.getField("OPTIONS");
-    optionsField.setVisible(this.mode === "DROPDOWN");
-    containerBlock.render();
+    // Hide OPTIONS row unless DROPDOWN
+    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
+    if (optionsRow) {
+      optionsRow.setVisible(this.mode === "DROPDOWN");
+      containerBlock.render();
+    }
 
     return containerBlock;
   },
@@ -318,19 +323,25 @@ const interactiveValueMutator = {
   // --- Apply mutator changes ---
   compose: function(containerBlock) {
     this.mode = containerBlock.getField("MODE").getValue();
-    this.options = containerBlock.getField("OPTIONS").getValue().split(",");
 
-    // Hide or show options dynamically
-    const optionsField = containerBlock.getField("OPTIONS");
-    optionsField.setVisible(this.mode === "DROPDOWN");
-    containerBlock.render();
+    const rawOptions = containerBlock.getField("OPTIONS").getValue();
+    this.options = rawOptions
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    // Hide OPTIONS row unless DROPDOWN
+    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
+    if (optionsRow) {
+      optionsRow.setVisible(this.mode === "DROPDOWN");
+      containerBlock.render();
+    }
 
     this.updateShape_();
   },
 
   // --- Update block UI based on mode ---
   updateShape_: function() {
-    // Remove old input
     if (this.getInput("VALUE_INPUT")) {
       this.removeInput("VALUE_INPUT");
     }
@@ -340,9 +351,12 @@ const interactiveValueMutator = {
     switch (this.mode) {
 
       case "NUMBER": {
-        const field = new Blockly.FieldNumber(0);
+        const field = new Blockly.FieldNumber(0, null, null, null, function(newValue) {
+          if (field.isBeingEdited_) return null; // block mid-typing updates
+          return newValue;
+        });
         field.onFinishEditing_ = function(value) {
-          this.setValue(value);
+          field.setValue(value); // commit final value
         };
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
@@ -351,9 +365,12 @@ const interactiveValueMutator = {
       }
 
       case "TEXT": {
-        const field = new Blockly.FieldTextInput("text");
+        const field = new Blockly.FieldTextInput("text", function(newValue) {
+          if (field.isBeingEdited_) return null; // block mid-typing updates
+          return newValue;
+        });
         field.onFinishEditing_ = function(value) {
-          this.setValue(value);
+          field.setValue(value); // commit final value
         };
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
@@ -386,7 +403,6 @@ Blockly.Extensions.registerMutator(
   null,
   []
 );
-
 
 
 
@@ -2656,7 +2672,6 @@ Blockly.defineBlocksWithJsonArray([{
   "args0": [
     { "type": "field_label", "name": "VALUE_LABEL", "text": "" }
   ],
-  "inputsInline": true,
   "output": null,
   "colour": 180,
   "mutator": "interactive_value_mutator",
@@ -2667,7 +2682,7 @@ Blockly.defineBlocksWithJsonArray([{
 
 Blockly.defineBlocksWithJsonArray([{
   "type": "interactive_value_mutator_container",
-  "message0": "Mode %1 Options (comma separated) %2",
+  "message0": "Mode %1",
   "args0": [
     {
       "type": "field_dropdown",
@@ -2678,17 +2693,20 @@ Blockly.defineBlocksWithJsonArray([{
         ["Boolean", "BOOLEAN"],
         ["Dropdown", "DROPDOWN"]
       ]
-    },
+    }
+  ],
+  "message1": "Options (comma separated) %1",
+  "args1": [
     {
       "type": "field_input",
       "name": "OPTIONS",
       "text": "A,B,C"
     }
   ],
-  "colour": 180,
-  "tooltip": "Configure the interactive value block.",
-  "helpUrl": ""
+  "inputsInline": false,
+  "colour": 210
 }]);
+
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
