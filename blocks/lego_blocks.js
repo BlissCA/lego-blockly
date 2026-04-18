@@ -2654,11 +2654,7 @@ Blockly.defineBlocksWithJsonArray([{
   "type": "interactive_value",
   "message0": "Interactive %1",
   "args0": [
-    {
-      "type": "field_label",
-      "name": "VALUE_LABEL",
-      "text": ""
-    }
+    { "type": "field_label", "name": "VALUE_LABEL", "text": "" }
   ],
   "inputsInline": true,
   "output": null,
@@ -2667,6 +2663,7 @@ Blockly.defineBlocksWithJsonArray([{
   "tooltip": "A live-editable value that updates during program execution.",
   "helpUrl": ""
 }]);
+
 
 Blockly.defineBlocksWithJsonArray([{
   "type": "interactive_value_mutator_container",
