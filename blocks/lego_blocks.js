@@ -294,29 +294,39 @@ const interactiveValueMutator = {
   decompose: function(workspace) {
     const containerBlock = workspace.newBlock("interactive_value_mutator_container");
     containerBlock.initSvg();
-    containerBlock.render();
 
+    // MODE
     containerBlock.getField("MODE").setValue(this.mode);
-    containerBlock.getField("OPTIONS").setValue(this.options.join(","));
 
-    // Hide OPTIONS row unless DROPDOWN
-    const optionsRow = containerBlock.getInput("OPTIONS");
+    // OPTIONS ROW (added dynamically)
+    const optionsRow = containerBlock.appendDummyInput("OPTIONS_ROW")
+      .appendField("Options (comma separated)")
+      .appendField(new Blockly.FieldInput(this.options.join(",")), "OPTIONS");
+
+    // Hide unless DROPDOWN
     optionsRow.setVisible(this.mode === "DROPDOWN");
-    containerBlock.render();
 
+    containerBlock.render();
     return containerBlock;
   },
 
   compose: function(containerBlock) {
     this.mode = containerBlock.getField("MODE").getValue();
 
-    const rawOptions = containerBlock.getField("OPTIONS").getValue();
-    this.options = rawOptions.split(",").map(s => s.trim()).filter(Boolean);
+    const optionsField = containerBlock.getField("OPTIONS");
+    if (optionsField) {
+      this.options = optionsField.getValue()
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
 
     // Hide OPTIONS row unless DROPDOWN
-    const optionsRow = containerBlock.getInput("OPTIONS");
-    optionsRow.setVisible(this.mode === "DROPDOWN");
-    containerBlock.render();
+    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
+    if (optionsRow) {
+      optionsRow.setVisible(this.mode === "DROPDOWN");
+      containerBlock.render();
+    }
 
     this.updateShape_();
   },
@@ -328,10 +338,10 @@ const interactiveValueMutator = {
 
     this.appendDummyInput("VALUE_INPUT");
 
-    // Validator that only commits when editing is finished
+    // Commit-only-on-finish validator
     function commitOnlyOnFinish(newValue) {
       if (this.htmlInput_) return null; // still typing
-      return newValue; // commit final value
+      return newValue; // commit final
     }
 
     switch (this.mode) {
@@ -2670,16 +2680,10 @@ Blockly.defineBlocksWithJsonArray([{
       ]
     }
   ],
-  "message1": "Options (comma separated) %1",
-  "args1": [
-    {
-      "type": "field_input",
-      "name": "OPTIONS",
-      "text": "A,B,C"
-    }
-  ],
-  "inputsInline": false,
-  "colour": 210
+  "colour": 210,
+  "tooltip": "",
+  "helpUrl": "",
+  "inputsInline": false
 }]);
 
 
