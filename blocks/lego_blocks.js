@@ -267,7 +267,6 @@ const interactiveValueMutator = {
   mode: "NUMBER",
   options: ["A", "B", "C"],
 
-  // --- Save to XML ---
   mutationToDom: function() {
     const container = document.createElement("mutation");
     container.setAttribute("mode", this.mode);
@@ -275,33 +274,23 @@ const interactiveValueMutator = {
     return container;
   },
 
-  // --- Load from XML ---
   domToMutation: function(xmlElement) {
     this.mode = xmlElement.getAttribute("mode") || "NUMBER";
     const opt = xmlElement.getAttribute("options");
-    this.options = opt
-      ? opt.split(",").map(s => s.trim()).filter(Boolean)
-      : ["A", "B", "C"];
+    this.options = opt ? opt.split(",").map(s => s.trim()).filter(Boolean) : ["A","B","C"];
     this.updateShape_();
   },
 
-  // --- Save to JSON ---
   saveExtraState: function() {
-    return {
-      mode: this.mode,
-      options: this.options
-    };
+    return { mode: this.mode, options: this.options };
   },
 
-  // --- Load from JSON ---
   loadExtraState: function(state) {
     this.mode = state.mode || "NUMBER";
-    this.options = (state.options || ["A", "B", "C"])
-      .map(s => s.trim()).filter(Boolean);
+    this.options = (state.options || ["A","B","C"]).map(s => s.trim()).filter(Boolean);
     this.updateShape_();
   },
 
-  // --- Build mutator UI ---
   decompose: function(workspace) {
     const containerBlock = workspace.newBlock("interactive_value_mutator_container");
     containerBlock.initSvg();
@@ -311,36 +300,27 @@ const interactiveValueMutator = {
     containerBlock.getField("OPTIONS").setValue(this.options.join(","));
 
     // Hide OPTIONS row unless DROPDOWN
-    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
-    if (optionsRow) {
-      optionsRow.setVisible(this.mode === "DROPDOWN");
-      containerBlock.render();
-    }
+    const optionsRow = containerBlock.getInput("OPTIONS");
+    optionsRow.setVisible(this.mode === "DROPDOWN");
+    containerBlock.render();
 
     return containerBlock;
   },
 
-  // --- Apply mutator changes ---
   compose: function(containerBlock) {
     this.mode = containerBlock.getField("MODE").getValue();
 
     const rawOptions = containerBlock.getField("OPTIONS").getValue();
-    this.options = rawOptions
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
+    this.options = rawOptions.split(",").map(s => s.trim()).filter(Boolean);
 
     // Hide OPTIONS row unless DROPDOWN
-    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
-    if (optionsRow) {
-      optionsRow.setVisible(this.mode === "DROPDOWN");
-      containerBlock.render();
-    }
+    const optionsRow = containerBlock.getInput("OPTIONS");
+    optionsRow.setVisible(this.mode === "DROPDOWN");
+    containerBlock.render();
 
     this.updateShape_();
   },
 
-  // --- Update block UI based on mode ---
   updateShape_: function() {
     if (this.getInput("VALUE_INPUT")) {
       this.removeInput("VALUE_INPUT");
@@ -348,16 +328,16 @@ const interactiveValueMutator = {
 
     this.appendDummyInput("VALUE_INPUT");
 
+    // Validator that only commits when editing is finished
+    function commitOnlyOnFinish(newValue) {
+      if (this.htmlInput_) return null; // still typing
+      return newValue; // commit final value
+    }
+
     switch (this.mode) {
 
       case "NUMBER": {
-        const field = new Blockly.FieldNumber(0, null, null, null, function(newValue) {
-          if (field.isBeingEdited_) return null; // block mid-typing updates
-          return newValue;
-        });
-        field.onFinishEditing_ = function(value) {
-          field.setValue(value); // commit final value
-        };
+        const field = new Blockly.FieldNumber(0, null, null, null, commitOnlyOnFinish);
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
         this.setFieldValue("Number", "VALUE_LABEL");
@@ -365,13 +345,7 @@ const interactiveValueMutator = {
       }
 
       case "TEXT": {
-        const field = new Blockly.FieldTextInput("text", function(newValue) {
-          if (field.isBeingEdited_) return null; // block mid-typing updates
-          return newValue;
-        });
-        field.onFinishEditing_ = function(value) {
-          field.setValue(value); // commit final value
-        };
+        const field = new Blockly.FieldTextInput("text", commitOnlyOnFinish);
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
         this.setFieldValue("Text", "VALUE_LABEL");
@@ -2672,6 +2646,7 @@ Blockly.defineBlocksWithJsonArray([{
   "args0": [
     { "type": "field_label", "name": "VALUE_LABEL", "text": "" }
   ],
+  "inputsInline": true,
   "output": null,
   "colour": 180,
   "mutator": "interactive_value_mutator",
