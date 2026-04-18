@@ -301,7 +301,7 @@ const interactiveValueMutator = {
     // OPTIONS ROW (added dynamically)
     const optionsRow = containerBlock.appendDummyInput("OPTIONS_ROW")
       .appendField("Options (comma separated)")
-      .appendField(new Blockly.FieldInput(this.options.join(",")), "OPTIONS");
+      .appendField(new Blockly.FieldTextInput(this.options.join(",")), "OPTIONS");
 
     // Hide unless DROPDOWN
     optionsRow.setVisible(this.mode === "DROPDOWN");
@@ -2680,10 +2680,7 @@ Blockly.defineBlocksWithJsonArray([{
       ]
     }
   ],
-  "colour": 210,
-  "tooltip": "",
-  "helpUrl": "",
-  "inputsInline": false
+  "colour": 180
 }]);
 
 
