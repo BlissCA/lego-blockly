@@ -755,14 +755,14 @@ javascriptGenerator.forBlock['loop_forever'] = function(block) {
 while (!(${finalCond})) {
   if (shouldStop()) return;
   ${statements}
-  await new Promise(r => setTimeout(r, 0));
+  await Promise.resolve();
 }
 `;
 };
 
 // ---------------- YIELD GENERATOR ----------------
 javascriptGenerator.forBlock['yield'] = function(block) {
-  return `await new Promise(r => setTimeout(r, 0));\n`;
+  return `await Promise.resolve();\n`;
 };
 
 
@@ -862,7 +862,7 @@ async function ${funcName}() {
     while (!TaskShouldStop("${taskName}")) {
       if (shouldStop()) return;
       ${statements}
-      await new Promise(r => setTimeout(r, 0));
+      await Promise.resolve();
     }
 
     if (!NamedTaskState["${taskName}"].cancelled && !window.stopRequested) {
