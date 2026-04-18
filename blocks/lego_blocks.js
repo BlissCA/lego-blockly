@@ -307,6 +307,11 @@ const interactiveValueMutator = {
     containerBlock.getField("MODE").setValue(this.mode);
     containerBlock.getField("OPTIONS").setValue(this.options.join(","));
 
+    // Hide options unless dropdown mode
+    const optionsField = containerBlock.getField("OPTIONS");
+    optionsField.setVisible(this.mode === "DROPDOWN");
+    containerBlock.render();
+
     return containerBlock;
   },
 
@@ -315,33 +320,46 @@ const interactiveValueMutator = {
     this.mode = containerBlock.getField("MODE").getValue();
     this.options = containerBlock.getField("OPTIONS").getValue().split(",");
 
+    // Hide or show options dynamically
+    const optionsField = containerBlock.getField("OPTIONS");
+    optionsField.setVisible(this.mode === "DROPDOWN");
+    containerBlock.render();
+
     this.updateShape_();
   },
 
   // --- Update block UI based on mode ---
   updateShape_: function() {
-    // Remove old VALUE field if present
-    if (this.getField("VALUE")) {
-      this.removeInput("VALUE_INPUT", /* no error */ true);
+    // Remove old input
+    if (this.getInput("VALUE_INPUT")) {
+      this.removeInput("VALUE_INPUT");
     }
 
-    // Create new input
     this.appendDummyInput("VALUE_INPUT");
 
     switch (this.mode) {
-      case "NUMBER":
-        this.getInput("VALUE_INPUT")
-          .appendField(new Blockly.FieldNumber(0), "VALUE");
+
+      case "NUMBER": {
+        const field = new Blockly.FieldNumber(0);
+        field.onFinishEditing_ = function(value) {
+          this.setValue(value);
+        };
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
         this.setFieldValue("Number", "VALUE_LABEL");
         break;
+      }
 
-      case "TEXT":
-        this.getInput("VALUE_INPUT")
-          .appendField(new Blockly.FieldTextInput("text"), "VALUE");
+      case "TEXT": {
+        const field = new Blockly.FieldTextInput("text");
+        field.onFinishEditing_ = function(value) {
+          this.setValue(value);
+        };
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
         this.setFieldValue("Text", "VALUE_LABEL");
         break;
+      }
 
       case "BOOLEAN":
         this.getInput("VALUE_INPUT")
@@ -350,13 +368,14 @@ const interactiveValueMutator = {
         this.setFieldValue("Boolean", "VALUE_LABEL");
         break;
 
-      case "DROPDOWN":
+      case "DROPDOWN": {
         const opts = this.options.map(o => [o, o]);
         this.getInput("VALUE_INPUT")
           .appendField(new Blockly.FieldDropdown(opts), "VALUE");
         this.setOutput(true, null);
         this.setFieldValue("Choice", "VALUE_LABEL");
         break;
+      }
     }
   }
 };
@@ -367,6 +386,7 @@ Blockly.Extensions.registerMutator(
   null,
   []
 );
+
 
 
 
@@ -2640,8 +2660,9 @@ Blockly.defineBlocksWithJsonArray([{
       "text": ""
     }
   ],
+  "inputsInline": true,
   "output": null,
-  "colour": '#F4D800',
+  "colour": 180,
   "mutator": "interactive_value_mutator",
   "tooltip": "A live-editable value that updates during program execution.",
   "helpUrl": ""
@@ -2667,7 +2688,7 @@ Blockly.defineBlocksWithJsonArray([{
       "text": "A,B,C"
     }
   ],
-  "colour": 210,
+  "colour": 180,
   "tooltip": "Configure the interactive value block.",
   "helpUrl": ""
 }]);
