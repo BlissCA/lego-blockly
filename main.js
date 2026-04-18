@@ -46,11 +46,10 @@ window.__interactive_value = function(blockId) {
   const block = window.workspace.getBlockById(blockId);
   if (!block) return null;
 
+  const mode = block.mode || "NUMBER";
   const val = (block.committedValue !== undefined)
     ? block.committedValue
     : block.getFieldValue("VALUE");
-
-  const mode = block.mode || "NUMBER";
 
   switch (mode) {
     case "NUMBER": return Number(val);

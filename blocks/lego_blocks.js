@@ -332,25 +332,23 @@ const interactiveValueMutator = {
     if (this.getInput("VALUE_INPUT")) {
       this.removeInput("VALUE_INPUT");
     }
-
     this.appendDummyInput("VALUE_INPUT");
 
-    // IMPORTANT: This prevents mid-typing updates
-    function blockWhileTyping(newValue) {
-      if (this.htmlInput_) return null; // still typing
-      return newValue;                 // final commit
+    // Ensure we have a committedValue per block
+    if (this.committedValue === undefined) {
+      if (this.mode === "NUMBER") this.committedValue = 0;
+      else if (this.mode === "TEXT") this.committedValue = "text";
+      else if (this.mode === "DROPDOWN") this.committedValue = this.options[0] || "";
     }
 
     switch (this.mode) {
 
       case "NUMBER": {
-        const field = new Blockly.FieldNumber(0, null, null, null, blockWhileTyping);
-
+        const field = new Blockly.FieldNumber(this.committedValue || 0);
         field.onFinishEditing_ = function(finalValue) {
           const block = this.getSourceBlock();
           if (block) block.committedValue = finalValue;
         };
-
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Number");
         this.setFieldValue("Number", "VALUE_LABEL");
@@ -358,36 +356,51 @@ const interactiveValueMutator = {
       }
 
       case "TEXT": {
-        const field = new Blockly.FieldTextInput("text", blockWhileTyping);
-
+        const field = new Blockly.FieldTextInput(this.committedValue || "text");
         field.onFinishEditing_ = function(finalValue) {
           const block = this.getSourceBlock();
           if (block) block.committedValue = finalValue;
         };
-
         this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "String");
         this.setFieldValue("Text", "VALUE_LABEL");
         break;
       }
 
-      case "BOOLEAN":
-        this.getInput("VALUE_INPUT")
-          .appendField(new Blockly.FieldCheckbox("TRUE"), "VALUE");
+      case "BOOLEAN": {
+        const field = new Blockly.FieldCheckbox(
+          this.committedValue === "FALSE" ? "FALSE" : "TRUE"
+        );
+        field.setValidator(function(newValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = newValue;
+          return newValue;
+        });
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, "Boolean");
         this.setFieldValue("Boolean", "VALUE_LABEL");
         break;
+      }
 
       case "DROPDOWN": {
         const opts = this.options.map(o => [o, o]);
-        this.getInput("VALUE_INPUT")
-          .appendField(new Blockly.FieldDropdown(opts), "VALUE");
+        const field = new Blockly.FieldDropdown(opts, function(newValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = newValue;
+          return newValue;
+        });
+        // Initialize dropdown to committedValue if possible
+        if (this.committedValue && this.options.includes(this.committedValue)) {
+          field.setValue(this.committedValue);
+        }
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
         this.setOutput(true, null);
         this.setFieldValue("Choice", "VALUE_LABEL");
         break;
       }
     }
   }
+
 };
 
 Blockly.Extensions.registerMutator(
