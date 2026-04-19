@@ -461,7 +461,13 @@ class FieldSlider extends Blockly.FieldNumber {
     slider.addEventListener("input", () => {
       const v = Number(slider.value);
       block.value = v;
+
+      // Update the label inside the block
       block.setFieldValue(String(v), "CUR_VALUE");
+
+      // Update the actual field value
+      block.setFieldValue(String(v), "SLIDER");
+
       valueLabel.textContent = "Value: " + v;
     });
 
@@ -475,7 +481,9 @@ class FieldSlider extends Blockly.FieldNumber {
       document.removeEventListener("mousedown", close);
     };
 
-    document.addEventListener("mousedown", close);
+    document.addEventListener("pointerdown", close);
+
+    block.workspace.getParentSvg().addEventListener("pointerdown", close);
 
     document.body.appendChild(div);
   }
