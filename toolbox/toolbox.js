@@ -185,6 +185,10 @@ const toolbox = {
             {
               "kind": "block",
               "type": "interactive_value"
+            },
+            {
+              "kind": "block",
+              "type": "interactive_slider"
             }
 
           ]

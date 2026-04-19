@@ -59,7 +59,11 @@ window.__interactive_value = function(blockId) {
   }
 };
 
-
+window.__interactive_slider = function(blockId) {
+  const block = window.workspace.getBlockById(blockId);
+  if (!block) return 0;
+  return Number(block.value ?? 0);
+};
 
 // ---------- Non-blocking dialog helpers ----------
 

@@ -412,6 +412,157 @@ Blockly.Extensions.registerMutator(
 
 
 
+class FieldSlider extends Blockly.FieldNumber {
+
+  showEditor_() {
+    const block = this.getSourceBlock();
+    const min = block.min ?? 0;
+    const max = block.max ?? 100;
+    const step = block.step ?? 1;
+
+    // Popup container
+    const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.background = "white";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "8px";
+    div.style.borderRadius = "6px";
+    div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+    div.style.zIndex = 9999;
+
+    // Position near block
+    const rect = this.getClickTarget_().getBoundingClientRect();
+    div.style.left = rect.left + "px";
+    div.style.top = (rect.bottom + 4) + "px";
+
+    // Value label
+    const valueLabel = document.createElement("div");
+    valueLabel.textContent = "Value: " + block.value;
+    valueLabel.style.marginBottom = "6px";
+    div.appendChild(valueLabel);
+
+    // Slider
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = min;
+    slider.max = max;
+    slider.step = step;
+    slider.value = block.value;
+    slider.style.width = "200px";
+    div.appendChild(slider);
+
+    // Min/Max labels
+    const mm = document.createElement("div");
+    mm.textContent = `Min: ${min}    Max: ${max}`;
+    mm.style.marginTop = "6px";
+    div.appendChild(mm);
+
+    // Live update
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      block.value = v;
+      block.setFieldValue(String(v), "CUR_VALUE");
+      valueLabel.textContent = "Value: " + v;
+    });
+
+    // Close on mouseup
+    const close = () => {
+      document.body.removeChild(div);
+      document.removeEventListener("mousedown", close);
+    };
+    document.addEventListener("mousedown", close);
+
+    document.body.appendChild(div);
+  }
+}
+
+const interactiveSliderMutator = {
+
+  min: 0,
+  max: 100,
+  step: 1,
+  value: 0,
+
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("min", this.min);
+    container.setAttribute("max", this.max);
+    container.setAttribute("step", this.step);
+    container.setAttribute("value", this.value);
+    return container;
+  },
+
+  domToMutation: function(xml) {
+    this.min = Number(xml.getAttribute("min")) || 0;
+    this.max = Number(xml.getAttribute("max")) || 100;
+    this.step = Number(xml.getAttribute("step")) || 1;
+    this.value = Number(xml.getAttribute("value")) || 0;
+    this.updateShape_();
+  },
+
+  saveExtraState: function() {
+    return {
+      min: this.min,
+      max: this.max,
+      step: this.step,
+      value: this.value
+    };
+  },
+
+  loadExtraState: function(state) {
+    this.min = state.min ?? 0;
+    this.max = state.max ?? 100;
+    this.step = state.step ?? 1;
+    this.value = state.value ?? 0;
+    this.updateShape_();
+  },
+
+  decompose: function(ws) {
+    const block = ws.newBlock("interactive_slider_mutator_container");
+    block.initSvg();
+
+    block.getField("MIN").setValue(this.min);
+    block.getField("MAX").setValue(this.max);
+    block.getField("STEP").setValue(this.step);
+
+    block.render();
+    return block;
+  },
+
+  compose: function(containerBlock) {
+    this.min = Number(containerBlock.getField("MIN").getValue());
+    this.max = Number(containerBlock.getField("MAX").getValue());
+    this.step = Number(containerBlock.getField("STEP").getValue());
+
+    // Clamp current value
+    this.value = Math.min(this.max, Math.max(this.min, this.value));
+
+    this.updateShape_();
+  },
+
+  updateShape_: function() {
+    this.setFieldValue(String(this.value), "CUR_VALUE");
+
+    // Replace label with slider field
+    if (this.getField("SLIDER")) {
+      this.removeInput("SLIDER_INPUT");
+    }
+
+    const input = this.appendDummyInput("SLIDER_INPUT");
+    input.appendField(new FieldSlider(this.value), "SLIDER");
+  }
+
+};
+
+Blockly.Extensions.registerMutator(
+  "interactive_slider_mutator",
+  interactiveSliderMutator,
+  null,
+  []
+);
+
+
+
 // ---------------- DEVICE DROPDOWNS ----------------
 
 // All devices (if you still need it somewhere)
@@ -2705,6 +2856,36 @@ Blockly.defineBlocksWithJsonArray([{
   "colour": 180
 }]);
 
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_slider",
+  "message0": "Slider (%1)",
+  "args0": [
+    { "type": "field_label", "name": "CUR_VALUE", "text": "0" }
+  ],
+  "inputsInline": true,
+  "output": "Number",
+  "colour": 180,
+  "mutator": "interactive_slider_mutator",
+  "tooltip": "Interactive slider",
+  "helpUrl": ""
+}]);
+
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_slider_mutator_container",
+  "message0": "Min %1",
+  "args0": [
+    { "type": "field_number", "name": "MIN", "value": 0 }
+  ],
+  "message1": "Max %1",
+  "args1": [
+    { "type": "field_number", "name": "MAX", "value": 100 }
+  ],
+  "message2": "Step %1",
+  "args2": [
+    { "type": "field_number", "name": "STEP", "value": 1 }
+  ],
+  "colour": 200
+}]);
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.

@@ -1302,6 +1302,9 @@ javascriptGenerator.forBlock['interactive_value'] = function(block) {
   return [`__interactive_value("${block.id}")`, javascriptGenerator.ORDER_FUNCTION_CALL];
 };
 
+javascriptGenerator.forBlock['interactive_slider'] = function(block) {
+  return [`__interactive_slider("${block.id}")`, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
