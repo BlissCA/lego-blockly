@@ -465,26 +465,47 @@ class FieldSlider extends Blockly.FieldNumber {
       // Update the actual field value
       block.setFieldValue(String(v), "SLIDER");
 
+      // Update label inside block (if you keep one)
+      const cur = block.getField("CUR_VALUE");
+      if (cur) cur.setValue(String(v));
+
       valueLabel.textContent = "Value: " + v;
     });
 
-    // Close on outside click
+    // --- Popup close logic (correct, safe, Blockly-compatible) ---
+
+    let isClosed = false;
+
     const close = (event) => {
-      // If click is inside the popup, ignore it
+      if (isClosed) return;
+
+      // Ignore clicks inside popup
       if (div.contains(event.target)) return;
 
-      // Otherwise close
-      document.body.removeChild(div);
-      document.removeEventListener("mousedown", close);
+      isClosed = true;
+
+      // Remove popup safely
+      if (div.parentNode) {
+        div.parentNode.removeChild(div);
+      }
+
+      // Remove listeners
+      document.removeEventListener("pointerdown", close);
+      workspaceSvg.removeEventListener("pointerdown", close);
     };
 
+    // Attach listeners
     document.addEventListener("pointerdown", close);
 
-    block.workspace.getParentSvg().addEventListener("pointerdown", close);
+    // IMPORTANT: attach to the correct SVG parent
+    const workspaceSvg = block.workspace.getParentSvg().parentNode;
+    workspaceSvg.addEventListener("pointerdown", close);
 
+    // Add popup to DOM
     document.body.appendChild(div);
   }
 }
+
 
 const interactiveSliderMutator = {
 
