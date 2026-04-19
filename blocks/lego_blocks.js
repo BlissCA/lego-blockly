@@ -461,20 +461,14 @@ class FieldSlider extends Blockly.FieldNumber {
     slider.addEventListener("input", () => {
       const v = Number(slider.value);
       block.value = v;
-
-      // Update the actual field value
       block.setFieldValue(String(v), "SLIDER");
-
-      // Update label inside block (if you keep one)
-      const cur = block.getField("CUR_VALUE");
-      if (cur) cur.setValue(String(v));
-
       valueLabel.textContent = "Value: " + v;
     });
 
-    // --- Popup close logic (correct, safe, Blockly-compatible) ---
+    // --- Close logic ---
 
     let isClosed = false;
+    const workspaceSvg = block.workspace.getParentSvg();
 
     const close = (event) => {
       if (isClosed) return;
@@ -484,24 +478,18 @@ class FieldSlider extends Blockly.FieldNumber {
 
       isClosed = true;
 
-      // Remove popup safely
       if (div.parentNode) {
         div.parentNode.removeChild(div);
       }
 
-      // Remove listeners
-      document.removeEventListener("pointerdown", close);
-      workspaceSvg.removeEventListener("pointerdown", close);
+      document.removeEventListener("pointerdown", close, true);
+      workspaceSvg.removeEventListener("pointerdown", close, true);
     };
 
-    // Attach listeners
-    document.addEventListener("pointerdown", close);
+    // Capture phase so Blockly can't swallow the event
+    document.addEventListener("pointerdown", close, true);
+    workspaceSvg.addEventListener("pointerdown", close, true);
 
-    // IMPORTANT: attach to the correct SVG parent
-    const workspaceSvg = block.workspace.getParentSvg().parentNode;
-    workspaceSvg.addEventListener("pointerdown", close);
-
-    // Add popup to DOM
     document.body.appendChild(div);
   }
 }
