@@ -462,9 +462,6 @@ class FieldSlider extends Blockly.FieldNumber {
       const v = Number(slider.value);
       block.value = v;
 
-      // Update the label inside the block
-      block.setFieldValue(String(v), "CUR_VALUE");
-
       // Update the actual field value
       block.setFieldValue(String(v), "SLIDER");
 
@@ -554,9 +551,7 @@ const interactiveSliderMutator = {
   },
 
   updateShape_: function() {
-    this.setFieldValue(String(this.value), "CUR_VALUE");
-
-    // Replace label with slider field
+   // Replace label with slider field
     if (this.getField("SLIDER")) {
       this.removeInput("SLIDER_INPUT");
     }
@@ -2871,10 +2866,7 @@ Blockly.defineBlocksWithJsonArray([{
 
 Blockly.defineBlocksWithJsonArray([{
   "type": "interactive_slider",
-  "message0": "Slider (%1)",
-  "args0": [
-    { "type": "field_label", "name": "CUR_VALUE", "text": "0" }
-  ],
+  "message0": "Slider",
   "inputsInline": true,
   "output": "Number",
   "colour": 180,
