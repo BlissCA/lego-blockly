@@ -465,11 +465,16 @@ class FieldSlider extends Blockly.FieldNumber {
       valueLabel.textContent = "Value: " + v;
     });
 
-    // Close on mouseup
-    const close = () => {
+    // Close on outside click
+    const close = (event) => {
+      // If click is inside the popup, ignore it
+      if (div.contains(event.target)) return;
+
+      // Otherwise close
       document.body.removeChild(div);
       document.removeEventListener("mousedown", close);
     };
+
     document.addEventListener("mousedown", close);
 
     document.body.appendChild(div);
