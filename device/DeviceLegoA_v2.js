@@ -118,7 +118,7 @@ export class LegoInterfaceA_v2 {
     this.log("Port opened.");
 
     // Wait for Arduino to reboot and send READY
-    this._logStatus("Waiting for READY from Arduino…");
+    this.log("Waiting for READY from Arduino…");
     await this.waitForLine("READY", 3000);
 
     this.setStatus("handshaking", "Performing handshake...");
