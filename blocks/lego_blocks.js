@@ -1837,7 +1837,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30,
+      "colour": 35,
       "tooltip": "Turn ON (max speed) or OFF the output port. For variable speed use the PWM block."
     },
     {
@@ -1875,7 +1875,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30,
+      "colour": 35,
       "tooltip": "Turn ON using PWM value from 0 to 255 (0=OFF)"
     },
 
@@ -1911,7 +1911,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": 30,
+      "colour": 35,
       "tooltip": "Power the motor (combo port) using PWM value from 0 to 255 (0=Stop) at specified direction (0=Left, 1=Right)"
     }    
 

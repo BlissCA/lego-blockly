@@ -581,7 +581,7 @@ const toolbox = {
                 "PORT": {
                   "shadow": {
                     "type": "Legoa_inputnum",
-                    "fields": { "NUM": 6 }
+                    "fields": { "NUM": "6" }
                   }
                 },
                 "COUNT": {
@@ -651,7 +651,7 @@ const toolbox = {
                 "DIR": {
                   "shadow": {
                     "type": "Legoa_dir",
-                    "fields": { "NUM": 0 }
+                    "fields": { "NUM": "0" }
                   }
                 }
               }
