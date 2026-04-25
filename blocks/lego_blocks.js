@@ -1762,8 +1762,158 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 30,
       "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
-    }
+    },
 
+
+    {
+      "type": "legoa2_inp_on",
+      "message0": "%1 inp %2 ON",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 35,
+      "tooltip": "Returns true if the input port is ON, false if OFF"
+    },
+    {
+      "type": "legoa2_inp_rot",
+      "message0": "%1 inp %2 rotation count",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 35,
+      "tooltip": "Returns the Input value 0-1023"
+    },
+    {
+      "type": "legoa2_out_resetrot",
+      "message0": "%1 inp %2 set rot.count to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getLegoBDropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35
+    },    
+    {
+      "type": "legoa2_out",
+      "message0": "%1 out %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "ON"], ["OFF", "OFF"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Turn ON (max speed) or OFF the output port. For variable speed use the PWM block."
+    },
+    {
+      "type": "legoa2_out_offall",
+      "message0": "%1 out ALL OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "Turn off all output ports"
+    },
+    {
+      "type": "legoa2_out_pwm",
+      "message0": "%1 out %2 power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Turn ON using PWM value from 0 to 255 (0=OFF)"
+    },
+
+    {
+      "type": "legoa2_combo_pwm",
+      "message0": "%1 combo %2 power %3 dir %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "DIR",
+          "check": "Number",
+          "shadow": {
+            "type": "Legoa_dir",
+            "fields": { "NUM": 0 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 30,
+      "tooltip": "Power the motor (combo port) using PWM value from 0 to 255 (0=Stop) at specified direction (0=Left, 1=Right)"
+    }    
 
   ]);
 
@@ -2193,6 +2343,19 @@ Blockly.Blocks['Legoa_inputnum'] = {
     this.setOutput(true, "Number");
     this.setColour(230);
     this.setTooltip("Returns a predefined constant value for Lego A output ports.");
+  }
+};
+
+Blockly.Blocks['Legoa_dir'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["L", "0"], ["R", "1"]
+      ]), "NUM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego A Combo ports direction.");
   }
 };
 

@@ -917,6 +917,15 @@ javascriptGenerator.forBlock["Legoa_inputnum"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+// ---------------- Lego Interface A Direction Numbers L, R = 0, 1 ----------------
+javascriptGenerator.forBlock["Legoa_dir"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('NUM');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+
 javascriptGenerator.forBlock["legoa_inp_on"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
@@ -1091,6 +1100,104 @@ javascriptGenerator.forBlock["legoa_combo_pwmr"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.comboPwmR(${port},${pwr});
+}
+`;
+};
+
+
+// ------------------ LEGO INTERFACE A V2 GENERATORS ----------------
+
+javascriptGenerator.forBlock["legoa2_inp_on"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").inputOn(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["legoa2_inp_rot"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getRot(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["legoa2_out_resetrot"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setRot(${port}, ${count});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa2_out"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const cmd  = block.getFieldValue("CMD");
+  const pwr = (cmd === "ON") ? "255" : "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outPwm(${port}, ${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa2_out_offall"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.portsOff();
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa2_out_pwm"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outPwm(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa2_combo_pwm"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+  const dir  = javascriptGenerator.valueToCode(block, "DIR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.outCombo(${port},${pwr}, ${dir});
 }
 `;
 };
