@@ -60,6 +60,19 @@ export class LegoInterfaceA_v2 {
     console.log(`[${this.name || "LegoA"}] ${msg}`);
     this.manager?.appendLog?.(this, msg);
   }
+  
+  async waitForLine(expected, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      const line = await this._readLine(200); // reuse your existing reader logic
+      if (line && line.trim() === expected) {
+        return;
+      }
+    }
+
+    throw new Error(`Timeout waiting for line: "${expected}"`);
+  }
 
   ensureAlive() {
     if (!this.port || !this.readingActive) {
