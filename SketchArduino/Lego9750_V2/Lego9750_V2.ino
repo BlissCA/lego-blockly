@@ -10,7 +10,7 @@ const uint8_t HEADER0 = 0xA1;
 const uint8_t HEADER1 = 0xAF;
 
 const unsigned long PACKET_INTERVAL_US = 5000; // 5 ms
-const unsigned long KEEPALIVE_TIMEOUT_MS = 2000; // 2 seconds
+const unsigned long KEEPALIVE_TIMEOUT_MS = 3000; // 3 seconds
 
 // ---------------- Input state / counters ----------------
 uint8_t inputState[2] = {0, 0};
