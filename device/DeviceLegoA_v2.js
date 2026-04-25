@@ -415,7 +415,7 @@ export class LegoInterfaceA_v2 {
     }
   }
 
-	async stopAll() {
+	async portsOff() {
 		this.ensureAlive();
 
 		// Send PWM=0 to all ports 0–5
