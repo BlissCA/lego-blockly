@@ -60,19 +60,6 @@ export class LegoInterfaceA_v2 {
     console.log(`[${this.name || "LegoA"}] ${msg}`);
     this.manager?.appendLog?.(this, msg);
   }
-  
-  async waitForLine(expected, timeoutMs) {
-    const deadline = Date.now() + timeoutMs;
-
-    while (Date.now() < deadline) {
-      const line = await this._readLine(200); // reuse your existing reader logic
-      if (line && line.trim() === expected) {
-        return;
-      }
-    }
-
-    throw new Error(`Timeout waiting for line: "${expected}"`);
-  }
 
   ensureAlive() {
     if (!this.port || !this.readingActive) {
@@ -129,11 +116,15 @@ export class LegoInterfaceA_v2 {
     });
 
     this.log("Port opened.");
+		this.setStatus("waiting", "Waiting for READY...");
 
-    // Wait for Arduino to reboot and send READY
-    this.log("Waiting for READY from Arduino…");
-    await this.waitForLine("READY", 3000);
-
+    // wait for Arduino reboot to finish
+    try {
+			await this.waitForLine("READY", 3000);
+			this.log("Arduino READY detected.");
+		} catch (err) {
+			this.log("READY not received — continuing anyway.");
+		}
     this.setStatus("handshaking", "Performing handshake...");
 
     try {
@@ -511,4 +502,48 @@ export class LegoInterfaceA_v2 {
 
     this.setStatus("disconnected", "Disconnected");
   }
+
+	async waitForLine(target, timeoutMs = 3000) {
+		const decoder = new TextDecoder();
+		let buffer = "";
+
+		const readLoop = async () => {
+			while (this.port?.readable) {
+				this.reader = this.port.readable.getReader();
+				try {
+					while (true) {
+						const { value, done } = await this.reader.read();
+						if (done) break;
+						if (value) {
+							buffer += decoder.decode(value, { stream: true });
+							if (buffer.includes(target)) {
+								return target;
+							}
+						}
+					}
+				} finally {
+					try { this.reader.releaseLock(); } catch {}
+					this.reader = null;
+				}
+			}
+			return null;
+		};
+
+		const timeout = new Promise(resolve =>
+			setTimeout(() => resolve("TIMEOUT"), timeoutMs)
+		);
+
+		const result = await Promise.race([readLoop(), timeout]);
+
+		try { await this.reader?.cancel(); } catch {}
+		try { this.reader?.releaseLock(); } catch {}
+		this.reader = null;
+
+		if (result === "TIMEOUT") {
+			throw new Error(`Timeout waiting for line: ${target}`);
+		}
+
+		return result;
+	}
+
 }
