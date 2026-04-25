@@ -13,6 +13,7 @@ export class LegoInterfaceA_v2 {
     // Inputs 6,7: state + rotation counters
     this.inputState = { 6: false, 7: false };
     this.rot = { 6: 0, 7: 0 };
+		this.lastOutPwm = [0,0,0,0,0,0];   // from packet bytes 2–7
 
     // Output cache: PWM per port 0–5
     this.portPwm = {};
@@ -296,9 +297,10 @@ export class LegoInterfaceA_v2 {
       );
     }
 
-    // Bytes 2–7: outputs 0–5 PWM (we can trust Arduino, but we keep our own cache anyway)
-    // Bytes 8–9: inputs 6–7 packed: bit0=state, bits1–2=rate
-    // Byte 10: checksum (already verified)
+		// Bytes 2–7: outputs 0–5 PWM
+		for (let p = 0; p < 6; p++) {
+			this.lastOutPwm[p] = packet[2 + p];
+		}
 
     for (let i = 0; i < 2; i++) {
       const port = 6 + i;
@@ -367,6 +369,11 @@ export class LegoInterfaceA_v2 {
     this.rot[port] = r | 0;
   }
 
+	getOutPwm(port) {
+		if (port < 0 || port > 5) return 0;
+		return this.lastOutPwm[port] | 0;
+	}
+
   // ---------------- Public API: Outputs ----------------
 
   async outPwm(port, pwm) {
@@ -407,6 +414,15 @@ export class LegoInterfaceA_v2 {
       await this.outPwm(leftPort, v);
     }
   }
+
+	async stopAll() {
+		this.ensureAlive();
+
+		// Send PWM=0 to all ports 0–5
+		for (let p = 0; p <= 5; p++) {
+			await this.outPwm(p, 0);
+		}
+	}
 
   // ---------------- Disconnect ----------------
 
