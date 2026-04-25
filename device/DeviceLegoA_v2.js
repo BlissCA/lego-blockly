@@ -522,14 +522,24 @@ export class LegoInterfaceA_v2 {
 	async waitForLine(target, timeoutMs = 3000) {
 		const decoder = new TextDecoder();
 		let buffer = "";
+		let timedOut = false;
 
-		const readLoop = async () => {
-			while (this.port?.readable) {
+		// Timeout promise
+		const timeout = new Promise(resolve => {
+			setTimeout(() => {
+				timedOut = true;
+				resolve("TIMEOUT");
+			}, timeoutMs);
+		});
+
+		// Reader promise
+		const readerPromise = (async () => {
+			while (!timedOut && this.port?.readable) {
 				this.reader = this.port.readable.getReader();
 				try {
-					while (true) {
+					while (!timedOut) {
 						const { value, done } = await this.reader.read();
-						if (done) break;
+						if (done || timedOut) break;
 						if (value) {
 							buffer += decoder.decode(value, { stream: true });
 							if (buffer.includes(target)) {
@@ -543,14 +553,12 @@ export class LegoInterfaceA_v2 {
 				}
 			}
 			return null;
-		};
+		})();
 
-		const timeout = new Promise(resolve =>
-			setTimeout(() => resolve("TIMEOUT"), timeoutMs)
-		);
+		// Race timeout vs reader
+		const result = await Promise.race([readerPromise, timeout]);
 
-		const result = await Promise.race([readLoop(), timeout]);
-
+		// Cleanup: cancel reader if still active
 		try { await this.reader?.cancel(); } catch {}
 		try { this.reader?.releaseLock(); } catch {}
 		this.reader = null;
@@ -561,5 +569,6 @@ export class LegoInterfaceA_v2 {
 
 		return result;
 	}
+
 
 }
