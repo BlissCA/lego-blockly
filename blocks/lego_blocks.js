@@ -1804,7 +1804,7 @@ window.addEventListener("load", () => {
         {
           "type": "field_dropdown",
           "name": "DEVICE",
-          "options": getLegoBDropdown
+          "options": getLegoADropdown
         },
         {
           "type": "input_value",
@@ -1903,7 +1903,7 @@ window.addEventListener("load", () => {
           "name": "DIR",
           "check": "Number",
           "shadow": {
-            "type": "Legoa_dir",
+            "type": "math_number",
             "fields": { "NUM": 0 }
           }
         }
