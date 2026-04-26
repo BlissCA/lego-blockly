@@ -164,49 +164,57 @@ export class LegoInterfaceA_v2 {
     return reply;
   }
 
-  async waitForHandshakeReply() {
-    const decoder = new TextDecoder();
-    let buffer = "";
+	async waitForHandshakeReply(timeoutMs = 1000) {
+		const decoder = new TextDecoder();
+		let buffer = "";
+		let timedOut = false;
 
-    const readLoop = async () => {
-      while (this.port?.readable) {
-        this.reader = this.port.readable.getReader();
-        try {
-          while (true) {
-            const { value, done } = await this.reader.read();
-            if (done) break;
-            if (value) {
-              buffer += decoder.decode(value, { stream: true });
-              if (buffer.includes(this.HANDSHAKE_REPLY)) {
-                return this.HANDSHAKE_REPLY;
-              }
-            }
-          }
-        } finally {
-          try { this.reader.releaseLock(); } catch {}
-          this.reader = null;
-        }
-      }
-      return null;
-    };
+		// Timeout promise
+		const timeout = new Promise(resolve => {
+			setTimeout(() => {
+				timedOut = true;
+				resolve("TIMEOUT");
+			}, timeoutMs);
+		});
 
-    const timeout = new Promise(resolve =>
-      setTimeout(() => resolve("TIMEOUT"), 1000)
-    );
+		// Reader promise
+		const readerPromise = (async () => {
+			while (!timedOut && this.port?.readable) {
+				this.reader = this.port.readable.getReader();
+				try {
+					while (!timedOut) {
+						const { value, done } = await this.reader.read();
+						if (done || timedOut) break;
 
-    const result = await Promise.race([readLoop(), timeout]);
+						if (value) {
+							buffer += decoder.decode(value, { stream: true });
+							if (buffer.includes(this.HANDSHAKE_REPLY)) {
+								return this.HANDSHAKE_REPLY;
+							}
+						}
+					}
+				} finally {
+					try { this.reader.releaseLock(); } catch {}
+					this.reader = null;
+				}
+			}
+			return null;
+		})();
 
-    try { await this.reader?.cancel(); } catch {}
-    try { this.reader?.releaseLock(); } catch {}
-    this.reader = null;
+		// Race timeout vs reader
+		const result = await Promise.race([readerPromise, timeout]);
 
-    if (result === "TIMEOUT") {
-      this.log("Handshake timeout!");
-      throw new Error("Handshake timeout");
-    }
+		// Cleanup: cancel reader if still active
+		try { await this.reader?.cancel(); } catch {}
+		try { this.reader?.releaseLock(); } catch {}
+		this.reader = null;
 
-    return result;
-  }
+		if (result === "TIMEOUT") {
+			throw new Error("Handshake timeout");
+		}
+
+		return result;
+	}
 
   // ---------------- Continuous Reader + Packet Parsing ----------------
 
