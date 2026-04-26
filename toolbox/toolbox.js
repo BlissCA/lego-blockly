@@ -132,7 +132,7 @@ const toolbox = {
       "contents": [
         {
           "kind": "category",
-          "name": "Loop, Wait, Button, Print",
+          "name": "Loop, Wait, Print",
           "contents": [
             { "kind": "block", "type": "loop_forever",
               "inputs": {
@@ -145,8 +145,6 @@ const toolbox = {
               }
             },
             { "kind": "block", "type": "yield" },
-            { "kind": "block", "type": "lego_button_event" },
-            { "kind": "block", "type": "display_value" },
             {
               "kind": "block",
               "type": "lego_wait_time",
@@ -182,6 +180,16 @@ const toolbox = {
                 }
               }
             }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Interactive Control",
+          "contents": [
+            { "kind": "block", "type": "lego_button_event" },
+            { "kind": "block", "type": "display_value" },
+            { "kind": "block", "type": "interactive_value" },
+            { "kind": "block", "type": "interactive_slider"}
           ]
         },
 
@@ -536,6 +544,123 @@ const toolbox = {
         }
       ]
     },
+
+    {"kind": "category", "name": "Int. A V2", "colour": 35, "contents": [
+        {
+          "kind": "category",
+          "name": "Input",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa2_inp_on",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa2_inp_rot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa2_out_resetrot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            }                 
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legoa2_out",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                }
+              }
+            },        
+            {
+              "kind": "block",
+              "type": "legoa2_out_offall",
+            },
+            {
+              "kind": "block",
+              "type": "legoa2_out_pwm",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "fields": { "NUM": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
+              }
+            },        
+            {
+              "kind": "block",
+              "type": "legoa2_combo_pwm",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_comboalpha",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "DIR": {
+                  "shadow": {
+                    "type": "Legoa_dir",
+                    "fields": { "NUM": "0" }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
     {
       "kind": "category",
       "name": "Int. B",

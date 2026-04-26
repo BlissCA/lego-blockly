@@ -262,6 +262,323 @@ Blockly.Extensions.registerMutator(
 );
 
 
+const interactiveValueMutator = {
+
+  mode: "NUMBER",
+  options: ["A", "B", "C"],
+
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("mode", this.mode);
+    container.setAttribute("options", this.options.join(","));
+    return container;
+  },
+
+  domToMutation: function(xmlElement) {
+    this.mode = xmlElement.getAttribute("mode") || "NUMBER";
+    const opt = xmlElement.getAttribute("options");
+    this.options = opt ? opt.split(",").map(s => s.trim()).filter(Boolean) : ["A","B","C"];
+    this.updateShape_();
+  },
+
+  saveExtraState: function() {
+    return { mode: this.mode, options: this.options };
+  },
+
+  loadExtraState: function(state) {
+    this.mode = state.mode || "NUMBER";
+    this.options = (state.options || ["A","B","C"]).map(s => s.trim()).filter(Boolean);
+    this.updateShape_();
+  },
+
+  decompose: function(workspace) {
+    const containerBlock = workspace.newBlock("interactive_value_mutator_container");
+    containerBlock.initSvg();
+
+    containerBlock.getField("MODE").setValue(this.mode);
+
+    // Add OPTIONS row dynamically
+    const optionsRow = containerBlock.appendDummyInput("OPTIONS_ROW")
+      .appendField("Options (comma separated)")
+      .appendField(new Blockly.FieldTextInput(this.options.join(",")), "OPTIONS");
+
+    optionsRow.setVisible(this.mode === "DROPDOWN");
+
+    containerBlock.render();
+    return containerBlock;
+  },
+
+  compose: function(containerBlock) {
+    this.mode = containerBlock.getField("MODE").getValue();
+
+    const optionsField = containerBlock.getField("OPTIONS");
+    if (optionsField) {
+      this.options = optionsField.getValue()
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    const optionsRow = containerBlock.getInput("OPTIONS_ROW");
+    if (optionsRow) {
+      optionsRow.setVisible(this.mode === "DROPDOWN");
+      containerBlock.render();
+    }
+
+    this.updateShape_();
+  },
+
+  updateShape_: function() {
+    if (this.getInput("VALUE_INPUT")) {
+      this.removeInput("VALUE_INPUT");
+    }
+    this.appendDummyInput("VALUE_INPUT");
+
+    // Ensure we have a committedValue per block
+    if (this.committedValue === undefined) {
+      if (this.mode === "NUMBER") this.committedValue = 0;
+      else if (this.mode === "TEXT") this.committedValue = "text";
+      else if (this.mode === "DROPDOWN") this.committedValue = this.options[0] || "";
+    }
+
+    switch (this.mode) {
+
+      case "NUMBER": {
+        const field = new Blockly.FieldNumber(this.committedValue || 0);
+        field.onFinishEditing_ = function(finalValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = finalValue;
+        };
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
+        this.setOutput(true, "Number");
+        this.setFieldValue("Number", "VALUE_LABEL");
+        break;
+      }
+
+      case "TEXT": {
+        const field = new Blockly.FieldTextInput(this.committedValue || "text");
+        field.onFinishEditing_ = function(finalValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = finalValue;
+        };
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
+        this.setOutput(true, "String");
+        this.setFieldValue("Text", "VALUE_LABEL");
+        break;
+      }
+
+      case "BOOLEAN": {
+        const field = new Blockly.FieldCheckbox(
+          this.committedValue === "FALSE" ? "FALSE" : "TRUE"
+        );
+        field.setValidator(function(newValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = newValue;
+          return newValue;
+        });
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
+        this.setOutput(true, "Boolean");
+        this.setFieldValue("Boolean", "VALUE_LABEL");
+        break;
+      }
+
+      case "DROPDOWN": {
+        const opts = this.options.map(o => [o, o]);
+        const field = new Blockly.FieldDropdown(opts, function(newValue) {
+          const block = this.getSourceBlock();
+          if (block) block.committedValue = newValue;
+          return newValue;
+        });
+        // Initialize dropdown to committedValue if possible
+        if (this.committedValue && this.options.includes(this.committedValue)) {
+          field.setValue(this.committedValue);
+        }
+        this.getInput("VALUE_INPUT").appendField(field, "VALUE");
+        this.setOutput(true, null);
+        this.setFieldValue("Choice", "VALUE_LABEL");
+        break;
+      }
+    }
+  }
+
+};
+
+Blockly.Extensions.registerMutator(
+  "interactive_value_mutator",
+  interactiveValueMutator,
+  null,
+  []
+);
+
+
+
+class FieldSlider extends Blockly.FieldNumber {
+
+  showEditor_() {
+    const block = this.getSourceBlock();
+    const min = block.min ?? 0;
+    const max = block.max ?? 100;
+    const step = block.step ?? 1;
+
+    // Popup container
+    const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.background = "white";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "8px";
+    div.style.borderRadius = "6px";
+    div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+    div.style.zIndex = 9999;
+
+    // Position near block
+    const rect = this.getClickTarget_().getBoundingClientRect();
+    div.style.left = rect.left + "px";
+    div.style.top = (rect.bottom + 4) + "px";
+
+    // Value label
+    const valueLabel = document.createElement("div");
+    valueLabel.textContent = "Value: " + block.value;
+    valueLabel.style.marginBottom = "6px";
+    div.appendChild(valueLabel);
+
+    // Slider
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = min;
+    slider.max = max;
+    slider.step = step;
+    slider.value = block.value;
+    slider.style.width = "200px";
+    div.appendChild(slider);
+
+    // Min/Max labels
+    const mm = document.createElement("div");
+    mm.textContent = `Min: ${min}    Max: ${max}`;
+    mm.style.marginTop = "6px";
+    div.appendChild(mm);
+
+    // Live update
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      block.value = v;
+      block.setFieldValue(String(v), "SLIDER");
+      valueLabel.textContent = "Value: " + v;
+    });
+
+    // --- Close logic ---
+
+    let isClosed = false;
+    const workspaceSvg = block.workspace.getParentSvg();
+
+    const close = (event) => {
+      if (isClosed) return;
+
+      // Ignore clicks inside popup
+      if (div.contains(event.target)) return;
+
+      isClosed = true;
+
+      if (div.parentNode) {
+        div.parentNode.removeChild(div);
+      }
+
+      document.removeEventListener("pointerdown", close, true);
+      workspaceSvg.removeEventListener("pointerdown", close, true);
+    };
+
+    // Capture phase so Blockly can't swallow the event
+    document.addEventListener("pointerdown", close, true);
+    workspaceSvg.addEventListener("pointerdown", close, true);
+
+    document.body.appendChild(div);
+  }
+}
+
+
+const interactiveSliderMutator = {
+
+  min: 0,
+  max: 100,
+  step: 1,
+  value: 0,
+
+  mutationToDom: function() {
+    const container = document.createElement("mutation");
+    container.setAttribute("min", this.min);
+    container.setAttribute("max", this.max);
+    container.setAttribute("step", this.step);
+    container.setAttribute("value", this.value);
+    return container;
+  },
+
+  domToMutation: function(xml) {
+    this.min = Number(xml.getAttribute("min")) || 0;
+    this.max = Number(xml.getAttribute("max")) || 100;
+    this.step = Number(xml.getAttribute("step")) || 1;
+    this.value = Number(xml.getAttribute("value")) || 0;
+    this.updateShape_();
+  },
+
+  saveExtraState: function() {
+    return {
+      min: this.min,
+      max: this.max,
+      step: this.step,
+      value: this.value
+    };
+  },
+
+  loadExtraState: function(state) {
+    this.min = state.min ?? 0;
+    this.max = state.max ?? 100;
+    this.step = state.step ?? 1;
+    this.value = state.value ?? 0;
+    this.updateShape_();
+  },
+
+  decompose: function(ws) {
+    const block = ws.newBlock("interactive_slider_mutator_container");
+    block.initSvg();
+
+    block.getField("MIN").setValue(this.min);
+    block.getField("MAX").setValue(this.max);
+    block.getField("STEP").setValue(this.step);
+
+    block.render();
+    return block;
+  },
+
+  compose: function(containerBlock) {
+    this.min = Number(containerBlock.getField("MIN").getValue());
+    this.max = Number(containerBlock.getField("MAX").getValue());
+    this.step = Number(containerBlock.getField("STEP").getValue());
+
+    // Clamp current value
+    this.value = Math.min(this.max, Math.max(this.min, this.value));
+
+    this.updateShape_();
+  },
+
+  updateShape_: function() {
+   // Replace label with slider field
+    if (this.getField("SLIDER")) {
+      this.removeInput("SLIDER_INPUT");
+    }
+
+    const input = this.appendDummyInput("SLIDER_INPUT");
+    input.appendField(new FieldSlider(this.value), "SLIDER");
+  }
+
+};
+
+Blockly.Extensions.registerMutator(
+  "interactive_slider_mutator",
+  interactiveSliderMutator,
+  null,
+  []
+);
+
+
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
@@ -1445,8 +1762,158 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 30,
       "tooltip": "Power the motor using PWM value from 0 to 255 (0=Stop)"
-    }
+    },
 
+
+    {
+      "type": "legoa2_inp_on",
+      "message0": "%1 inp %2 ON",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 35,
+      "tooltip": "Returns true if the input port is ON, false if OFF"
+    },
+    {
+      "type": "legoa2_inp_rot",
+      "message0": "%1 inp %2 rotation count",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 35,
+      "tooltip": "Returns the Input value 0-1023"
+    },
+    {
+      "type": "legoa2_out_resetrot",
+      "message0": "%1 inp %2 set rot.count to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getLegoADropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35
+    },    
+    {
+      "type": "legoa2_out",
+      "message0": "%1 out %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        { "type": "field_dropdown", "name": "CMD", "options": [["ON", "ON"], ["OFF", "OFF"] ]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "Turn ON (max speed) or OFF the output port. For variable speed use the PWM block."
+    },
+    {
+      "type": "legoa2_out_offall",
+      "message0": "%1 out ALL OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "Turn off all output ports"
+    },
+    {
+      "type": "legoa2_out_pwm",
+      "message0": "%1 out %2 power %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "Turn ON using PWM value from 0 to 255 (0=OFF)"
+    },
+
+    {
+      "type": "legoa2_combo_pwm",
+      "message0": "%1 combo %2 power %3 dir %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "DIR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 0 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "Power the motor (combo port) using PWM value from 0 to 255 (0=Stop) at specified direction (0=Left, 1=Right)"
+    }    
 
   ]);
 
@@ -1876,6 +2343,19 @@ Blockly.Blocks['Legoa_inputnum'] = {
     this.setOutput(true, "Number");
     this.setColour(230);
     this.setTooltip("Returns a predefined constant value for Lego A output ports.");
+  }
+};
+
+Blockly.Blocks['Legoa_dir'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["L", "0"], ["R", "1"]
+      ]), "NUM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego A Combo ports direction.");
   }
 };
 
@@ -2523,7 +3003,66 @@ Blockly.Blocks['display_value'] = {
   }
 };
 
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_value",
+  "message0": "Interactive %1",
+  "args0": [
+    { "type": "field_label", "name": "VALUE_LABEL", "text": "" }
+  ],
+  "inputsInline": true,
+  "output": null,
+  "colour": 180,
+  "mutator": "interactive_value_mutator",
+  "tooltip": "A live-editable value that updates during program execution.",
+  "helpUrl": ""
+}]);
 
+
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_value_mutator_container",
+  "message0": "Mode %1",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "MODE",
+      "options": [
+        ["Number", "NUMBER"],
+        ["Text", "TEXT"],
+        ["Boolean", "BOOLEAN"],
+        ["Dropdown", "DROPDOWN"]
+      ]
+    }
+  ],
+  "colour": 180
+}]);
+
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_slider",
+  "message0": "Slider",
+  "inputsInline": true,
+  "output": "Number",
+  "colour": 180,
+  "mutator": "interactive_slider_mutator",
+  "tooltip": "Interactive slider",
+  "helpUrl": ""
+}]);
+
+Blockly.defineBlocksWithJsonArray([{
+  "type": "interactive_slider_mutator_container",
+  "message0": "Min %1",
+  "args0": [
+    { "type": "field_number", "name": "MIN", "value": 0 }
+  ],
+  "message1": "Max %1",
+  "args1": [
+    { "type": "field_number", "name": "MAX", "value": 100 }
+  ],
+  "message2": "Step %1",
+  "args2": [
+    { "type": "field_number", "name": "STEP", "value": 1 }
+  ],
+  "colour": 200
+}]);
 
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.

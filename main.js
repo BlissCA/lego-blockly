@@ -15,6 +15,7 @@ import toolbox from "./toolbox/toolbox.js";
 
 // Device system
 import "./device/DeviceLegoA.js";
+import "./device/DeviceLegoA_v2.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
@@ -39,6 +40,31 @@ window.useCyberMaster = useCyberMaster;
 window.TaskRegistry = [];
 window.isProgramRunning = false;
 
+
+window.__interactiveValues = window.__interactiveValues || {};
+
+window.__interactive_value = function(blockId) {
+  const block = window.workspace.getBlockById(blockId);
+  if (!block) return null;
+
+  const mode = block.mode || "NUMBER";
+  const val = (block.committedValue !== undefined)
+    ? block.committedValue
+    : block.getFieldValue("VALUE");
+
+  switch (mode) {
+    case "NUMBER": return Number(val);
+    case "TEXT": return String(val);
+    case "BOOLEAN": return val === "TRUE";
+    case "DROPDOWN": return val;
+  }
+};
+
+window.__interactive_slider = function(blockId) {
+  const block = window.workspace.getBlockById(blockId);
+  if (!block) return 0;
+  return Number(block.value ?? 0);
+};
 
 // ---------- Non-blocking dialog helpers ----------
 
@@ -751,6 +777,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
   switch (sel) {
     case "A":
       dev = await window.deviceManager.connectLegoInterfaceA();
+      break;
+
+    case "A_V2":
+      dev = await window.deviceManager.connectLegoInterfaceA_v2();
       break;
 
     case "B":

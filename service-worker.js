@@ -26,6 +26,7 @@ const ASSETS = [
   "./device/DeviceLegoB.js",
   "./device/DeviceLegoRcx.js",
   "./device/DeviceLegoWeDo1.js",
+  "./device/DeviceLegoVLL.js",
 
   // Icons
   "./icons/icon-192.png",

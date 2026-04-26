@@ -1,6 +1,7 @@
 // device/deviceManager.js
 
 import { LegoInterfaceA } from './DeviceLegoA.js';
+import { LegoInterfaceA_v2 } from './DeviceLegoA_v2.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
@@ -98,6 +99,26 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("Lego A Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO Interface A V2
+  // -------------------------
+
+  async connectLegoInterfaceA_v2() {
+    const dev = new LegoInterfaceA_v2(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego A V2 Connection failed:", err);
       await dev.disconnect();
       this._freeName(dev.name);
       return null;
