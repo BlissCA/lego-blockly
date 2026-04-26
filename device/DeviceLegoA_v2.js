@@ -120,16 +120,16 @@ export class LegoInterfaceA_v2 {
 		this.setStatus("waiting", "Waiting for READY...");
 
     // wait for Arduino reboot to finish
-    /*
+    
 		try {
 			await this.waitForLine("READY", 3000);
 			this.log("Arduino READY detected.");
 		} catch (err) {
 			this.log("READY not received — continuing anyway.");
 		}
-			*/
+		
 
-		await this.waitForLine("READY", 3000);
+		//await this.waitForLine("READY", 3000);
 
     this.setStatus("handshaking", "Performing handshake...");
 
