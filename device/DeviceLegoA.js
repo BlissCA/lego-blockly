@@ -55,7 +55,7 @@ export class LegoInterfaceA {
       }
 
       await this.port.open({
-        baudRate: 9600,
+        baudRate: 38400,
         dataBits: 8,
         stopBits: 1,
         parity: "none"
