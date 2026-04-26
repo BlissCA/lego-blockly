@@ -76,9 +76,9 @@ export class LegoInterfaceA {
 
       try {
         await this.waitForLine("READY", 3000);
-        this.log("Arduino READY detected.");
+        this._logStatus("Arduino READY detected.");
       } catch (err) {
-        this.log("READY not received — continuing anyway.");
+        this._logStatus("READY not received — continuing anyway.");
       }
 
       // 1) Send VERBOSE ON
