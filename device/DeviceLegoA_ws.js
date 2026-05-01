@@ -70,7 +70,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
         // Send handshake phrase (Arduino only recognizes it)
         // this.writeBytes(this.HANDSHAKE_SEND);
-				this.ws.send("###Do you byte, when I knock?$$$");
+				this.ws.send(new Uint8Array([0xAA, 0x55, 0xA5]));
 
         // Start keep-alive + packet monitor
         this.startKeepAlive();
