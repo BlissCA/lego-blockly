@@ -23,6 +23,8 @@ const ASSETS = [
 
   // Devices
   "./device/DeviceLegoA.js",
+  "./device/DeviceLegoA_v2.js",
+  "./device/DeviceLegoA_ws.js",
   "./device/DeviceLegoB.js",
   "./device/DeviceLegoRcx.js",
   "./device/DeviceLegoWeDo1.js",
