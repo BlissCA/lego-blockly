@@ -4,7 +4,7 @@
 
 import { LegoInterfaceA_v2 } from "./DeviceLegoA_v2.js";
 
-export class LegoInterfaceA_WS extends LegoInterfaceA_v2 {
+export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
   constructor(name, manager, wsUrl = "wss://127.0.0.1:7890/lego-bridge") {
     super(name, manager);
 
