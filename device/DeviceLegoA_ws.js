@@ -101,6 +101,8 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
           this.setStatus("connected", "Connected via WebSocket");
           document.dispatchEvent(new Event("serial-connected"));
           this.readingActive = true;
+
+          resolve(this);
         }
 
         const data = event.data;
