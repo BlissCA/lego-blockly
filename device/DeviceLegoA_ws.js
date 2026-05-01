@@ -102,7 +102,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
           document.dispatchEvent(new Event("serial-connected"));
           this.readingActive = true;
 
-          resolve(this);
+          resolve(this);  // ⭐⭐ THIS WAS MISSING ⭐⭐
         }
 
         const data = event.data;
