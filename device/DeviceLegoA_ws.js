@@ -1,6 +1,6 @@
 // device/DeviceLegoA_WS.js
-// WebSocket-based Lego Interface A v2 driver using ESP32 bridge.
-// Reuses all logic from LegoInterfaceA_v2, only transport is different.
+// Optimized WebSocket-based Lego Interface A v2 driver.
+// Works with the ESP32 WS bridge + optimized Arduino sketch.
 
 import { LegoInterfaceA_v2 } from "./DeviceLegoA_v2.js";
 
@@ -11,10 +11,16 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
     this.wsUrl = wsUrl;
     this.ws = null;
 
-    // We don't use navigator.serial here
+    // WebSerial fields unused in WS mode
     this.port = null;
     this.reader = null;
     this.writer = null;
+
+    // Zero-copy ring buffer for incoming bytes
+    this.rb = new Uint8Array(2048);
+    this.rbHead = 0;
+    this.rbTail = 0;
+
   }
 
   // ---------------- Transport overrides ----------------
@@ -27,13 +33,13 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
   async writeBytes(bytes) {
     return this.enqueueCommand(async () => {
-      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-      // bytes is Uint8Array
-      this.ws.send(bytes);
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(bytes);
+      }
     });
   }
 
-  // ---------------- Connection + Handshake (WS) ----------------
+  // ---------------- Connection + Handshake ----------------
 
   async connect() {
     this.setStatus("connecting", "Opening WebSocket...");
@@ -46,7 +52,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
       let connected = false;
       let timeoutId = null;
 
-      const cleanup = (err) => {
+      const fail = (err) => {
         if (timeoutId) clearTimeout(timeoutId);
         timeoutId = null;
 
@@ -55,36 +61,35 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
           this.ws = null;
         }
 
-        if (err) reject(err);
+        reject(err);
       };
 
       this.ws.onopen = () => {
         this.log("WebSocket opened.");
         this.setStatus("handshaking", "Sending handshake...");
 
-        // Send the same handshake phrase as v2, but we don't wait for reply.
-        this.writeBytes(this.HANDSHAKE_SEND).catch(err => {
-          this.log("Handshake send error: " + err);
-        });
+        // Send handshake phrase (Arduino only recognizes it)
+        this.writeBytes(this.HANDSHAKE_SEND);
 
         // Start keep-alive + packet monitor
         this.startKeepAlive();
-        this.startPacketMonitor();
+        this.startPacketMonitorWS();
 
-        // Set up message handler (continuous reader)
-        this._attachWsMessageHandler();
-
-        // Option: wait for first valid packet to confirm connection
+        // If no packets arrive, fail
         timeoutId = setTimeout(() => {
           if (!connected) {
-            this.log("No packets received in time — assuming connection failed.");
-            cleanup(new Error("No packets from Arduino via WS bridge"));
+            fail(new Error("No packets received from Arduino via WS bridge"));
           }
         }, 2000);
       };
 
       this.ws.onmessage = (event) => {
-        // First message: mark as connected, then process normally
+        const data = event.data;
+        if (!(data instanceof ArrayBuffer)) return;
+
+        const bytes = new Uint8Array(data);
+        this.processIncomingBytes(bytes);
+
         if (!connected) {
           connected = true;
           if (timeoutId) {
@@ -92,7 +97,6 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
             timeoutId = null;
           }
 
-          // DeviceManager allocates the name AFTER successful connection
           if (!this.name) {
             this.name = this.manager._allocateName("LegoA");
           }
@@ -102,81 +106,139 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
           document.dispatchEvent(new Event("serial-connected"));
           this.readingActive = true;
 
-          resolve(this);  // ⭐⭐ THIS WAS MISSING ⭐⭐
-        }
-
-        const data = event.data;
-        if (data instanceof ArrayBuffer) {
-          this.processIncomingBytes(new Uint8Array(data));
-        } else if (data instanceof Blob) {
-          data.arrayBuffer().then(buf => {
-            this.processIncomingBytes(new Uint8Array(buf));
-          });
-        } else {
-          // Ignore text frames; protocol is binary
+          resolve(this);
         }
       };
 
-      this.ws.onerror = (ev) => {
-        this.log("WebSocket error.");
-        if (!connected) {
-          cleanup(new Error("WebSocket error"));
-        } else {
+      this.ws.onerror = () => {
+        if (!connected) fail(new Error("WebSocket error"));
+        else {
           this.setStatus("error", "WebSocket error");
           this.manager?.handleDeviceLost?.(this);
         }
       };
 
       this.ws.onclose = () => {
-        this.log("WebSocket closed.");
         this.readingActive = false;
         this.stopKeepAlive();
         if (this.packetMonitor) {
           clearInterval(this.packetMonitor);
           this.packetMonitor = null;
         }
-        if (!connected) {
-          cleanup(new Error("WebSocket closed before connection established"));
-        } else {
+
+        if (!connected) fail(new Error("WebSocket closed before connection established"));
+        else {
           this.setStatus("disconnected", "Disconnected");
           this.manager?.handleDeviceLost?.(this);
         }
       };
-
-      // Resolve when first packet arrives (see onmessage)
-      // If we get here, resolution is handled in onmessage/cleanup.
     });
   }
 
-  _attachWsMessageHandler() {
-    // No-op here because we already set ws.onmessage in connect().
-    // This method exists just to mirror the structure of v2's startContinuousReader.
+  // ---------------- Packet monitor tuned for WS heartbeat ----------------
+
+  startPacketMonitorWS() {
+    this.lastPacketTime = performance.now();
+    if (this.packetMonitor) clearInterval(this.packetMonitor);
+
+    // Arduino sends on change + every 100 ms → 500 ms timeout is safe
+    this.packetMonitor = setInterval(() => {
+      const now = performance.now();
+      if (now - this.lastPacketTime > 500) {
+        this.log("Packet timeout — device likely disconnected (WS).");
+        clearInterval(this.packetMonitor);
+        this.packetMonitor = null;
+        this.manager?.handleDeviceLost?.(this);
+      }
+    }, 200);
   }
 
-  // ---------------- Keep-Alive override (same logic, different transport) ----------------
+  // ---------------- Keep-Alive override ----------------
 
   startKeepAlive() {
-    this.log("Starting keep-alive (WS)...");
     this.keepAliveTimer = setInterval(() => {
-      this.enqueueCommand(async () => {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(this.KEEP_ALIVE);
-      });
+      }
     }, 1900);
   }
 
-  // ---------------- Disconnect overrides ----------------
+
+	processIncomingBytes(bytes) {
+		const rb = this.rb;
+		const size = rb.length;
+		let head = this.rbHead;
+		let tail = this.rbTail;
+
+		// 1) Push incoming bytes into ring buffer
+		for (let i = 0; i < bytes.length; i++) {
+			rb[head] = bytes[i];
+			head = (head + 1) % size;
+
+			// Overwrite oldest byte if buffer full
+			if (head === tail) {
+				tail = (tail + 1) % size;
+			}
+		}
+
+		// 2) Extract packets
+		while (true) {
+			// Not enough data for a packet
+			let available = head >= tail ? head - tail : size - tail + head;
+			if (available < this.PACKET_LEN) break;
+
+			// Search for header 0xA1 0xAF
+			let idx = tail;
+			let found = false;
+
+			while (available >= 2) {
+				if (rb[idx] === this.HEADER0 &&
+						rb[(idx + 1) % size] === this.HEADER1) {
+					found = true;
+					break;
+				}
+				idx = (idx + 1) % size;
+				available--;
+			}
+
+			if (!found) {
+				// No header found → drop everything except last byte
+				tail = (head + size - 1) % size;
+				break;
+			}
+
+			// Check if full packet is available
+			if (available < this.PACKET_LEN) break;
+
+			// Extract packet without copying byte-by-byte
+			const packet = new Uint8Array(this.PACKET_LEN);
+			for (let i = 0; i < this.PACKET_LEN; i++) {
+				packet[i] = rb[(idx + i) % size];
+			}
+
+			// Advance tail
+			tail = (idx + this.PACKET_LEN) % size;
+
+			// Verify checksum
+			if (this.verifyChecksum(packet)) {
+				this.lastPacketTime = performance.now();
+				this.handlePacket(packet);
+			}
+		}
+
+		this.rbHead = head;
+		this.rbTail = tail;
+	}
+
+
+	// ---------------- Disconnect overrides ----------------
 
   async disconnect() {
     this.queueActive = false;
-    this.log("Disconnecting (WS)...");
     this.setStatus("disconnected", "Disconnecting...");
 
     this.stopKeepAlive();
-
-    try {
-      await this.commandQueue;
-    } catch {}
+    try { await this.commandQueue; } catch {}
 
     this.readingActive = false;
 
@@ -187,15 +249,10 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
     try {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        // Optionally send FORCE_DISCONNECT_CMD to Arduino
-        try {
-          await this.writeBytes(this.FORCE_DISCONNECT_CMD);
-        } catch {}
+        try { await this.writeBytes(this.FORCE_DISCONNECT_CMD); } catch {}
         this.ws.close();
       }
-    } catch (err) {
-      this.log(`WS close error: ${err.message || err}`);
-    }
+    } catch {}
 
     if (this.name) {
       this.manager._removeDevice(this);
@@ -203,9 +260,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
     }
 
     this.ws = null;
-    this.setStatus("disconnected", "Disconnected");
     document.dispatchEvent(new Event("serial-disconnected"));
-    this.log("Disconnected cleanly (WS).");
   }
 
   async forceDisconnect() {
@@ -229,9 +284,4 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
     this.setStatus("disconnected", "Disconnected");
   }
-
-  // ---------------- Handshake helpers (not used in WS) ----------------
-
-  // waitForLine / waitForHandshakeReply are not used in WS mode.
-  // We keep them inherited but never call them here.
 }
