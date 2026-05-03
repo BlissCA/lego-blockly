@@ -3,7 +3,8 @@
 
 // ---------------- Pin mapping ----------------
 const uint8_t OUT_PINS[6] = {3, 5, 6, 9, 10, 11};  // Outputs 0-5
-const uint8_t IN_PINS[2]  = {7, 8};             // Inputs 6-7
+const uint8_t IN_PINS[2]  = {7, 8};                // Inputs 6-7
+const uint8_t OUT_STS_PINS[2]  = {12, 13};         // Output Pins for Inputs 6-7 Status
 
 // ---------------- Protocol constants ----------------
 const uint8_t HEADER0 = 0xA1;
@@ -44,6 +45,8 @@ void setup() {
   // Inputs
   for (uint8_t i = 0; i < 2; i++) {
     pinMode(IN_PINS[i], INPUT_PULLUP);
+    pinMode(OUT_STS_PINS[i], OUTPUT);
+    digitalWrite(OUT_STS_PINS[i],0);
     lastInputState[i] = digitalRead(IN_PINS[i]) ? 1 : 0;
     inputState[i]     = lastInputState[i];
     edgeCount[i]      = 0;
@@ -100,6 +103,7 @@ void waitForHandshake() {
         if (idx >= targetLen) {
           Serial.print(HANDSHAKE_ARD);
           Serial.flush();
+          delay(50);
           return;
         }
       } else {
@@ -152,6 +156,7 @@ void handleCommands() {
 void pollInputs() {
   for (uint8_t i = 0; i < 2; i++) {
     uint8_t current = digitalRead(IN_PINS[i]) ? 1 : 0;
+    digitalWrite(OUT_STS_PINS[i], current);
 
     if (current != lastInputState[i]) {
       lastInputState[i] = current;
