@@ -2,6 +2,7 @@
 
 import { LegoInterfaceA } from './DeviceLegoA.js';
 import { LegoInterfaceA_v2 } from './DeviceLegoA_v2.js';
+import { LegoInterfaceA_ws } from './DeviceLegoA_ws.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
@@ -119,6 +120,26 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("Lego A V2 Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO Interface A WS (WebSocket)
+  // -------------------------
+
+  async connectLegoInterfaceA_ws() {
+    const dev = new LegoInterfaceA_ws(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego A WS Connection failed:", err);
       await dev.disconnect();
       this._freeName(dev.name);
       return null;

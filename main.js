@@ -16,6 +16,7 @@ import toolbox from "./toolbox/toolbox.js";
 // Device system
 import "./device/DeviceLegoA.js";
 import "./device/DeviceLegoA_v2.js";
+import "./device/DeviceLegoA_ws.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
@@ -781,6 +782,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "A_V2":
       dev = await window.deviceManager.connectLegoInterfaceA_v2();
+      break;
+
+    case "A_WS":
+      dev = await window.deviceManager.connectLegoInterfaceA_ws();
       break;
 
     case "B":
