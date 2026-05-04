@@ -324,7 +324,7 @@ export class LegoInterfaceA_v2 {
       this.inputState[port] = state;
       // Interface A: one direction only → just accumulate positive counts
       this.rot[port] += rate;
-			if (rate > 1) this.log(`Port ${port} Rate : ${rate}`);
+			//if (rate > 1) this.log(`Port ${port} Rate : ${rate}`);
     }
   }
 
