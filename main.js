@@ -268,14 +268,19 @@ window.NamedEventTimer.cancelAll = function() {
 // ---------------- NAMED COUNTERS ----------------
 // Global counter storage
 window.__counters = window.__counters || {}; // { name: { acc:0, last:false } }
-window.__counter_ui_next = 0;  // next allowed UI update time
 
 window.__counter_step = function(name, dir, preset, trigger, blockId, autoReset) {
 
   // Create counter if needed
-  let c = window.__counters[name];
-  if (!c || typeof c !== "object") {
-    c = window.__counters[name] = { acc: 0, last: {} };
+  if (!window.__counters[name] || typeof window.__counters[name] !== "object") {
+    window.__counters[name] = { acc: 0, last: {} };
+  }
+
+  const c = window.__counters[name];
+
+  // If last was a boolean from old version → fix it
+  if (typeof c.last !== "object") {
+    c.last = {};
   }
 
   // Ensure last exists for this block instance
@@ -286,31 +291,26 @@ window.__counter_step = function(name, dir, preset, trigger, blockId, autoReset)
   const prev = c.last[blockId];
   const trig = !!trigger;
 
-  // false → true transition
+  // false → true transition for THIS block instance
   if (!prev && trig) {
     if (dir === "UP") c.acc++;
     else c.acc = Math.max(0, c.acc - 1);
   }
 
+  // Update last for THIS block instance
   c.last[blockId] = trig;
 
-  // -------------------------
-  // UI UPDATE THROTTLED
-  // -------------------------
-  const now = performance.now();
-  if (now >= window.__counter_ui_next) {
-    window.__counter_ui_next = now + 100; // update UI every 100 ms
-
-    if (window.workspace) {
-      const block = window.workspace.getBlockById(blockId);
-      if (block) {
-        block.setFieldValue(String(c.acc), "ACC");
-      }
+  // Update ACC field on block
+  if (window.workspace) {
+    const block = window.workspace.getBlockById(blockId);
+    if (block) {
+      block.setFieldValue(String(c.acc), "ACC");
     }
   }
 
   const done = (c.acc >= preset);
 
+  // Auto-reset AFTER returning DONE
   if (done && autoReset) {
     c.acc = 0;
   }
