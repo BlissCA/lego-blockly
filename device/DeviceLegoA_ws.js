@@ -145,7 +145,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
     // Arduino sends on change + every 100 ms → 500 ms timeout is safe
     this.packetMonitor = setInterval(() => {
       const now = performance.now();
-      if (now - this.lastPacketTime > 500) {
+      if (now - this.lastPacketTime > 1500) {
         this.log("Packet timeout — device likely disconnected (WS).");
         clearInterval(this.packetMonitor);
         this.packetMonitor = null;
