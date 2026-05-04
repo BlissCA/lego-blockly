@@ -718,6 +718,7 @@ document.getElementById("runBtn").onclick = async () => {
     if (!window.stopRequested) {
       logStatus(err);
       console.error(err);
+      window.stopRequested = true;
     }
   } finally {
     currentExecution = null;
