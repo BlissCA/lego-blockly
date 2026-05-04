@@ -141,10 +141,17 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
         }
 
         if (!connected) fail(new Error("WebSocket closed before connection established"));
-        else {
-          this.setStatus("disconnected", "Disconnected");
-          this.manager?.handleDeviceLost?.(this);
-        }
+				else {
+					this.setStatus("disconnected", "Disconnected");
+
+					if (!this._intentionalClose) {
+						// REAL unexpected disconnect
+						this.manager?.handleDeviceLost?.(this);
+					}
+
+					// Reset flag for next connection
+					this._intentionalClose = false;
+				}
       };
     });
   }
@@ -250,6 +257,8 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 	// ---------------- Disconnect overrides ----------------
 
   async disconnect() {
+		this._intentionalClose = true;
+
     this.queueActive = false;
     this.setStatus("disconnected", "Disconnecting...");
 
