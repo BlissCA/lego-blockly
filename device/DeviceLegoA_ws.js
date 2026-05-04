@@ -84,32 +84,45 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
         }, 2000);
       };
 
-      this.ws.onmessage = (event) => {
-        const data = event.data;
-        if (!(data instanceof ArrayBuffer)) return;
+			this.ws.onmessage = (event) => {
+				const data = event.data;
+				if (!(data instanceof ArrayBuffer)) return;
 
-        const bytes = new Uint8Array(data);
-        this.processIncomingBytes(bytes);
+				const bytes = new Uint8Array(data);
 
-        if (!connected) {
-          connected = true;
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-          }
+				// -------------------------
+				// HEARTBEAT (1 byte = 0xFF)
+				// -------------------------
+				if (bytes.length === 1 && bytes[0] === 0xFF) {
+					this.lastPacketTime = performance.now();
+					return; // do NOT feed into ring buffer
+				}
 
-          if (!this.name) {
-            this.name = this.manager._allocateName("LegoA");
-          }
+				// -------------------------
+				// REAL PACKET (11 bytes)
+				// -------------------------
+				this.processIncomingBytes(bytes);
 
-          this.log("Handshake complete (WS).");
-          this.setStatus("connected", "Connected via WebSocket");
-          document.dispatchEvent(new Event("serial-connected"));
-          this.readingActive = true;
+				if (!connected) {
+					connected = true;
+					if (timeoutId) {
+						clearTimeout(timeoutId);
+						timeoutId = null;
+					}
 
-          resolve(this);
-        }
-      };
+					if (!this.name) {
+						this.name = this.manager._allocateName("LegoA");
+					}
+
+					this.log("Handshake complete (WS).");
+					this.setStatus("connected", "Connected via WebSocket");
+					document.dispatchEvent(new Event("serial-connected"));
+					this.readingActive = true;
+
+					resolve(this);
+				}
+			};
+
 
       this.ws.onerror = () => {
         if (!connected) fail(new Error("WebSocket error"));
@@ -138,21 +151,23 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
   // ---------------- Packet monitor tuned for WS heartbeat ----------------
 
-  startPacketMonitorWS() {
-    this.lastPacketTime = performance.now();
-    if (this.packetMonitor) clearInterval(this.packetMonitor);
+	startPacketMonitorWS() {
+		this.lastPacketTime = performance.now();
+		if (this.packetMonitor) clearInterval(this.packetMonitor);
 
-    // Arduino sends on change + every 100 ms → 500 ms timeout is safe
-    this.packetMonitor = setInterval(() => {
-      const now = performance.now();
-      if (now - this.lastPacketTime > 1500) {
-        this.log("Packet timeout — device likely disconnected (WS).");
-        clearInterval(this.packetMonitor);
-        this.packetMonitor = null;
-        this.manager?.handleDeviceLost?.(this);
-      }
-    }, 200);
-  }
+		this.packetMonitor = setInterval(() => {
+			const now = performance.now();
+
+			// Heartbeat arrives every 100 ms
+			// Even if Chrome freezes for 2–3 seconds, we recover
+			if (now - this.lastPacketTime > 5000) {
+				this.log("REAL disconnect detected (WS).");
+				clearInterval(this.packetMonitor);
+				this.packetMonitor = null;
+				this.manager?.handleDeviceLost?.(this);
+			}
+		}, 200);
+	}
 
   // ---------------- Keep-Alive override ----------------
 
