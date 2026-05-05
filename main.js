@@ -30,7 +30,7 @@ let isDirty = false;
 
 // ---------------- GLOBAL EXECUTION CONTROL ----------------
 
-let currentExecution = null;
+window.currentExecution = null;
 window.stopRequested = false;
 let debugLogPackets = false;
 window.debugLogPackets = debugLogPackets;
