@@ -718,9 +718,9 @@ document.getElementById("runBtn").onclick = async () => {
     if (!window.stopRequested) {
       logStatus(err);
       console.error(err);
-      window.stopRequested = true;
       NamedTask.stopAll();
       NamedEventTimer.cancelAll();
+      //window.stopRequested = true;
     }
   } finally {
     currentExecution = null;
