@@ -21,6 +21,9 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
     this.rbHead = 0;
     this.rbTail = 0;
 
+		this.lastHeartbeatTime = 0; // ESP32/bridge alive
+		this.lastDataTime = 0;      // Arduino/Interface A alive
+
   }
 
   // ---------------- Transport overrides ----------------
@@ -94,13 +97,14 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 				// HEARTBEAT (1 byte = 0xFF)
 				// -------------------------
 				if (bytes.length === 1 && bytes[0] === 0xFF) {
-					this.lastPacketTime = performance.now();
+					this.lastHeartbeatTime = performance.now(); // bridge alive
 					return; // do NOT feed into ring buffer
 				}
 
 				// -------------------------
 				// REAL PACKET (11 bytes)
 				// -------------------------
+				this.lastDataTime = performance.now(); // Arduino alive
 				this.processIncomingBytes(bytes);
 
 				if (!connected) {
@@ -122,7 +126,6 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 					resolve(this);
 				}
 			};
-
 
       this.ws.onerror = () => {
         if (!connected) fail(new Error("WebSocket error"));
@@ -159,19 +162,31 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
   // ---------------- Packet monitor tuned for WS heartbeat ----------------
 
 	startPacketMonitorWS() {
-		this.lastPacketTime = performance.now();
+		const now = performance.now();
+		this.lastHeartbeatTime = now;
+		this.lastDataTime = now;
+
 		if (this.packetMonitor) clearInterval(this.packetMonitor);
 
 		this.packetMonitor = setInterval(() => {
-			const now = performance.now();
+			const t = performance.now();
 
-			// Heartbeat arrives every 100 ms
-			// Even if Chrome freezes for 2–3 seconds, we recover
-			if (now - this.lastPacketTime > 5000) {
-				this.log("REAL disconnect detected (WS).");
+			// 1) Bridge/WS lost: no heartbeat
+			if (t - this.lastHeartbeatTime > 5000) {
+				this.log("Bridge/WS lost (no heartbeat).");
 				clearInterval(this.packetMonitor);
 				this.packetMonitor = null;
-				this.manager?.handleDeviceLost?.(this);
+				this.manager?.handleDeviceLost?.(this); // or handleBridgeLost
+				return;
+			}
+
+			// 2) Arduino/Interface A lost: heartbeat OK, but no data
+			if (t - this.lastDataTime > 2000) {
+				this.log("Arduino/Interface A lost (no data frames).");
+				clearInterval(this.packetMonitor);
+				this.packetMonitor = null;
+				this.manager?.handleDeviceLost?.(this); // or handleArduinoLost
+				return;
 			}
 		}, 200);
 	}
