@@ -8,6 +8,36 @@ import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
 
+// -------------------------
+// Screen Wake Lock Support
+// -------------------------
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    console.log("[WakeLock] Activated");
+
+    wakeLock.addEventListener("release", () => {
+      console.log("[WakeLock] Released");
+    });
+  } catch (err) {
+    console.warn("[WakeLock] Error:", err);
+  }
+}
+
+function releaseWakeLock() {
+  try {
+    if (wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+      console.log("[WakeLock] Manually released");
+    }
+  } catch (err) {
+    console.warn("[WakeLock] Release error:", err);
+  }
+}
+
 export class DeviceManager {
   constructor() {
     this.devices = [];
@@ -73,6 +103,8 @@ export class DeviceManager {
     window.logStatus?.(`Connected: ${dev.name}`);
     window.renderDeviceEntry?.(dev);
     window.refreshDevicesPanel?.();
+    // Activate wake lock when a device connects
+    requestWakeLock();
   }
 
   _removeDevice(dev) {
@@ -84,6 +116,12 @@ export class DeviceManager {
 
     window.logStatus?.(`Disconnected: ${dev.name}`);
     window.refreshDevicesPanel?.();
+
+    // If no devices remain, release wake lock
+    if (this.devices.length === 0) {
+      releaseWakeLock();
+    }    
+
   }
 
   // -------------------------
@@ -266,6 +304,7 @@ export class DeviceManager {
     dev.forceDisconnect();
     this._removeDevice(dev);
     window.refreshDevicesPanel?.();
+
   }
 
   // -------------------------
