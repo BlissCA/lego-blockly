@@ -193,14 +193,14 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
 
   // ---------------- Keep-Alive override ----------------
 
-  startKeepAlive() {
-    this.keepAliveTimer = setInterval(() => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(this.KEEP_ALIVE);
-      }
-    }, 1900);
-  }
-
+	startKeepAlive() {
+		this.keepAliveTimer = setInterval(() => {
+			this.enqueueCommand(async () => {
+				if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+				this.ws.send(this.KEEP_ALIVE);
+			});
+		}, 1900);
+	}
 
 	processIncomingBytes(bytes) {
 		const rb = this.rb;
