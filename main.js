@@ -719,6 +719,7 @@ document.getElementById("runBtn").onclick = async () => {
       logStatus(err);
       console.error(err);
       window.stopRequested = true;
+      NamedTask.stopAll();
     }
   } finally {
     currentExecution = null;
