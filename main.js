@@ -720,7 +720,6 @@ document.getElementById("runBtn").onclick = async () => {
       console.error(err);
       NamedTask.stopAll();
       NamedEventTimer.cancelAll();
-      //window.stopRequested = true;
     }
   } finally {
     currentExecution = null;
