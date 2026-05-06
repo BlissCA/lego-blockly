@@ -302,7 +302,7 @@ export class LegoInterfaceB {
             w.releaseLock();
           }
         });
-        this.log("Keep-alive sent");
+        // this.log("Keep-alive sent");
       } catch (err) {
         this.log(`Keep-alive error: ${err.message || err}`);
       }
