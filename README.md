@@ -48,3 +48,7 @@ Notes:
 - To use Interface A with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably)
   - You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
   - See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
+
+## Wonderful other related projects by others:
+- For RCX brick: [BlockNQC](https://www.webpbrick.com/nqc/blocknqc/) and [WebPBrick](https://www.webpbrick.com/ide/) by @maehw (https://github.com/maehw)
+- [BrickLogo](https://github.com/openbrickproject/BrickLogo) by the Open Brick Project. 
