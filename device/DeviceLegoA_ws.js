@@ -322,6 +322,6 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
       this.name = null;
     }
 
-    this.setStatus("disconnected", "Disconnected");
+    // this.setStatus("disconnected", "Disconnected");
   }
 }
