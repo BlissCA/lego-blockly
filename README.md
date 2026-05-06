@@ -1,35 +1,50 @@
-Lego Interface B ONLINE Blockly type Programming:
+# LEGO BLOCKLY
 
-The requirements? Well no need to install any softwares like python etc but you still need:
+![Lego Blockly Example](https://bricksafe.com/files/Bliss2025/lego-blockly-part-2/chrome_JjSrEd386C.png/800x440.png)
 
-- A Windows PC with Internet access 
-  I have been told it is also working on OSX, Linux has to be confirmed
-- But the key is to use Chromium browser latest version (Chrome or Edge, I use Chrome)
-- usb ports available with USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
-  It might work with Android phone or tablet with OTG adapter + serial adapter or a Bluetooth to RS232 adapter.  Has to be be confirmed.
+This softwares uses [Blockly](https://developers.google.com/blockly) as a programming language to make programs for Brainless Lego old and newer interfaces.
 
-It supports multiple Lego Interface B!
+This is a web application that will work only in chromium based browsers like Chrome / Edge (Latest version) and is installable outside the broswer if you click the small icon on the right of the address bar.\
+![PWA App](https://bricksafe.com/files/Bliss2025/lego-blockly/Lego-Blockly-PWA.png)
 
-Link to my Lego-Blockly page:
-https://blissca.github.io/lego-blockly/index.html
+It supports for now:
 
-Example Projects to download
-https://github.com/BlissCA/lego-blockly/tree/main/Examples
+- Lego Interface B
+- Lego Interface A with an Arduino (Uno/Nano sketch provided).
+- Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
+- VLL : Virtal Light Link for Code Pilot and MicroScout brick
+- Wedo 1.0 (using the 2 ports USB hub)
 
-Go to the following post on Eurobricks forum for more informations
-https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464
+More to come (Wedo 2.0, Boost, etc)
 
-2026-03-27:
-- Now has support for intercommunication with RCX yellow brick using the IR tower Serial (NOT USB Tower)
-- it is now an "installable" (PWA) application.  In the adress bar of your Chromium browser, click on the small TV icon that has a down arrow on the right...  This should allow you to use the app offline with no internet.
+You need access to serial ports:
+- Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
+- Through the use of Bluetooth to Serial adapter like [HC-05](https://www.amazon.ca/hiBCTR-HC-05-Dual-Mode-Serial-Component/dp/B0FX2B4KMP).  Works with Interface A with the Arduino. Works with Interface B with the use of a [RS232 to TTL adapter](https://www.amazon.ca/HiLetgo-MAX3232-Converter-Module-Serial/dp/B00LPK0Z9A) using Max3232.
 
-2026-04-09
-- Added support for Lego CyberMaster and Lego Interface A
-- For Interface A, since it uses parallel lines, you need a Serial to parallel lines adapter which can be an Arduino type board.
-- So for Interface A, it is only supported though the use of an Arduino with the Sketch provided in the Sketch Folder.  This sketch works with no modification for UNO and NANO.
 
-2026-04-09
-- Added support for Lego CyberMaster and Lego Interface A
-- For Interface A, since it uses parallel lines, you need a Serial to parallel lines adapter which can be an Arduino type board.
-- So for Interface A, it is only supported though the use of an Arduino with the Sketch provided in the Sketch Folder.  This sketch works with no modification for UNO and NANO.
-- See https://wiki.lvl1.org/Lego_Interactive_Interface-A_Driven_via_Arduino for more information on the pins used for Interface A...
+>**Lego Blockly supports multiple Lego Interfaces/bricks connected at the same time**  
+
+
+Link to my Lego-Blockly page: https://blissca.github.io/lego-blockly/index.html
+
+Example Projects to download: https://github.com/BlissCA/lego-blockly/tree/main/Examples
+
+Go to the following post on Eurobricks forum for more informations: [Eurobricks Forum](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464)
+
+
+Notes:
+- Concerning the use of HC-05 BT to TTL Board.  
+  - For Interface B, since the Int.B is 9600 bauds, the HC-05 can be use as is. you can wire the rx, tx to max3232 adapter rx, tx.  You will need a 5v source and wire 5v and GND to both Max3232 and HC-05 modules.\
+  ![HC-05 with Max3232](https://bricksafe.com/files/Bliss2025/lego-blockly/IMG_7785.jpeg/800x600.jpeg)
+  - For Interface A: 
+    - The arduino code uses 115200 bauds so the HC-05 default baud rate must be changed by entering the AT Command Mode.
+    - You must use a arduino or FTDI to send specific AT commands.  
+    - To enter AT Command mode, hold HC-05 button while powering on.  
+    - Set baud rate to 38400 baud of Serial Monitor (Arduino IDE) or Termite (if using FTDI, you can use other terminal software Hercules, putty).
+    - Wire Tx on Rx, and Rx on Tx.  
+    - By the way, The HC-05 module's RX/TX logic levels are 3.3V, despite the module often being powered by a 5V VCC pin. The RX pin is not 5V tolerant, so a voltage divider (e.g., 1kΩ and 2kΩ resistors) is required to reduce a 5V Arduino TX signal to 3.3V, while the HC-05 TX can connect directly to a 5V RX.
+    - Once un AT Mode, in the Terminal or serial monitor, type AT+UART? to check the actual baud.  Type AT+UART=115200,0,0 to change baud.  Power cycle the module to exit AT mode.
+
+- To use Interface A with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably)
+  - You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
+  - See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
