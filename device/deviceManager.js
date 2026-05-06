@@ -332,7 +332,11 @@ export class DeviceManager {
     }
 
     dev.forceDisconnect();
-    this._removeDevice(dev);
+    if (dev.name) {
+      this._removeDevice(dev);
+    }
+
+    
     window.refreshDevicesPanel?.();
 
   }
