@@ -324,21 +324,19 @@ export class DeviceManager {
   // -------------------------
 
   handleDeviceLost(dev) {
-    window.logStatus?.(`Lost device ${dev.name}`);
-
-    if (window.currentExecution) {
-      window.stopRequested = true;
-      window.logStatus?.("Program stopped due to device loss.");
-    }
-
-    dev.forceDisconnect();
     if (dev.name) {
+      window.logStatus?.(`Lost device ${dev.name}`);
+
+      if (window.currentExecution) {
+        window.stopRequested = true;
+        window.logStatus?.("Program stopped due to device loss.");
+      }
+
+      dev.forceDisconnect();
       this._removeDevice(dev);
+      
+      window.refreshDevicesPanel?.();
     }
-
-    
-    window.refreshDevicesPanel?.();
-
   }
 
   // -------------------------
