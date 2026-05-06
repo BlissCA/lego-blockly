@@ -530,7 +530,7 @@ export class LegoInterfaceA_v2 {
       this.name = null;
     }
 
-    this.setStatus("disconnected", "Disconnected");
+    // this.setStatus("disconnected", "Disconnected");
   }
 
 	async waitForLine(target, timeoutMs = 3000) {
