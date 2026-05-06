@@ -13,8 +13,6 @@ import { LegoVLL } from './DeviceLegoVLL.js';
 // -------------------------
 let wakeLock = null;
 
-let wakeLock = null;
-
 async function requestWakeLock() {
   if (!hasConnectedDevices()) return;
 
