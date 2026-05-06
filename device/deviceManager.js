@@ -13,14 +13,27 @@ import { LegoVLL } from './DeviceLegoVLL.js';
 // -------------------------
 let wakeLock = null;
 
+let wakeLock = null;
+
 async function requestWakeLock() {
+  if (!hasConnectedDevices()) return;
+
   try {
     wakeLock = await navigator.wakeLock.request("screen");
     console.log("[WakeLock] Activated");
 
     wakeLock.addEventListener("release", () => {
       console.log("[WakeLock] Released");
+
+      // Re-request ONLY if:
+      // - tab is visible
+      // - device is still connected
+      if (document.visibilityState === "visible" && hasConnectedDevices()) {
+        console.log("[WakeLock] Re-requesting after release");
+        requestWakeLock();
+      }
     });
+
   } catch (err) {
     console.warn("[WakeLock] Error:", err);
   }
@@ -37,6 +50,25 @@ function releaseWakeLock() {
     console.warn("[WakeLock] Release error:", err);
   }
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && hasConnectedDevices()) {
+    console.log("[WakeLock] Tab visible — re-requesting");
+    requestWakeLock();
+  }
+});
+
+// Prevent Chrome from marking the page as idle (keeps Wake Lock alive)
+setInterval(() => {
+  window.dispatchEvent(new Event("mousemove"));
+}, 120000); // every 2 minutes
+
+
+function hasConnectedDevices() {
+  return window.deviceManager?.devices?.length > 0;
+}
+
+
 
 export class DeviceManager {
   constructor() {
