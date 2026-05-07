@@ -1,10 +1,11 @@
 # Lego Interface A WebSocket version
-The WebSocket version is an alternative to the use of BlueTooth (HC-05 module) to increase the speed and distance range for controlling Lego Interface A.
+The WebSocket version is an alternative to the use of BlueTooth (HC-05 module).\
+It increases the speed and distance range for controlling Lego Interface A by using WIFI instead of Bluetooth.
 
-It uses an ESP32 Wroom to make the Bridge between websocket Ethernet (Wifi) to TTL Serial.\
+It uses an ESP32 Wroom to make the Bridge between websocket Ethernet (Wifi) and TTL Serial.\
 Serial is still needed for the Arduino Uno/Nano that is still used to control the parallel lines of Interface A.\
 So the ESP32 should be located near the Arduino Uno/Nano like an HC-05 when using BlueTooth.\
-**Lego9750_WS sketch is using the same pinout as the Lego9750_v2.**
+(**Lego9750_WS sketch uses the same pinout as the Lego9750_v2.**)
 
 ## Boards needed in Arduino Boards Manager
 - Arduino AVR Boards by Arduino (1.8.7)
@@ -109,7 +110,7 @@ These instructions are for windows 11 OS only.
   And replace 192.168.2.152 with your ESP32 IP address you saved earlier.\
   Save the conf file and close notepad.\
   Should you have a second ESP32 Bridge, copy paste location /bridge1/ section and paste it after it and replace bridge1 by bridge2 and change the ESP32 IP address.\
-  Then Delete the line location /bridge2/ { return 204; }.
+  Then Delete the line ```location /bridge2/ { return 204; }```.
 - In the command prompt, type "start nginx".  (You must be located in the nginx folder which should be the case if you did the cd\nginx previously)\
   You may make a batch file and execute it automatically when to boot your computer to start nginx automatically.
 - Open a Tab in Chrome and in the address bar copy paste the following:
@@ -129,7 +130,7 @@ These instructions are for windows 11 OS only.
 
 ![Lego Interface 1 Connected](https://bricksafe.com/files/Bliss2025/lego-blockly-part-2/chrome_8xLVt9KNWo.png)
 
-
+Use Lego Int.A v2 blocks in you blockly programs.
 
 
 
