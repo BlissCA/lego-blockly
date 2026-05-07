@@ -8,7 +8,7 @@ export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
   constructor(name, manager, wsUrl) {
     super(name, manager);
 
-    this.wsUrl = wsUrl || "wss://127.0.0.1:7890/lego-bridge";
+    this.wsUrl = wsUrl || "wss://localhost:7890/lego-bridge";
     this.ws = null;
 
     // WebSerial fields unused in WS mode

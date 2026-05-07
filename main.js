@@ -161,7 +161,7 @@ window.autoSelectPort = async function () {
 
 // ------------ WEBSOCKET BRIDGE DISCOVERY ------------
 async function discoverBridges() {
-  const base = "https://127.0.0.1:7890";
+  const base = "https://localhost:7890";
   const candidates = [
     `${base}/bridge1/id`,
     `${base}/bridge2/id`,
