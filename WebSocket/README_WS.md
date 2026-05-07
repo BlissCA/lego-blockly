@@ -89,7 +89,7 @@ These instructions are for windows 11 OS only.
   ```
         # --- WebSocket Bridge ---
         location /bridge1/ {
-            proxy_pass https://192.168.2.152:80/;
+            proxy_pass http://192.168.2.152:80/;
 
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
@@ -116,11 +116,11 @@ These instructions are for windows 11 OS only.
 - In the command prompt, type "start nginx".  (You must be located in the nginx folder which should be the case if you did the cd\nginx previously)\
   You may make a batch file and execute it automatically when to boot your computer to start nginx automatically.
 - Open a Tab in Chrome and in the address bar copy paste the following:
-  https://127.0.0.1:7890/ \
+  ```https://127.0.0.1:7890/ \```
   It will tell you it is not secure blah blah, just click advanced and continue to this website.\
   Then you should see Welcome to nginx page after that.\
   You have to do this once.  You may have to do it again if you close and reopen Chrome, so bookmark this url.
-- To test the ESP32 bridge, in the chrome address bar, enter https://127.0.0.1:7890/bridge1/id.\
+- To test the ESP32 bridge, in the chrome address bar, enter ```https://127.0.0.1:7890/bridge1/id.\```
   You should see : {"type":"lego-bridge","name":"Bridge 1","version":"1.0","ws":"/lego-bridge"}
 - You should now be ready to select Interface A WS in Lego Blockly and connect to it 
 
