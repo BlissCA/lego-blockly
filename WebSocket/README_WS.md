@@ -89,7 +89,7 @@ These instructions are for windows 11 OS only.
   ```
         # --- WebSocket Bridge ---
         location /bridge1/ {
-            proxy_pass http://192.168.2.152:80/;
+            proxy_pass https://192.168.2.152:80/;
 
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
