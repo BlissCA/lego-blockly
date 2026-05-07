@@ -10,9 +10,9 @@ This is a web application that will work only in chromium based browsers like Ch
 ![PWA App](https://bricksafe.com/files/Bliss2025/lego-blockly/Lego-Blockly-PWA.png)
 
 
-## Lego Interfaces/Bricks supported
+## Supported Lego Interfaces/Bricks
 
-It supports for now:
+Lego Blockly supports for now:
 
 - Lego Interface B
 - Lego Interface A with an Arduino (Uno/Nano sketch provided).
