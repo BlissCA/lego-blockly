@@ -2,6 +2,8 @@
 
 ![Lego Blockly Example](https://bricksafe.com/files/Bliss2025/lego-blockly-part-2/chrome_JjSrEd386C.png/800x440.png)
 
+## Start programming with Lego-Blockly here: https://blissca.github.io/lego-blockly/index.html
+
 This softwares uses [Blockly](https://developers.google.com/blockly) as a programming language to make programs for Brainless Lego old and newer interfaces.
 
 This is a web application that will work only in chromium based browsers like Chrome / Edge (Latest version) and is installable outside the broswer if you click the small icon on the right of the address bar.\
@@ -22,12 +24,10 @@ You need access to serial ports:
 - Through the use of Bluetooth to Serial adapter like [HC-05](https://www.amazon.ca/hiBCTR-HC-05-Dual-Mode-Serial-Component/dp/B0FX2B4KMP).  Works with Interface A with the Arduino. Works with Interface B with the use of a [RS232 to TTL adapter](https://www.amazon.ca/HiLetgo-MAX3232-Converter-Module-Serial/dp/B00LPK0Z9A) using Max3232.
 
 
->**Lego Blockly supports multiple Lego Interfaces/bricks connected at the same time**  
+><ins>**Lego Blockly supports multiple Lego Interfaces/bricks connected at the same time**</ins>  
 
 
-Link to my Lego-Blockly page: https://blissca.github.io/lego-blockly/index.html
-
-Example Projects to download: https://github.com/BlissCA/lego-blockly/tree/main/Examples
+Example Projects to download: https://github.com/BlissCA/lego-blockly/tree/main/Examples (_Some examples are old and might not work anymore because of updated blockly blocks_)
 
 Go to the following thread on Eurobricks forum for more informations: [Eurobricks Forum](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464).\
 Special thanks to people who participate in this forum thread.  They give precious support, suggestions, testing etc.  (Toastie, Gunners TekZone, Wapata to name a few)

@@ -162,7 +162,6 @@ window.autoSelectPort = async function () {
 // ------------ WEBSOCKET BRIDGE DISCOVERY ------------
 async function discoverBridges() {
   const base = "https://127.0.0.1:7890";
-
   const candidates = [
     `${base}/bridge1/id`,
     `${base}/bridge2/id`,
@@ -173,29 +172,22 @@ async function discoverBridges() {
   const results = [];
 
   for (const url of candidates) {
-    let res;
+    let res = null;
 
     try {
-      // Catch network errors BEFORE they hit console
       res = await fetch(url, { cache: "no-store" }).catch(() => null);
-      if (!res || !res.ok) {
-        // Quietly skip missing bridges
-        continue;
-      }
+      if (!res || !res.ok) continue;
     } catch {
-      // Should never reach here, but safe anyway
       continue;
     }
 
-    // Parse JSON safely
-    let info;
+    let info = null;
     try {
       info = await res.json();
     } catch {
       continue;
     }
 
-    // Extract the /bridgeN/ prefix from the URL
     const prefix = url.match(/\/bridge\d+\//)[0];
 
     results.push({
