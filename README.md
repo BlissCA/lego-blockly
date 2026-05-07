@@ -33,7 +33,8 @@ You need access to serial ports:
 Example Projects to download: https://github.com/BlissCA/lego-blockly/tree/main/Examples (_Some examples are old and might not work anymore because of updated blockly blocks_)
 
 ### IN TEST: Connect to Interface A using WIFI and WebSocket
-Please read the [readme_ws.md](WebSocket/README_WS.md) in the WebSocket folder for instructions how to use websocket to extend the distance range of Interface A.
+Please read the [readme_ws.md](WebSocket/README_WS.md) in the WebSocket folder for instructions how to use websocket to extend the distance range of Interface A.\
+This will NOT work on a phone or tablet for the moment.  This will work only if nginx runs on the same PC that runs Lego Blockly.
 
 ## Forum
 Go to the following thread on Eurobricks forum for more informations: [Eurobricks Forum](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464).\
