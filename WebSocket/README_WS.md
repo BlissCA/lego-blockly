@@ -82,7 +82,8 @@ These instructions are for windows 11 OS only.
 - Open an elevated command prompt (As an Administrator) and type the command cd\nginx
 - In the root of the folder nginx I included 3 files pertaining to another software called openSSL that is used to create the self signed certificate.\
   The setup_certs.bat can be used to create the certificates that are saved in the nginx/conf folder.\
-  There are alread certificate files in the conf folder so you might not have to execute the setup_certs.bat of everything is working for you already.
+  There are alread certificate files in the conf folder so you may not have to execute the setup_certs.bat if everything is working for you already.\
+  So you may skip this for now.
 - In the "conf" folder, edit nginx.conf with notepad.
   Search for the following section:
   ```
