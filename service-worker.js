@@ -63,10 +63,15 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const url = event.request.url;
 
+  // Do NOT intercept local bridge traffic
+  if (url.startsWith("https://127.0.0.1:7890")) {
+    return; // Let the browser handle it normally
+  }
+
   // Always fetch version.js fresh
   if (url.endsWith("version.js")) {
     return event.respondWith(
-        fetch(event.request, { cache: "no-store" })
+      fetch(event.request, { cache: "no-store" })
     );
   }
 
@@ -75,6 +80,7 @@ self.addEventListener("fetch", event => {
     fetch(event.request).catch(() => caches.match(event.request))
   );
 });
+
 
 self.addEventListener("message", event => {
   if (event.data && event.data.type === "SKIP_WAITING") {
