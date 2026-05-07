@@ -53,6 +53,9 @@ Notes:
   - You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
   - See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
   - You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
+  - Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
+  - Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
+  
 
 ## Wonderful other related projects by others:
 - For RCX brick: [BlockNQC](https://www.webpbrick.com/nqc/blocknqc/) and [WebPBrick](https://www.webpbrick.com/ide/) by @maehw (https://github.com/maehw)
