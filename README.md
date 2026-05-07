@@ -9,6 +9,9 @@ This softwares uses [Blockly](https://developers.google.com/blockly) as a progra
 This is a web application that will work only in chromium based browsers like Chrome / Edge (Latest version) and is installable outside the broswer if you click the small icon on the right of the address bar.\
 ![PWA App](https://bricksafe.com/files/Bliss2025/lego-blockly/Lego-Blockly-PWA.png)
 
+
+## Lego Interfaces/Bricks supported
+
 It supports for now:
 
 - Lego Interface B
@@ -29,11 +32,12 @@ You need access to serial ports:
 
 Example Projects to download: https://github.com/BlissCA/lego-blockly/tree/main/Examples (_Some examples are old and might not work anymore because of updated blockly blocks_)
 
+## Forum
 Go to the following thread on Eurobricks forum for more informations: [Eurobricks Forum](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464).\
 Special thanks to people who participate in this forum thread.  They give precious support, suggestions, testing etc.  (Toastie, Gunners TekZone, Wapata to name a few)
 
 
-Notes:
+## Notes:
 - Concerning the use of HC-05 BT to TTL Board.  
   - For Interface B: 
     - Since the Int.B is 9600 bauds, the HC-05 can be use as is. You can wire the rx to rx and tx to tx (Reverse if not working).  
