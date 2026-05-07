@@ -198,8 +198,8 @@ export class DeviceManager {
   // Connect LEGO Interface A WS (WebSocket)
   // -------------------------
 
-  async connectLegoInterfaceA_ws() {
-    const dev = new LegoInterfaceA_ws(null, this);
+  async connectLegoInterfaceA_ws(url) {
+    const dev = new LegoInterfaceA_ws(null, this, url);
 
     try {
       await dev.connect();

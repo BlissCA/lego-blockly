@@ -158,6 +158,100 @@ window.autoSelectPort = async function () {
   throw new Error("No compatible serial transport available.");
 };
 
+
+// ------------ WEBSOCKET BRIDGE DISCOVERY ------------
+async function discoverBridges() {
+  const base = "https://127.0.0.1:7890";
+
+  const candidates = [
+    `${base}/bridge1/id`,
+    `${base}/bridge2/id`,
+    `${base}/bridge3/id`,
+    `${base}/bridge4/id`
+  ];
+
+  const results = [];
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+
+      const info = await res.json();
+
+      results.push({
+        name: info.name,
+        wsUrl: `${base}${info.ws}`,   // e.g. wss://127.0.0.1:7890/bridge1/lego-bridge
+        idUrl: url
+      });
+    } catch (e) {
+      // ignore unreachable bridges
+    }
+  }
+
+  return results;
+}
+
+// ---------------- WEBSOCKET BRIDGE PICKER ----------------
+function showBridgePicker(bridges) {
+  return new Promise((resolve) => {
+    // Create overlay
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.right = 0;
+    overlay.style.bottom = 0;
+    overlay.style.background = "rgba(0,0,0,0.5)";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.zIndex = 9999;
+
+    // Dialog box
+    const box = document.createElement("div");
+    box.style.background = "#fff";
+    box.style.padding = "20px";
+    box.style.borderRadius = "8px";
+    box.style.minWidth = "300px";
+    box.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+    box.innerHTML = `<h3>Select a LEGO Bridge</h3>`;
+
+    // Add buttons for each bridge
+    bridges.forEach((b) => {
+      const btn = document.createElement("button");
+      btn.textContent = b.name;
+      btn.style.display = "block";
+      btn.style.width = "100%";
+      btn.style.margin = "10px 0";
+      btn.style.padding = "10px";
+      btn.style.fontSize = "16px";
+
+      btn.onclick = () => {
+        document.body.removeChild(overlay);
+        resolve(b);
+      };
+
+      box.appendChild(btn);
+    });
+
+    // Cancel button
+    const cancel = document.createElement("button");
+    cancel.textContent = "Cancel";
+    cancel.style.marginTop = "10px";
+    cancel.style.width = "100%";
+    cancel.onclick = () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    };
+    box.appendChild(cancel);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
+
 // ---------------- EVENT-DRIVEN TIMER SCHEDULER ----------------
 
 //window.ScheduledEvents = [];
@@ -773,6 +867,8 @@ document.getElementById("stopBtn").onclick = async () => {
 
 };
 
+
+// ---------------- CONNECT DEVICES ----------------
 document.getElementById("connectDeviceBtn").onclick = async () => {
   const sel = document.getElementById("deviceSelect").value;
   let dev = null;
@@ -787,7 +883,18 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
       break;
 
     case "A_WS":
-      dev = await window.deviceManager.connectLegoInterfaceA_ws();
+      const bridges = await discoverBridges();
+      if (bridges.length === 0) {
+        alert("No LEGO bridges found.");
+        return;
+      }
+
+      const selected = await showBridgePicker(bridges);
+      if (!selected) return;
+
+      console.log("Connecting to:", selected.wsUrl);
+
+      dev = await window.deviceManager.connectLegoInterfaceA_ws(selected.wsUrl);
       break;
 
     case "B":

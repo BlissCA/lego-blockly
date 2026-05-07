@@ -5,10 +5,10 @@
 import { LegoInterfaceA_v2 } from "./DeviceLegoA_v2.js";
 
 export class LegoInterfaceA_ws extends LegoInterfaceA_v2 {
-  constructor(name, manager, wsUrl = "wss://127.0.0.1:7890/lego-bridge") {
+  constructor(name, manager, wsUrl) {
     super(name, manager);
 
-    this.wsUrl = wsUrl;
+    this.wsUrl = wsUrl || "wss://127.0.0.1:7890/lego-bridge";
     this.ws = null;
 
     // WebSerial fields unused in WS mode
