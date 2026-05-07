@@ -64,7 +64,7 @@ self.addEventListener("fetch", event => {
   const url = event.request.url;
 
   // Do NOT intercept local bridge traffic
-  if (url.startsWith("https://localhost:7890")) {
+  if (url.startsWith("https://127.0.0.1:7890")) {
     return; // Let the browser handle it normally
   }
 
