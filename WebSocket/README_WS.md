@@ -76,7 +76,8 @@ So nginx will be used as a reverse proxy to make wss request goes to ws esp32 br
 
 These instructions are for windows 11 OS only.
 
-- On the PC that runs Lego Blockly, unzip the nginx.zip file (contains nginx folder so use "unzip here")
+- Download nginx.zip located in the root of WebSocket folder.
+- On the PC that runs Lego Blockly, unzip the nginx.zip file (contains nginx folder so use "unzip here").
 - You should place nginx in an easy to access location like C:\nginx
 - Open an elevated command prompt (As an Administrator) and type the command cd\nginx
 - In the root of the folder nginx I included 3 files pertaining to another software called openSSL that is used to create the self signed certificate.\
