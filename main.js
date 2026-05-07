@@ -173,24 +173,36 @@ async function discoverBridges() {
   const results = [];
 
   for (const url of candidates) {
+    let res;
+
     try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) {
-        console.log("[Bridge discovery] HTTP", res.status, "for", url);
+      // Catch network errors BEFORE they hit console
+      res = await fetch(url, { cache: "no-store" }).catch(() => null);
+      if (!res || !res.ok) {
+        // Quietly skip missing bridges
         continue;
       }
-
-      const info = await res.json();
-      console.log("[Bridge discovery] Found:", info.name, "at", url);
-
-      results.push({
-        name: info.name,
-        wsUrl: `${base}${info.ws}`.replace(base, `${base}${url.match(/\/bridge\d+\//)[0]}`),
-        idUrl: url
-      });
-    } catch (e) {
-      console.log("[Bridge discovery] Failed:", url, e.message || e);
+    } catch {
+      // Should never reach here, but safe anyway
+      continue;
     }
+
+    // Parse JSON safely
+    let info;
+    try {
+      info = await res.json();
+    } catch {
+      continue;
+    }
+
+    // Extract the /bridgeN/ prefix from the URL
+    const prefix = url.match(/\/bridge\d+\//)[0];
+
+    results.push({
+      name: info.name,
+      wsUrl: `${base}${prefix}${info.ws.replace(/^\//, "")}`,
+      idUrl: url
+    });
   }
 
   return results;
