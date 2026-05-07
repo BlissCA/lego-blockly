@@ -175,22 +175,27 @@ async function discoverBridges() {
   for (const url of candidates) {
     try {
       const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.log("[Bridge discovery] HTTP", res.status, "for", url);
+        continue;
+      }
 
       const info = await res.json();
+      console.log("[Bridge discovery] Found:", info.name, "at", url);
 
       results.push({
         name: info.name,
-        wsUrl: `${base}${info.ws}`,   // e.g. wss://127.0.0.1:7890/bridge1/lego-bridge
+        wsUrl: `${base}${info.ws}`.replace(base, `${base}${url.match(/\/bridge\d+\//)[0]}`),
         idUrl: url
       });
     } catch (e) {
-      // ignore unreachable bridges
+      console.log("[Bridge discovery] Failed:", url, e.message || e);
     }
   }
 
   return results;
 }
+
 
 // ---------------- WEBSOCKET BRIDGE PICKER ----------------
 function showBridgePicker(bridges) {
@@ -885,12 +890,16 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
     case "A_WS":
       const bridges = await discoverBridges();
       if (bridges.length === 0) {
-        alert("No LEGO bridges found.");
+        logStatus("No LEGO WS bridges found");
+        console.log("[Bridge discovery] No bridges found.");
         return;
       }
 
       const selected = await showBridgePicker(bridges);
-      if (!selected) return;
+      if (!selected) {
+        console.log("Bridge selection cancelled.");
+        return;
+      }
 
       console.log("Connecting to:", selected.wsUrl);
 
