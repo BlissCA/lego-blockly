@@ -730,6 +730,41 @@ window.highlightBlock = function(id) {
   }
 };
 
+// ============================================================
+//  ASYNC-SAFE VALUE EXPRESSIONS FOR ALL BLOCKLY DEFAULT BLOCKS
+// ============================================================
+//
+// This monkey-patches javascriptGenerator.valueToCode so that
+// ANY value expression coming from a block is automatically
+// wrapped in (await (...)).
+//
+// This makes ALL default blocks async-safe:
+//   - print
+//   - wait until
+//   - comparisons
+//   - math
+//   - logic
+//   - if/else
+//   - loops
+//   - variable assignment
+//   - return statements
+//   - function outputs
+//
+// Works with Blockly 12.4.1.
+// ============================================================
+
+(() => {
+  const origValueToCode = javascriptGenerator.valueToCode;
+
+  javascriptGenerator.valueToCode = function (block, name, order) {
+    const code = origValueToCode.call(this, block, name, order);
+    if (!code) return code;
+
+    // Wrap ALL value expressions in await
+    return `(await (${code}))`;
+  };
+})();
+
 // ---------------- RUN PROGRAM ----------------
 
 document.getElementById("runBtn").onclick = async () => {
