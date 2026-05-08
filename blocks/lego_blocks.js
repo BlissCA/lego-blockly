@@ -773,6 +773,23 @@ window.addEventListener("load", () => {
       "tooltip": "Returns rotation counter"
     },
 
+    {
+      "type": "lego_inp_count",
+      "message0": "%1 inp %2 counter",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 60,
+      "tooltip": "Returns raising edge count"
+    },
+
 
     // ---------------- OUTPUT BLOCKS ----------------
 
@@ -1017,6 +1034,32 @@ window.addEventListener("load", () => {
       "colour": 20
     },
 
+    {
+      "type": "lego_inp_count_reset",
+      "message0": "%1 inp %2 set counter to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getLegoBDropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    },
+  
     {
       "type": "lego_wait_until",
       "message0": "wait until %1",
@@ -1795,11 +1838,52 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "output": "Number",
       "colour": 35,
-      "tooltip": "Returns the Input value 0-1023"
+      "tooltip": "Returns the Input Rotation Count"
     },
     {
       "type": "legoa2_out_resetrot",
       "message0": "%1 inp %2 set rot.count to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getLegoADropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35
+    },    
+    {
+      "type": "legoa2_inp_count",
+      "message0": "%1 inp %2 count",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 35,
+      "tooltip": "Returns the Input Count"
+    },
+    {
+      "type": "legoa2_inp_count_reset",
+      "message0": "%1 inp %2 set count to %3",
       "args0": [
         {
           "type": "field_dropdown",

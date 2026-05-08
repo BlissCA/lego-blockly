@@ -591,6 +591,36 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "legoa2_inp_count",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legoa2_inp_count_reset",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_inputnum",
+                    "fields": { "NUM": "6" }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
             }                 
           ]
         },
@@ -747,7 +777,37 @@ const toolbox = {
                   }
                 }
               }
-            }            
+            },
+            {
+              "kind": "block",
+              "type": "lego_inp_count",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 1 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lego_inp_count_reset",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 1 }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            }                        
 
           ]
         },

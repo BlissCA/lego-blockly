@@ -15,6 +15,8 @@ export class LegoInterfaceB {
     this.iRaw = new Array(9).fill(0);
     this.iRot = new Array(9).fill(0);
     this.firstReadDone = false;
+    this.lastInputState = {};
+    this.countOn = {};
 
     this.ix = [0, 14, 10, 6, 2, 16, 12, 8, 4];
 
@@ -265,6 +267,19 @@ export class LegoInterfaceB {
       const word = (hi << 8) | lo;
       this.iRaw[x] = word;
 
+      const current = x > 0 ? (word & 0x0008) === 0 : (word & 0x1000) !== 0;
+
+      if (this.lastInputState[x] === undefined) {
+          this.lastInputState[x] = current;
+          this.countOn[x] = 0;
+      } else {
+          if (!this.lastInputState[x] && current) {
+              // Rising edge detected
+              this.countOn[x]++;
+          }
+          this.lastInputState[x] = current;
+      }
+      
       if (x > 0) {
         let change = word & 0x0003;
         if ((word & 0x0004) === 0) change *= -1;
@@ -612,4 +627,13 @@ async multiOutPower(level, mask) {
   setRot(port, r) {
     this.iRot[port] = r;
   }
+
+  getCountOn(port) {
+      return this.countOn[port] || 0;
+  }
+
+  setCountOn(port, value = 0) {
+      this.countOn[port] = value;
+  }
+
 }

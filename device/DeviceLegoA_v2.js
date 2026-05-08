@@ -14,6 +14,8 @@ export class LegoInterfaceA_v2 {
     this.inputState = { 6: false, 7: false };
     this.rot = { 6: 0, 7: 0 };
 		this.lastOutPwm = [0,0,0,0,0,0];   // from packet bytes 2–7
+    this.lastInputState = {};
+    this.countOn = {};
 
     // Output cache: PWM per port 0–5
     this.portPwm = {};
@@ -322,6 +324,18 @@ export class LegoInterfaceA_v2 {
       const rate = (b >> 1) & 0x03;
 
       this.inputState[port] = state;
+
+      if (this.lastInputState[port] === undefined) {
+          this.lastInputState[port] = state;
+          this.countOn[port] = 0;
+      } else {
+          if (!this.lastInputState[port] && state) {
+              // Rising edge detected
+              this.countOn[port]++;
+          }
+          this.lastInputState[port] = state;
+      }
+
       // Interface A: one direction only → just accumulate positive counts
       this.rot[port] += rate;
 			//if (rate > 1) this.log(`Port ${port} Rate : ${rate}`);
@@ -387,6 +401,14 @@ export class LegoInterfaceA_v2 {
 		if (port < 0 || port > 5) return 0;
 		return this.lastOutPwm[port] | 0;
 	}
+
+  getCountOn(port) {
+      return this.countOn[port] || 0;
+  }
+
+  setCountOn(port, value = 0) {
+      this.countOn[port] = value;
+  }
 
   // ---------------- Public API: Outputs ----------------
 

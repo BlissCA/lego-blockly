@@ -57,6 +57,15 @@ javascriptGenerator.forBlock["lego_inp_rot"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["lego_inp_count"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  return [
+    `deviceManager.getDeviceByName("${dev}").getCountOn(${port})`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
 // ---------------- Lego Interface B Output Port Letters A to H = 1 to 8 ----------------
 javascriptGenerator.forBlock["Legob_outportalpha"] = function (block) {
   // Get the numerical value mapped to the selected letter
@@ -161,6 +170,22 @@ javascriptGenerator.forBlock["lego_out_resetrot"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.setRot(${port}, ${count});
+}
+`;
+};
+
+
+javascriptGenerator.forBlock["lego_inp_count_reset"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setCountOn(${port}, ${count});
 }
 `;
 };
@@ -1138,6 +1163,31 @@ javascriptGenerator.forBlock["legoa2_out_resetrot"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.setRot(${port}, ${count});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legoa2_inp_count"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getCountOn(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["legoa2_inp_count_reset"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setCountOn(${port}, ${count});
 }
 `;
 };
