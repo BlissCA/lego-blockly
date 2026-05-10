@@ -129,7 +129,7 @@ export class LegoLPF2 {
 		// ------------------------------------------------------------
 		// STEP 1 — Wait for GATT table to populate (WeDo 2.0 requirement)
 		// ------------------------------------------------------------
-		await new Promise(r => setTimeout(r, 600));
+		await new Promise(r => setTimeout(r, 1600));
 
 		// Force Chrome to refresh GATT table
 		try {
