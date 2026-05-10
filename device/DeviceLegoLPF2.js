@@ -128,25 +128,21 @@ export class LegoLPF2 {
         throw err;
     }
 
-    // Determine which BLE profile to use
-    const isWeDo = device.uuids.includes("00001523-1212-efde-1523-785feabcd123");
+		// Determine which BLE profile to use by attempting to open the service
+		let isWeDo = false;
 
-    const serviceUUID = isWeDo
-        ? "00001523-1212-efde-1523-785feabcd123"
-        : "00001623-1212-efde-1623-785feabcd123";
-
-    const charUUID = isWeDo
-        ? "00001524-1212-efde-1523-785feabcd123"
-        : "00001624-1212-efde-1623-785feabcd123";
-
-    try {
-        this.service = await this.server.getPrimaryService(serviceUUID);
-        this.char = await this.service.getCharacteristic(charUUID);
-    } catch (err) {
-        this.log("LPF2 service/characteristic not found");
-        this.setStatus("error", "LPF2 service not found");
-        throw err;
-    }
+		try {
+			// Try WeDo 2.0 service first
+			this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
+			this.char = await this.service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+			isWeDo = true;
+			this.log("Detected WeDo 2.0 hub");
+		} catch (err) {
+			// Not WeDo → must be Boost/PoweredUp/Spike
+			this.service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
+			this.char = await this.service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
+			this.log("Detected Boost/PoweredUp/Spike hub");
+		}
 
     // Start notifications
     try {
