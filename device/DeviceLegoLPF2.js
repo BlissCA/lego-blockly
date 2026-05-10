@@ -277,50 +277,31 @@ export class LegoLPF2 {
 	_setHubType(type) {
 		this.hubType = type;
 
-		// Known hub types
-		if (type === 0x41) { this.namePrefix = "Boost"; return; }
-		if (type === 0x42) { this.namePrefix = "Pup"; return; }
-		if (type === 0x43) { this.namePrefix = "Spk"; return; }
-		if (type === 0x44) { this.namePrefix = "Tech"; return; }
+		switch (type) {
+			case 0x41: // Boost Move Hub
+				this.namePrefix = "Boost";
+				break;
 
-		// Corrupted Boost identity (hubType = 100)
-		if (type === 100 && this._isBoostHub()) {
-			this.namePrefix = "Boost";
-			return;
+			case 0x42: // Powered Up Hub
+				this.namePrefix = "Pup";
+				break;
+
+			case 0x43: // Spike Prime / Inventor
+				this.namePrefix = "Spk";
+				break;
+
+			case 0x44: // Technic Hub
+				this.namePrefix = "Tech";
+				break;
+
+			case 0x64: // Corrupted Boost identity (Legoino users see this too)
+				this.namePrefix = "Boost";
+				break;
+
+			default:
+				this.namePrefix = "LPF2_";
+				break;
 		}
-
-		// Fallback
-		this.namePrefix = "LPF2_";
-	}
-
-
-	_isBoostHub() {
-		if (!this.ports || Object.keys(this.ports).length === 0) {
-			return false; // ports not ready yet
-		}
-
-		const ports = Object.entries(this.ports);
-
-		// Expect ports 0,1,2,3 to exist
-		const ids = ports.map(([id]) => Number(id)).sort((a,b) => a - b);
-		const has0to3 = [0,1,2,3].every(id => ids.includes(id));
-		if (!has0to3) return false;
-
-		// Move Hub pattern (from your logs):
-		// 0: ioType 0x27
-		// 1: ioType 0x27
-		// 2: ioType 0x26
-		// 3: ioType 0x25
-		const p0 = this.ports[0]?.ioType;
-		const p1 = this.ports[1]?.ioType;
-		const p2 = this.ports[2]?.ioType;
-		const p3 = this.ports[3]?.ioType;
-
-		if (p0 === 0x27 && p1 === 0x27 && p2 === 0x26 && p3 === 0x25) {
-			return true;
-		}
-
-		return false;
 	}
 
   // ---------------- Disconnect ----------------
@@ -437,9 +418,6 @@ export class LegoLPF2 {
 		console.log(`[LPF2] Message type 0x${type.toString(16)}:`,
 			Array.from(msg).map(b => b.toString(16).padStart(2, "0")).join(" ")
 		);
-
-		if (!this._seenMessageTypes) this._seenMessageTypes = new Set();
-		this._seenMessageTypes.add(type);
 
 		this.hubId = hubId;
 
