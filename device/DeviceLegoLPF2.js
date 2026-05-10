@@ -409,19 +409,21 @@ export class LegoLPF2 {
     }
   }
 
-  _handleHubProperties(msg) {
-    // msg[3] = property, msg[4] = operation, rest = payload
-    const property = msg[3];
-    const op = msg[4];
-    // Some hubs report HW/FW/version/name here; hub type is usually via Attached I/O.
-    // We keep this hook for future refinement if needed.
-    // Example: property 0x03 might encode HW version that implies hub type.
-    // Not strictly needed if we already detect from name or attached I/O.
-		if (msg[3] === 0x06 && msg.length >= 6) {
-			const hubType = msg[5];
-			this._setHubType(hubType);
-		}	
-  }
+	_handleHubProperties(msg) {
+		const property = msg[3];
+		const op = msg[4];
+
+		if (property === 0x06) {
+			// Format A (Spike/Technic): len >= 6, hubType in msg[5]
+			if (msg.length >= 6) {
+				this._setHubType(msg[5]);
+				return;
+			}
+
+			// Format B (Boost/PoweredUp): hubType is op byte
+			this._setHubType(op);
+		}
+	}
 
   _handleHubAttachedIO(msg) {
     // [len][hubId][0x04][portId][event][ioTypeL][ioTypeH][...]
