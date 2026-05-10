@@ -21,6 +21,7 @@ import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoVLL.js";
+import "./device/DeviceLegoLPF2.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";

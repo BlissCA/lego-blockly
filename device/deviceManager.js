@@ -7,6 +7,7 @@ import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
+import { LegoLPF2 } from './DeviceLegoLPF2.js';
 
 // -------------------------
 // Screen Wake Lock Support
