@@ -94,7 +94,6 @@ export class LegoLPF2 {
 		try {
 			// WeDo 2.0 does NOT advertise its service UUID → must use acceptAllDevices
 			device = await navigator.bluetooth.requestDevice({
-				acceptAllDevices: true,
 				optionalServices: [
 					"00001523-1212-efde-1523-785feabcd123", // WeDo 2.0
 					"00001623-1212-efde-1623-785feabcd123"  // Boost/PoweredUp/Spike
@@ -129,7 +128,7 @@ export class LegoLPF2 {
 		// ------------------------------------------------------------
 		// STEP 1 — Wait for GATT table to populate (WeDo 2.0 requirement)
 		// ------------------------------------------------------------
-		await new Promise(r => setTimeout(r, 1600));
+		await new Promise(r => setTimeout(r, 5000));
 
 		// Force Chrome to refresh GATT table
 		try {
