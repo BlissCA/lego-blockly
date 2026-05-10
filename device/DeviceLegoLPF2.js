@@ -27,7 +27,7 @@ export class LegoLPF2 {
 
     this.hubId = 0x00;
     this.hubType = null;      // numeric hub type
-    this.namePrefix = "LPF2"; // WD2, Boost, Pup, Spk, LPF2
+    this.namePrefix = "LPF2_"; // WD2_, Boost, Pup, Spk, LPF2_
 
     this.status = "idle";
     this.statusMessage = "Idle";
@@ -128,20 +128,38 @@ export class LegoLPF2 {
         throw err;
     }
 
-		// Determine which BLE profile to use by attempting to open the service
+		// Determine which BLE profile to use
 		let isWeDo = false;
 
+		// Try WeDo 2.0 service first (1523)
 		try {
-			// Try WeDo 2.0 service first
+			// WeDo 2.0 needs a delay before GATT table is ready
+			await new Promise(r => setTimeout(r, 250));
+
 			this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 			this.char = await this.service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+
 			isWeDo = true;
 			this.log("Detected WeDo 2.0 hub");
-		} catch (err) {
-			// Not WeDo → must be Boost/PoweredUp/Spike
-			this.service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
-			this.char = await this.service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
-			this.log("Detected Boost/PoweredUp/Spike hub");
+		} catch (err1) {
+
+			// Try again after a delay (WeDo sometimes needs 2 attempts)
+			try {
+				await new Promise(r => setTimeout(r, 250));
+
+				this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
+				this.char = await this.service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+
+				isWeDo = true;
+				this.log("Detected WeDo 2.0 hub (2nd attempt)");
+			} catch (err2) {
+
+				// Not WeDo → must be Boost/PoweredUp/Spike
+				this.service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
+				this.char = await this.service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
+
+				this.log("Detected Boost/PoweredUp/Spike hub");
+			}
 		}
 
     // Start notifications
