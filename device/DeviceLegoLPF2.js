@@ -86,58 +86,65 @@ export class LegoLPF2 {
 
   // ---------------- Connect ----------------
 
-  async connect() {
-    this.setStatus("connecting", "Requesting LPF2 device...");
-    this.log("Connecting to LPF2 device...");
+	async connect() {
+		this.setStatus("connecting", "Requesting LPF2 device...");
+		this.log("Connecting to LPF2 device...");
 
-    let device;
-    try {
-        device = await navigator.bluetooth.requestDevice({
-        filters: [
-            { services: ["00001623-1212-efde-1623-785feabcd123"] }, // Boost / PoweredUp / Spike
-            { services: ["00001523-1212-efde-1523-785feabcd123"] }  // WeDo 2.0
-        ],
-        optionalServices: [
-            "00001623-1212-efde-1623-785feabcd123",
-            "00001523-1212-efde-1523-785feabcd123"
-        ]
-        });
-    } catch (err) {
-        this.log("No LPF2 device selected");
-        this.setStatus("idle", "No device selected");
-        throw err;
-    }
+		let device;
+		try {
+			// WeDo 2.0 does NOT advertise its service UUID → must use acceptAllDevices
+			device = await navigator.bluetooth.requestDevice({
+				acceptAllDevices: true,
+				optionalServices: [
+					"00001523-1212-efde-1523-785feabcd123", // WeDo 2.0
+					"00001623-1212-efde-1623-785feabcd123"  // Boost/PoweredUp/Spike
+				]
+			});
+		} catch (err) {
+			this.log("No LPF2 device selected");
+			this.setStatus("idle", "No device selected");
+			throw err;
+		}
 
-    this.device = device;
+		this.device = device;
 
-    // Lost-device detection
-    this.device.addEventListener("gattserverdisconnected", () => {
-        this.log("GATT server disconnected — device lost.");
-        this.manager?.handleDeviceLost?.(this);
-        this.forceDisconnect().catch(() => {});
-    });
+		// Lost-device detection
+		this.device.addEventListener("gattserverdisconnected", () => {
+			this.log("GATT server disconnected — device lost.");
+			this.manager?.handleDeviceLost?.(this);
+			this.forceDisconnect().catch(() => {});
+		});
 
-    this.setStatus("connecting", "Connecting via BLE...");
-    this.log(`Connecting to GATT server on ${device.name || "LPF2 device"}...`);
-
-    try {
-        this.server = await device.gatt.connect();
-    } catch (err) {
-        this.log("BLE connection failed");
-        this.setStatus("error", "BLE connection failed");
-        throw err;
-    }
-
-		// Determine which BLE profile to use
-		let isWeDo = false;
-
-		// WeDo 2.0 needs time before its GATT table becomes available
-		await new Promise(r => setTimeout(r, 350));
+		this.setStatus("connecting", "Connecting via BLE...");
+		this.log(`Connecting to GATT server on ${device.name || "LPF2 device"}...`);
 
 		try {
-			// Try WeDo 2.0 service (first attempt)
+			this.server = await device.gatt.connect();
+		} catch (err) {
+			this.log("BLE connection failed");
+			this.setStatus("error", "BLE connection failed");
+			throw err;
+		}
+
+		// ------------------------------------------------------------
+		// STEP 1 — Wait for GATT table to populate (WeDo 2.0 requirement)
+		// ------------------------------------------------------------
+		await new Promise(r => setTimeout(r, 600));
+
+		// Force Chrome to refresh GATT table
+		try {
+			await this.server.getPrimaryServices();
+		} catch (e) {}
+
+		// ------------------------------------------------------------
+		// STEP 2 — Try WeDo 2.0 service (1523)
+		// ------------------------------------------------------------
+		let isWeDo = false;
+
+		try {
 			const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
+			// WeDo 2.0 uses TWO characteristics
 			this.writeChar  = await service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
 			this.notifyChar = await service.getCharacteristic("00001525-1212-efde-1523-785feabcd123");
 
@@ -147,15 +154,16 @@ export class LegoLPF2 {
 			this.char = this.writeChar;
 			this.service = service;
 			this.isWeDo = true;
+			isWeDo = true;
 
 			this.log("Detected WeDo 2.0 hub");
-			isWeDo = true;
 		}
 		catch (err1) {
 
-			// Wait and try again — WeDo often needs 2 attempts
-			await new Promise(r => setTimeout(r, 350));
-
+			// ------------------------------------------------------------
+			// STEP 3 — Retry WeDo 2.0 detection (WeDo often needs 2 attempts)
+			// ------------------------------------------------------------
+			await new Promise(r => setTimeout(r, 600));
 			try {
 				const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
@@ -168,13 +176,15 @@ export class LegoLPF2 {
 				this.char = this.writeChar;
 				this.service = service;
 				this.isWeDo = true;
+				isWeDo = true;
 
 				this.log("Detected WeDo 2.0 hub (2nd attempt)");
-				isWeDo = true;
 			}
 			catch (err2) {
 
-				// Not WeDo → must be Boost/PoweredUp/Spike
+				// ------------------------------------------------------------
+				// STEP 4 — Not WeDo → must be Boost/PoweredUp/Spike (1623)
+				// ------------------------------------------------------------
 				const service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
 				const char = await service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
 
@@ -189,40 +199,36 @@ export class LegoLPF2 {
 			}
 		}
 
+		this.readingActive = true;
 
+		// ------------------------------------------------------------
+		// STEP 5 — Hub type detection (from BLE name)
+		// ------------------------------------------------------------
+		this._detectHubTypeFromDeviceName(device.name || "");
 
-    // Start notifications
-    try {
-        await this.char.startNotifications();
-        this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
-    } catch (err) {
-        this.log("Failed to start notifications");
-        this.setStatus("error", "Notification error");
-        throw err;
-    }
+		// ------------------------------------------------------------
+		// STEP 6 — LPF2 initialization (Boost/Spike only)
+		// ------------------------------------------------------------
+		if (!isWeDo) {
+			try {
+				await this._initializeLPF2();
+			} catch (err) {
+				this.log("LPF2 initialization failed");
+				this.setStatus("error", "Initialization failed");
+				throw err;
+			}
+		}
 
-    this.readingActive = true;
+		// ------------------------------------------------------------
+		// STEP 7 — Allocate device name
+		// ------------------------------------------------------------
+		if (!this.name) {
+			this.name = this.manager._allocateName(this.namePrefix);
+		}
 
-    // Detect hub type from name
-    this._detectHubTypeFromDeviceName(device.name || "");
-
-    // Run mandatory LPF2 initialization
-    try {
-        await this._initializeLPF2();
-    } catch (err) {
-        this.log("LPF2 initialization failed");
-        this.setStatus("error", "Initialization failed");
-        throw err;
-    }
-
-    // Allocate name
-    if (!this.name) {
-        this.name = this.manager._allocateName(this.namePrefix);
-    }
-
-    this.log(`Connected as ${this.name}`);
-    this.setStatus("connected", "Connected");
-    document.dispatchEvent(new Event("serial-connected"));
+		this.log(`Connected as ${this.name}`);
+		this.setStatus("connected", "Connected");
+		document.dispatchEvent(new Event("serial-connected"));
 	}
 
 	
