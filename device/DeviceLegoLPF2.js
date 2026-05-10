@@ -2,9 +2,6 @@
 // ES-module LEGO LPF2 (WeDo 2.0, Boost, Powered Up, Spike, etc.) driver.
 // Standalone class, same architecture style as LegoInterfaceA_v2.
 
-const LPF2_SERVICE_UUID = "00001623-1212-efde-1623-785feabcd123";
-const LPF2_CHAR_UUID    = "00001624-1212-efde-1623-785feabcd123";
-
 // Port Output Command constants
 const MSG_PORT_OUTPUT_COMMAND = 0x81;
 const SUBCMD_START_POWER      = 0x51;
@@ -95,72 +92,147 @@ export class LegoLPF2 {
 
     let device;
     try {
-      device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [LPF2_SERVICE_UUID] }],
-        optionalServices: [LPF2_SERVICE_UUID]
-      });
+        device = await navigator.bluetooth.requestDevice({
+        filters: [
+            { services: ["00001623-1212-efde-1623-785feabcd123"] }, // Boost / PoweredUp / Spike
+            { services: ["00001523-1212-efde-1523-785feabcd123"] }  // WeDo 2.0
+        ],
+        optionalServices: [
+            "00001623-1212-efde-1623-785feabcd123",
+            "00001523-1212-efde-1523-785feabcd123"
+        ]
+        });
     } catch (err) {
-      this.log("No LPF2 device selected");
-      this.setStatus("idle", "No device selected");
-      throw err;
+        this.log("No LPF2 device selected");
+        this.setStatus("idle", "No device selected");
+        throw err;
     }
 
     this.device = device;
+
+    // Lost-device detection
     this.device.addEventListener("gattserverdisconnected", () => {
-      this.log("GATT server disconnected — device lost.");
-      this.manager?.handleDeviceLost?.(this);
-      this.forceDisconnect().catch(() => {});
+        this.log("GATT server disconnected — device lost.");
+        this.manager?.handleDeviceLost?.(this);
+        this.forceDisconnect().catch(() => {});
     });
 
     this.setStatus("connecting", "Connecting via BLE...");
     this.log(`Connecting to GATT server on ${device.name || "LPF2 device"}...`);
 
     try {
-      this.server = await device.gatt.connect();
+        this.server = await device.gatt.connect();
     } catch (err) {
-      this.log("BLE connection failed");
-      this.setStatus("error", "BLE connection failed");
-      throw err;
+        this.log("BLE connection failed");
+        this.setStatus("error", "BLE connection failed");
+        throw err;
     }
 
-    try {
-      this.service = await this.server.getPrimaryService(LPF2_SERVICE_UUID);
-      this.char = await this.service.getCharacteristic(LPF2_CHAR_UUID);
-    } catch (err) {
-      this.log("LPF2 service/characteristic not found");
-      this.setStatus("error", "LPF2 service not found");
-      throw err;
-    }
+    // Determine which BLE profile to use
+    const isWeDo = device.uuids.includes("00001523-1212-efde-1523-785feabcd123");
+
+    const serviceUUID = isWeDo
+        ? "00001523-1212-efde-1523-785feabcd123"
+        : "00001623-1212-efde-1623-785feabcd123";
+
+    const charUUID = isWeDo
+        ? "00001524-1212-efde-1523-785feabcd123"
+        : "00001624-1212-efde-1623-785feabcd123";
 
     try {
-      await this.char.startNotifications();
-      this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
+        this.service = await this.server.getPrimaryService(serviceUUID);
+        this.char = await this.service.getCharacteristic(charUUID);
     } catch (err) {
-      this.log("Failed to start notifications");
-      this.setStatus("error", "Notification error");
-      throw err;
+        this.log("LPF2 service/characteristic not found");
+        this.setStatus("error", "LPF2 service not found");
+        throw err;
+    }
+
+    // Start notifications
+    try {
+        await this.char.startNotifications();
+        this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
+    } catch (err) {
+        this.log("Failed to start notifications");
+        this.setStatus("error", "Notification error");
+        throw err;
     }
 
     this.readingActive = true;
 
-    // Try to detect hub type from device name quickly
+    // Detect hub type from name
     this._detectHubTypeFromDeviceName(device.name || "");
 
-    // Wait a bit for first messages to refine hub type (optional)
+    // Run mandatory LPF2 initialization
     try {
-      await this._waitForHubType(1500);
-    } catch {
-      // If not detected, keep default prefix
+        await this._initializeLPF2();
+    } catch (err) {
+        this.log("LPF2 initialization failed");
+        this.setStatus("error", "Initialization failed");
+        throw err;
     }
 
+    // Allocate name
     if (!this.name) {
-      this.name = this.manager._allocateName(this.namePrefix);
+        this.name = this.manager._allocateName(this.namePrefix);
     }
 
     this.log(`Connected as ${this.name}`);
     this.setStatus("connected", "Connected");
     document.dispatchEvent(new Event("serial-connected"));
-  }
+	}
+
+	async _initializeLPF2() {
+		this.log("Initializing LPF2 hub...");
+
+		// STEP 1 — Request port information for ports 0–7
+		for (let port = 0; port < 8; port++) {
+			await this._write(new Uint8Array([
+				0x05,
+				this.hubId,
+				0x21,   // Port Information Request
+				port,
+				0x01    // Mode Info
+			]));
+		}
+
+		// STEP 2 — Request mode information for each port/mode
+		// (We will refine this dynamically once portInfo is populated)
+		await new Promise(r => setTimeout(r, 200)); // allow attach messages to arrive
+
+		for (const port in this.portInfo) {
+			const p = Number(port);
+			for (let mode = 0; mode < 8; mode++) {
+				await this._write(new Uint8Array([
+					0x06,
+					this.hubId,
+					0x22,   // Mode Information Request
+					p,
+					mode,
+					0x00
+				]));
+			}
+		}
+
+		// STEP 3 — Configure input formats (enable notifications)
+		for (const port in this.portInfo) {
+			const p = Number(port);
+
+			// Default to mode 0, delta=1, notifications enabled
+			await this._write(new Uint8Array([
+				0x0A,
+				this.hubId,
+				0x41,   // Input Format Setup
+				p,
+				0x00,   // mode
+				0x01,   // delta
+				0x00,   // unit
+				0x01    // notifications enabled
+			]));
+		}
+
+		this.log("LPF2 initialization complete.");
+	}
 
   _detectHubTypeFromDeviceName(name) {
     const n = name.toLowerCase();
@@ -198,11 +270,11 @@ export class LegoLPF2 {
     if (this.hubType != null) return;
     this.hubType = hubType;
     switch (hubType) {
-      case 0x40: this.namePrefix = "WD2";   break; // WeDo 2.0
+      case 0x40: this.namePrefix = "WD2_";   break; // WeDo 2.0
       case 0x41: this.namePrefix = "Boost"; break; // Boost Move Hub
       case 0x42: this.namePrefix = "Pup";   break; // Powered Up
       case 0x43: this.namePrefix = "Spk";   break; // Spike / Inventor
-      default:   this.namePrefix = "LPF2";  break;
+      default:   this.namePrefix = "LPF2_";  break;
     }
   }
 
