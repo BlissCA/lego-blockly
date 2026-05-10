@@ -274,20 +274,50 @@ export class LegoLPF2 {
     });
   }
 
-  _setHubType(hubType) {
-		console.log("[LPF2] Setting hub type:", hubType);
+	_setHubType(type) {
+		this.hubType = type;
 
-    if (this.hubType != null) return;
-    this.hubType = hubType;
-    switch (hubType) {
-      case 0x41: this.namePrefix = "Boost"; break; // Boost Move Hub
-      case 0x42: this.namePrefix = "Pup";   break; // Powered Up
-      case 0x43: this.namePrefix = "Spk";   break; // Spike / Inventor
-      case 0x44: this.namePrefix = "Tech";   break; // ?
-      default:   this.namePrefix = "LPF2_";  break;
-    }
-		console.log("[LPF2] namePrefix =", this.namePrefix);
-  }
+		// First: explicit known hub types
+		switch (type) {
+			case 0x41: this.namePrefix = "Boost"; return;
+			case 0x42: this.namePrefix = "Pup"; return;
+			case 0x43: this.namePrefix = "Spk"; return;
+			case 0x44: this.namePrefix = "Tech"; return;
+		}
+
+		// Second: corrupted Boost identity (hubType = 100)
+		if (type === 100 && this._isBoostHub()) {
+			this.namePrefix = "Boost";
+			return;
+		}
+
+		// Third: fallback
+		this.namePrefix = "LPF2_";
+	}
+
+	_isBoostHub() {
+		const ports = Object.values(this.ports);
+
+		// 1. Boost has exactly 2 internal motors (ioType 0x01)
+		const internalMotors = ports.filter(p => p.ioType === 0x01).length;
+		if (internalMotors !== 2) return false;
+
+		// 2. Boost has no IMU (no tilt, no gyro, no accelerometer)
+		const imuTypes = [0x2a, 0x2b, 0x2c, 0x40]; // tilt, gyro, accel, tiltMulti
+		if (ports.some(p => imuTypes.includes(p.ioType))) return false;
+
+		// 3. Boost has no virtual ports (50, 58, 59, 60, 70, etc.)
+		const virtualPortIds = [50, 58, 59, 60, 70];
+		if (ports.some(p => virtualPortIds.includes(p.portId))) return false;
+
+		// 4. Boost never uses message type 0x43 (Port Value Single)
+		if (this._seenMessageTypes?.has(0x43)) return false;
+
+		// 5. Boost always uses 0x45 for sensor/motor values
+		if (!this._seenMessageTypes?.has(0x45)) return false;
+
+		return true;
+	}
 
   // ---------------- Disconnect ----------------
 
@@ -398,11 +428,14 @@ export class LegoLPF2 {
     const len = msg[0];
     if (len < 3) return;
     const hubId = msg[1];
-    const type = msg[2];
+    const type = msg[2]
 
 		console.log(`[LPF2] Message type 0x${type.toString(16)}:`,
 			Array.from(msg).map(b => b.toString(16).padStart(2, "0")).join(" ")
 		);
+
+		if (!this._seenMessageTypes) this._seenMessageTypes = new Set();
+		this._seenMessageTypes.add(type);
 
 		this.hubId = hubId;
 
