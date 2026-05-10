@@ -277,43 +277,42 @@ export class LegoLPF2 {
 	_setHubType(type) {
 		this.hubType = type;
 
-		// First: explicit known hub types
-		switch (type) {
-			case 0x41: this.namePrefix = "Boost"; return;
-			case 0x42: this.namePrefix = "Pup"; return;
-			case 0x43: this.namePrefix = "Spk"; return;
-			case 0x44: this.namePrefix = "Tech"; return;
-		}
+		// Known hub types
+		if (type === 0x41) { this.namePrefix = "Boost"; return; }
+		if (type === 0x42) { this.namePrefix = "Pup"; return; }
+		if (type === 0x43) { this.namePrefix = "Spk"; return; }
+		if (type === 0x44) { this.namePrefix = "Tech"; return; }
 
-		// Second: corrupted Boost identity (hubType = 100)
+		// Corrupted Boost identity (hubType = 100)
 		if (type === 100 && this._isBoostHub()) {
 			this.namePrefix = "Boost";
 			return;
 		}
 
-		// Third: fallback
+		// Fallback
 		this.namePrefix = "LPF2_";
 	}
 
+
 	_isBoostHub() {
+		if (!this.ports || Object.keys(this.ports).length === 0) {
+			return false; // ports not ready yet
+		}
+
 		const ports = Object.values(this.ports);
 
-		// 1. Boost has exactly 2 internal motors (ioType 0x01)
+		// Boost has exactly 2 internal motors (ioType 0x01)
 		const internalMotors = ports.filter(p => p.ioType === 0x01).length;
 		if (internalMotors !== 2) return false;
 
-		// 2. Boost has no IMU (no tilt, no gyro, no accelerometer)
-		const imuTypes = [0x2a, 0x2b, 0x2c, 0x40]; // tilt, gyro, accel, tiltMulti
+		// Boost has no IMU (no tilt, no gyro, no accel)
+		const imuTypes = [0x2a, 0x2b, 0x2c, 0x40];
 		if (ports.some(p => imuTypes.includes(p.ioType))) return false;
 
-		// 3. Boost has no virtual ports (50, 58, 59, 60, 70, etc.)
-		const virtualPortIds = [50, 58, 59, 60, 70];
-		if (ports.some(p => virtualPortIds.includes(p.portId))) return false;
-
-		// 4. Boost never uses message type 0x43 (Port Value Single)
+		// Boost never uses message type 0x43
 		if (this._seenMessageTypes?.has(0x43)) return false;
 
-		// 5. Boost always uses 0x45 for sensor/motor values
+		// Boost always uses 0x45 for motor/sensor values
 		if (!this._seenMessageTypes?.has(0x45)) return false;
 
 		return true;
