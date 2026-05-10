@@ -253,15 +253,18 @@ export class LegoLPF2 {
 	}
 
   _waitForHubType(timeoutMs = 2000) {
+		console.log("[LPF2] Waiting for hub type...");
     return new Promise((resolve, reject) => {
       const start = performance.now();
       const check = () => {
+				console.log("[LPF2] hubType =", this.hubType);
         if (this.hubType != null) {
           this._setHubType(this.hubType);
           resolve();
           return;
         }
         if (performance.now() - start > timeoutMs) {
+					console.warn("[LPF2] Hub type timeout");
           reject(new Error("Hub type timeout"));
           return;
         }
@@ -272,6 +275,8 @@ export class LegoLPF2 {
   }
 
   _setHubType(hubType) {
+		console.log("[LPF2] Setting hub type:", hubType);
+
     if (this.hubType != null) return;
     this.hubType = hubType;
     switch (hubType) {
@@ -281,6 +286,7 @@ export class LegoLPF2 {
       case 0x44: this.namePrefix = "Tech";   break; // ?
       default:   this.namePrefix = "LPF2_";  break;
     }
+		console.log("[LPF2] namePrefix =", this.namePrefix);
   }
 
   // ---------------- Disconnect ----------------
@@ -360,6 +366,10 @@ export class LegoLPF2 {
 	_onNotification(event) {
 		const data = new Uint8Array(event.target.value.buffer);
 
+		console.log("[LPF2] Notification:", 
+			Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ")
+		);
+
 		// Append incoming bytes to buffer
 		for (let b of data) {
 			this._rxBuffer.push(b);
@@ -369,16 +379,17 @@ export class LegoLPF2 {
 		while (this._rxBuffer.length >= 2) {
 			const length = this._rxBuffer[0];
 
-			// If we don't have the full frame yet, stop
 			if (this._rxBuffer.length < length) {
 				break;
 			}
 
-			// Extract one complete frame
 			const frame = this._rxBuffer.slice(0, length);
 			this._rxBuffer = this._rxBuffer.slice(length);
 
-			// Dispatch the frame
+			console.log("[LPF2] Frame:", 
+				Array.from(frame).map(b => b.toString(16).padStart(2, "0")).join(" ")
+			);
+
 			this._handleMessage(new Uint8Array(frame));
 		}
 	}
@@ -389,22 +400,31 @@ export class LegoLPF2 {
     const hubId = msg[1];
     const type = msg[2];
 
-    this.hubId = hubId;
+		console.log(`[LPF2] Message type 0x${type.toString(16)}:`,
+			Array.from(msg).map(b => b.toString(16).padStart(2, "0")).join(" ")
+		);
+
+		this.hubId = hubId;
 
     switch (type) {
       case 0x01: // Hub Properties
+			  console.log("[LPF2] → Hub Properties");
         this._handleHubProperties(msg);
         break;
       case 0x04: // Hub Attached I/O
+				console.log("[LPF2] → Hub Attached I/O");
         this._handleHubAttachedIO(msg);
         break;
       case 0x45: // Port Value Single
+				console.log("[LPF2] → Port Value Single");
         this._handlePortValueSingle(msg);
         break;
       case 0x46: // Port Value Combined
+				console.log("[LPF2] → Port Value Combined");
         this._handlePortValueCombined(msg);
         break;
       default:
+				console.log("[LPF2] → Unknown message type");
         break;
     }
   }
@@ -413,14 +433,22 @@ export class LegoLPF2 {
 		const property = msg[3];
 		const op = msg[4];
 
+		console.log("[LPF2] Hub Properties:",
+			"property=0x" + property.toString(16),
+			"op=0x" + op.toString(16),
+			"len=" + msg.length
+		);
+
 		if (property === 0x06) {
 			// Format A (Spike/Technic): len >= 6, hubType in msg[5]
 			if (msg.length >= 6) {
+				console.log("[LPF2] Hub Type (Format A):", msg[5]);
 				this._setHubType(msg[5]);
 				return;
 			}
 
 			// Format B (Boost/PoweredUp): hubType is op byte
+			console.log("[LPF2] Hub Type (Format B):", op);
 			this._setHubType(op);
 		}
 	}
