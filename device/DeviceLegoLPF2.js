@@ -131,36 +131,40 @@ export class LegoLPF2 {
 		// Determine which BLE profile to use
 		let isWeDo = false;
 
-		// Try WeDo 2.0 service first (1523)
+		// Try WeDo 2.0 service first
 		try {
-			// WeDo 2.0 needs a delay before GATT table is ready
-			await new Promise(r => setTimeout(r, 250));
+			await new Promise(r => setTimeout(r, 250)); // WeDo needs delay
 
-			this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
-			this.char = await this.service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+			const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
-			isWeDo = true;
+			// WeDo 2.0 uses TWO characteristics
+			this.writeChar  = await service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+			this.notifyChar = await service.getCharacteristic("00001525-1212-efde-1523-785feabcd123");
+
+			await this.notifyChar.startNotifications();
+			this.notifyChar.addEventListener("characteristicvaluechanged", this._notifyBound);
+
+			this.char = this.writeChar; // for writes
+			this.service = service;
+			this.isWeDo = true;
+
 			this.log("Detected WeDo 2.0 hub");
-		} catch (err1) {
-
-			// Try again after a delay (WeDo sometimes needs 2 attempts)
-			try {
-				await new Promise(r => setTimeout(r, 250));
-
-				this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
-				this.char = await this.service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
-
-				isWeDo = true;
-				this.log("Detected WeDo 2.0 hub (2nd attempt)");
-			} catch (err2) {
-
-				// Not WeDo → must be Boost/PoweredUp/Spike
-				this.service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
-				this.char = await this.service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
-
-				this.log("Detected Boost/PoweredUp/Spike hub");
-			}
 		}
+		catch (err1) {
+			// Not WeDo → Boost/PoweredUp/Spike
+			const service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
+			const char = await service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
+
+			await char.startNotifications();
+			char.addEventListener("characteristicvaluechanged", this._notifyBound);
+
+			this.service = service;
+			this.char = char;
+			this.isWeDo = false;
+
+			this.log("Detected Boost/PoweredUp/Spike hub");
+		}
+
 
     // Start notifications
     try {
@@ -196,11 +200,33 @@ export class LegoLPF2 {
     document.dispatchEvent(new Event("serial-connected"));
 	}
 
+	
+	// ---------------- LPF2 Initialization Sequence ----------------
+
 	async _initializeLPF2() {
 		this.log("Initializing LPF2 hub...");
 
-		// STEP 1 — Request port information for ports 0–7
-		for (let port = 0; port < 8; port++) {
+		// ------------------------------------------------------------
+		// STEP 1 — Wait for initial Hub Attached I/O messages
+		// ------------------------------------------------------------
+		// Boost/Spike send port attach messages immediately after notifications start.
+		// WeDo 2.0 is slower, so we wait a bit.
+		await new Promise(r => setTimeout(r, 300));
+
+		// If no ports detected yet, wait a bit more
+		if (Object.keys(this.portInfo).length === 0) {
+			await new Promise(r => setTimeout(r, 300));
+		}
+
+		this.log("Ports detected: " + JSON.stringify(this.portInfo));
+
+		// ------------------------------------------------------------
+		// STEP 2 — Request Mode Information for each port
+		// ------------------------------------------------------------
+		for (const portStr of Object.keys(this.portInfo)) {
+			const port = Number(portStr);
+
+			// Request "Mode Info" (0x01)
 			await this._write(new Uint8Array([
 				0x05,
 				this.hubId,
@@ -208,45 +234,67 @@ export class LegoLPF2 {
 				port,
 				0x01    // Mode Info
 			]));
+
+			// Request "Possible Modes" (0x02)
+			await this._write(new Uint8Array([
+				0x05,
+				this.hubId,
+				0x21,
+				port,
+				0x02
+			]));
+
+			// Request "Input Modes" (0x03)
+			await this._write(new Uint8Array([
+				0x05,
+				this.hubId,
+				0x21,
+				port,
+				0x03
+			]));
+
+			// Request "Output Modes" (0x04)
+			await this._write(new Uint8Array([
+				0x05,
+				this.hubId,
+				0x21,
+				port,
+				0x04
+			]));
+
+			// Small delay to avoid overwhelming the hub
+			await new Promise(r => setTimeout(r, 30));
 		}
 
-		// STEP 2 — Request mode information for each port/mode
-		// (We will refine this dynamically once portInfo is populated)
-		await new Promise(r => setTimeout(r, 200)); // allow attach messages to arrive
+		// ------------------------------------------------------------
+		// STEP 3 — Configure Input Format for each sensor port
+		// ------------------------------------------------------------
+		for (const portStr of Object.keys(this.portInfo)) {
+			const port = Number(portStr);
+			const info = this.portInfo[port];
 
-		for (const port in this.portInfo) {
-			const p = Number(port);
-			for (let mode = 0; mode < 8; mode++) {
-				await this._write(new Uint8Array([
-					0x06,
-					this.hubId,
-					0x22,   // Mode Information Request
-					p,
-					mode,
-					0x00
-				]));
-			}
-		}
-
-		// STEP 3 — Configure input formats (enable notifications)
-		for (const port in this.portInfo) {
-			const p = Number(port);
+			// Only sensors need input format setup
+			if (!info) continue;
+			if (info.type === "motor" || info.type === "trainMotor") continue;
 
 			// Default to mode 0, delta=1, notifications enabled
 			await this._write(new Uint8Array([
 				0x0A,
 				this.hubId,
-				0x41,   // Input Format Setup
-				p,
+				0x41,   // Input Format Setup (Single)
+				port,
 				0x00,   // mode
 				0x01,   // delta
 				0x00,   // unit
 				0x01    // notifications enabled
 			]));
+
+			await new Promise(r => setTimeout(r, 20));
 		}
 
 		this.log("LPF2 initialization complete.");
 	}
+
 
   _detectHubTypeFromDeviceName(name) {
     const n = name.toLowerCase();
@@ -412,6 +460,10 @@ export class LegoLPF2 {
     // We keep this hook for future refinement if needed.
     // Example: property 0x03 might encode HW version that implies hub type.
     // Not strictly needed if we already detect from name or attached I/O.
+		if (msg[3] === 0x06 && msg.length >= 6) {
+			const hubType = msg[5];
+			this._setHubType(hubType);
+		}	
   }
 
   _handleHubAttachedIO(msg) {
