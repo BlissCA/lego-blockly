@@ -301,6 +301,27 @@ export class DeviceManager {
   }
 
   // -------------------------
+  // Connect LEGO LPF2
+  // -------------------------
+
+  async connectLegoLPF2() {
+    const dev = new LegoLPF2(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego LPF2 Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+
+
+  // -------------------------
   // Disconnect All
   // -------------------------
 

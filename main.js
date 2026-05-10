@@ -967,6 +967,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
       dev = await window.deviceManager.connectLegoVLL();   // your unified VLL Serial class
       break;
 
+    case "LPF2":
+      dev = await window.deviceManager.connectLegoLPF2();   // your unified LPF2 class
+      break;
+
     default:
       console.warn("Unknown device type:", sel);
   }
