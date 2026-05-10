@@ -27,7 +27,7 @@ export class LegoLPF2 {
 
     this.hubId = 0x00;
     this.hubType = null;      // numeric hub type
-    this.namePrefix = "LPF2_"; // WD2_, Boost, Pup, Spk, LPF2_
+    this.namePrefix = "LPF2_"; // Boost, Pup, Spk, LPF2_
 
     this.status = "idle";
     this.statusMessage = "Idle";
@@ -41,11 +41,12 @@ export class LegoLPF2 {
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
 
-    this._notifyBound = this._onNotification.bind(this);
-
     this.defaultBrakeMode = BRAKE_BRAKE; // default = Brake
 
     this.readingActive = false;
+
+		this._rxBuffer = [];     // byte buffer for incoming notifications
+		this._notifyBound = this._onNotification.bind(this);		
   }
 
   // ---------------- Status + Logging ----------------
@@ -356,17 +357,31 @@ export class LegoLPF2 {
 
   // ---------------- Notification Handling ----------------
 
-  _onNotification(event) {
-    const data = new Uint8Array(event.target.value.buffer);
-    let offset = 0;
-    while (offset < data.length) {
-      const len = data[offset];
-      if (len === 0 || offset + len > data.length) break;
-      const msg = data.subarray(offset, offset + len);
-      this._handleMessage(msg);
-      offset += len;
-    }
-  }
+	_onNotification(event) {
+		const data = new Uint8Array(event.target.value.buffer);
+
+		// Append incoming bytes to buffer
+		for (let b of data) {
+			this._rxBuffer.push(b);
+		}
+
+		// Try to extract complete LPF2 frames
+		while (this._rxBuffer.length >= 2) {
+			const length = this._rxBuffer[0];
+
+			// If we don't have the full frame yet, stop
+			if (this._rxBuffer.length < length) {
+				break;
+			}
+
+			// Extract one complete frame
+			const frame = this._rxBuffer.slice(0, length);
+			this._rxBuffer = this._rxBuffer.slice(length);
+
+			// Dispatch the frame
+			this._handleMessage(new Uint8Array(frame));
+		}
+	}
 
   _handleMessage(msg) {
     const len = msg[0];
