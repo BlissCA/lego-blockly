@@ -92,11 +92,14 @@ export class LegoLPF2 {
 
 		let device;
 		try {
-			// WeDo 2.0 does NOT advertise its service UUID → must use acceptAllDevices
 			device = await navigator.bluetooth.requestDevice({
+				filters: [
+					{ services: ["00001623-1212-efde-1623-785feabcd123"] }, // Boost / PoweredUp / Spike
+					{ services: ["00001523-1212-efde-1523-785feabcd123"] }  // WeDo 2.0
+				],
 				optionalServices: [
-					"00001523-1212-efde-1523-785feabcd123", // WeDo 2.0
-					"00001623-1212-efde-1623-785feabcd123"  // Boost/PoweredUp/Spike
+					"00001623-1212-efde-1623-785feabcd123",
+					"00001523-1212-efde-1523-785feabcd123"
 				]
 			});
 		} catch (err) {
