@@ -299,23 +299,28 @@ export class LegoLPF2 {
 			return false; // ports not ready yet
 		}
 
-		const ports = Object.values(this.ports);
+		const ports = Object.entries(this.ports);
 
-		// Boost has exactly 2 internal motors (ioType 0x01)
-		const internalMotors = ports.filter(p => p.ioType === 0x01).length;
-		if (internalMotors !== 2) return false;
+		// Expect ports 0,1,2,3 to exist
+		const ids = ports.map(([id]) => Number(id)).sort((a,b) => a - b);
+		const has0to3 = [0,1,2,3].every(id => ids.includes(id));
+		if (!has0to3) return false;
 
-		// Boost has no IMU (no tilt, no gyro, no accel)
-		const imuTypes = [0x2a, 0x2b, 0x2c, 0x40];
-		if (ports.some(p => imuTypes.includes(p.ioType))) return false;
+		// Move Hub pattern (from your logs):
+		// 0: ioType 0x27
+		// 1: ioType 0x27
+		// 2: ioType 0x26
+		// 3: ioType 0x25
+		const p0 = this.ports[0]?.ioType;
+		const p1 = this.ports[1]?.ioType;
+		const p2 = this.ports[2]?.ioType;
+		const p3 = this.ports[3]?.ioType;
 
-		// Boost never uses message type 0x43
-		if (this._seenMessageTypes?.has(0x43)) return false;
+		if (p0 === 0x27 && p1 === 0x27 && p2 === 0x26 && p3 === 0x25) {
+			return true;
+		}
 
-		// Boost always uses 0x45 for motor/sensor values
-		if (!this._seenMessageTypes?.has(0x45)) return false;
-
-		return true;
+		return false;
 	}
 
   // ---------------- Disconnect ----------------
