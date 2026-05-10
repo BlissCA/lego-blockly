@@ -10,6 +10,7 @@ const SUBCMD_START_SPEED_FOR_DEGREES = 0x0B;
 const SUBCMD_GOTO_ABS_POS     = 0x0D;
 const SUBCMD_GOTO_REL_POS     = 0x0A;
 const SUBCMD_STOP = 0x0A;
+const SUBCMD_START_SPEED_FOR_TIME = 0x09;
 
 // Brake modes
 const BRAKE_FLOAT = 0x00;
