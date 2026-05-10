@@ -131,39 +131,64 @@ export class LegoLPF2 {
 		// Determine which BLE profile to use
 		let isWeDo = false;
 
-		// Try WeDo 2.0 service first
-		try {
-			await new Promise(r => setTimeout(r, 250)); // WeDo needs delay
+		// WeDo 2.0 needs time before its GATT table becomes available
+		await new Promise(r => setTimeout(r, 350));
 
+		try {
+			// Try WeDo 2.0 service (first attempt)
 			const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
-			// WeDo 2.0 uses TWO characteristics
 			this.writeChar  = await service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
 			this.notifyChar = await service.getCharacteristic("00001525-1212-efde-1523-785feabcd123");
 
 			await this.notifyChar.startNotifications();
 			this.notifyChar.addEventListener("characteristicvaluechanged", this._notifyBound);
 
-			this.char = this.writeChar; // for writes
+			this.char = this.writeChar;
 			this.service = service;
 			this.isWeDo = true;
 
 			this.log("Detected WeDo 2.0 hub");
+			isWeDo = true;
 		}
 		catch (err1) {
-			// Not WeDo → Boost/PoweredUp/Spike
-			const service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
-			const char = await service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
 
-			await char.startNotifications();
-			char.addEventListener("characteristicvaluechanged", this._notifyBound);
+			// Wait and try again — WeDo often needs 2 attempts
+			await new Promise(r => setTimeout(r, 350));
 
-			this.service = service;
-			this.char = char;
-			this.isWeDo = false;
+			try {
+				const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
-			this.log("Detected Boost/PoweredUp/Spike hub");
+				this.writeChar  = await service.getCharacteristic("00001524-1212-efde-1523-785feabcd123");
+				this.notifyChar = await service.getCharacteristic("00001525-1212-efde-1523-785feabcd123");
+
+				await this.notifyChar.startNotifications();
+				this.notifyChar.addEventListener("characteristicvaluechanged", this._notifyBound);
+
+				this.char = this.writeChar;
+				this.service = service;
+				this.isWeDo = true;
+
+				this.log("Detected WeDo 2.0 hub (2nd attempt)");
+				isWeDo = true;
+			}
+			catch (err2) {
+
+				// Not WeDo → must be Boost/PoweredUp/Spike
+				const service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
+				const char = await service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
+
+				await char.startNotifications();
+				char.addEventListener("characteristicvaluechanged", this._notifyBound);
+
+				this.service = service;
+				this.char = char;
+				this.isWeDo = false;
+
+				this.log("Detected Boost/PoweredUp/Spike hub");
+			}
 		}
+
 
 
     // Start notifications
