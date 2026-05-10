@@ -162,7 +162,7 @@ export class LegoLPF2 {
 			// ------------------------------------------------------------
 			// STEP 3 — Retry WeDo 2.0 detection (WeDo often needs 2 attempts)
 			// ------------------------------------------------------------
-			await new Promise(r => setTimeout(r, 600));
+			await new Promise(r => setTimeout(r, 5000));
 			try {
 				const service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
 
