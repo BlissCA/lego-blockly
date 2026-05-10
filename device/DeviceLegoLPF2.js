@@ -43,6 +43,24 @@ export class LegoLPF2 {
     this.countOn = {};       // portId -> rising-edge count
     this.rot = {};           // portId -> rotation (deg or ticks)
 
+		this.portMap = {
+			A: null,
+			B: null,
+			C: null,
+			D: null,
+			AB: null,
+			CD: null
+		};
+
+		this.motorCaps = {
+			power: true,
+			speed: false,
+			angle: false,
+			goto: false,
+			time: false,
+			combined: false
+		};
+
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
 
@@ -181,6 +199,12 @@ export class LegoLPF2 {
 		}
 
 		this.log("Ports detected: " + JSON.stringify(this.portInfo));
+		this._buildPortMap();
+		await this._setupCombinedMode();
+		this._setupMotorCaps();
+		this.log("Port map: " + JSON.stringify(this.portMap));
+		this.log("Motor caps: " + JSON.stringify(this.motorCaps));
+
 
 		// ------------------------------------------------------------
 		// STEP 2 — Request Mode Information for each port
@@ -496,6 +520,7 @@ export class LegoLPF2 {
     // [len][hubId][0x04][portId][event][ioTypeL][ioTypeH][...]
     const portId = msg[3];
     const event = msg[4];
+		const ioType = msg[5];
 
     if (event === 0x01) {
       const ioType = msg[5] | (msg[6] << 8);
@@ -507,6 +532,16 @@ export class LegoLPF2 {
       delete this.countOn[portId];
       delete this.rot[portId];
     }
+
+		// Detect virtual ports
+		if (event === 0x02) {
+			// Boost/Technic/Spike
+			if (portId === 0x10) this.portMap.AB = 0x10;
+			if (portId === 0x11) this.portMap.CD = 0x11;
+			// PoweredUp: we don't need anything special; polling sees it in portInfo
+		}
+		// Optionally re-log:
+		// this.log("Ports detected: " + JSON.stringify(this.portInfo));
   }
 
   _registerPort(portId, ioType) {
@@ -642,7 +677,165 @@ export class LegoLPF2 {
     return this.portValues[port] ?? 0;
   }
 
+
   // ---------------- Public API: Motors ----------------
+
+	_buildPortMap() {
+		// Reset
+		this.portMap = { A: null, B: null, C: null, D: null, AB: null, CD: null };
+
+		const type = this.hubType;
+		const portIds = Object.keys(this.portInfo).map(n => parseInt(n, 10));
+
+		// BOOST MOVE HUB (0x41) or your 100
+		if (type === 0x41 || type === 100) {
+			if (this.portInfo[0]) this.portMap.A = 0;
+			if (this.portInfo[1]) this.portMap.B = 1;
+			if (this.portInfo[2]) this.portMap.C = 2;
+			if (this.portInfo[3]) this.portMap.D = 3;
+
+			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
+			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
+			return;
+		}
+
+		// POWERED UP HUB (2-port)
+		if (type === 0x42) {
+			if (this.portInfo[0]) this.portMap.A = 0;
+			if (this.portInfo[1]) this.portMap.B = 1;
+			return;
+		}
+
+		// TECHNIC HUB (0x44)
+		if (type === 0x44) {
+			if (this.portInfo[0]) this.portMap.A = 0;
+			if (this.portInfo[1]) this.portMap.B = 1;
+			if (this.portInfo[2]) this.portMap.C = 2;
+			if (this.portInfo[3]) this.portMap.D = 3;
+
+			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
+			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
+			return;
+		}
+
+		// SPIKE PRIME / INVENTOR (0x43)
+		if (type === 0x43) {
+			if (this.portInfo[0]) this.portMap.A = 0;
+			if (this.portInfo[1]) this.portMap.B = 1;
+			if (this.portInfo[2]) this.portMap.C = 2;
+			if (this.portInfo[3]) this.portMap.D = 3;
+
+			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
+			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
+			return;
+		}
+
+		// Fallback
+		if (this.portInfo[0]) this.portMap.A = 0;
+		if (this.portInfo[1]) this.portMap.B = 1;
+		if (this.portInfo[2]) this.portMap.C = 2;
+		if (this.portInfo[3]) this.portMap.D = 3;
+	}
+
+	async _setupCombinedMode() {
+		const type = this.hubType;
+
+		// BOOST / TECHNIC / SPIKE: combined ports already provided
+		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100) {
+			this.motorCaps.combined = !!(this.portMap.AB || this.portMap.CD);
+			return;
+		}
+
+		// POWERED UP HUB: create virtual AB if A and B exist
+		if (type === 0x42 && this.portMap.A != null && this.portMap.B != null) {
+			await this._ensureCombinedABForPoweredUp();
+			this.motorCaps.combined = !!this.portMap.AB;
+			return;
+		}
+
+		this.motorCaps.combined = false;
+	}
+
+	async _ensureCombinedABForPoweredUp() {
+		if (this.portMap.AB != null) return;
+
+		const hubId = this.hubId || 0x00;
+		const portA = this.portMap.A & 0xFF;
+		const portB = this.portMap.B & 0xFF;
+
+		const msg = new Uint8Array([
+			0x09,
+			hubId,
+			0x61,
+			0x01,
+			portA,
+			portB,
+			0x00,
+			0x00,
+			0x00
+		]);
+
+		await this._write(msg);
+
+		// Wait for virtual port to appear in portInfo
+		const virtualPort = await this._waitForVirtualPortAB();
+		if (virtualPort != null) {
+			this.portMap.AB = virtualPort;
+		}
+	}
+
+	_waitForVirtualPortAB() {
+		return new Promise(resolve => {
+			const start = performance.now();
+
+			const check = () => {
+				for (const portIdStr of Object.keys(this.portInfo)) {
+					const portId = parseInt(portIdStr, 10);
+					if (portId >= 0x10) {
+						resolve(portId);
+						return;
+					}
+				}
+
+				if (performance.now() - start > 1000) {
+					resolve(null);
+					return;
+				}
+
+				requestAnimationFrame(check);
+			};
+
+			check();
+		});
+	}
+
+	_setupMotorCaps() {
+		const type = this.hubType;
+
+		this.motorCaps = {
+			power: true,
+			speed: true,
+			angle: false,
+			goto: false,
+			time: false,
+			combined: !!(this.portMap.AB || this.portMap.CD)
+		};
+
+		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100) {
+			this.motorCaps.angle = true;
+			this.motorCaps.goto  = true;
+			this.motorCaps.time  = true;
+		}
+
+		if (type === 0x42) {
+			this.motorCaps.angle = false;
+			this.motorCaps.goto  = false;
+			this.motorCaps.time  = false;
+		}
+	}
+
+
+	// ------------------ Motor Commands ----------------
 
   async motorPower(port, power) {
     if (!this.char) throw new Error("LPF2 not connected");
@@ -733,22 +926,55 @@ export class LegoLPF2 {
     await this._write(msg);
   }
 
-  async motorStop(port, brakeMode = this.defaultBrakeMode) {
-    if (!this.char) throw new Error("LPF2 not connected");
-    const hubId = this.hubId || 0x00;
-    const len = 0x08;
-    const msg = new Uint8Array([
-      len,
-      hubId,
-      MSG_PORT_OUTPUT_COMMAND,
-      port & 0xFF,
-      0x11,
-      SUBCMD_START_POWER,
-      0x00,          // no feedback
-      brakeMode === BRAKE_FLOAT ? 0x00 : 0x00 // power=0; brake mode handled by profile in more advanced cmds
-    ]);
-    await this._write(msg);
-  }
+	async motorTime(port, ms, speed, brakeMode = this.defaultBrakeMode) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		speed = Math.max(-100, Math.min(100, Math.round(speed)));
+		const hubId = this.hubId || 0x00;
+
+		// LPF2 supports only 0–255 ms per command
+		const chunk = Math.min(ms, 255);
+
+		const msg = new Uint8Array([
+			0x0A,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_START_SPEED_FOR_TIME,
+			0x00,          // no feedback
+			chunk & 0xFF,  // duration
+			speed & 0xFF,
+			brakeMode & 0xFF
+		]);
+
+		await this._write(msg);
+
+		// If longer than 255 ms, recursively continue
+		if (ms > 255) {
+			await new Promise(r => setTimeout(r, chunk));
+			return this.motorTime(port, ms - chunk, speed, brakeMode);
+		}
+	}
+
+	async motorStop(port, brakeMode = this.defaultBrakeMode) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		const hubId = this.hubId || 0x00;
+
+		const msg = new Uint8Array([
+			0x08,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_STOP,     // <-- REAL stop command
+			0x00,            // no feedback
+			brakeMode & 0xFF // 0=float, 1=brake, 2=hold
+		]);
+
+		await this._write(msg);
+	}
 
   // Convenience mapping for Blockly (string → brake mode)
   brakeModeFromString(mode) {
