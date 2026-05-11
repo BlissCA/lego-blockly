@@ -222,8 +222,9 @@ export class LegoLPF2 {
 				await new Promise(r => setTimeout(r, 20));
 		}
 
+		
 		// ------------------------------------------------------------
-		// STEP 3 — Configure Input Format for each sensor port
+		// STEP 3 — Configure Input Format for each sensor port (safe version)
 		// ------------------------------------------------------------
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
@@ -232,46 +233,16 @@ export class LegoLPF2 {
 				if (!info) continue;
 
 				// Skip motors
-				if (info.type === "motor" || info.type === "trainMotor") continue;
-
-				// Determine default mode
-				let defaultMode = 0;
-
-				// Boost internal tilt sensor → mode 2 if available
-				if (info.ioType === 0x0005 || info.ioType === 0x0028) {
-						if (info.modes[2]) defaultMode = 2;
+				if (info.type === "motor" || info.type === "trainMotor" || info.type === "mediumLinearMotor" || info.type === "largeLinearMotor") {
+						continue;
 				}
 
-				// ColorDistance sensor → mode 0 (color)
-				if (info.ioType === 0x0008) {
-						defaultMode = 0;
-				}
-
-				// Distance sensor → mode 0
-				if (info.ioType === 0x0027) {
-						defaultMode = 0;
-				}
-
-				// Color sensor → mode 0
-				if (info.ioType === 0x0026) {
-						defaultMode = 0;
-				}
-
-				// Force sensor → mode 0
-				if (info.ioType === 0x0025) {
-						defaultMode = 0;
-				}
-
-				// IMU (Spike/Inventor) → mode 0 (accel)
-				if (info.ioType >= 0x0030 && info.ioType <= 0x0034) {
-						defaultMode = 0;
-				}
-
-				// Apply input format
-				await this._setInputFormat(port, defaultMode, 1, 0, 1);
+				// For now: always mode 0, delta=1, unit=0, notifications=1
+				await this._setInputFormat(port, 0, 1, 0, 1);
 
 				await new Promise(r => setTimeout(r, 20));
 		}
+
 
 		this.log("LPF2 initialization complete.");
 	}
@@ -662,7 +633,10 @@ export class LegoLPF2 {
 				}
         this._handleHubAttachedIO(msg);
         break;
-      case 0x45: // Port Value Single
+			case 0x43: // Port Information
+					this._handlePortInformation(msg);
+					break;
+			case 0x45: // Port Value Single
 				if (LPF2_DEBUG.traffic) {
 					console.log("[LPF2] → Port Value Single");
 				}
@@ -766,29 +740,47 @@ export class LegoLPF2 {
 			const info = this.portInfo[port];
 			if (!info) return;
 
+			// No active mode yet → ignore early values
 			const mode = this.activeMode[port];
 			if (mode == null) return;
 
+			// Mode table not ready yet
+			if (!info.modes) return;
+
 			const modeInfo = info.modes[mode];
-			if (!modeInfo || !modeInfo.valueFormat) return;
+			if (!modeInfo) return;
 
 			const vf = modeInfo.valueFormat;
-			const values = [];
+			if (!vf) return;
 
+			const values = [];
 			let offset = 0;
+
+			// Ensure payload is long enough for expected data
+			const bytesNeeded =
+					vf.count *
+					(vf.type === "Int8" ? 1 :
+					vf.type === "Int16" ? 2 :
+					vf.type === "Int32" ? 4 :
+					vf.type === "Float32" ? 4 : 0);
+
+			if (payload.length < bytesNeeded) {
+					// Ignore incomplete early messages
+					return;
+			}
 
 			for (let i = 0; i < vf.count; i++) {
 					let v = 0;
 
 					switch (vf.type) {
 							case "Int8":
-									v = (payload[offset] << 24) >> 24; // sign extend
+									v = (payload[offset] << 24) >> 24;
 									offset += 1;
 									break;
 
 							case "Int16":
 									v = (payload[offset] | (payload[offset+1] << 8));
-									if (v & 0x8000) v |= 0xFFFF0000; // sign extend
+									if (v & 0x8000) v |= 0xFFFF0000;
 									offset += 2;
 									break;
 
@@ -801,18 +793,22 @@ export class LegoLPF2 {
 									break;
 
 							case "Float32":
-									v = new DataView(payload.buffer, payload.byteOffset + offset, 4).getFloat32(0, true);
+									v = new DataView(payload.buffer, payload.byteOffset + offset, 4)
+													.getFloat32(0, true);
 									offset += 4;
 									break;
+
+							default:
+									return; // unknown type
 					}
 
 					values.push(v);
 			}
 
-			// Store raw values
+			// Store parsed values
 			this.portValues[port] = (vf.count === 1 ? values[0] : values);
 
-			// Optional: update convenience fields (rot, tilt, etc.)
+			// Motor encoder convenience
 			if (info.type === "motor" && vf.type === "Int32") {
 					this.rot[port] = values[0];
 			}
@@ -1303,7 +1299,7 @@ export class LegoLPF2 {
 	async motorStop(port, brake = 0) {
 
 			port = this._resolvePort(port);
-			
+
 			const hubId = this.hubId || 0x00;
 
 			const value = brake ? 0x7F : 0x00;
