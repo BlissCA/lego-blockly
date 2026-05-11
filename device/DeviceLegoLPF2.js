@@ -450,6 +450,17 @@ export class LegoLPF2 {
 	_setHubType(type) {
 			this.hubType = type;
 
+			// Fix Boost internal motors misclassified before hubType was known
+			if (type === 0x40) { // Boost Move Hub
+					for (const portId of [0, 1]) {
+							const info = this.portInfo[portId];
+							if (info && info.ioType === 0x27) {
+									info.type = "motor";
+									this.log(`Corrected Boost internal motor on port ${portId}`);
+							}
+					}
+			}
+
 			switch (type) {
 
 					case 0x20:
@@ -1176,6 +1187,9 @@ export class LegoLPF2 {
 					
 					// internal tilt (Boost) – usually 58
 					if (this.portInfo[58]) this.userPortMap.TILT = 58;
+					
+					if (this.portInfo[0]?.ioType === 0x27) this.portInfo[0].type = "motor";
+					if (this.portInfo[1]?.ioType === 0x27) this.portInfo[1].type = "motor";					
 
 					return;
 			}
