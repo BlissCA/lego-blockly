@@ -64,7 +64,22 @@ export class LegoLPF2 {
     this.readingActive = false;
 
 		this._rxBuffer = [];     // byte buffer for incoming notifications
-		this._notifyBound = this._onNotification.bind(this);		
+		this._notifyBound = this._onNotification.bind(this);
+
+		// Default sensor modes per type
+		defaultSensorModes = {
+				distance: 0,
+				colorDistance: 0, // color index
+				color: 0,
+				tilt: 0,
+				tiltMulti: 0,
+				imu: 0,           // accel
+				force: 0,
+				motor: 2,         // absolute position
+				voltage: 0,
+				current: 0
+		};
+
   }
 
   // ---------------- Status + Logging ----------------
@@ -1041,39 +1056,100 @@ export class LegoLPF2 {
 
   // ---------------- Public API: Inputs ----------------
 
-  inputOn(port) {
-    const v = this.portValues[port];
-    if (v == null) return false;
-    return this._booleanFromValue(port, v);
-  }
+	_getDefaultMode(port) {
+			const info = this.portInfo[port];
+			if (!info) return 0;
 
-  getCountOn(port) {
-    return this.countOn[port] || 0;
-  }
+			const t = info.type;
+			return this.defaultSensorModes[t] ?? 0;
+	}
 
-  setCountOn(port, value = 0) {
-    this.countOn[port] = value;
-  }
+	async _ensureMode(port, desiredMode) {
+			const current = this.activeMode[port];
 
-  getRot(port) {
-    return this.rot[port] || 0;
-  }
+			if (current === desiredMode) {
+					return;
+			}
 
-  getTilt(port) {
-    return this.portValues[port] ?? 0;
-  }
+			await this._setInputFormat(port, desiredMode, 1, 0, 1);
 
-  getDistance(port) {
-    return this.portValues[port] ?? 0;
-  }
+			// Give hub time to switch modes
+			await new Promise(r => setTimeout(r, 20));
+	}
 
-  getColor(port) {
-    return this.portValues[port] ?? 0;
-  }
+	async getDistance(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
 
-  getForce(port) {
-    return this.portValues[port] ?? 0;
-  }
+			await this._ensureMode(port, mode);
+			return this.portValues[port] ?? 0;
+	}
+
+	async getColor(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
+
+			await this._ensureMode(port, mode);
+			return this.portValues[port] ?? 0;
+	}
+
+	async getTilt(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
+
+			await this._ensureMode(port, mode);
+			return this.portValues[port] ?? 0;
+	}
+
+	async getForce(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
+
+			await this._ensureMode(port, mode);
+			return this.portValues[port] ?? 0;
+	}
+
+	async getIMU(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
+
+			await this._ensureMode(port, mode);
+			return this.portValues[port] ?? [0,0,0];
+	}
+
+	async getRot(portName) {
+			const port = this._resolvePort(portName);
+			const mode = this._getDefaultMode(port);
+
+			await this._ensureMode(port, mode);
+			return this.rot[port] ?? 0;
+	}
+
+
+	getRaw(portName) {
+			const port = this._resolvePort(portName);
+			return this.portValues[port];
+	}
+
+	getMode(portName) {
+			const port = this._resolvePort(portName);
+			return this.activeMode[port];
+	}
+
+	getModeInfo(portName, mode) {
+			const port = this._resolvePort(portName);
+			return this.portInfo[port]?.modes?.[mode] ?? null;
+	}
+
+	getValueFormat(portName, mode) {
+			const port = this._resolvePort(portName);
+			return this.portInfo[port]?.modes?.[mode]?.valueFormat ?? null;
+	}
+
+	async setSensorMode(portName, mode) {
+			const port = this._resolvePort(portName);
+			await this._setInputFormat(port, mode, 1, 0, 1);
+	}
 
 
   // ---------------- Public API: Motors ----------------
