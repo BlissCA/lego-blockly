@@ -67,7 +67,7 @@ export class LegoLPF2 {
 		this._notifyBound = this._onNotification.bind(this);
 
 		// Default sensor modes per type
-		defaultSensorModes = {
+		this.defaultSensorModes = {
 				distance: 0,
 				colorDistance: 0, // color index
 				color: 0,
