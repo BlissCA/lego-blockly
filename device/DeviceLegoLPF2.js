@@ -871,7 +871,7 @@ export class LegoLPF2 {
 
 			this.portInfo[portId] = { ioType, type };
 
-			this.log(`Port ${portId} hub type=${this.hubType} attached: type=${type} (ioType=0x${ioType.toString(16)})`);
+			//this.log(`Port ${portId} hub type=${this.hubType} attached: type=${type} (ioType=0x${ioType.toString(16)})`);
 	}
 
 	_handlePortValueSingle(msg) {
@@ -1187,7 +1187,7 @@ export class LegoLPF2 {
 					
 					// internal tilt (Boost) – usually 58
 					if (this.portInfo[58]) this.userPortMap.TILT = 58;
-					
+
 					if (this.portInfo[0]?.ioType === 0x27) this.portInfo[0].type = "motor";
 					if (this.portInfo[1]?.ioType === 0x27) this.portInfo[1].type = "motor";					
 
