@@ -695,14 +695,20 @@ export class LegoLPF2 {
       delete this.rot[portId];
     }
 
-		// Detect virtual ports
-		if (event === 0x02) {
-			if (!this.userPortMap) this.userPortMap = {};
-			// Boost/Technic/Spike
-			if (portId === 0x10) this.userPortMap.AB = 0x10;
-			if (portId === 0x11) this.userPortMap.CD = 0x11;
-			// PoweredUp: we don't need anything special; polling sees it in portInfo
+		// Detect virtual ports (Technic, Spike, Powered Up)
+		if (event === 0x02 && this.hubType !== 0x40) {
+				if (!this.userPortMap) this.userPortMap = {};
+
+				if (portId === 0x10) {
+						this.userPortMap.AB = 0x10;
+						this.log("Virtual port AB detected");
+				}
+				if (portId === 0x11) {
+						this.userPortMap.CD = 0x11;
+						this.log("Virtual port CD detected");
+				}
 		}
+		
 		// Optionally re-log:
 		// this.log("Ports detected: " + JSON.stringify(this.portInfo));
   }
