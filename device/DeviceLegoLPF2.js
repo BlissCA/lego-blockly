@@ -3,19 +3,17 @@
 // Standalone class, same architecture style as LegoInterfaceA_v2.
 
 // Port Output Command constants
-const MSG_PORT_OUTPUT_COMMAND = 0x81;
-const SUBCMD_START_POWER      = 0x51;
-const SUBCMD_START_SPEED      = 0x07;
-const SUBCMD_START_SPEED_FOR_DEGREES = 0x0B;
-const SUBCMD_GOTO_ABS_POS     = 0x0D;
-const SUBCMD_GOTO_REL_POS     = 0x0A;
-const SUBCMD_STOP = 0x0A;
-const SUBCMD_START_SPEED_FOR_TIME = 0x09;
+const SUBCMD_START_POWER              = 0x01; // raw PWM
+const SUBCMD_START_SPEED              = 0x02; // regulated speed
+const SUBCMD_START_SPEED_FOR_TIME     = 0x09; // time-based movement
+const SUBCMD_START_SPEED_FOR_DEGREES  = 0x0B; // angle-based movement
+const SUBCMD_GOTO_ABS_POS             = 0x0D; // absolute position
+
 
 // Brake modes
-const BRAKE_FLOAT = 0x00;
-const BRAKE_BRAKE = 0x01;
-const BRAKE_HOLD  = 0x02;
+const BRAKE_FLOAT = 0x64;
+const BRAKE_BRAKE = 0x7F;
+const BRAKE_HOLD  = 0x7E;
 
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
@@ -839,103 +837,113 @@ export class LegoLPF2 {
 
 	// ------------------ Motor Commands ----------------
 
-  async motorPower(port, power) {
-    if (!this.char) throw new Error("LPF2 not connected");
-    power = Math.max(-100, Math.min(100, Math.round(power)));
-    const hubId = this.hubId || 0x00;
-    const len = 0x08;
-    const msg = new Uint8Array([
-      len,
-      hubId,
-      MSG_PORT_OUTPUT_COMMAND,
-      port & 0xFF,
-      0x11,
-      SUBCMD_START_POWER,
-      0x00,          // no feedback
-      power & 0xFF
-    ]);
-    await this._write(msg);
-  }
+	async motorPower(port, power) {
+		if (!this.char) throw new Error("LPF2 not connected");
 
-  async motorSpeed(port, speed, maxPower = 100, useProfile = 0x00) {
-    if (!this.char) throw new Error("LPF2 not connected");
-    speed = Math.max(-100, Math.min(100, Math.round(speed)));
-    maxPower = Math.max(0, Math.min(100, Math.round(maxPower)));
-    const hubId = this.hubId || 0x00;
-    const len = 0x0A;
-    const msg = new Uint8Array([
-      len,
-      hubId,
-      MSG_PORT_OUTPUT_COMMAND,
-      port & 0xFF,
-      0x11,
-      SUBCMD_START_SPEED,
-      0x00,          // no feedback
-      speed & 0xFF,
-      maxPower & 0xFF,
-      useProfile & 0xFF
-    ]);
-    await this._write(msg);
-  }
+		power = Math.max(-100, Math.min(100, Math.round(power)));
+		const hubId = this.hubId || 0x00;
 
-  async motorAngle(port, angle, speed, brakeMode = this.defaultBrakeMode) {
-    if (!this.char) throw new Error("LPF2 not connected");
-    speed = Math.max(-100, Math.min(100, Math.round(speed)));
-    const hubId = this.hubId || 0x00;
-    const a = angle | 0;
-    const len = 0x0E;
-    const msg = new Uint8Array([
-      len,
-      hubId,
-      MSG_PORT_OUTPUT_COMMAND,
-      port & 0xFF,
-      0x11,
-      SUBCMD_START_SPEED_FOR_DEGREES,
-      a & 0xFF,
-      (a >> 8) & 0xFF,
-      (a >> 16) & 0xFF,
-      (a >> 24) & 0xFF,
-      speed & 0xFF,
-			100,
-      0x7F,
-      0x00           // useProfile
-    ]);
-    await this._write(msg);
-  }
+		const msg = new Uint8Array([
+			0x08,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_START_POWER,
+			power & 0xFF,
+			0x00 // profile
+		]);
 
-  async motorGoto(port, position, speed, brakeMode = this.defaultBrakeMode) {
-    if (!this.char) throw new Error("LPF2 not connected");
-    speed = Math.max(-100, Math.min(100, Math.round(speed)));
-    const hubId = this.hubId || 0x00;
-    const p = position | 0;
-    const len = 0x0E;
-    const msg = new Uint8Array([
-      len,
-      hubId,
-      MSG_PORT_OUTPUT_COMMAND,
-      port & 0xFF,
-      0x11,
-      SUBCMD_GOTO_ABS_POS,
-      0x00,          // no feedback
-      p & 0xFF,
-      (p >> 8) & 0xFF,
-      (p >> 16) & 0xFF,
-      (p >> 24) & 0xFF,
-      speed & 0xFF,
-      brakeMode & 0xFF,
-      0x00           // useProfile
-    ]);
-    await this._write(msg);
-  }
+		await this._write(msg);
+	}
 
-	async motorTime(port, ms, speed, brakeMode = this.defaultBrakeMode) {
+	async motorSpeed(port, speed, maxPower = 100, endState = BRAKE_BRAKE) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
 		speed = Math.max(-100, Math.min(100, Math.round(speed)));
 		const hubId = this.hubId || 0x00;
 
-		// LPF2 supports only 0–255 ms per command
-		const chunk = Math.min(ms, 255);
+		const msg = new Uint8Array([
+			0x0A,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_START_SPEED,
+			speed & 0xFF,
+			maxPower & 0xFF,
+			endState & 0xFF,
+			0x00 // profile
+		]);
+
+		await this._write(msg);
+	}
+
+	async motorAngle(port, angle, speed, endState = BRAKE_BRAKE) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		speed = Math.max(-100, Math.min(100, Math.round(speed)));
+		const hubId = this.hubId || 0x00;
+		const a = angle | 0;
+
+		const msg = new Uint8Array([
+			0x0E,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_START_SPEED_FOR_DEGREES,
+
+			a & 0xFF,
+			(a >> 8) & 0xFF,
+			(a >> 16) & 0xFF,
+			(a >> 24) & 0xFF,
+
+			speed & 0xFF,
+			100,              // max power
+			endState & 0xFF,  // brake/hold/float
+			0x00              // profile
+		]);
+
+		await this._write(msg);
+	}
+
+	async motorGoto(port, position, speed, endState = BRAKE_BRAKE) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		speed = Math.max(-100, Math.min(100, Math.round(speed)));
+		const hubId = this.hubId || 0x00;
+		const p = position | 0;
+
+		const msg = new Uint8Array([
+			0x0E,
+			hubId,
+			MSG_PORT_OUTPUT_COMMAND,
+			port & 0xFF,
+			0x11,
+			SUBCMD_GOTO_ABS_POS,
+
+			p & 0xFF,
+			(p >> 8) & 0xFF,
+			(p >> 16) & 0xFF,
+			(p >> 24) & 0xFF,
+
+			speed & 0xFF,
+			100,              // max power
+			endState & 0xFF,  // brake/hold/float
+			0x00              // profile
+		]);
+
+		await this._write(msg);
+	}
+
+	async motorTime(port, ms, speed, endState = BRAKE_BRAKE) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		speed = Math.max(-100, Math.min(100, Math.round(speed)));
+		const hubId = this.hubId || 0x00;
+
+		const duration = Math.min(ms, 255);
 
 		const msg = new Uint8Array([
 			0x0A,
@@ -944,22 +952,21 @@ export class LegoLPF2 {
 			port & 0xFF,
 			0x11,
 			SUBCMD_START_SPEED_FOR_TIME,
-			0x00,          // no feedback
-			chunk & 0xFF,  // duration
+			duration & 0xFF,
 			speed & 0xFF,
-			brakeMode & 0xFF
+			100,              // max power
+			endState & 0xFF   // brake/hold/float
 		]);
 
 		await this._write(msg);
 
-		// If longer than 255 ms, recursively continue
 		if (ms > 255) {
-			await new Promise(r => setTimeout(r, chunk));
-			return this.motorTime(port, ms - chunk, speed, brakeMode);
+			await new Promise(r => setTimeout(r, duration));
+			return this.motorTime(port, ms - duration, speed, endState);
 		}
 	}
 
-	async motorStop(port, brakeMode = this.defaultBrakeMode) {
+	async motorStop(port, endState = BRAKE_BRAKE) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
 		const hubId = this.hubId || 0x00;
@@ -970,9 +977,9 @@ export class LegoLPF2 {
 			MSG_PORT_OUTPUT_COMMAND,
 			port & 0xFF,
 			0x11,
-			SUBCMD_STOP,     // <-- REAL stop command
-			0x00,            // no feedback
-			brakeMode & 0xFF // 0=float, 1=brake, 2=hold
+			SUBCMD_STOP,
+			endState & 0xFF,
+			0x00 // profile
 		]);
 
 		await this._write(msg);
