@@ -1043,7 +1043,7 @@ export class LegoLPF2 {
 					0x11,
 					0x51,   // WriteDirectModeData
 					0x00,   // Mode 0 = speed
-					value   // 0 = float, 127 = brake
+					brake   // 0 = float, 127 = brake, 126 = hold 
 			]);
 
 			await this._write(msg);
