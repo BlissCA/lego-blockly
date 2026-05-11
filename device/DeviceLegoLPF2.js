@@ -891,13 +891,13 @@ export class LegoLPF2 {
       port & 0xFF,
       0x11,
       SUBCMD_START_SPEED_FOR_DEGREES,
-      0x00,          // no feedback
       a & 0xFF,
       (a >> 8) & 0xFF,
       (a >> 16) & 0xFF,
       (a >> 24) & 0xFF,
       speed & 0xFF,
-      brakeMode & 0xFF,
+			100,
+      0x7F,
       0x00           // useProfile
     ]);
     await this._write(msg);
