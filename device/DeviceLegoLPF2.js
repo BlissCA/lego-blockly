@@ -18,7 +18,7 @@ const BRAKE_HOLD  = 0x7E;
 
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
-  traffic: true,  // logs for every notification/frame/message
+  traffic: false,  // logs for every notification/frame/message
 };
 
 export class LegoLPF2 {
@@ -329,7 +329,7 @@ export class LegoLPF2 {
 				break;
 
 			case 0x64: // Corrupted Boost identity (Legoino users see this too)
-				this.namePrefix = "Boost";
+				this.namePrefix = "LPF2 Device in Bootloader mode ";
 				break;
 
 			default:
