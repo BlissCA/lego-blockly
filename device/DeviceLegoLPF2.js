@@ -159,7 +159,7 @@ export class LegoLPF2 {
 			0x05,       // length
 			0x00,       // hub ID
 			0x01,       // Hub Properties
-			0x06,       // Hub Type
+			0x0B,       // Hub Type
 			0x05        // Request Update
 		]));
 
@@ -278,15 +278,6 @@ export class LegoLPF2 {
 
 			await new Promise(r => setTimeout(r, 20));
 		}
-
-		// Request "Hub Type" (0x0B)
-		await this._write(new Uint8Array([
-			0x05,
-			0x00,
-			0x01,
-			0x0B,
-			0x05
-		]));
 
 		this.log("LPF2 initialization complete.");
 	}
