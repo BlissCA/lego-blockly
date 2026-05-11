@@ -503,7 +503,7 @@ export class LegoLPF2 {
 			);
 		}
 
-		if (property === 0x06) {
+		if (property === 0x0B) {
 			// Format A (Spike/Technic): len >= 6, hubType in msg[5]
 			if (msg.length >= 6) {
 				if (LPF2_DEBUG.traffic) {
