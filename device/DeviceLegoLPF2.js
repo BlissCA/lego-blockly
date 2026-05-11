@@ -45,6 +45,8 @@ export class LegoLPF2 {
     this.rot = {};           // portId -> rotation (deg or ticks)
 		this.activeMode = {}; // port → mode
 
+		this.userPortMap = {}; // user-friendly port names (A/B/C/D) mapped to port IDs
+
 		this.motorCaps = {
 			power: true,
 			speed: false,
@@ -193,7 +195,6 @@ export class LegoLPF2 {
 
 		this.log("Ports detected: " + JSON.stringify(this.portInfo));
 		this._buildPortMap();
-		await this._setupCombinedMode();
 		this._setupMotorCaps();
 		this.log("Port map: " + JSON.stringify(this.userPortMap));
 		this.log("Motor caps: " + JSON.stringify(this.motorCaps));
@@ -696,6 +697,7 @@ export class LegoLPF2 {
 
 		// Detect virtual ports
 		if (event === 0x02) {
+			if (!this.userPortMap) this.userPortMap = {};
 			// Boost/Technic/Spike
 			if (portId === 0x10) this.userPortMap.AB = 0x10;
 			if (portId === 0x11) this.userPortMap.CD = 0x11;
