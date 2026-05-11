@@ -45,15 +45,6 @@ export class LegoLPF2 {
     this.rot = {};           // portId -> rotation (deg or ticks)
 		this.activeMode = {}; // port → mode
 
-		this.portMap = {
-			A: null,
-			B: null,
-			C: null,
-			D: null,
-			AB: null,
-			CD: null
-		};
-
 		this.motorCaps = {
 			power: true,
 			speed: false,
@@ -204,7 +195,7 @@ export class LegoLPF2 {
 		this._buildPortMap();
 		await this._setupCombinedMode();
 		this._setupMotorCaps();
-		this.log("Port map: " + JSON.stringify(this.portMap));
+		this.log("Port map: " + JSON.stringify(this.userPortMap));
 		this.log("Motor caps: " + JSON.stringify(this.motorCaps));
 
 
@@ -706,32 +697,96 @@ export class LegoLPF2 {
 		// Detect virtual ports
 		if (event === 0x02) {
 			// Boost/Technic/Spike
-			if (portId === 0x10) this.portMap.AB = 0x10;
-			if (portId === 0x11) this.portMap.CD = 0x11;
+			if (portId === 0x10) this.userPortMap.AB = 0x10;
+			if (portId === 0x11) this.userPortMap.CD = 0x11;
 			// PoweredUp: we don't need anything special; polling sees it in portInfo
 		}
 		// Optionally re-log:
 		// this.log("Ports detected: " + JSON.stringify(this.portInfo));
   }
 
-  _registerPort(portId, ioType) {
-    let type = "unknown";
-    switch (ioType) {
-      case 0x0001: type = "motor"; break;
-      case 0x0002: type = "trainMotor"; break;
-      case 0x0005: type = "tilt"; break;
-      case 0x0008: type = "colorDistance"; break;
-      case 0x0015: type = "mediumLinearMotor"; break;
-      case 0x0016: type = "largeLinearMotor"; break;
-      case 0x0025: type = "force"; break;
-      case 0x0026: type = "color"; break;
-      case 0x0027: type = "distance"; break;
-      case 0x0028: type = "tiltMulti"; break;
-      default: break;
-    }
+	_registerPort(portId, ioType) {
+			let type = "unknown";
 
-    this.portInfo[portId] = { ioType, type };
-  }
+			switch (ioType) {
+					// Simple / legacy motors (direct power)
+					case 0x0001: // Simple Medium Motor (88008)
+							type = "motorSimple";
+							break;
+					case 0x0002: // Train Motor (88011)
+							type = "trainMotor";
+							break;
+
+					// Classic LPF2 linear motors
+					case 0x0015: // Medium Linear Motor
+							type = "mediumLinearMotor";
+							break;
+					case 0x0016: // Large Linear Motor
+							type = "largeLinearMotor";
+							break;
+
+					// Modern tacho/absolute motors
+					case 0x002E: // Technic Large Motor (88013)
+					case 0x002F: // Technic XL Motor (88014)
+					case 0x0030: // Technic Medium Angular
+					case 0x0031: // Technic Large Angular
+					case 0x0041: // Small Angular Motor (Spike Essential)
+							type = "motor";
+							break;
+
+					// Sensors & accessories
+					case 0x0005: // Tilt (WeDo)
+							type = "tilt";
+							break;
+					case 0x0008: // LED Light (88005)
+							type = "light";
+							break;
+					case 0x0025: // Force sensor (LPF2)
+					case 0x003F: // Force sensor (Spike Prime)
+							type = "force";
+							break;
+					case 0x0026: // Color sensor (Boost / LPF2)
+					case 0x003D: // Color sensor (Spike / Inventor)
+							type = "color";
+							break;
+					case 0x0027: // Distance / Boost internal motor
+					case 0x003E: // Ultrasonic distance (Spike / Inventor)
+							type = "distance";
+							break;
+					case 0x0028: // Multi-tilt (Boost)
+							type = "tiltMulti";
+							break;
+					case 0x0026: // Color & Distance (Boost 88007) – if you prefer a combined label:
+					case 0x0028: // (you can keep tiltMulti separate if you want)
+							// type = "colorDistance";
+							break;
+
+					// Internal virtual hub ports
+					case 0x0036: // Internal IMU (gyro/accel)
+							type = "imu";
+							break;
+					case 0x003A: // Internal tilt (Move Hub)
+							type = "tiltInternal";
+							break;
+					case 0x003B: // Amperage sensor
+							type = "current";
+							break;
+					case 0x003C: // Voltage sensor
+							type = "voltage";
+							break;
+
+					default:
+							break;
+			}
+
+			// Boost special case: internal motors report ioType 0x27 (distance)
+			// We still want them to behave as motors for motor APIs.
+			if (ioType === 0x0027 && this.hubType === 0x40) {
+					type = "motor";
+			}
+
+			this.portInfo[portId] = { ioType, type };
+	}
 
 	_handlePortValueSingle(msg) {
 			const port = msg[3];
@@ -873,7 +928,6 @@ export class LegoLPF2 {
   // ---------------- Public API: Motors ----------------
 
 	_buildPortMap() {
-			this.portMap = {};
 			this.userPortMap = {};
 
 			const type = this.hubType;
@@ -1014,78 +1068,6 @@ export class LegoLPF2 {
 			throw new Error("Unknown port: " + port);
 	}
 
-	async _setupCombinedMode() {
-		const type = this.hubType;
-
-		// BOOST / TECHNIC / SPIKE: combined ports already provided
-		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100) {
-			this.motorCaps.combined = !!(this.portMap.AB || this.portMap.CD);
-			return;
-		}
-
-		// POWERED UP HUB: create virtual AB if A and B exist
-		if (type === 0x42 && this.portMap.A != null && this.portMap.B != null) {
-			await this._ensureCombinedABForPoweredUp();
-			this.motorCaps.combined = !!this.portMap.AB;
-			return;
-		}
-
-		this.motorCaps.combined = false;
-	}
-
-	async _ensureCombinedABForPoweredUp() {
-		if (this.portMap.AB != null) return;
-
-		const hubId = this.hubId || 0x00;
-		const portA = this.portMap.A & 0xFF;
-		const portB = this.portMap.B & 0xFF;
-
-		const msg = new Uint8Array([
-			0x09,
-			hubId,
-			0x61,
-			0x01,
-			portA,
-			portB,
-			0x00,
-			0x00,
-			0x00
-		]);
-
-		await this._write(msg);
-
-		// Wait for virtual port to appear in portInfo
-		const virtualPort = await this._waitForVirtualPortAB();
-		if (virtualPort != null) {
-			this.portMap.AB = virtualPort;
-		}
-	}
-
-	_waitForVirtualPortAB() {
-		return new Promise(resolve => {
-			const start = performance.now();
-
-			const check = () => {
-				for (const portIdStr of Object.keys(this.portInfo)) {
-					const portId = parseInt(portIdStr, 10);
-					if (portId >= 0x10) {
-						resolve(portId);
-						return;
-					}
-				}
-
-				if (performance.now() - start > 1000) {
-					resolve(null);
-					return;
-				}
-
-				requestAnimationFrame(check);
-			};
-
-			check();
-		});
-	}
-
 	_setupMotorCaps() {
 		const type = this.hubType;
 
@@ -1095,7 +1077,7 @@ export class LegoLPF2 {
 			angle: false,
 			goto: false,
 			time: false,
-			combined: !!(this.portMap.AB || this.portMap.CD)
+			combined: !!(this.userPortMap.AB || this.userPortMap.CD)
 		};
 
 		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100) {
