@@ -12,7 +12,7 @@ const SUBCMD_GOTO_ABS_POS             = 0x0D; // absolute position
 
 
 // Brake modes
-const BRAKE_FLOAT = 0x64;
+const BRAKE_FLOAT = 0x00;
 const BRAKE_BRAKE = 0x7F;
 const BRAKE_HOLD  = 0x7E;
 
@@ -871,7 +871,7 @@ export class LegoLPF2 {
 	async motorPower(port, power) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
-		//power = Math.max(-100, Math.min(100, Math.round(power)));
+		power = Math.max(-127, Math.min(127, power|0));
 		const hubId = this.hubId || 0x00;
 
 		const msg = new Uint8Array([
@@ -888,58 +888,63 @@ export class LegoLPF2 {
 		await this._write(msg);
 	}
 
-	async motorSpeed(port, speed, maxPower = 100, endState = BRAKE_BRAKE) {
-		if (!this.char) throw new Error("LPF2 not connected");
+	async motorSpeed(port, speed, maxPower = 100, useProfile = 0x00) {
+			if (!this.char) throw new Error("LPF3 not connected");
 
-		speed = Math.max(-100, Math.min(100, Math.round(speed)));
-		const hubId = this.hubId || 0x00;
+			const hubId = this.hubId || 0x00;
 
-		const msg = new Uint8Array([
-			0x0A,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,
-			SUBCMD_START_SPEED,
-			speed & 0xFF,
-			maxPower & 0xFF,
-			endState & 0xFF,
-			0x00 // profile
-		]);
+			// LPF3: speed is signed Int8, -100..100
+			speed = Math.max(-100, Math.min(100, speed|0));
 
-		await this._write(msg);
+			const msg = new Uint8Array([
+					0x09,          // length = 9 bytes
+					hubId,
+					MSG_PORT_OUTPUT_COMMAND,
+					port & 0xFF,
+					0x11,
+					SUBCMD_START_SPEED,   // 0x07
+					speed & 0xFF,         // signed
+					maxPower & 0xFF,
+					useProfile & 0xFF
+			]);
+
+			await this._write(msg);
 	}
 
-	async motorAngle(port, angle, speed, endState = BRAKE_BRAKE) {
-		if (!this.char) throw new Error("LPF2 not connected");
+	async motorAngle(port, angle, speed, endState = 0x00, useProfile = 0x00) {
+			if (!this.char) throw new Error("LPF3 not connected");
 
-		speed = Math.max(-100, Math.min(100, Math.round(speed)));
-		const hubId = this.hubId || 0x00;
-		const a = angle | 0;
+			const hubId = this.hubId || 0x00;
 
-		const msg = new Uint8Array([
-			0x0E,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,
-			SUBCMD_START_SPEED_FOR_DEGREES,
+			const a = angle | 0;
 
-			a & 0xFF,
-			(a >> 8) & 0xFF,
-			(a >> 16) & 0xFF,
-			(a >> 24) & 0xFF,
+			// LPF3: speed is signed Int8, -100..100
+			speed = Math.max(-100, Math.min(100, speed|0));
 
-			speed & 0xFF,
-			100,              // max power
-			endState & 0xFF,  // brake/hold/float
-			0x00              // profile
-		]);
+			const msg = new Uint8Array([
+					0x0E,          // length = 14 bytes
+					hubId,
+					0x81,          // Port Output Command
+					port & 0xFF,
+					0x11,          // StartPower/Speed/Position command
+					0x0B,          // SUBCMD_START_SPEED_FOR_DEGREES
 
-		await this._write(msg);
+					// Degrees (Int32 LE)
+					a & 0xFF,
+					(a >> 8) & 0xFF,
+					(a >> 16) & 0xFF,
+					(a >> 24) & 0xFF,
+
+					speed & 0xFF,      // signed speed
+					100,               // MaxPower
+					endState & 0xFF,   // 0=float, 126=hold, 127=brake
+					useProfile & 0xFF  // 0=no, 1=yes
+			]);
+
+			await this._write(msg);
 	}
 
-	async motorGoto(port, position, speed, endState = 0x00, useProfile = 0x00) {
+	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
 			const hubId = this.hubId || 0x00;
@@ -977,6 +982,25 @@ export class LegoLPF2 {
 			await this._write(msg);
 	}
 
+	async resetPosition(port) {
+			if (!this.char) throw new Error("LPF3 not connected");
+
+			const hubId = this.hubId || 0x00;
+
+			const msg = new Uint8Array([
+					0x08,          // length = 8 bytes
+					hubId,
+					0x81,          // Port Output Command
+					port & 0xFF,
+					0x11,          // StartPower/Speed/Position command
+					0x51,          // WriteDirectModeData
+					0x02,          // Mode 2 = Position
+					0x00           // Reset to 0
+			]);
+
+			await this._write(msg);
+	}
+	
 	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
