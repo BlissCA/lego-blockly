@@ -859,6 +859,8 @@ export class LegoLPF2 {
 			}
 
 			this.portInfo[portId] = { ioType, type };
+
+			this.log(`Port ${portId} hub type=${this.hubType} attached: type=${type} (ioType=0x${ioType.toString(16)})`);
 	}
 
 	_handlePortValueSingle(msg) {
