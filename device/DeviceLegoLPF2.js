@@ -5,7 +5,7 @@
 // Port Output Command constants
 const MSG_PORT_OUTPUT_COMMAND = 0x81;
 const SUBCMD_START_POWER              = 0x01; // raw PWM
-const SUBCMD_START_SPEED              = 0x02; // regulated speed
+const SUBCMD_START_SPEED              = 0x07; // regulated speed
 const SUBCMD_START_SPEED_FOR_TIME     = 0x09; // time-based movement
 const SUBCMD_START_SPEED_FOR_DEGREES  = 0x0B; // angle-based movement
 const SUBCMD_GOTO_ABS_POS             = 0x0D; // absolute position
@@ -308,6 +308,10 @@ export class LegoLPF2 {
 		this.hubType = type;
 
 		switch (type) {
+			case 0x40: // Boost Move Hub
+				this.namePrefix = "Boost";
+				break;
+
 			case 0x41: // Boost Move Hub
 				this.namePrefix = "Boost";
 				break;
