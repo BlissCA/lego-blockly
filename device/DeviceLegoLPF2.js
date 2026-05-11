@@ -249,6 +249,15 @@ export class LegoLPF2 {
 				0x04
 			]));
 
+			// Request "Hub Type" (0x0B)
+			await this._write(new Uint8Array([
+				0x05,
+				0x00,
+				0x01,
+				0x0B,
+				0x05
+			]));
+
 			// Small delay to avoid overwhelming the hub
 			await new Promise(r => setTimeout(r, 30));
 		}
