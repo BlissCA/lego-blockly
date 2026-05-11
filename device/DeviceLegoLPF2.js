@@ -939,84 +939,92 @@ export class LegoLPF2 {
 		await this._write(msg);
 	}
 
-	async motorGoto(port, position, speed, endState = BRAKE_BRAKE) {
-		if (!this.char) throw new Error("LPF2 not connected");
+	async motorGoto(port, position, speed, endState = 0x00, useProfile = 0x00) {
+			if (!this.char) throw new Error("LPF3 not connected");
 
-		speed = Math.max(-100, Math.min(100, Math.round(speed)));
-		const hubId = this.hubId || 0x00;
-		const p = position | 0;
+			const hubId = this.hubId || 0x00;
 
-		const msg = new Uint8Array([
-			0x0E,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,
-			SUBCMD_GOTO_ABS_POS,
+			// LPF3 spec: Speed must be 1..100
+			if (speed <= 0) {
+					// Speed 0 means STOP
+					return this.motorStop(port, endState === 0x7F);
+			}
+			if (speed > 100) speed = 100;
 
-			p & 0xFF,
-			(p >> 8) & 0xFF,
-			(p >> 16) & 0xFF,
-			(p >> 24) & 0xFF,
+			// Ensure 32-bit signed integer
+			const p = position | 0;
 
-			speed & 0xFF,
-			100,              // max power
-			endState & 0xFF,  // brake/hold/float
-			0x00              // profile
-		]);
+			const msg = new Uint8Array([
+					0x0E,          // length = 14 bytes
+					hubId,
+					0x81,          // Port Output Command
+					port & 0xFF,
+					0x11,          // StartPower/Speed/Position command
+					0x0D,          // SUBCMD_GOTO_ABSOLUTE_POSITION
 
-		await this._write(msg);
+					// AbsPos (Int32 LE)
+					p & 0xFF,
+					(p >> 8) & 0xFF,
+					(p >> 16) & 0xFF,
+					(p >> 24) & 0xFF,
+
+					speed & 0xFF,      // Speed (1..100)
+					100,               // MaxPower
+					endState & 0xFF,   // EndState
+					useProfile & 0xFF  // UseProfile
+			]);
+
+			await this._write(msg);
 	}
 
-	async motorTime(port, ms, speed, endState = BRAKE_BRAKE) {
-		if (!this.char) throw new Error("LPF2 not connected");
+	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00) {
+			if (!this.char) throw new Error("LPF3 not connected");
 
-		speed = Math.max(-100, Math.min(100, Math.round(speed)));
-		const hubId = this.hubId || 0x00;
+			const hubId = this.hubId || 0x00;
 
-		const duration = Math.min(ms, 255);
+			speed = Math.max(-100, Math.min(100, speed));
 
-		const msg = new Uint8Array([
-			0x0A,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,
-			SUBCMD_START_SPEED_FOR_TIME,
-			duration & 0xFF,
-			speed & 0xFF,
-			100,              // max power
-			endState & 0xFF   // brake/hold/float
-		]);
+			const t = ms | 0; // ensure integer
 
-		await this._write(msg);
+			const msg = new Uint8Array([
+					0x0C,          // length = 12 bytes
+					hubId,
+					0x81,          // Port Output Command
+					port & 0xFF,
+					0x11,          // StartPower/Speed/Position command
+					0x09,          // SUBCMD_START_SPEED_FOR_TIME
 
-		if (ms > 255) {
-			await new Promise(r => setTimeout(r, duration));
-			return this.motorTime(port, ms - duration, speed, endState);
-		}
+					t & 0xFF,          // Time LSB
+					(t >> 8) & 0xFF,    // Time MSB
+
+					speed & 0xFF,       // Speed (signed)
+					100,                // MaxPower
+					endState & 0xFF,    // EndState
+					useProfile & 0xFF   // UseProfile
+			]);
+
+			await this._write(msg);
 	}
 
-	async motorStop(port, endState = BRAKE_BRAKE) {
-		if (!this.char) throw new Error("LPF2 not connected");
+	async motorStop(port, brake = 0) {
+			const hubId = this.hubId || 0x00;
 
-		const hubId = this.hubId || 0x00;
+			const value = brake ? 0x7F : 0x00;
 
-		const msg = new Uint8Array([
-			0x0A,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,
-			SUBCMD_START_SPEED, // 0x02
-			0x00,               // speed = 0
-			100,                // max power
-			endState & 0xFF,    // brake/hold/float
-			0x00                // profile
-		]);
+			const msg = new Uint8Array([
+					0x08,
+					hubId,
+					0x81,
+					port,
+					0x11,
+					0x51,   // WriteDirectModeData
+					0x00,   // Mode 0 = speed
+					value   // 0 = float, 127 = brake
+			]);
 
-		await this._write(msg);
+			await this._write(msg);
 	}
+
 
   // Convenience mapping for Blockly (string → brake mode)
   brakeModeFromString(mode) {
