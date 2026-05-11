@@ -973,14 +973,16 @@ export class LegoLPF2 {
 		const hubId = this.hubId || 0x00;
 
 		const msg = new Uint8Array([
-			0x08,
+			0x0A,
 			hubId,
 			MSG_PORT_OUTPUT_COMMAND,
 			port & 0xFF,
 			0x11,
-			SUBCMD_STOP,
-			endState & 0xFF,
-			0x00 // profile
+			SUBCMD_START_SPEED, // 0x02
+			0x00,               // speed = 0
+			100,                // max power
+			endState & 0xFF,    // brake/hold/float
+			0x00                // profile
 		]);
 
 		await this._write(msg);
