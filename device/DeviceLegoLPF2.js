@@ -841,7 +841,7 @@ export class LegoLPF2 {
 	async motorPower(port, power) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
-		power = Math.max(-100, Math.min(100, Math.round(power)));
+		//power = Math.max(-100, Math.min(100, Math.round(power)));
 		const hubId = this.hubId || 0x00;
 
 		const msg = new Uint8Array([
