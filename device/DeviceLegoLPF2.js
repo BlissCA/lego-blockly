@@ -43,6 +43,7 @@ export class LegoLPF2 {
     this.lastInputState = {}; // portId -> boolean
     this.countOn = {};       // portId -> rising-edge count
     this.rot = {};           // portId -> rotation (deg or ticks)
+		this.activeMode = {}; // port → mode
 
 		this.portMap = {
 			A: null,
@@ -208,78 +209,242 @@ export class LegoLPF2 {
 
 
 		// ------------------------------------------------------------
-		// STEP 2 — Request Mode Information for each port
+		// STEP 2 — Request Mode Information for each port (LPF3-correct)
 		// ------------------------------------------------------------
 		for (const portStr of Object.keys(this.portInfo)) {
-			const port = Number(portStr);
+				const port = Number(portStr);
 
-			// Request "Mode Info" (0x01)
-			await this._write(new Uint8Array([
-				0x05,
-				this.hubId,
-				0x21,   // Port Information Request
-				port,
-				0x01    // Mode Info
-			]));
+				// 1. Request Possible Modes (0x02)
+				await this._write(new Uint8Array([
+						0x05, this.hubId, 0x21, port, 0x02
+				]));
 
-			// Request "Possible Modes" (0x02)
-			await this._write(new Uint8Array([
-				0x05,
-				this.hubId,
-				0x21,
-				port,
-				0x02
-			]));
-
-			// Request "Input Modes" (0x03)
-			await this._write(new Uint8Array([
-				0x05,
-				this.hubId,
-				0x21,
-				port,
-				0x03
-			]));
-
-			// Request "Output Modes" (0x04)
-			await this._write(new Uint8Array([
-				0x05,
-				this.hubId,
-				0x21,
-				port,
-				0x04
-			]));
-
-			// Small delay to avoid overwhelming the hub
-			await new Promise(r => setTimeout(r, 30));
+				await new Promise(r => setTimeout(r, 20));
 		}
 
 		// ------------------------------------------------------------
 		// STEP 3 — Configure Input Format for each sensor port
 		// ------------------------------------------------------------
 		for (const portStr of Object.keys(this.portInfo)) {
-			const port = Number(portStr);
-			const info = this.portInfo[port];
+				const port = Number(portStr);
+				const info = this.portInfo[port];
 
-			// Only sensors need input format setup
-			if (!info) continue;
-			if (info.type === "motor" || info.type === "trainMotor") continue;
+				if (!info) continue;
 
-			// Default to mode 0, delta=1, notifications enabled
-			await this._write(new Uint8Array([
-				0x0A,
-				this.hubId,
-				0x41,   // Input Format Setup (Single)
-				port,
-				0x00,   // mode
-				0x01,   // delta
-				0x00,   // unit
-				0x01    // notifications enabled
-			]));
+				// Skip motors
+				if (info.type === "motor" || info.type === "trainMotor") continue;
 
-			await new Promise(r => setTimeout(r, 20));
+				// Determine default mode
+				let defaultMode = 0;
+
+				// Boost internal tilt sensor → mode 2 if available
+				if (info.ioType === 0x0005 || info.ioType === 0x0028) {
+						if (info.modes[2]) defaultMode = 2;
+				}
+
+				// ColorDistance sensor → mode 0 (color)
+				if (info.ioType === 0x0008) {
+						defaultMode = 0;
+				}
+
+				// Distance sensor → mode 0
+				if (info.ioType === 0x0027) {
+						defaultMode = 0;
+				}
+
+				// Color sensor → mode 0
+				if (info.ioType === 0x0026) {
+						defaultMode = 0;
+				}
+
+				// Force sensor → mode 0
+				if (info.ioType === 0x0025) {
+						defaultMode = 0;
+				}
+
+				// IMU (Spike/Inventor) → mode 0 (accel)
+				if (info.ioType >= 0x0030 && info.ioType <= 0x0034) {
+						defaultMode = 0;
+				}
+
+				// Apply input format
+				await this._setInputFormat(port, defaultMode, 1, 0, 1);
+
+				await new Promise(r => setTimeout(r, 20));
 		}
 
 		this.log("LPF2 initialization complete.");
+	}
+
+	async _setInputFormat(port, mode, delta = 1, unit = 0, notifications = 1) {
+			this.activeMode[port] = mode;
+
+			const msg = new Uint8Array([
+					0x0A,
+					this.hubId,
+					0x41,
+					port,
+					mode,
+					delta,
+					unit,
+					notifications
+			]);
+
+			await this._write(msg);
+	}
+
+	_handlePortInformation(msg) {
+			const port = msg[3];
+			const infoType = msg[4];
+
+			if (!this.portInfo[port]) return;
+
+			switch (infoType) {
+
+					// --------------------------------------------------------
+					// POSSIBLE MODES (0x02)
+					// --------------------------------------------------------
+					case 0x02: {
+							const inputMask = msg[5] | (msg[6] << 8);
+							const outputMask = msg[7] | (msg[8] << 8);
+
+							this.portInfo[port].inputModesMask = inputMask;
+							this.portInfo[port].outputModesMask = outputMask;
+
+							// Determine number of modes
+							const maxMode = Math.max(
+									Math.floor(Math.log2(inputMask || 1)),
+									Math.floor(Math.log2(outputMask || 1))
+							);
+
+							// Initialize mode table
+							this.portInfo[port].modes = {};
+							for (let mode = 0; mode <= maxMode; mode++) {
+									this.portInfo[port].modes[mode] = {};
+									// Request Mode Info for this mode
+									this._write(new Uint8Array([
+											0x06, this.hubId, 0x21, port, 0x01, mode
+									]));
+							}
+							break;
+					}
+
+					// --------------------------------------------------------
+					// MODE INFO (0x01)
+					// --------------------------------------------------------
+					case 0x01: {
+							const mode = msg[5];
+							const miType = msg[6];
+							const payload = msg.subarray(7);
+
+							const m = this.portInfo[port].modes[mode];
+							if (!m) return;
+
+							switch (miType) {
+
+									// NAME (string)
+									case 0x00:
+											m.name = new TextDecoder().decode(payload);
+											break;
+
+									// RAW RANGE (min/max)
+									case 0x01:
+											m.rawRange = [
+													payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
+													payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
+											];
+											break;
+
+									// PERCENT RANGE
+									case 0x02:
+											m.percentRange = [
+													payload[0] | (payload[1] << 8),
+													payload[2] | (payload[3] << 8)
+											];
+											break;
+
+									// SI RANGE
+									case 0x03:
+											m.siRange = [
+													payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
+													payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
+											];
+											break;
+
+									// SYMBOL (string)
+									case 0x04:
+											m.symbol = new TextDecoder().decode(payload);
+											break;
+
+									// MAPPING (ignored for now)
+									case 0x05:
+											m.mapping = payload;
+											break;
+
+									// VALUE FORMAT (0x80)
+									case 0x80:
+											m.valueFormat = this._parseValueFormat(payload);
+											break;
+							}
+							break;
+					}
+
+					// --------------------------------------------------------
+					// INPUT MODES (0x03)
+					// --------------------------------------------------------
+					case 0x03:
+							this.portInfo[port].inputModesMask = msg[5] | (msg[6] << 8);
+							break;
+
+					// --------------------------------------------------------
+					// OUTPUT MODES (0x04)
+					// --------------------------------------------------------
+					case 0x04:
+							this.portInfo[port].outputModesMask = msg[5] | (msg[6] << 8);
+							break;
+			}
+	}
+
+	_parseValueFormat(payload) {
+			// payload[0] = number of values
+			// payload[1] = data type
+			// payload[2] = total figures
+			// payload[3] = decimals
+
+			const count = payload[0];
+			const dataType = payload[1];
+
+			let type = "unknown";
+			switch (dataType) {
+					case 0x00: type = "Int8"; break;
+					case 0x01: type = "Int16"; break;
+					case 0x02: type = "Int32"; break;
+					case 0x03: type = "Float32"; break;
+			}
+
+			return {
+					count,
+					type,
+					figures: payload[2],
+					decimals: payload[3]
+			};
+	}
+
+	async _setInputFormat(port, mode, delta = 1, unit = 0, notifications = 1) {
+			this.activeMode[port] = mode;
+
+			const msg = new Uint8Array([
+					0x0A,
+					this.hubId,
+					0x41,
+					port,
+					mode,
+					delta,
+					unit,
+					notifications
+			]);
+
+			await this._write(msg);
 	}
 
   _waitForHubType(timeoutMs = 2000) {
@@ -594,64 +759,64 @@ export class LegoLPF2 {
     this.portInfo[portId] = { ioType, type };
   }
 
-  _handlePortValueSingle(msg) {
-    const portId = msg[3];
-    const payload = msg.subarray(4);
+	_handlePortValueSingle(msg) {
+			const port = msg[3];
+			const payload = msg.subarray(4);
 
-    const info = this.portInfo[portId];
-    let value = 0;
+			const info = this.portInfo[port];
+			if (!info) return;
 
-    if (!info) {
-      if (payload.length === 1) value = payload[0];
-      else if (payload.length >= 2) value = payload[0] | (payload[1] << 8);
-    } else {
-      switch (info.type) {
-        case "motor":
-        case "mediumLinearMotor":
-        case "largeLinearMotor":
-          if (payload.length >= 4) {
-            value = (payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24)) | 0;
-            this.rot[portId] = value;
-          } else if (payload.length >= 1) {
-            value = payload[0];
-          }
-          break;
-        case "tilt":
-        case "tiltMulti":
-          if (payload.length >= 1) value = payload[0];
-          break;
-        case "distance":
-          if (payload.length >= 1) value = payload[0];
-          break;
-        case "color":
-          if (payload.length >= 1) value = payload[0];
-          break;
-        case "colorDistance":
-          if (payload.length >= 1) value = payload[0];
-          break;
-        case "force":
-          if (payload.length >= 1) value = payload[0];
-          break;
-        default:
-          if (payload.length === 1) value = payload[0];
-          else if (payload.length >= 2) value = payload[0] | (payload[1] << 8);
-          break;
-      }
-    }
+			const mode = this.activeMode[port];
+			if (mode == null) return;
 
-    this.portValues[portId] = value;
+			const modeInfo = info.modes[mode];
+			if (!modeInfo || !modeInfo.valueFormat) return;
 
-    const current = this._booleanFromValue(portId, value);
-    if (this.lastInputState[portId] === undefined) {
-      this.lastInputState[portId] = current;
-      if (this.countOn[portId] == null) this.countOn[portId] = 0;
-    } else {
-      if (!this.lastInputState[portId] && current) {
-        this.countOn[portId] = (this.countOn[portId] || 0) + 1;
-      }
-      this.lastInputState[portId] = current;
-    }
-  }
+			const vf = modeInfo.valueFormat;
+			const values = [];
+
+			let offset = 0;
+
+			for (let i = 0; i < vf.count; i++) {
+					let v = 0;
+
+					switch (vf.type) {
+							case "Int8":
+									v = (payload[offset] << 24) >> 24; // sign extend
+									offset += 1;
+									break;
+
+							case "Int16":
+									v = (payload[offset] | (payload[offset+1] << 8));
+									if (v & 0x8000) v |= 0xFFFF0000; // sign extend
+									offset += 2;
+									break;
+
+							case "Int32":
+									v = (payload[offset] |
+											(payload[offset+1] << 8) |
+											(payload[offset+2] << 16) |
+											(payload[offset+3] << 24));
+									offset += 4;
+									break;
+
+							case "Float32":
+									v = new DataView(payload.buffer, payload.byteOffset + offset, 4).getFloat32(0, true);
+									offset += 4;
+									break;
+					}
+
+					values.push(v);
+			}
+
+			// Store raw values
+			this.portValues[port] = (vf.count === 1 ? values[0] : values);
+
+			// Optional: update convenience fields (rot, tilt, etc.)
+			if (info.type === "motor" && vf.type === "Int32") {
+					this.rot[port] = values[0];
+			}
+	}
 
   _handlePortValueCombined(msg) {
     // For now, we ignore combined values; can be extended later.
@@ -712,60 +877,145 @@ export class LegoLPF2 {
   // ---------------- Public API: Motors ----------------
 
 	_buildPortMap() {
-		// Reset
-		this.portMap = { A: null, B: null, C: null, D: null, AB: null, CD: null };
+			this.portMap = {};
+			this.userPortMap = {};
 
-		const type = this.hubType;
-		const portIds = Object.keys(this.portInfo).map(n => parseInt(n, 10));
+			const type = this.hubType;
 
-		// BOOST MOVE HUB (0x41) or your 100
-		if (type === 0x41 || type === 100) {
-			if (this.portInfo[0]) this.portMap.A = 0;
-			if (this.portInfo[1]) this.portMap.B = 1;
-			if (this.portInfo[2]) this.portMap.C = 2;
-			if (this.portInfo[3]) this.portMap.D = 3;
+			// ------------------------------------------------------------
+			// BOOST MOVE HUB (0x40)
+			// ------------------------------------------------------------
+			if (type === 0x40) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					if (this.portInfo[2]) this.userPortMap.C = 2;
+					if (this.portInfo[3]) this.userPortMap.D = 3;
 
-			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
-			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
-			return;
-		}
+					if (this.portInfo[0x10]) this.userPortMap.AB = 0x10;
+					if (this.portInfo[0x11]) this.userPortMap.CD = 0x11;
 
-		// POWERED UP HUB (2-port)
-		if (type === 0x42) {
-			if (this.portInfo[0]) this.portMap.A = 0;
-			if (this.portInfo[1]) this.portMap.B = 1;
-			return;
-		}
+					// internal tilt (Boost) – usually 58
+					if (this.portInfo[58]) this.userPortMap.TILT = 58;
 
-		// TECHNIC HUB (0x44)
-		if (type === 0x44) {
-			if (this.portInfo[0]) this.portMap.A = 0;
-			if (this.portInfo[1]) this.portMap.B = 1;
-			if (this.portInfo[2]) this.portMap.C = 2;
-			if (this.portInfo[3]) this.portMap.D = 3;
+					return;
+			}
 
-			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
-			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
-			return;
-		}
+			// ------------------------------------------------------------
+			// CITY HUB (0x41) – 2-port hub
+			// ------------------------------------------------------------
+			if (type === 0x41) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					return;
+			}
 
-		// SPIKE PRIME / INVENTOR (0x43)
-		if (type === 0x43) {
-			if (this.portInfo[0]) this.portMap.A = 0;
-			if (this.portInfo[1]) this.portMap.B = 1;
-			if (this.portInfo[2]) this.portMap.C = 2;
-			if (this.portInfo[3]) this.portMap.D = 3;
+			// ------------------------------------------------------------
+			// REMOTE (0x42) – handheld remote, usually buttons only
+			// ------------------------------------------------------------
+			if (type === 0x42) {
+					// You may later map LEFT/RIGHT buttons here if needed
+					return;
+			}
 
-			if (this.portInfo[0x10]) this.portMap.AB = 0x10;
-			if (this.portInfo[0x11]) this.portMap.CD = 0x11;
-			return;
-		}
+			// ------------------------------------------------------------
+			// DUPLO (0x44) – Duplo Train Hub
+			// ------------------------------------------------------------
+			if (type === 0x44) {
+					if (this.portInfo[0]) this.userPortMap.A = 0; // motor
+					if (this.portInfo[1]) this.userPortMap.B = 1; // color sensor
+					return;
+			}
 
-		// Fallback
-		if (this.portInfo[0]) this.portMap.A = 0;
-		if (this.portInfo[1]) this.portMap.B = 1;
-		if (this.portInfo[2]) this.portMap.C = 2;
-		if (this.portInfo[3]) this.portMap.D = 3;
+			// ------------------------------------------------------------
+			// TECHNIC SMALL (0x45) – 2-port Technic hub
+			// ------------------------------------------------------------
+			if (type === 0x45) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					return;
+			}
+
+			// ------------------------------------------------------------
+			// TECHNIC HUB (0x80) – 4-port Technic
+			// ------------------------------------------------------------
+			if (type === 0x80) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					if (this.portInfo[2]) this.userPortMap.C = 2;
+					if (this.portInfo[3]) this.userPortMap.D = 3;
+
+					if (this.portInfo[0x10]) this.userPortMap.AB = 0x10;
+					if (this.portInfo[0x11]) this.userPortMap.CD = 0x11;
+					return;
+			}
+
+			// ------------------------------------------------------------
+			// INVENTOR HUB (0x81) – 6-port
+			// ------------------------------------------------------------
+			if (type === 0x81) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					if (this.portInfo[2]) this.userPortMap.C = 2;
+					if (this.portInfo[3]) this.userPortMap.D = 3;
+					if (this.portInfo[4]) this.userPortMap.E = 4;
+					if (this.portInfo[5]) this.userPortMap.F = 5;
+
+					// internal IMU – usually 98
+					if (this.portInfo[98]) this.userPortMap.IMU = 98;
+
+					return;
+			}
+
+			// ------------------------------------------------------------
+			// SPIKE PRIME (0x83) – 6-port
+			// ------------------------------------------------------------
+			if (type === 0x83) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					if (this.portInfo[2]) this.userPortMap.C = 2;
+					if (this.portInfo[3]) this.userPortMap.D = 3;
+					if (this.portInfo[4]) this.userPortMap.E = 4;
+					if (this.portInfo[5]) this.userPortMap.F = 5;
+
+					if (this.portInfo[98]) this.userPortMap.IMU = 98;
+
+					return;
+			}
+
+			// ------------------------------------------------------------
+			// SPIKE ESSENTIAL (0x84) – 4-port
+			// ------------------------------------------------------------
+			if (type === 0x84) {
+					if (this.portInfo[0]) this.userPortMap.A = 0;
+					if (this.portInfo[1]) this.userPortMap.B = 1;
+					if (this.portInfo[2]) this.userPortMap.C = 2;
+					if (this.portInfo[3]) this.userPortMap.D = 3;
+
+					if (this.portInfo[98]) this.userPortMap.IMU = 98;
+
+					return;
+			}
+
+			// ------------------------------------------------------------
+			// Fallback – assume A–D on 0..3
+			// ------------------------------------------------------------
+			if (this.portInfo[0]) this.userPortMap.A = 0;
+			if (this.portInfo[1]) this.userPortMap.B = 1;
+			if (this.portInfo[2]) this.userPortMap.C = 2;
+			if (this.portInfo[3]) this.userPortMap.D = 3;
+	}
+
+	_resolvePort(port) {
+			// Allow numeric ports directly
+			if (typeof port === "number") return port;
+
+			// Convert string ports like "A", "B", "CD", "TILT", "IMU"
+			if (typeof port === "string") {
+					const p = this.userPortMap[port.toUpperCase()];
+					if (p != null) return p;
+			}
+
+			throw new Error("Unknown port: " + port);
 	}
 
 	async _setupCombinedMode() {
@@ -871,6 +1121,8 @@ export class LegoLPF2 {
 	async motorPower(port, power) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
+		port = this._resolvePort(port);
+
 		power = Math.max(-127, Math.min(127, power|0));
 		const hubId = this.hubId || 0x00;
 
@@ -890,6 +1142,8 @@ export class LegoLPF2 {
 
 	async motorSpeed(port, speed, maxPower = 100, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
+
+			port = this._resolvePort(port);
 
 			const hubId = this.hubId || 0x00;
 
@@ -913,6 +1167,8 @@ export class LegoLPF2 {
 
 	async motorAngle(port, angle, speed, endState = 0x00, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
+
+			port = this._resolvePort(port);
 
 			const hubId = this.hubId || 0x00;
 
@@ -947,6 +1203,8 @@ export class LegoLPF2 {
 	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
+			port = this._resolvePort(port);
+			
 			const hubId = this.hubId || 0x00;
 
 			// LPF3 spec: Speed must be 1..100
@@ -985,6 +1243,8 @@ export class LegoLPF2 {
 	async resetPosition(port, newPos = 0) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
+			port = this._resolvePort(port);
+
 			const hubId = this.hubId || 0x00;
 
 			// LPF3: position is Int32 signed
@@ -1011,6 +1271,8 @@ export class LegoLPF2 {
 	
 	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00) {
 			if (!this.char) throw new Error("LPF3 not connected");
+
+			port = this._resolvePort(port);
 
 			const hubId = this.hubId || 0x00;
 
@@ -1039,6 +1301,9 @@ export class LegoLPF2 {
 	}
 
 	async motorStop(port, brake = 0) {
+
+			port = this._resolvePort(port);
+			
 			const hubId = this.hubId || 0x00;
 
 			const value = brake ? 0x7F : 0x00;
