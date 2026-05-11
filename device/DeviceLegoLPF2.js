@@ -3,6 +3,7 @@
 // Standalone class, same architecture style as LegoInterfaceA_v2.
 
 // Port Output Command constants
+const MSG_PORT_OUTPUT_COMMAND = 0x81;
 const SUBCMD_START_POWER              = 0x01; // raw PWM
 const SUBCMD_START_SPEED              = 0x02; // regulated speed
 const SUBCMD_START_SPEED_FOR_TIME     = 0x09; // time-based movement
