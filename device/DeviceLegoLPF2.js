@@ -943,9 +943,10 @@ export class LegoLPF2 {
 					if (this.portInfo[2]) this.userPortMap.C = 2;
 					if (this.portInfo[3]) this.userPortMap.D = 3;
 
-					if (this.portInfo[0x10]) this.userPortMap.AB = 0x10;
-					if (this.portInfo[0x11]) this.userPortMap.CD = 0x11;
-
+					// Boost ALWAYS has combined ports AB and CD
+					this.userPortMap.AB = 0x10;
+					this.userPortMap.CD = 0x11;
+					
 					// internal tilt (Boost) – usually 58
 					if (this.portInfo[58]) this.userPortMap.TILT = 58;
 
