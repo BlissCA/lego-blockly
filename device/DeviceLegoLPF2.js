@@ -305,38 +305,64 @@ export class LegoLPF2 {
   }
 
 	_setHubType(type) {
-		this.hubType = type;
+			this.hubType = type;
 
-		switch (type) {
-			case 0x40: // Boost Move Hub
-				this.namePrefix = "Boost";
-				break;
+			switch (type) {
 
-			case 0x41: // Boost Move Hub
-				this.namePrefix = "Boost";
-				break;
+					case 0x20:
+							this.namePrefix = "WeDo2_";
+							break;
 
-			case 0x42: // Powered Up Hub
-				this.namePrefix = "Pup";
-				break;
+					case 0x40:
+							this.namePrefix = "Boost";
+							break;
 
-			case 0x43: // Spike Prime / Inventor
-				this.namePrefix = "Spk";
-				break;
+					case 0x41:
+							this.namePrefix = "City";
+							break;
 
-			case 0x44: // Technic Hub
-				this.namePrefix = "Tech";
-				break;
+					case 0x42:
+							this.namePrefix = "Remote";
+							break;
 
-			case 0x64: // Corrupted Boost identity (Legoino users see this too)
-				this.namePrefix = "LPF2 Device in Bootloader mode ";
-				break;
+					case 0x43:
+							this.namePrefix = "Mario";
+							break;
 
-			default:
-				this.namePrefix = "LPF2_";
-				break;
-		}
+					case 0x44:
+							this.namePrefix = "Duplo";
+							break;
+
+					case 0x45:
+							this.namePrefix = "TechSmall";
+							break;
+
+					case 0x80:
+							this.namePrefix = "Technic";
+							break;
+
+					case 0x81:
+							this.namePrefix = "Inventor";
+							break;
+
+					case 0x83:
+							this.namePrefix = "SpikePrime";
+							break;
+
+					case 0x84:
+							this.namePrefix = "SpikeEss";
+							break;
+
+					case 0x64:
+							this.namePrefix = "Bootloader";
+							break;
+
+					default:
+							this.namePrefix = "LPF2_";
+							break;
+			}
 	}
+
 
   // ---------------- Disconnect ----------------
 
