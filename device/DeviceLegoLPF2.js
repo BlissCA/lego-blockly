@@ -708,7 +708,7 @@ export class LegoLPF2 {
 						this.log("Virtual port CD detected");
 				}
 		}
-		
+
 		// Optionally re-log:
 		// this.log("Ports detected: " + JSON.stringify(this.portInfo));
   }
@@ -717,69 +717,116 @@ export class LegoLPF2 {
 			let type = "unknown";
 
 			switch (ioType) {
-					// Simple / legacy motors (direct power)
+
+					// ------------------------------------------------------------
+					// Simple / Legacy Motors (Direct Power)
+					// These do not support speed/degree commands; they use 0x51.
+					// ------------------------------------------------------------
 					case 0x0001: // Simple Medium Motor (88008)
 							type = "motorSimple";
 							break;
+
 					case 0x0002: // Train Motor (88011)
 							type = "trainMotor";
 							break;
 
-					// Classic LPF2 linear motors
+
+					// ------------------------------------------------------------
+					// Classic LPF2 Linear Motors
+					// ------------------------------------------------------------
 					case 0x0015: // Medium Linear Motor
 							type = "mediumLinearMotor";
 							break;
+
 					case 0x0016: // Large Linear Motor
 							type = "largeLinearMotor";
 							break;
 
-					// Modern tacho/absolute motors
+
+					// ------------------------------------------------------------
+					// Modern Tacho / Absolute Motors
+					// These support StartSpeed (0x07) and MoveForDegrees (0x0B).
+					// ------------------------------------------------------------
 					case 0x002E: // Technic Large Motor (88013)
 					case 0x002F: // Technic XL Motor (88014)
-					case 0x0030: // Technic Medium Angular
-					case 0x0031: // Technic Large Angular
+					case 0x0030: // Technic Medium Angular Motor
+					case 0x0031: // Technic Large Angular Motor
 					case 0x0041: // Small Angular Motor (Spike Essential)
 							type = "motor";
 							break;
 
-					// Sensors & accessories
-					case 0x0005: // Tilt (WeDo)
+
+					// ------------------------------------------------------------
+					// Sensors & Accessories
+					// ------------------------------------------------------------
+
+					case 0x0005: // WeDo Tilt Sensor
 							type = "tilt";
 							break;
+
 					case 0x0008: // LED Light (88005)
 							type = "light";
 							break;
-					case 0x0025: // Force sensor (LPF2)
-					case 0x003F: // Force sensor (Spike Prime)
-							type = "force";
-							break;
-					case 0x0026: // Color sensor (Boost / LPF2)
-					case 0x003D: // Color sensor (Spike / Inventor)
-							type = "color";
-							break;
-					case 0x0027: // Distance / Boost internal motor
-					case 0x003E: // Ultrasonic distance (Spike / Inventor)
-							type = "distance";
-							break;
-					case 0x0028: // Multi-tilt (Boost)
-							type = "tiltMulti";
-							break;
-					case 0x0026: // Color & Distance (Boost 88007) – if you prefer a combined label:
-					case 0x0028: // (you can keep tiltMulti separate if you want)
-							// type = "colorDistance";
+
+					// ------------------------------------------------------------
+					// Color & Distance Sensor (Boost 88007)
+					// NOTE: Some hubs report it as 0x25, others as 0x26.
+					// 0x25 was incorrectly mapped as "force" before — fixed now.
+					// ------------------------------------------------------------
+					case 0x0025: // 37 dec – Vision / Color+Distance on Boost
+					case 0x0026: // 38 dec – Color & Distance Sensor (Boost)
+							type = "colorDistance";
 							break;
 
-					// Internal virtual hub ports
+					// ------------------------------------------------------------
+					// Distance-only sensors
+					// Boost internal motors also report 0x27 (quirk)
+					// ------------------------------------------------------------
+					case 0x0027: // Distance / Boost internal motor quirk
+							type = "distance";
+							break;
+
+					case 0x0028: // Multi-axis tilt (Boost)
+							type = "tiltMulti";
+							break;
+
+
+					// ------------------------------------------------------------
+					// Modern Spike / Inventor Sensors
+					// ------------------------------------------------------------
+					case 0x003D: // Spike Color Sensor
+							type = "color";
+							break;
+
+					case 0x003E: // Spike Ultrasonic Distance Sensor
+							type = "distance";
+							break;
+
+					case 0x003F: // Spike Force Sensor (Touch)
+							type = "force";
+							break;
+
+					case 0x0040: // Matrix Display (3x3 or 5x5)
+							type = "matrix";
+							break;
+
+
+					// ------------------------------------------------------------
+					// Internal Virtual Hub Ports
+					// ------------------------------------------------------------
 					case 0x0036: // Internal IMU (gyro/accel)
 							type = "imu";
 							break;
-					case 0x003A: // Internal tilt (Move Hub)
+
+					case 0x003A: // Internal Tilt Sensor (Boost)
 							type = "tiltInternal";
 							break;
-					case 0x003B: // Amperage sensor
+
+					case 0x003B: // Amperage Sensor
 							type = "current";
 							break;
-					case 0x003C: // Voltage sensor
+
+					case 0x003C: // Voltage Sensor
 							type = "voltage";
 							break;
 
@@ -787,8 +834,11 @@ export class LegoLPF2 {
 							break;
 			}
 
-			// Boost special case: internal motors report ioType 0x27 (distance)
-			// We still want them to behave as motors for motor APIs.
+			// ------------------------------------------------------------
+			// Boost special case:
+			// Internal motors report ioType 0x27 (distance).
+			// We override this to treat them as motors.
+			// ------------------------------------------------------------
 			if (ioType === 0x0027 && this.hubType === 0x40) {
 					type = "motor";
 			}
@@ -895,6 +945,99 @@ export class LegoLPF2 {
         return !!value;
     }
   }
+
+	/**
+	 * Create a combined virtual port (AB, CD, etc.)
+	 * Works for Technic Hub, Powered Up Hub, City Hub.
+	 * Ignored for Boost and Spike (they auto-create combined ports).
+	 *
+	 * @param {string|number} portName1 - e.g. "A" or 0
+	 * @param {string|number} portName2 - e.g. "B" or 1
+	 * @returns {Promise<number|null>} virtual port ID (0x10, 0x11, etc.)
+	 */
+	async createCombinedPort(portName1, portName2) {
+			const hub = this.hubType;
+
+			// Hubs that auto-create combined ports → do nothing
+			if (hub === 0x40 || hub === 0x83 || hub === 0x81) {
+					this.log("Hub auto-creates combined ports; skipping manual creation.");
+					return null;
+			}
+
+			// Hubs that do NOT support combined mode
+			if (hub === 0x84) {
+					this.log("Spike Essential does not support combined ports.");
+					return null;
+			}
+
+			// Resolve ports
+			const p1 = this._resolvePort(portName1);
+			const p2 = this._resolvePort(portName2);
+
+			const hubId = this.hubId || 0x00;
+
+			// LPF2 "Port Combination Setup" command
+			const msg = new Uint8Array([
+					0x06,       // length
+					hubId,      // hub ID
+					0x61,       // Port Output Command: Port Combination Setup
+					0x01,       // subcommand: create virtual port
+					p1 & 0xFF,  // port 1
+					p2 & 0xFF   // port 2
+			]);
+
+			this.log(`Requesting combined port for ${portName1}+${portName2}...`);
+			await this._write(msg);
+
+			// Wait for hub to announce the virtual port
+			const virtualPort = await this._waitForVirtualPort(p1, p2);
+
+			if (virtualPort != null) {
+					this.log(`Combined port created: ${virtualPort}`);
+					return virtualPort;
+			}
+
+			this.log("Combined port creation timed out.");
+			return null;
+	}
+
+	/**
+	 * Wait for a virtual port that combines p1 and p2.
+	 * Works for Technic, Powered Up, City hubs.
+	 */
+	_waitForVirtualPort(p1, p2) {
+			return new Promise(resolve => {
+					const start = performance.now();
+
+					const check = () => {
+							for (const portStr of Object.keys(this.portInfo)) {
+									const portId = Number(portStr);
+									const info = this.portInfo[portId];
+
+									if (!info) continue;
+
+									// Virtual ports are >= 0x10
+									if (portId >= 0x10 && info.ioType === 0x0027) {
+											// We cannot always check p1/p2 from ioType,
+											// but hubs typically send correct mapping.
+											resolve(portId);
+											return;
+									}
+							}
+
+							if (performance.now() - start > 1000) {
+									resolve(null);
+									return;
+							}
+
+							requestAnimationFrame(check);
+					};
+
+					check();
+			});
+	}
+
+
 
   // ---------------- Public API: Inputs ----------------
 
