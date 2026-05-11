@@ -982,20 +982,28 @@ export class LegoLPF2 {
 			await this._write(msg);
 	}
 
-	async resetPosition(port) {
+	async resetPosition(port, newPos = 0) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
 			const hubId = this.hubId || 0x00;
 
+			// LPF3: position is Int32 signed
+			const p = newPos | 0;
+
 			const msg = new Uint8Array([
-					0x08,          // length = 8 bytes
+					0x0B,          // length = 11 bytes
 					hubId,
 					0x81,          // Port Output Command
 					port & 0xFF,
 					0x11,          // StartPower/Speed/Position command
 					0x51,          // WriteDirectModeData
-					0x02,          // Mode 2 = Position
-					0x00           // Reset to 0
+					0x02,          // Mode 2 = POS (relative position)
+
+					// Int32 LE
+					p & 0xFF,
+					(p >> 8) & 0xFF,
+					(p >> 16) & 0xFF,
+					(p >> 24) & 0xFF
 			]);
 
 			await this._write(msg);
