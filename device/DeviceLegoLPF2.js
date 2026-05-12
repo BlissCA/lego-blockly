@@ -222,7 +222,7 @@ export class LegoLPF2 {
 				const port = Number(portStr);
 
 				// 1. Request Possible Modes (0x02)
-				await this._write(new Uint8Array([
+				this._write(new Uint8Array([
 						0x05, this.hubId, 0x21, port, 0x02
 				]));
 
@@ -268,7 +268,7 @@ export class LegoLPF2 {
 					notifications
 			]);
 
-			await this._write(msg);
+			this._write(msg);
 	}
 
 	_handlePortInformation(msg) {
@@ -658,6 +658,7 @@ export class LegoLPF2 {
 			case 0x43: // Port Information
 					this._handlePortInformation(msg);
 					break;
+			case 0x22: // Port Mode Information Response
 			case 0x44: { // Port Mode Information
 					const port = msg[3];
 					const mode = msg[4];
@@ -780,10 +781,10 @@ export class LegoLPF2 {
 					// ------------------------------------------------------------
 					// Classic LPF2 Linear Motors (with tacho)
 					// ------------------------------------------------------------
-					case 0x0015: // Medium Linear Motor
-					case 0x0016: // Large Linear Motor
-							type = "motorTacho";
-							break;
+					// case 0x0015: // Medium Linear Motor
+					// case 0x0016: // Large Linear Motor
+					// 		type = "motorTacho";
+					// 		break;
 
 
 					// ------------------------------------------------------------
@@ -838,11 +839,11 @@ export class LegoLPF2 {
 							type = "rgb";
 							break;
 
-					case 0x0022: // External Tilt Sensor
+					case 0x0022: // External Tilt Sensor (WeDo 2.0)
 							type = "tilt";
 							break;
 
-					case 0x0023: // Motion Sensor
+					case 0x0023: // Motion/Distance Sensor (WeDo 2.0)
 							type = "motion";
 							break;
 
@@ -851,7 +852,7 @@ export class LegoLPF2 {
 					// NOTE: Some hubs report it as 0x25, others as 0x26.
 					// ------------------------------------------------------------
 					case 0x0025: // 37 dec – Vision / Color+Distance on Boost
-					case 0x0026: // 38 dec – Color & Distance Sensor (Boost)
+					//case 0x0026: // 38 dec – Color & Distance Sensor (Boost)
 							type = "colorDistance";
 							break;
 
