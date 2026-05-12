@@ -240,7 +240,7 @@ export class LegoLPF2 {
 				if (!info) continue;
 
 				// Skip motors
-				if (info.type === "motor" || info.type === "trainMotor" || info.type === "mediumLinearMotor" || info.type === "largeLinearMotor") {
+				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor") {
 						continue;
 				}
 
