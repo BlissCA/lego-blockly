@@ -305,12 +305,8 @@ export class LegoLPF2 {
 				);
 
 				// Initialize mode table
-				info.modes = info.modes || {};
+				info.modes = {};
 				for (let mode = 0; mode <= maxMode; mode++) {
-					if (!info.modes[mode]) {
-						info.modes[mode] = {};
-					}
-
 					// For each mode, request detailed Mode Information via 0x22
 					this._requestModeInfo(port, mode);
 				}
@@ -746,6 +742,11 @@ export class LegoLPF2 {
     if (event === 0x01) {
       const ioType = msg[5] | (msg[6] << 8);
       this._registerPort(portId, ioType);
+			// ⭐ FIX: request possible modes again
+			this._write(new Uint8Array([
+					0x05, this.hubId, 0x21, portId, 0x02
+			]));
+
     } else if (event === 0x00) {
       delete this.portInfo[portId];
       delete this.portValues[portId];
