@@ -383,6 +383,54 @@ export class LegoLPF2 {
 			}
 	}
 
+	_handlePortModeInfo(port, mode, infoType, payload) {
+			if (!this.portInfo[port]) return;
+
+			// Ensure mode table exists
+			if (!this.portInfo[port].modes) {
+					this.portInfo[port].modes = {};
+			}
+			if (!this.portInfo[port].modes[mode]) {
+					this.portInfo[port].modes[mode] = {};
+			}
+
+			const m = this.portInfo[port].modes[mode];
+
+			switch (infoType) {
+
+					case 0x00: // Name (string)
+							m.name = this._decodeString(payload);
+							break;
+
+					case 0x01: // Raw range
+							m.rawRange = this._parseRange(payload);
+							break;
+
+					case 0x02: // Percent range
+							m.percentRange = this._parseRange(payload);
+							break;
+
+					case 0x03: // SI range
+							m.siRange = this._parseRange(payload);
+							break;
+
+					case 0x04: // Symbol (string)
+							m.symbol = this._decodeString(payload);
+							break;
+
+					case 0x80: // Value format
+							m.valueFormat = this._parseValueFormat(payload);
+							break;
+			}
+	}
+
+	_parseRange(payload) {
+			const dv = new DataView(payload.buffer);
+			const min = dv.getInt32(0, true);
+			const max = dv.getInt32(4, true);
+			return [min, max];
+	}
+
 	_parseValueFormat(payload) {
 			// payload[0] = number of values
 			// payload[1] = data type
@@ -654,6 +702,14 @@ export class LegoLPF2 {
 			case 0x43: // Port Information
 					this._handlePortInformation(msg);
 					break;
+			case 0x44: { // Port Mode Information
+					const port = msg[3];
+					const mode = msg[4];
+					const infoType = msg[5];
+					const payload = msg.slice(6);
+					this._handlePortModeInfo(port, mode, infoType, payload);
+					break;
+			}
 			case 0x45: // Port Value Single
 				if (LPF2_DEBUG.traffic) {
 					console.log("[LPF2] → Port Value Single");
@@ -1093,6 +1149,10 @@ export class LegoLPF2 {
 			}
 
 			return 0;
+	}
+
+	_decodeString(bytes) {
+			return String.fromCharCode(...bytes).replace(/\0/g, "");
 	}
 
 
