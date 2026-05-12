@@ -283,12 +283,20 @@ export class LegoLPF2 {
 			// POSSIBLE MODES (0x02) — we just store it, don't use it
 			// --------------------------------------------------------
 			case 0x02: {
-				const inputMask = msg[5] | (msg[6] << 8);
-				const outputMask = msg[7] | (msg[8] << 8);
+					// Only valid if length is exactly 9 bytes
+					if (msg.length !== 9) {
+							if (LPF2_DEBUG.traffic) console.warn("[LPF2] Ignoring bogus 0x43/0x02 message", msg);
+							break;
+					}
 
-				this.portInfo[port].possibleModesMaskInput = inputMask;
-				this.portInfo[port].possibleModesMaskOutput = outputMask;
-				break;
+					const inputMask = msg[5] | (msg[6] << 8);
+					const outputMask = msg[7] | (msg[8] << 8);
+
+					this.portInfo[port].inputModesMask = inputMask;
+					this.portInfo[port].outputModesMask = outputMask;
+
+					this._maybeRequestAllModeInfo(port);
+					break;
 			}
 
 			// --------------------------------------------------------
