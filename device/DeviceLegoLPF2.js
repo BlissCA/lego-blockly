@@ -658,12 +658,17 @@ export class LegoLPF2 {
 			case 0x43: // Port Information
 					this._handlePortInformation(msg);
 					break;
-			case 0x22: // Port Mode Information Response
+			//case 0x22: // Port Mode Information Response OLD LPF2?
 			case 0x44: { // Port Mode Information
 					const port = msg[3];
 					const mode = msg[4];
 					const infoType = msg[5];
 					const payload = msg.slice(6);
+					console.log("[LPF2] → Port Mode Information:",
+						"port=" + port,
+						"mode=" + mode,
+						"infoType=0x" + infoType.toString(16)
+					);
 					this._handlePortModeInfo(port, mode, infoType, payload);
 					break;
 			}
