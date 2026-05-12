@@ -280,6 +280,11 @@ export class LegoLPF2 {
 
 		const info = this.portInfo[port];
 		if (!info) return;
+		
+					console.log("[LPF2] → Port Information:",
+						"port=" + port,
+						"infoType=0x" + infoType.toString(16)
+					);
 
 		switch (infoType) {
 
