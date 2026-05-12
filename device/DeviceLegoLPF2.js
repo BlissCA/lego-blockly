@@ -272,119 +272,146 @@ export class LegoLPF2 {
 	}
 
 	_handlePortInformation(msg) {
-			const port = msg[3];
-			const infoType = msg[4];
+		const port = msg[3];
+		const infoType = msg[4];
 
-			if (!this.portInfo[port]) return;
+		if (!this.portInfo[port]) return;
 
-			switch (infoType) {
+		switch (infoType) {
 
-					// --------------------------------------------------------
-					// POSSIBLE MODES (0x02)
-					// --------------------------------------------------------
-					case 0x02: {
-							const inputMask = msg[5] | (msg[6] << 8);
-							const outputMask = msg[7] | (msg[8] << 8);
+			// --------------------------------------------------------
+			// POSSIBLE MODES (0x02) — we just store it, don't use it
+			// --------------------------------------------------------
+			case 0x02: {
+				const inputMask = msg[5] | (msg[6] << 8);
+				const outputMask = msg[7] | (msg[8] << 8);
 
-							this.portInfo[port].inputModesMask = inputMask;
-							this.portInfo[port].outputModesMask = outputMask;
-
-							// Determine number of modes
-							const maxMode = Math.max(
-									Math.floor(Math.log2(inputMask || 1)),
-									Math.floor(Math.log2(outputMask || 1))
-							);
-
-							// Initialize mode table
-							this.portInfo[port].modes = {};
-							for (let mode = 0; mode <= maxMode; mode++) {
-									this.portInfo[port].modes[mode] = {};
-
-									// Name, ranges, symbol, value format
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x00]));
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x01]));
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x02]));
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x03]));
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x04]));
-									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x80]));
-							}
-							break;
-					}
-
-					// --------------------------------------------------------
-					// MODE INFO (0x01)
-					// --------------------------------------------------------
-					case 0x01: {
-							const mode = msg[5];
-							const miType = msg[6];
-							const payload = msg.subarray(7);
-
-							const m = this.portInfo[port].modes[mode];
-							if (!m) return;
-
-							switch (miType) {
-
-									// NAME (string)
-									case 0x00:
-											m.name = new TextDecoder().decode(payload);
-											break;
-
-									// RAW RANGE (min/max)
-									case 0x01:
-											m.rawRange = [
-													payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
-													payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
-											];
-											break;
-
-									// PERCENT RANGE
-									case 0x02:
-											m.percentRange = [
-													payload[0] | (payload[1] << 8),
-													payload[2] | (payload[3] << 8)
-											];
-											break;
-
-									// SI RANGE
-									case 0x03:
-											m.siRange = [
-													payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
-													payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
-											];
-											break;
-
-									// SYMBOL (string)
-									case 0x04:
-											m.symbol = new TextDecoder().decode(payload);
-											break;
-
-									// MAPPING (ignored for now)
-									case 0x05:
-											m.mapping = payload;
-											break;
-
-									// VALUE FORMAT (0x80)
-									case 0x80:
-											m.valueFormat = this._parseValueFormat(payload);
-											break;
-							}
-							break;
-					}
-
-					// --------------------------------------------------------
-					// INPUT MODES (0x03)
-					// --------------------------------------------------------
-					case 0x03:
-							this.portInfo[port].inputModesMask = msg[5] | (msg[6] << 8);
-							break;
-
-					// --------------------------------------------------------
-					// OUTPUT MODES (0x04)
-					// --------------------------------------------------------
-					case 0x04:
-							this.portInfo[port].outputModesMask = msg[5] | (msg[6] << 8);
-							break;
+				this.portInfo[port].possibleModesMaskInput = inputMask;
+				this.portInfo[port].possibleModesMaskOutput = outputMask;
+				break;
 			}
+
+			// --------------------------------------------------------
+			// MODE INFO (0x01) — Boost/LPF2 auto‑sends some of these
+			// (you can keep your existing parsing here if you like)
+			// --------------------------------------------------------
+			case 0x01: {
+				const mode = msg[5];
+				const miType = msg[6];
+				const payload = msg.subarray(7);
+
+				if (!this.portInfo[port].modes) {
+					this.portInfo[port].modes = {};
+				}
+				if (!this.portInfo[port].modes[mode]) {
+					this.portInfo[port].modes[mode] = {};
+				}
+				const m = this.portInfo[port].modes[mode];
+
+				switch (miType) {
+					case 0x00: // NAME
+						m.name = new TextDecoder().decode(payload);
+						break;
+
+					case 0x01: // RAW RANGE
+						m.rawRange = [
+							payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
+							payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
+						];
+						break;
+
+					case 0x02: // PERCENT RANGE
+						m.percentRange = [
+							payload[0] | (payload[1] << 8),
+							payload[2] | (payload[3] << 8)
+						];
+						break;
+
+					case 0x03: // SI RANGE
+						m.siRange = [
+							payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
+							payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
+						];
+						break;
+
+					case 0x04: // SYMBOL
+						m.symbol = new TextDecoder().decode(payload);
+						break;
+
+					case 0x05: // MAPPING
+						m.mapping = payload;
+						break;
+
+					case 0x80: // VALUE FORMAT
+						m.valueFormat = this._parseValueFormat(payload);
+						break;
+				}
+				break;
+			}
+
+			// --------------------------------------------------------
+			// INPUT MODES (0x03)
+			// --------------------------------------------------------
+			case 0x03: {
+				this.portInfo[port].inputModesMask = msg[5] | (msg[6] << 8);
+				this._maybeRequestAllModeInfo(port);
+				break;
+			}
+
+			// --------------------------------------------------------
+			// OUTPUT MODES (0x04)
+			// --------------------------------------------------------
+			case 0x04: {
+				this.portInfo[port].outputModesMask = msg[5] | (msg[6] << 8);
+				this._maybeRequestAllModeInfo(port);
+				break;
+			}
+		}
+	}
+
+	_maybeRequestAllModeInfo(port) {
+		const info = this.portInfo[port];
+		if (!info) return;
+
+		const inputMask = info.inputModesMask;
+		const outputMask = info.outputModesMask;
+
+		if (inputMask == null && outputMask == null) return;
+
+		// Only run once
+		if (info.modesRequested) return;
+		info.modesRequested = true;
+
+		const maxMode = Math.max(
+			Math.floor(Math.log2(inputMask || 1)),
+			Math.floor(Math.log2(outputMask || 1))
+		);
+
+		info.modes = info.modes || {};
+
+		for (let mode = 0; mode <= maxMode; mode++) {
+			if (!info.modes[mode]) info.modes[mode] = {};
+
+			// Request all Mode Info types via 0x21 → 0x44
+			this._requestModeInfo(port, mode, 0x00); // Name
+			this._requestModeInfo(port, mode, 0x01); // Raw range
+			this._requestModeInfo(port, mode, 0x02); // Percent range
+			this._requestModeInfo(port, mode, 0x03); // SI range
+			this._requestModeInfo(port, mode, 0x04); // Symbol
+			this._requestModeInfo(port, mode, 0x80); // Value format
+		}
+	}
+
+	_requestModeInfo(port, mode, infoType) {
+		const msg = new Uint8Array([
+			0x06,
+			this.hubId,
+			0x21,   // Port Mode Information Request
+			port,
+			mode,
+			infoType
+		]);
+		this._write(msg);
 	}
 
 	_handlePortModeInfo(port, mode, infoType, payload) {
