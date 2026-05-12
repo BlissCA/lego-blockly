@@ -429,23 +429,6 @@ export class LegoLPF2 {
 			};
 	}
 
-	async _setInputFormat(port, mode, delta = 1, unit = 0, notifications = 1) {
-			this.activeMode[port] = mode;
-
-			const msg = new Uint8Array([
-					0x0A,
-					this.hubId,
-					0x41,
-					port,
-					mode,
-					delta,
-					unit,
-					notifications
-			]);
-
-			await this._write(msg);
-	}
-
   _waitForHubType(timeoutMs = 2000) {
 		if (LPF2_DEBUG.connect) console.log("[LPF2] Waiting for hub type...");
     return new Promise((resolve, reject) => {
