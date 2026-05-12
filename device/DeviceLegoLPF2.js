@@ -318,6 +318,7 @@ export class LegoLPF2 {
 				);
 
 					console.log("[LPF2] → Port Information case 0x02 part 2:",
+						"port=" + port,
 						"inputMask=" + inputMask,
 						"outputMask=" + outputMask,
 						"maxMode=" + maxMode
