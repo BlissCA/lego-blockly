@@ -472,15 +472,15 @@ export class LegoLPF2 {
 			this.hubType = type;
 
 			// Fix Boost internal motors misclassified before hubType was known
-			if (type === 0x40) { // Boost Move Hub
-					for (const portId of [0, 1]) {
-							const info = this.portInfo[portId];
-							if (info && info.ioType === 0x27) {
-									info.type = "motor";
-									this.log(`Corrected Boost internal motor on port ${portId}`);
-							}
-					}
-			}
+			// if (type === 0x40) { // Boost Move Hub
+			// 		for (const portId of [0, 1]) {
+			// 				const info = this.portInfo[portId];
+			// 				if (info && info.ioType === 0x27) {
+			// 						info.type = "motor";
+			// 						this.log(`Corrected Boost internal motor on port ${portId}`);
+			// 				}
+			// 		}
+			// }
 
 			switch (type) {
 
