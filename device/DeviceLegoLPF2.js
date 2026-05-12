@@ -298,6 +298,11 @@ export class LegoLPF2 {
 					return;
 				}
 
+					console.log("[LPF2] → Port Information case 0x02 part 1:",
+						"port=" + port,
+						"msg length=" + msg.length
+					);
+
 				const inputMask  = msg[5] | (msg[6] << 8);
 				const outputMask = (msg.length >= 9)
 					? (msg[7] | (msg[8] << 8))
@@ -311,6 +316,12 @@ export class LegoLPF2 {
 					Math.floor(Math.log2(inputMask || 1)),
 					Math.floor(Math.log2(outputMask || 1))
 				);
+
+					console.log("[LPF2] → Port Information case 0x02 part 2:",
+						"inputMask=" + inputMask,
+						"outputMask=" + outputMask,
+						"maxMode=" + maxMode
+					);
 
 				// Initialize mode table
 				info.modes = {};
