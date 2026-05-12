@@ -768,6 +768,9 @@ export class LegoLPF2 {
 				}
 		}
 
+		// ⭐ FIX: rebuild port map dynamically
+    this._buildPortMap();
+		
 		// Optionally re-log:
 		// this.log("Ports detected: " + JSON.stringify(this.portInfo));
   }
