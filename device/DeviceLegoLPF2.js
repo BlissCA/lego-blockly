@@ -18,7 +18,7 @@ const BRAKE_HOLD  = 0x7E;
 
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
-  traffic: false,  // logs for every notification/frame/message
+  traffic: true,  // logs for every notification/frame/message
 };
 
 export class LegoLPF2 {
