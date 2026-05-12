@@ -814,14 +814,37 @@ export class LegoLPF2 {
 					// Sensors & Accessories
 					// ------------------------------------------------------------
 
-					case 0x0005: // WeDo Tilt Sensor
-							type = "tilt";
+					case 0x0005: // Button
+							type = "button";
 							break;
 
 					case 0x0008: // LED Light (88005)
 							type = "light";
 							break;
 
+					case 0x0014: // Voltage
+							type = "volt";
+							break;
+
+					case 0x0015: // Curent
+							type = "current";
+							break;
+
+					case 0x0016: // Piezo Tone (Sound)
+							type = "sound";
+							break;
+
+					case 0x0017: // RGB Light
+							type = "rgb";
+							break;
+
+					case 0x0022: // External Tilt Sensor
+							type = "tilt";
+							break;
+
+					case 0x0023: // Motion Sensor
+							type = "motion";
+							break;
 
 					// ------------------------------------------------------------
 					// Color & Distance Sensor (Boost 88007)
