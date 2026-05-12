@@ -299,10 +299,14 @@ export class LegoLPF2 {
 							this.portInfo[port].modes = {};
 							for (let mode = 0; mode <= maxMode; mode++) {
 									this.portInfo[port].modes[mode] = {};
-									// Request Mode Info for this mode
-									this._write(new Uint8Array([
-											0x06, this.hubId, 0x21, port, 0x01, mode
-									]));
+
+									// Name, ranges, symbol, value format
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x00]));
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x01]));
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x02]));
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x03]));
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x04]));
+									this._write(new Uint8Array([0x06, this.hubId, 0x21, port, mode, 0x80]));
 							}
 							break;
 					}
@@ -999,7 +1003,7 @@ export class LegoLPF2 {
 			this.portValues[port] = (vf.count === 1 ? values[0] : values);
 
 			// Motor encoder convenience
-			if (info.type === "motor" && vf.type === "Int32") {
+			if (info.type === "motorTacho" && vf.type === "Int32") {
 					this.rot[port] = values[0];
 			}
 	}
