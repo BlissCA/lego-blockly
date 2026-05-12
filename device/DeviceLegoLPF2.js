@@ -275,152 +275,90 @@ export class LegoLPF2 {
 		const port = msg[3];
 		const infoType = msg[4];
 
-		if (!this.portInfo[port]) return;
-
-		switch (infoType) {
-
-			// --------------------------------------------------------
-			// POSSIBLE MODES (0x02) — we just store it, don't use it
-			// --------------------------------------------------------
-			case 0x02: {
-					// Only valid if length is exactly 9 bytes
-					if (msg.length !== 9) {
-							if (LPF2_DEBUG.traffic) console.warn("[LPF2] Ignoring bogus 0x43/0x02 message", msg);
-							break;
-					}
-
-					const inputMask = msg[5] | (msg[6] << 8);
-					const outputMask = msg[7] | (msg[8] << 8);
-
-					this.portInfo[port].inputModesMask = inputMask;
-					this.portInfo[port].outputModesMask = outputMask;
-
-					this._maybeRequestAllModeInfo(port);
-					break;
-			}
-
-			// --------------------------------------------------------
-			// MODE INFO (0x01) — Boost/LPF2 auto‑sends some of these
-			// (you can keep your existing parsing here if you like)
-			// --------------------------------------------------------
-			case 0x01: {
-				const mode = msg[5];
-				const miType = msg[6];
-				const payload = msg.subarray(7);
-
-				if (!this.portInfo[port].modes) {
-					this.portInfo[port].modes = {};
-				}
-				if (!this.portInfo[port].modes[mode]) {
-					this.portInfo[port].modes[mode] = {};
-				}
-				const m = this.portInfo[port].modes[mode];
-
-				switch (miType) {
-					case 0x00: // NAME
-						m.name = new TextDecoder().decode(payload);
-						break;
-
-					case 0x01: // RAW RANGE
-						m.rawRange = [
-							payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
-							payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
-						];
-						break;
-
-					case 0x02: // PERCENT RANGE
-						m.percentRange = [
-							payload[0] | (payload[1] << 8),
-							payload[2] | (payload[3] << 8)
-						];
-						break;
-
-					case 0x03: // SI RANGE
-						m.siRange = [
-							payload[0] | (payload[1] << 8) | (payload[2] << 16) | (payload[3] << 24),
-							payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24)
-						];
-						break;
-
-					case 0x04: // SYMBOL
-						m.symbol = new TextDecoder().decode(payload);
-						break;
-
-					case 0x05: // MAPPING
-						m.mapping = payload;
-						break;
-
-					case 0x80: // VALUE FORMAT
-						m.valueFormat = this._parseValueFormat(payload);
-						break;
-				}
-				break;
-			}
-
-			// --------------------------------------------------------
-			// INPUT MODES (0x03)
-			// --------------------------------------------------------
-			case 0x03: {
-				this.portInfo[port].inputModesMask = msg[5] | (msg[6] << 8);
-				this._maybeRequestAllModeInfo(port);
-				break;
-			}
-
-			// --------------------------------------------------------
-			// OUTPUT MODES (0x04)
-			// --------------------------------------------------------
-			case 0x04: {
-				this.portInfo[port].outputModesMask = msg[5] | (msg[6] << 8);
-				this._maybeRequestAllModeInfo(port);
-				break;
-			}
-		}
-	}
-
-	_maybeRequestAllModeInfo(port) {
 		const info = this.portInfo[port];
 		if (!info) return;
 
-		const inputMask = info.inputModesMask;
-		const outputMask = info.outputModesMask;
+		switch (infoType) {
 
-		if (inputMask == null && outputMask == null) return;
+			// 0x02 — Possible Modes (input/output bitmasks)
+			case 0x02: {
+				// Some hubs send only input or only output; guard on length
+				if (msg.length < 7) {
+					if (LPF2_DEBUG.traffic) {
+						console.log("[LPF2] Ignoring short 0x43/0x02 message", msg);
+					}
+					return;
+				}
 
-		// Only run once
-		if (info.modesRequested) return;
-		info.modesRequested = true;
+				const inputMask  = msg[5] | (msg[6] << 8);
+				const outputMask = (msg.length >= 9)
+					? (msg[7] | (msg[8] << 8))
+					: 0;
 
-		const maxMode = Math.max(
-			Math.floor(Math.log2(inputMask || 1)),
-			Math.floor(Math.log2(outputMask || 1))
-		);
+				info.inputModesMask  = inputMask;
+				info.outputModesMask = outputMask;
 
-		info.modes = info.modes || {};
+				// Determine max mode index from masks
+				const maxMode = Math.max(
+					Math.floor(Math.log2(inputMask || 1)),
+					Math.floor(Math.log2(outputMask || 1))
+				);
 
-		for (let mode = 0; mode <= maxMode; mode++) {
-			if (!info.modes[mode]) info.modes[mode] = {};
+				// Initialize mode table
+				info.modes = info.modes || {};
+				for (let mode = 0; mode <= maxMode; mode++) {
+					if (!info.modes[mode]) {
+						info.modes[mode] = {};
+					}
 
-			// Request all Mode Info types via 0x21 → 0x44
-			this._requestModeInfo(port, mode, 0x00); // Name
-			this._requestModeInfo(port, mode, 0x01); // Raw range
-			this._requestModeInfo(port, mode, 0x02); // Percent range
-			this._requestModeInfo(port, mode, 0x03); // SI range
-			this._requestModeInfo(port, mode, 0x04); // Symbol
-			this._requestModeInfo(port, mode, 0x80); // Value format
+					// For each mode, request detailed Mode Information via 0x22
+					this._requestModeInfo(port, mode);
+				}
+				break;
+			}
+
+			// 0x03 — Input Modes
+			case 0x03: {
+				if (msg.length < 7) return;
+				info.inputModesMask = msg[5] | (msg[6] << 8);
+				break;
+			}
+
+			// 0x04 — Output Modes
+			case 0x04: {
+				if (msg.length < 7) return;
+				info.outputModesMask = msg[5] | (msg[6] << 8);
+				break;
+			}
+
+			// 0x01 — Mode Info (high‑level, optional)
+			case 0x01: {
+				// You can ignore this or store it if you want.
+				// The detailed stuff comes from 0x44.
+				break;
+			}
 		}
 	}
 
-	_requestModeInfo(port, mode, infoType) {
-		const msg = new Uint8Array([
-			0x06,
-			this.hubId,
-			0x21,   // Port Mode Information Request
-			port,
-			mode,
-			infoType
-		]);
-		this._write(msg);
+	_requestModeInfo(port, mode) {
+		const hubId = this.hubId;
+
+		// Info types we care about: 0x00, 0x01, 0x02, 0x03, 0x04, 0x80
+		const infoTypes = [0x00, 0x01, 0x02, 0x03, 0x04, 0x80];
+
+		for (const infoType of infoTypes) {
+			const msg = new Uint8Array([
+				0x06,      // length
+				hubId,     // hub ID
+				0x22,      // Port Mode Information Request
+				port,      // port ID
+				mode,      // mode
+				infoType   // infoType
+			]);
+			this._write(msg);
+		}
 	}
+
 
 	_handlePortModeInfo(port, mode, infoType, payload) {
 			if (!this.portInfo[port]) return;
