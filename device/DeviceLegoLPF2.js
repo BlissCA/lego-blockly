@@ -753,24 +753,21 @@ export class LegoLPF2 {
 							break;
 
 					case 0x0002: // Train Motor (88011)
-							type = "trainMotor";
+							type = "motorSimple"; // also no tacho
 							break;
 
 
 					// ------------------------------------------------------------
-					// Classic LPF2 Linear Motors
+					// Classic LPF2 Linear Motors (with tacho)
 					// ------------------------------------------------------------
 					case 0x0015: // Medium Linear Motor
-							type = "mediumLinearMotor";
-							break;
-
 					case 0x0016: // Large Linear Motor
-							type = "largeLinearMotor";
+							type = "motorTacho";
 							break;
 
 
 					// ------------------------------------------------------------
-					// Modern Tacho / Absolute Motors
+					// Modern Tacho Motors (Technic, SPIKE, Inventor)
 					// These support StartSpeed (0x07) and MoveForDegrees (0x0B).
 					// ------------------------------------------------------------
 					case 0x002E: // Technic Large Motor (88013)
@@ -778,7 +775,18 @@ export class LegoLPF2 {
 					case 0x0030: // Technic Medium Angular Motor
 					case 0x0031: // Technic Large Angular Motor
 					case 0x0041: // Small Angular Motor (Spike Essential)
-							type = "motor";
+							type = "motorTacho";
+							break;
+
+
+					// ------------------------------------------------------------
+					// LWP3 r17 — Tacho Motor Definitions
+					// 0x26 = External Motor with Tacho
+					// 0x27 = Internal Motor with Tacho
+					// ------------------------------------------------------------
+					case 0x0026: // External Tacho Motor
+					case 0x0027: // Internal Tacho Motor (Boost internal motors)
+							type = "motorTacho";
 							break;
 
 
@@ -794,25 +802,21 @@ export class LegoLPF2 {
 							type = "light";
 							break;
 
+
 					// ------------------------------------------------------------
 					// Color & Distance Sensor (Boost 88007)
 					// NOTE: Some hubs report it as 0x25, others as 0x26.
-					// 0x25 was incorrectly mapped as "force" before — fixed now.
 					// ------------------------------------------------------------
 					case 0x0025: // 37 dec – Vision / Color+Distance on Boost
 					case 0x0026: // 38 dec – Color & Distance Sensor (Boost)
 							type = "colorDistance";
 							break;
 
-					// ------------------------------------------------------------
-					// Distance-only sensors
-					// Boost internal motors also report 0x27 (quirk)
-					// ------------------------------------------------------------
-					case 0x0027: // Distance / Boost internal motor quirk
-							type = "distance";
-							break;
 
-					case 0x0028: // Multi-axis tilt (Boost)
+					// ------------------------------------------------------------
+					// Multi-axis tilt (Boost)
+					// ------------------------------------------------------------
+					case 0x0028:
 							type = "tiltMulti";
 							break;
 
@@ -845,7 +849,7 @@ export class LegoLPF2 {
 							break;
 
 					case 0x003A: // Internal Tilt Sensor (Boost)
-							type = "tiltInternal";
+							type = "tiltMulti";
 							break;
 
 					case 0x003B: // Amperage Sensor
@@ -860,18 +864,7 @@ export class LegoLPF2 {
 							break;
 			}
 
-			// ------------------------------------------------------------
-			// Boost special case:
-			// Internal motors report ioType 0x27 (distance).
-			// We override this to treat them as motors.
-			// ------------------------------------------------------------
-			if (ioType === 0x0027 && this.hubType === 0x40) {
-					type = "motor";
-			}
-
 			this.portInfo[portId] = { ioType, type };
-
-			//this.log(`Port ${portId} hub type=${this.hubType} attached: type=${type} (ioType=0x${ioType.toString(16)})`);
 	}
 
 	_handlePortValueSingle(msg) {
@@ -1065,6 +1058,42 @@ export class LegoLPF2 {
 			});
 	}
 
+	_findMode(port, keywords) {
+			const info = this.portInfo[port];
+			if (!info || !info.modes) return 0;
+
+			const modes = info.modes;
+
+			// 1. Prefer RELATIVE position (POS)
+			for (const mode in modes) {
+					const name = modes[mode].name?.toLowerCase() ?? "";
+					if (name === "pos") return Number(mode);
+			}
+
+			// 2. Then absolute position (APOS)
+			for (const mode in modes) {
+					const name = modes[mode].name?.toLowerCase() ?? "";
+					if (name === "apos") return Number(mode);
+			}
+
+			// 3. Then speed
+			for (const mode in modes) {
+					const name = modes[mode].name?.toLowerCase() ?? "";
+					if (name === "speed") return Number(mode);
+			}
+
+			// 4. Fallback: keyword search
+			for (const mode in modes) {
+					const name = modes[mode].name?.toLowerCase() ?? "";
+					for (const key of keywords) {
+							if (name.includes(key)) {
+									return Number(mode);
+							}
+					}
+			}
+
+			return 0;
+	}
 
 
   // ---------------- Public API: Inputs ----------------
@@ -1092,49 +1121,56 @@ export class LegoLPF2 {
 
 	async getDistance(portName) {
 			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
 
+			const mode = this._findMode(port, ["dist", "range"]);
 			await this._ensureMode(port, mode);
+
 			return this.portValues[port] ?? 0;
 	}
 
 	async getColor(portName) {
 			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
 
+			const mode = this._findMode(port, ["color", "col"]);
 			await this._ensureMode(port, mode);
+
 			return this.portValues[port] ?? 0;
 	}
 
 	async getTilt(portName) {
 			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
 
+			const mode = this._findMode(port, ["tilt", "orient", "angle"]);
 			await this._ensureMode(port, mode);
-			return this.portValues[port] ?? 0;
-	}
 
-	async getForce(portName) {
-			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
-
-			await this._ensureMode(port, mode);
-			return this.portValues[port] ?? 0;
+			return this.portValues[port] ?? [0,0];
 	}
 
 	async getIMU(portName) {
 			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
 
+			const mode = this._findMode(port, ["acc", "gyro", "imu"]);
 			await this._ensureMode(port, mode);
+
 			return this.portValues[port] ?? [0,0,0];
+	}
+
+	async getForce(portName) {
+			const port = this._resolvePort(portName);
+
+			const mode = this._findMode(port, ["force", "press", "touch"]);
+			await this._ensureMode(port, mode);
+
+			return this.portValues[port] ?? 0;
 	}
 
 	async getRot(portName) {
 			const port = this._resolvePort(portName);
-			const mode = this._getDefaultMode(port);
 
+			// Prefer RELATIVE position
+			const mode = this._findMode(port, ["pos", "angle", "rot"]);
 			await this._ensureMode(port, mode);
+
 			return this.rot[port] ?? 0;
 	}
 
@@ -1187,9 +1223,6 @@ export class LegoLPF2 {
 					
 					// internal tilt (Boost) – usually 58
 					if (this.portInfo[58]) this.userPortMap.TILT = 58;
-
-					if (this.portInfo[0]?.ioType === 0x27) this.portInfo[0].type = "motor";
-					if (this.portInfo[1]?.ioType === 0x27) this.portInfo[1].type = "motor";					
 
 					return;
 			}
