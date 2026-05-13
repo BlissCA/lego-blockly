@@ -1387,6 +1387,59 @@ javascriptGenerator.forBlock["vll_unitms"] = function (block) {
 `;
 };
 
+// ---------------- LEGO POWER FUNCTION 2 (LPF2) GENERATORS ------------------
+
+// ---------------- LPF2 Combo Ports ----------------
+javascriptGenerator.forBlock["lpf2_ports"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LPF2PORTS');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getRot(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["lpf2_reset_rot"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setRot(${port}, ${count});
+}
+`;
+};
+
+javascriptGenerator.forBlock["lpf2_out_power"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorPower(${port},${pwr});
+}
+`;
+};
+
+
+
+
 
 
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {

@@ -657,6 +657,16 @@ function getVLLDropdown() {
     : [['No VLL', 'NONE']];
 }
 
+// Only LEGO LPF2 devices
+function getLPF2Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "LegoLPF2");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No LPF2', 'NONE']];
+}
+
 
 window.addEventListener("load", () => {
 
@@ -2003,6 +2013,77 @@ window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
     {
+      "type": "lpf2_get_rot",
+      "message0": "%1 port %2 tacho rel.Pos",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the motor encoder relative position in degrees since last reset. Use lpf2_reset_rot block to set current position."
+    },
+    {
+      "type": "lpf2_reset_rot",
+      "message0": "%1 port %2 set rot.count to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getLPF2Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80
+    },
+    {
+      "type": "lpf2_out_power",
+      "message0": "%1 mot %2 pwr %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"],
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Turn ON when power = -100 - +100, 0=FLOAT, 127=BRAKE"
+    }
+
+  ]);  
+
+  Blockly.defineBlocksWithJsonArray([
+    {
       "type": "counter_block",
       "message0": "%1 Count %2 Pre: %3 Acc: %4 on: %5",
       "args0": [
@@ -2806,6 +2887,20 @@ Blockly.Blocks['vll_unitms'] = {
     this.setTooltip("Set the unit duration for VLL min pulse width");
   }
 };
+
+
+Blockly.Blocks['lpf2_ports'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([[["A","A"],["B","B"],["C","C"],["D","D"],["F","F"],["F","F"],["AB","AB"],["CD","CD"],["TILT","TILT"]]), "LPF2PORTS");
+
+    this.setOutput(true, "String");
+    this.setColour(80);
+    this.setTooltip("Returns a predefined constant value for LPF2 ports.");
+  }
+};
+
+
 
 //  LOOP WHILE / UNTIL WITH YIELD (for cooperative multitasking)
 Blockly.Blocks['loop_forever'] = {

@@ -1384,9 +1384,74 @@ const toolbox = {
           }
         }        
       ]
+    },
+
+    {"kind": "category", "name": "LPF2", "colour": 80, "contents": [
+        {
+          "kind": "category",
+          "name": "Input",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lpf2_get_rot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_reset_rot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            }                      
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lpf2_out_power",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
 
-/*
+
+    /*
     {
       "kind": "category",
       "name": "MQTT",
@@ -1412,7 +1477,7 @@ const toolbox = {
       ]
     } */
    
-/*     {
+      /*     {
       "kind": "category",
       "name": "HMI",
       "colour": 45,
