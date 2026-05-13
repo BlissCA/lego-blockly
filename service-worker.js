@@ -22,6 +22,7 @@ const ASSETS = [
   "./toolbox/toolbox.js",
 
   // Devices
+  "./device/DeviceManager.js",
   "./device/DeviceLegoA.js",
   "./device/DeviceLegoA_v2.js",
   "./device/DeviceLegoA_ws.js",
@@ -29,6 +30,7 @@ const ASSETS = [
   "./device/DeviceLegoRcx.js",
   "./device/DeviceLegoWeDo1.js",
   "./device/DeviceLegoVLL.js",
+  "./device/DeviceLegoLPF2.js",
 
   // Icons
   "./icons/icon-192.png",
