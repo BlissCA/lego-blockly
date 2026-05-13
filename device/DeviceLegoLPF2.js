@@ -246,7 +246,7 @@ export class LegoLPF2 {
 				}
 
 				// For now: always mode 0, delta=1, unit=0, notifications=1
-				await this._setInputFormat(port, 0, 1, 0, 1);
+				await this._setInputFormat(port, 0, 1, 1);
 
 				await new Promise(r => setTimeout(r, 20));
 		}
@@ -255,8 +255,9 @@ export class LegoLPF2 {
 		this.log("LPF2 initialization complete.");
 	}
 
-	async _setInputFormat(port, mode, delta = 1, unit = 0, notifications = 1) {
+	async _setInputFormat(port, mode, delta = 1, notifications = 1) {
 			this.activeMode[port] = mode;
+			const d = delta >>> 0;
 
 			const msg = new Uint8Array([
 					0x0A,
@@ -264,9 +265,11 @@ export class LegoLPF2 {
 					0x41,
 					port,
 					mode,
-					delta,
-					unit,
-					notifications
+					d & 0xFF,
+					(d >> 8) & 0xFF,
+					(d >> 16) & 0xFF,
+					(d >> 24) & 0xFF,
+					notifications ? 0x01 : 0x00	
 			]);
 
 			this._write(msg);
@@ -1164,7 +1167,7 @@ export class LegoLPF2 {
 					return;
 			}
 
-			await this._setInputFormat(port, desiredMode, 1, 0, 1);
+			await this._setInputFormat(port, desiredMode, 1, 1);
 
 			// Give hub time to switch modes
 			await new Promise(r => setTimeout(r, 20));
@@ -1248,7 +1251,7 @@ export class LegoLPF2 {
 
 	async setSensorMode(portName, mode) {
 			const port = this._resolvePort(portName);
-			await this._setInputFormat(port, mode, 1, 0, 1);
+			await this._setInputFormat(port, mode, 1, 1);
 	}
 
 
