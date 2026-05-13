@@ -223,8 +223,6 @@ export class LegoLPF2 {
 
 				// 1. Request Possible Modes (0x02)
 
-				console.log("[LPF2] Request Mode Information port#", port);
-				
 				this._write(new Uint8Array([
 						0x05, this.hubId, 0x21, port, 0x02
 				]));
