@@ -281,12 +281,6 @@ export class LegoLPF2 {
 		const info = this.portInfo[port];
 		if (!info) return;
 		
-					console.log("[LPF2] → Port Information:",
-						"port=" + port,
-						"infoType=0x" + infoType.toString(16),
-						"msg length=" + msg.length
-					);
-
 		switch (infoType) {
 
 			// 0x02 — Possible Modes (input/output bitmasks)
@@ -675,11 +669,6 @@ export class LegoLPF2 {
 					const mode = msg[4];
 					const infoType = msg[5];
 					const payload = msg.slice(6);
-					console.log("[LPF2] → Port Mode Information:",
-						"port=" + port,
-						"mode=" + mode,
-						"infoType=0x" + infoType.toString(16)
-					);
 					this._handlePortModeInfo(port, mode, infoType, payload);
 					break;
 			}
@@ -860,7 +849,7 @@ export class LegoLPF2 {
 							break;
 
 					case 0x0023: // Motion/Distance Sensor (WeDo 2.0)
-							type = "motion";
+							type = "distance";
 							break;
 
 					// ------------------------------------------------------------
