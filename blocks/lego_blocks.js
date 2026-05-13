@@ -2020,7 +2020,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": "Number",
+          "check": ["Number", "String"]
         }
       ],
       "inputsInline": true,
@@ -2040,7 +2040,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": "Number"
+          "check": ["Number", "String"]
         },
         {
           "type": "input_value",
@@ -2892,7 +2892,7 @@ Blockly.Blocks['vll_unitms'] = {
 Blockly.Blocks['lpf2_ports'] = {
   init: function() {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([["A","A"],["B","B"],["C","C"],["D","D"],["F","F"],["F","F"],["AB","AB"],["CD","CD"],["TILT","TILT"]]), "LPF2PORTS");
+      .appendField(new Blockly.FieldDropdown([["A","A"],["B","B"],["C","C"],["D","D"],["E","E"],["F","F"],["AB","AB"],["CD","CD"],["TILT","TILT"]]), "LPF2PORTS");
 
     this.setOutput(true, "String");
     this.setColour(80);
