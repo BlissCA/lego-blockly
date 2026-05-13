@@ -246,7 +246,7 @@ export class LegoLPF2 {
 						continue;
 				}
 				switch (info.type) {
-						case "distance":
+						case "tiltMulti":
 							d=5;
 							break;
 						default:
