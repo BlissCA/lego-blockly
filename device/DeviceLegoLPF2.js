@@ -237,6 +237,7 @@ export class LegoLPF2 {
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
 				const info = this.portInfo[port];
+				let d = 1;
 
 				if (!info) continue;
 
@@ -244,9 +245,16 @@ export class LegoLPF2 {
 				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt") {
 						continue;
 				}
+				switch (info.type) {
+						case "distance":
+							d=5;
+							break;
+						default:
+							d=1;
+				}
 
 				// For now: always mode 0, delta=1, notifications=1
-				await this._setInputFormat(port, 0, 1, 1);
+				await this._setInputFormat(port, 0, d, 1);
 
 				await new Promise(r => setTimeout(r, 20));
 		}
