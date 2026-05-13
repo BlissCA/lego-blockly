@@ -294,8 +294,10 @@ export class LegoLPF2 {
 				// Some hubs send only input or only output; guard on length
 				if (msg.length < 7) {
 					if (LPF2_DEBUG.traffic) {
-						console.log("[LPF2] Ignoring short 0x43/0x02 message", msg);
+						console.log("[LPF2] short 0x43/0x02 message, might be WeDo 2.0 sensor", msg);
 					}
+					info.modes = {};
+					this._requestModeInfo(port, 0);
 					return;
 				}
 
