@@ -1417,7 +1417,7 @@ javascriptGenerator.forBlock["lpf2_reset_rot"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.setRot(${port}, ${count});
+  await dev.resetPosition(${port}, ${count});
 }
 `;
 };
