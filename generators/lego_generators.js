@@ -1389,17 +1389,17 @@ javascriptGenerator.forBlock["vll_unitms"] = function (block) {
 
 // ---------------- LEGO POWER FUNCTION 2 (LPF2) GENERATORS ------------------
 
-// ---------------- LPF2 Combo Ports ----------------
+// ---------------- LPF2 Ports ----------------
 javascriptGenerator.forBlock["lpf2_ports"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('LPF2PORTS');
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
-  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+  return [`"${code}"`, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
 javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
 
   return [
     `await deviceManager.getDeviceByName("${dev}").getRot(${port})`, 
@@ -1409,7 +1409,7 @@ javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
 
 javascriptGenerator.forBlock["lpf2_reset_rot"] = function (block) {
   const dev   = block.getFieldValue("DEVICE");
-  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
   const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
@@ -1424,7 +1424,7 @@ javascriptGenerator.forBlock["lpf2_reset_rot"] = function (block) {
 
 javascriptGenerator.forBlock["lpf2_out_power"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
 
   return `
