@@ -2054,7 +2054,7 @@ window.addEventListener("load", () => {
       "colour": 80
     },
     {
-      "type": "lpf2_out_power",
+      "type": "lpf2_mot_power",
       "message0": "%1 mot %2 pwr %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
@@ -2078,7 +2078,48 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "Turn ON when power = -100 - +100, 0=FLOAT, 127=BRAKE"
+    },
+    {
+      "type": "lpf2_mot_goto",
+      "message0": "%1 mot %2 pos %3 speed %4 brake %5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"],
+        },
+        {
+          "type": "input_value",
+          "name": "POS",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ENDSTATE",
+          "check": ["Number"],
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Goto absolute position "
     }
+
 
   ]);  
 
@@ -2897,6 +2938,17 @@ Blockly.Blocks['lpf2_ports'] = {
     this.setOutput(true, "String");
     this.setColour(80);
     this.setTooltip("Returns a predefined constant value for LPF2 ports.");
+  }
+};
+
+Blockly.Blocks['lpf2_endstate'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["FLOAT","0"],["HOLD","126"],["BRAKE","127"]]), "LPF2ENDSTATE");
+
+    this.setOutput(true, "Number");
+    this.setColour(80);
+    this.setTooltip("Returns a predefined constant value for LPF2 brake types (Float=0, Hold=126, Brake=127).");
   }
 };
 

@@ -1395,7 +1395,15 @@ javascriptGenerator.forBlock["lpf2_ports"] = function (block) {
   var code = block.getFieldValue('LPF2PORTS');
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
   return [`"${code}"`, Blockly.JavaScript.ORDER_ATOMIC];
+
 };
+javascriptGenerator.forBlock["lpf2_endstate"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LPF2ENDSTATE');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 
 javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
@@ -1422,7 +1430,7 @@ javascriptGenerator.forBlock["lpf2_reset_rot"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["lpf2_out_power"] = function (block) {
+javascriptGenerator.forBlock["lpf2_mot_power"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
@@ -1437,6 +1445,22 @@ javascriptGenerator.forBlock["lpf2_out_power"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["lpf2_mot_goto"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const pos  = javascriptGenerator.valueToCode(block, "POS",  javascriptGenerator.ORDER_NONE) || "0";
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const endState = javascriptGenerator.valueToCode(block, "ENDSTATE", javascriptGenerator.ORDER_NONE) || "127";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorGoto(${port},${pos},${speed},${endState});
+}
+`;
+};
 
 
 

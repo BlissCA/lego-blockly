@@ -1429,7 +1429,7 @@ const toolbox = {
           "contents": [
             {
               "kind": "block",
-              "type": "lpf2_out_power",
+              "type": "lpf2_mot_power",
               "inputs": {
                 "PORT": {
                   "shadow": {
@@ -1443,6 +1443,37 @@ const toolbox = {
                     "fields": { "NUM": 50 }
                   }
                 }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_mot_goto",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "POS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 100 }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                },
+                "ENDSTATE": {
+                  "shadow": {
+                    "type": "lpf2_endstate",
+                    "fields": { "LPF2ENDSTATE": "127" }
+                  }
+                }
+
               }
             }
           ]
