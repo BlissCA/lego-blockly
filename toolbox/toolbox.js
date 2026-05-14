@@ -1560,7 +1560,7 @@ const toolbox = {
                 "TIME": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": { "NUM": 100 }
+                    "fields": { "NUM": 1000 }
                   }
                 },
                 "SPEED": {
