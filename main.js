@@ -761,10 +761,16 @@ window.highlightBlock = function(id) {
     const code = origValueToCode.call(this, block, name, order);
     if (!code) return code;
 
-    // Wrap ALL value expressions in await
+    // Do NOT wrap literals (numbers, strings, booleans)
+    if (/^\s*[\d.]+\s*$/.test(code)) return code;        // number literal
+    if (/^\s*(['"]).*\1\s*$/.test(code)) return code;    // string literal
+    if (/^\s*(true|false)\s*$/.test(code)) return code;  // boolean literal
+
+    // Wrap everything else
     return `(await (${code}))`;
   };
 })();
+
 
 // ---------------- RUN PROGRAM ----------------
 
