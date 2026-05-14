@@ -1402,25 +1402,7 @@ const toolbox = {
                   }
                 }
               }
-            },
-            {
-              "kind": "block",
-              "type": "lpf2_reset_rot",
-              "inputs": {
-                "PORT": {
-                  "shadow": {
-                    "type": "lpf2_ports",
-                    "fields": { "LPF2PORTS": "A" }
-                  }
-                },
-                "COUNT": {
-                  "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 0 }
-                  }
-                }
-              }
-            }                      
+            }                
           ]
         },
         {
@@ -1441,6 +1423,54 @@ const toolbox = {
                   "shadow": {
                     "type": "math_number",
                     "fields": { "NUM": 50 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_reset_rot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_mot_angle",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "ANGLE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 360 }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                },
+                "ENDSTATE": {
+                  "shadow": {
+                    "type": "lpf2_endstate",
+                    "fields": { "LPF2ENDSTATE": "127" }
                   }
                 }
               }
@@ -1473,7 +1503,6 @@ const toolbox = {
                     "fields": { "LPF2ENDSTATE": "127" }
                   }
                 }
-
               }
             }
           ]
