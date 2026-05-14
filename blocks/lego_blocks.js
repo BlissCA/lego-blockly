@@ -2215,6 +2215,46 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "Goto relative position (degrees) "
+    },
+    {
+      "type": "lpf2_mot_time",
+      "message0": "%1 mot %2 ms %3 speed %4 brake %5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "TIME",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 1000 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ENDSTATE",
+          "check": ["Number"],
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "run motor for specified time in milliseconds"
     }
 
 

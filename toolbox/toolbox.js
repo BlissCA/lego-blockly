@@ -1546,6 +1546,36 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_mot_time",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 100 }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                },
+                "ENDSTATE": {
+                  "shadow": {
+                    "type": "lpf2_endstate",
+                    "fields": { "LPF2ENDSTATE": "127" }
+                  }
+                }
+              }
             }
           ]
         }
