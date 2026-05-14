@@ -897,6 +897,9 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.stopMotor) {
         // WeDo 1.0: stop all motors
         await dev.stopMotor();
+      } else if (dev.stopAllMotors) {
+        // LPF2: stop all motors
+          await dev.stopAllMotors();
       }
 
     } catch (err) {

@@ -1639,6 +1639,44 @@ export class LegoLPF2 {
 			await this._write(msg);
 	}
 
+	stopAllMotors() {
+			const hubId = this.hubId || 0x00;
+
+			for (const key of Object.keys(this.userPortMap)) {
+					const port = this.userPortMap[key];
+
+					// Skip invalid or undefined ports
+					if (port == null) continue;
+
+					// Skip ports without portInfo
+					const info = this.portInfo[port];
+					if (!info) continue;
+
+					// Only stop motors
+					if (info.type !== "motorSimple" &&
+							info.type !== "motorTacho" &&
+							info.type !== "rgb" &&
+							info.type !== "sound" &&
+							info.type !== "light") {
+							continue;
+					}
+
+					// Build the LPF2 Stop command (float)
+					const msg = new Uint8Array([
+							0x08,
+							hubId,
+							0x81,
+							port,
+							0x11,
+							0x51,   // WriteDirectModeData
+							0x00,   // Mode 0 = speed
+							0x00    // Power = 0 (float)
+					]);
+
+					this._write(msg);
+			}
+	}
+
 
   // Convenience mapping for Blockly (string → brake mode)
   brakeModeFromString(mode) {

@@ -2061,7 +2061,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": ["Number", "String"],
+          "check": ["Number", "String"]
         },
         {
           "type": "input_value",
@@ -2080,6 +2080,28 @@ window.addEventListener("load", () => {
       "tooltip": "Turn ON when power = -100 - +100, 0=FLOAT, 127=BRAKE"
     },
     {
+      "type": "lpf2_mot_stop",
+      "message0": "%1 mot %2 stop brake %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "BRAKE",
+          "check": ["Number", "Boolean"]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Stop Motor, Brake: 0=FLOAT, >0=BRAKE"
+    },
+    {
       "type": "lpf2_mot_speed",
       "message0": "%1 mot %2 speed %3 max pwr %4",
       "args0": [
@@ -2087,7 +2109,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": ["Number", "String"],
+          "check": ["Number", "String"]
         },
         {
           "type": "input_value",
@@ -2112,7 +2134,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 80,
-      "tooltip": "Turn ON at constant speed = -100 - +100, 0=FLOAT, 127=BRAKE"
+      "tooltip": "Turn ON at constant speed = -100 - +100, 0=HOLD"
     },
     {
       "type": "lpf2_mot_goto",
@@ -2122,7 +2144,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": ["Number", "String"],
+          "check": ["Number", "String"]
         },
         {
           "type": "input_value",
@@ -2162,7 +2184,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": ["Number", "String"],
+          "check": ["Number", "String"]
         },
         {
           "type": "input_value",

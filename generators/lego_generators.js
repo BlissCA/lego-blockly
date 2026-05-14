@@ -1445,6 +1445,21 @@ javascriptGenerator.forBlock["lpf2_mot_power"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["lpf2_mot_stop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const brake  = javascriptGenerator.valueToCode(block, "BRAKE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStop(${port},${brake});
+}
+`;
+};
+
 javascriptGenerator.forBlock["lpf2_mot_speed"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';

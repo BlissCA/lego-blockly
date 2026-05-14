@@ -1429,6 +1429,24 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "lpf2_mot_stop",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "BRAKE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
               "type": "lpf2_mot_speed",
               "inputs": {
                 "PORT": {
