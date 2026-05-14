@@ -1445,6 +1445,22 @@ javascriptGenerator.forBlock["lpf2_mot_power"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["lpf2_mot_speed"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const maxPwr = javascriptGenerator.valueToCode(block, "MAXPWR", javascriptGenerator.ORDER_NONE) || "100";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorSpeed(${port},${speed},${maxPwr});
+}
+`;
+};
+
 javascriptGenerator.forBlock["lpf2_mot_angle"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';

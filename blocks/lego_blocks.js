@@ -2080,6 +2080,41 @@ window.addEventListener("load", () => {
       "tooltip": "Turn ON when power = -100 - +100, 0=FLOAT, 127=BRAKE"
     },
     {
+      "type": "lpf2_mot_speed",
+      "message0": "%1 mot %2 speed %3 max pwr %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"],
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "MAXPWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Turn ON at constant speed = -100 - +100, 0=FLOAT, 127=BRAKE"
+    },
+    {
       "type": "lpf2_mot_goto",
       "message0": "%1 mot %2 pos %3 speed %4 brake %5",
       "args0": [
@@ -2157,7 +2192,7 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 80,
-      "tooltip": "Goto absolute position "
+      "tooltip": "Goto relative position (degrees) "
     }
 
 

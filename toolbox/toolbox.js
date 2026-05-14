@@ -1429,6 +1429,30 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "lpf2_mot_speed",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                },
+                "MAXPWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 100 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
               "type": "lpf2_reset_rot",
               "inputs": {
                 "PORT": {
