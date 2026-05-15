@@ -199,6 +199,9 @@ export class LegoLPF2 {
 		await this.char.startNotifications();
 		this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
 
+		this.ready = false;
+		this._readyTrackingActive = false;   // ensure off
+
 		// Request hub type (LPF2 Hub Property 0x06)
 		await this._write(new Uint8Array([
 			0x05,       // length
@@ -221,6 +224,14 @@ export class LegoLPF2 {
 		// LPF2 initialization
 		await this._initializeLPF2();
 
+		this.log(`Connected as ${this.name}`);
+		this.setStatus("connected", "Connected");
+		document.dispatchEvent(new Event("serial-connected"));
+
+		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
+
+		this._readyTrackingActive = true;
+
 	}
 
 	
@@ -234,9 +245,6 @@ export class LegoLPF2 {
 		// ------------------------------------------------------------
 		// Boost/Spike send port attach messages immediately after notifications start.
 		// WeDo 2.0 is slower, so we wait a bit.
-
-		this.ready = false;
-		this._readyTrackingActive = false;   // ensure off
 
 		await new Promise(r => setTimeout(r, 300));
 
@@ -252,15 +260,9 @@ export class LegoLPF2 {
 		this.log("Motor caps: " + JSON.stringify(this.motorCaps));
 
 
-		this.log(`Connected as ${this.name}`);
-		this.setStatus("connected", "Connected");
-		document.dispatchEvent(new Event("serial-connected"));
-		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
-
 		// ------------------------------------------------------------
 		// STEP 2 — Request Mode Information for each port (LPF3-correct)
 		// ------------------------------------------------------------
-		this._readyTrackingActive = true;
 		
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
