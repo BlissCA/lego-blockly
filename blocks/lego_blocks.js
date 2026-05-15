@@ -2046,6 +2046,54 @@ window.addEventListener("load", () => {
       "tooltip": "Returns the Color: 0=Black, 3=Blue, 5=Green, 7=Yellow, 9=Red, 10=White"
     },
     {
+      "type": "lpf2_get_tilt_fb",
+      "message0": "%1 port %2 Tilt Fwd/Back",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the Tilt Fwd/Back: -90 to +90 degrees"
+    },
+    {
+      "type": "lpf2_get_tilt_lr",
+      "message0": "%1 port %2 Tilt L/R",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the Tilt Left/Right: -90 to +90 degrees"
+    },
+    {
+      "type": "lpf2_get_color",
+      "message0": "%1 port %2 Color",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the Color: 0=Black, 3=Blue, 5=Green, 7=Yellow, 9=Red, 10=White"
+    },
+    {
       "type": "lpf2_get_rot",
       "message0": "%1 port %2 tacho rel.Pos",
       "args0": [
