@@ -54,7 +54,7 @@ export class LegoLPF2 {
 		goto: false,
 		time: false,
 		combined: false
-	};
+		};
 
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
@@ -80,6 +80,10 @@ export class LegoLPF2 {
 				current: 0
 		};
 
+		this.ready = false;
+		this._readyResolve = null;
+		this.readyPromise = new Promise(res => (this._readyResolve = res));
+
   }
 
   // ---------------- Status + Logging ----------------
@@ -97,19 +101,51 @@ export class LegoLPF2 {
 
   // ---------------- Command Queueing ----------------
 
-  enqueueCommand(fn) {
-    if (!this.queueActive) {
-      return Promise.resolve();
-    }
+	enqueueCommand(fn) {
+		if (!this.queueActive) {
+			return Promise.resolve();
+		}
 
-    this.commandQueue = this.commandQueue
-      .then(() => fn())
-      .catch(err => {
-        this.log("Queue command error: " + (err?.message || err));
-      });
+		this.commandQueue = this.commandQueue
+			.then(async () => {
+				await fn();
+			})
+			.catch(err => {
+				this.log("Queue command error: " + (err?.message || err));
+			})
+			.finally(() => {
+				// If queue is empty, signal readiness
+				if (this._queueIsEmpty()) {
+					this._onQueueEmpty();
+				}
+			});
 
-    return this.commandQueue;
-  }
+		return this.commandQueue;
+	}
+
+	_queueIsEmpty() {
+		// The queue is empty when the last promise has resolved
+		// and no new commands have been enqueued.
+		return this.commandQueue && this.commandQueue instanceof Promise;
+	}
+
+	_onQueueEmpty() {
+		if (!this.ready) {
+			this.ready = true;
+
+			window.logStatus?.(`${this.name}: Device is ready.`);
+
+			if (this._readyResolve) {
+				this._readyResolve();
+				this._readyResolve = null;
+			}
+
+			// NEW: broadcast a real "ready" event
+			document.dispatchEvent(new CustomEvent("serial-ready", {
+				detail: { device: this }
+			}));
+		}
+	}
 
   async _write(bytes) {
     return this.enqueueCommand(async () => {
@@ -201,6 +237,10 @@ export class LegoLPF2 {
 		// ------------------------------------------------------------
 		// Boost/Spike send port attach messages immediately after notifications start.
 		// WeDo 2.0 is slower, so we wait a bit.
+
+		this.ready = false;
+		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
+
 		await new Promise(r => setTimeout(r, 300));
 
 		// If no ports detected yet, wait a bit more
@@ -574,7 +614,7 @@ export class LegoLPF2 {
     this.service = null;
     this.char = null;
 
-    this.setStatus("disconnected", "Disconnected");
+    //this.setStatus("disconnected", "Disconnected"); // already done in deviceManager (_removeDevice)
     document.dispatchEvent(new Event("serial-disconnected"));
     this.log("Disconnected cleanly.");
   }
@@ -1452,294 +1492,229 @@ export class LegoLPF2 {
 		}
 	}
 
-	async waitForMotorCompletion(port) {
-			return new Promise(resolve => {
-					const check = () => {
-							const info = this.portInfo[port];
-							if (!info) return resolve(); // port disappeared
+	async waitForMotorCompletion(port, timeoutMs = 30000) {
+		return new Promise((resolve, reject) => {
+			const start = performance.now();
 
-							// Completion = bit 0x02
-							if (info.cmdFbkSts & 0x02) {
-									info.cmdFbkSts = 0; // reset
-									resolve();
-									return;
-							}
+			const check = () => {
+				const info = this.portInfo[port];
+				if (!info) {
+					// Port disappeared → resolve silently
+					return resolve();
+				}
 
-							requestAnimationFrame(check);
-					};
-					check();
-			});
+				const sts = info.cmdFbkSts | 0;
+
+				// 0x04 = discarded, 0x10 = busy/full → treat as error
+				if (sts & 0x04) {
+					info.cmdFbkSts = 0;
+					return reject(new Error(`Motor command on port ${port} was discarded (0x04)`));
+				}
+				if (sts & 0x10) {
+					info.cmdFbkSts = 0;
+					return reject(new Error(`Motor command on port ${port} rejected (busy/full, 0x10)`));
+				}
+
+				// 0x02 = command completed
+				if (sts & 0x02) {
+					info.cmdFbkSts = 0;
+					return resolve();
+				}
+
+				// Timeout
+				if (performance.now() - start > timeoutMs) {
+					return reject(new Error(`Motor command on port ${port} timed out`));
+				}
+
+				requestAnimationFrame(check);
+			};
+
+			check();
+		});
 	}
+
+	async _sendMotorCommand(port, payload, { waitFbk = false, timeoutMs = 5000 } = {}) {
+		if (!this.char) throw new Error("LPF2 not connected");
+
+		port = this._resolvePort(port);
+		const hubId = this.hubId || 0x00;
+
+		// If we want feedback, clear previous status
+		if (waitFbk && this.portInfo[port]) {
+			this.portInfo[port].cmdFbkSts = 0;
+		}
+
+		// Build full message: [len][hubId][0x81][port][startup/feedback][...payload]
+		const msg = new Uint8Array(5 + payload.length);
+		msg[0] = msg.length;
+		msg[1] = hubId;
+		msg[2] = MSG_PORT_OUTPUT_COMMAND;
+		msg[3] = port & 0xFF;
+		msg[4] = waitFbk ? 0x11 : 0x10; // Execute Immediately + (optional) Command Feedback Status
+
+		msg.set(payload, 5);
+
+		await this._write(msg);
+
+		if (waitFbk) {
+			await this.waitForMotorCompletion(port, timeoutMs);
+		}
+	}
+
 
 	// ------------------ Motor Commands ----------------
 
 	async motorPower(port, power) {
-		if (!this.char) throw new Error("LPF2 not connected");
+		power = Math.max(-127, Math.min(127, power | 0));
 
-		port = this._resolvePort(port);
-
-		power = Math.max(-127, Math.min(127, power|0));
-		const hubId = this.hubId || 0x00;
-
-		const msg = new Uint8Array([
-			0x08,
-			hubId,
-			MSG_PORT_OUTPUT_COMMAND,
-			port & 0xFF,
-			0x11,					// 00010001b = Execute Immediately, Command Feedback Status		
+		const payload = new Uint8Array([
 			SUBCMD_START_POWER,
 			power & 0xFF,
 			0x00 // profile
 		]);
 
-		await this._write(msg);
+		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
 
 	async motorSpeed(port, speed, maxPower = 100, useProfile = 0x00) {
-			if (!this.char) throw new Error("LPF3 not connected");
+		speed = Math.max(-100, Math.min(100, speed | 0));
+		maxPower = Math.max(0, Math.min(100, maxPower | 0));
 
-			port = this._resolvePort(port);
+		const payload = new Uint8Array([
+			SUBCMD_START_SPEED,
+			speed & 0xFF,
+			maxPower & 0xFF,
+			useProfile & 0xFF
+		]);
 
-			const hubId = this.hubId || 0x00;
-
-			// LPF3: speed is signed Int8, -100..100
-			speed = Math.max(-100, Math.min(100, speed|0));
-
-			const msg = new Uint8Array([
-					0x09,          // length = 9 bytes
-					hubId,
-					MSG_PORT_OUTPUT_COMMAND,
-					port & 0xFF,
-					0x11,			// 00010001b = Execute Immediately, Command Feedback Status
-					SUBCMD_START_SPEED,   // 0x07
-					speed & 0xFF,         // signed
-					maxPower & 0xFF,
-					useProfile & 0xFF
-			]);
-
-			await this._write(msg);
+		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
 
 	async motorAngle(port, angle, speed, endState = 0x00, useProfile = 0x00, waitFbk = true) {
-			if (!this.char) throw new Error("LPF3 not connected");
+		const a = angle | 0;
+		speed = Math.max(-100, Math.min(100, speed | 0));
 
-			port = this._resolvePort(port);
+		const payload = new Uint8Array([
+			SUBCMD_START_SPEED_FOR_DEGREES,
 
-			const hubId = this.hubId || 0x00;
+			// Degrees (Int32 LE)
+			a & 0xFF,
+			(a >> 8) & 0xFF,
+			(a >> 16) & 0xFF,
+			(a >> 24) & 0xFF,
 
-			const a = angle | 0;
+			speed & 0xFF,   // signed speed
+			100,            // MaxPower
+			endState & 0xFF,
+			useProfile & 0xFF
+		]);
 
-			// LPF3: speed is signed Int8, -100..100
-			speed = Math.max(-100, Math.min(100, speed|0));
-
-			if (waitFbk && this.portInfo[port]) {
-					this.portInfo[port].cmdComplete = false;
-			}
-
-			const msg = new Uint8Array([
-					0x0E,          // length = 14 bytes
-					hubId,
-					0x81,          // Port Output Command
-					port & 0xFF,
-					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
-					0x0B,          // SUBCMD_START_SPEED_FOR_DEGREES
-
-					// Degrees (Int32 LE)
-					a & 0xFF,
-					(a >> 8) & 0xFF,
-					(a >> 16) & 0xFF,
-					(a >> 24) & 0xFF,
-
-					speed & 0xFF,      // signed speed
-					100,               // MaxPower
-					endState & 0xFF,   // 0=float, 126=hold, 127=brake
-					useProfile & 0xFF  // 0=no, 1=yes
-			]);
-
-			await this._write(msg);
-
-			if (waitFbk) {
-					await this.waitForMotorCompletion(port);
-			}
-
+		await this._sendMotorCommand(port, payload, { waitFbk });
 	}
 
 	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00, waitFbk = true) {
-			if (!this.char) throw new Error("LPF3 not connected");
+		// LPF3 spec: Speed must be 1..100
+		if (speed <= 0) {
+			return this.motorStop(port, endState === 0x7F);
+		}
+		if (speed > 100) speed = 100;
 
-			port = this._resolvePort(port);
-			
-			const hubId = this.hubId || 0x00;
+		const p = position | 0;
 
-			// LPF3 spec: Speed must be 1..100
-			if (speed <= 0) {
-					// Speed 0 means STOP
-					return this.motorStop(port, endState === 0x7F);
-			}
-			if (speed > 100) speed = 100;
+		const payload = new Uint8Array([
+			SUBCMD_GOTO_ABS_POS,
 
-			// Ensure 32-bit signed integer
-			const p = position | 0;
+			// AbsPos (Int32 LE)
+			p & 0xFF,
+			(p >> 8) & 0xFF,
+			(p >> 16) & 0xFF,
+			(p >> 24) & 0xFF,
 
-			if (waitFbk && this.portInfo[port]) {
-					this.portInfo[port].cmdComplete = false;
-			}
+			speed & 0xFF,   // Speed (1..100)
+			100,            // MaxPower
+			endState & 0xFF,
+			useProfile & 0xFF
+		]);
 
-			const msg = new Uint8Array([
-					0x0E,          // length = 14 bytes
-					hubId,
-					0x81,          // Port Output Command
-					port & 0xFF,
-					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
-					0x0D,          // SUBCMD_GOTO_ABSOLUTE_POSITION
-
-					// AbsPos (Int32 LE)
-					p & 0xFF,
-					(p >> 8) & 0xFF,
-					(p >> 16) & 0xFF,
-					(p >> 24) & 0xFF,
-
-					speed & 0xFF,      // Speed (1..100)
-					100,               // MaxPower
-					endState & 0xFF,   // EndState
-					useProfile & 0xFF  // UseProfile
-			]);
-
-			await this._write(msg);
-
-			if (waitFbk) {
-					await this.waitForMotorCompletion(port);
-			}
-
+		await this._sendMotorCommand(port, payload, { waitFbk });
 	}
 
 	async resetPosition(port, newPos = 0) {
-			if (!this.char) throw new Error("LPF3 not connected");
+		const p = newPos | 0;
 
-			port = this._resolvePort(port);
+		const payload = new Uint8Array([
+			0x51,  // WriteDirectModeData
+			0x02,  // Mode 2 = POS (relative position)
 
-			const hubId = this.hubId || 0x00;
+			p & 0xFF,
+			(p >> 8) & 0xFF,
+			(p >> 16) & 0xFF,
+			(p >> 24) & 0xFF
+		]);
 
-			// LPF3: position is Int32 signed
-			const p = newPos | 0;
-
-			const msg = new Uint8Array([
-					0x0B,          // length = 11 bytes
-					hubId,
-					0x81,          // Port Output Command
-					port & 0xFF,
-					0x11,          // 00010001b = Execute Immediately, Command Feedback Status
-					0x51,          // WriteDirectModeData
-					0x02,          // Mode 2 = POS (relative position)
-
-					// Int32 LE
-					p & 0xFF,
-					(p >> 8) & 0xFF,
-					(p >> 16) & 0xFF,
-					(p >> 24) & 0xFF
-			]);
-
-			await this._write(msg);
+		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
 	
 	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00, waitFbk = true) {
-			if (!this.char) throw new Error("LPF3 not connected");
+		const t = ms | 0;
+		speed = Math.max(-100, Math.min(100, speed | 0));
 
-			port = this._resolvePort(port);
+		const payload = new Uint8Array([
+			SUBCMD_START_SPEED_FOR_TIME,
 
-			const hubId = this.hubId || 0x00;
+			// Time (Int16 LE, ms)
+			t & 0xFF,
+			(t >> 8) & 0xFF,
 
-			speed = Math.max(-100, Math.min(100, speed));
+			speed & 0xFF,   // Speed (signed)
+			100,            // MaxPower
+			endState & 0xFF,
+			useProfile & 0xFF
+		]);
 
-			const t = ms | 0; // ensure integer
-
-			if (waitFbk && this.portInfo[port]) {
-					this.portInfo[port].cmdComplete = false;
-			}
-
-			const msg = new Uint8Array([
-					0x0C,          // length = 12 bytes
-					hubId,
-					0x81,          // Port Output Command
-					port & 0xFF,
-					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
-					0x09,          // SUBCMD_START_SPEED_FOR_TIME
-
-					t & 0xFF,          // Time LSB
-					(t >> 8) & 0xFF,    // Time MSB
-
-					speed & 0xFF,       // Speed (signed)
-					100,                // MaxPower
-					endState & 0xFF,    // EndState
-					useProfile & 0xFF   // UseProfile
-			]);
-
-			await this._write(msg);
-
-			if (waitFbk) {
-					await this.waitForMotorCompletion(port);
-			}
-			
+		await this._sendMotorCommand(port, payload, { waitFbk });
 	}
 
 	async motorStop(port, brake = 0) {
+		const value = brake ? 0x7F : 0x00;
 
-			port = this._resolvePort(port);
+		const payload = new Uint8Array([
+			0x51,  // WriteDirectModeData
+			0x00,  // Mode 0 = speed
+			value  // 0 = float, 127 = brake
+		]);
 
-			const hubId = this.hubId || 0x00;
-
-			const value = brake ? 0x7F : 0x00;
-
-			const msg = new Uint8Array([
-					0x08,
-					hubId,
-					0x81,
-					port,
-					0x11,					// 00010001b = Execute Immediately, Command Feedback Status
-					0x51,   // WriteDirectModeData
-					0x00,   // Mode 0 = speed
-					value   // 0 = float, 127 = brake
-			]);
-
-			await this._write(msg);
+		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
 
 	stopAllMotors() {
-			const hubId = this.hubId || 0x00;
+		const hubId = this.hubId || 0x00;
 
-			for (const key of Object.keys(this.userPortMap)) {
-					const port = this.userPortMap[key];
+		for (const key of Object.keys(this.userPortMap)) {
+			const port = this.userPortMap[key];
+			if (port == null) continue;
 
-					// Skip invalid or undefined ports
-					if (port == null) continue;
+			const info = this.portInfo[port];
+			if (!info) continue;
 
-					// Skip ports without portInfo
-					const info = this.portInfo[port];
-					if (!info) continue;
-
-					// Only stop motors
-					if (info.type !== "motorSimple" &&
-							info.type !== "motorTacho" &&
-							info.type !== "rgb" &&
-							info.type !== "sound" &&
-							info.type !== "light") {
-							continue;
-					}
-
-					// Build the LPF2 Stop command (float)
-					const msg = new Uint8Array([
-							0x08,
-							hubId,
-							0x81,
-							port,
-							0x11,
-							0x51,   // WriteDirectModeData
-							0x00,   // Mode 0 = speed
-							0x00    // Power = 0 (float)
-					]);
-
-					this._write(msg);
+			// Only stop motors / lights / sound if you want
+			if (info.type !== "motorSimple" &&
+					info.type !== "motorTacho" &&
+					info.type !== "rgb" &&
+					info.type !== "sound" &&
+					info.type !== "light") {
+				continue;
 			}
+
+			const payload = new Uint8Array([
+				0x51,  // WriteDirectModeData
+				0x00,  // Mode 0 = speed
+				0x00   // float
+			]);
+
+			// Fire-and-forget, no await
+			this._sendMotorCommand(port, payload, { waitFbk: false });
+		}
 	}
 
 
