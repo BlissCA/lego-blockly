@@ -48,13 +48,13 @@ export class LegoLPF2 {
 		this.userPortMap = {}; // user-friendly port names (A/B/C/D) mapped to port IDs
 
 		this.motorCaps = {
-			power: true,
-			speed: false,
-			angle: false,
-			goto: false,
-			time: false,
-			combined: false
-		};
+		power: true,
+		speed: false,
+		angle: false,
+		goto: false,
+		time: false,
+		combined: false
+	};
 
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
@@ -751,6 +751,7 @@ export class LegoLPF2 {
       delete this.lastInputState[portId];
       delete this.countOn[portId];
       delete this.rot[portId];
+			delete 	this.activeMode[portId];
     }
 
 		// Detect virtual ports (Technic, Spike, Powered Up)
