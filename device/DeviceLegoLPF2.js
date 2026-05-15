@@ -83,6 +83,7 @@ export class LegoLPF2 {
 		this.ready = false;
 		this._readyResolve = null;
 		this.readyPromise = new Promise(res => (this._readyResolve = res));
+		this._readyTrackingActive = false;
 
   }
 
@@ -114,8 +115,7 @@ export class LegoLPF2 {
 				this.log("Queue command error: " + (err?.message || err));
 			})
 			.finally(() => {
-				// If queue is empty, signal readiness
-				if (this._queueIsEmpty()) {
+				if (this._readyTrackingActive && this._queueIsEmpty()) {
 					this._onQueueEmpty();
 				}
 			});
@@ -213,17 +213,14 @@ export class LegoLPF2 {
 		// Hub type detection 
 		await this._waitForHubType();
 
-		// LPF2 initialization
-		await this._initializeLPF2();
-
 		// Allocate name
 		if (!this.name) {
 			this.name = this.manager._allocateName(this.namePrefix);
 		}
 
-		this.log(`Connected as ${this.name}`);
-		this.setStatus("connected", "Connected");
-		document.dispatchEvent(new Event("serial-connected"));
+		// LPF2 initialization
+		await this._initializeLPF2();
+
 	}
 
 	
@@ -239,7 +236,7 @@ export class LegoLPF2 {
 		// WeDo 2.0 is slower, so we wait a bit.
 
 		this.ready = false;
-		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
+		this._readyTrackingActive = false;   // ensure off
 
 		await new Promise(r => setTimeout(r, 300));
 
@@ -255,9 +252,16 @@ export class LegoLPF2 {
 		this.log("Motor caps: " + JSON.stringify(this.motorCaps));
 
 
+		this.log(`Connected as ${this.name}`);
+		this.setStatus("connected", "Connected");
+		document.dispatchEvent(new Event("serial-connected"));
+		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
+
 		// ------------------------------------------------------------
 		// STEP 2 — Request Mode Information for each port (LPF3-correct)
 		// ------------------------------------------------------------
+		this._readyTrackingActive = true;
+		
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
 
