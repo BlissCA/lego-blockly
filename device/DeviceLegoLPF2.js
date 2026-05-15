@@ -1184,7 +1184,7 @@ export class LegoLPF2 {
 	async getDistance(portName) {
 			const port = this._resolvePort(portName);
 
-			const mode = this._findMode(port, ["dist", "range"]);
+			const mode = this._findMode(port, ["prox", "distance", "dist", "range"]);
 			await this._ensureMode(port, mode);
 
 			return this.portValues[port] ?? 0;
@@ -1193,7 +1193,7 @@ export class LegoLPF2 {
 	async getColor(portName) {
 			const port = this._resolvePort(portName);
 
-			const mode = this._findMode(port, ["color", "col"]);
+			const mode = this._findMode(port, ["color"]);
 			await this._ensureMode(port, mode);
 
 			return this.portValues[port] ?? 0;
@@ -1202,7 +1202,7 @@ export class LegoLPF2 {
 	async getTilt(portName) {
 			const port = this._resolvePort(portName);
 
-			const mode = this._findMode(port, ["tilt", "orient", "angle"]);
+			const mode = this._findMode(port, ["tilt", "angle","lpf2-angle"]);
 			await this._ensureMode(port, mode);
 
 			return this.portValues[port] ?? [0,0];
