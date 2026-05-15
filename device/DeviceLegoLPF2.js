@@ -83,7 +83,9 @@ export class LegoLPF2 {
 		this.ready = false;
 		this._readyResolve = null;
 		this.readyPromise = new Promise(res => (this._readyResolve = res));
+
 		this._readyTrackingActive = false;
+		this._pendingModeInfo = 0;
 
   }
 
@@ -114,37 +116,8 @@ export class LegoLPF2 {
 			.catch(err => {
 				this.log("Queue command error: " + (err?.message || err));
 			})
-			.finally(() => {
-				if (this._readyTrackingActive && this._queueIsEmpty()) {
-					this._onQueueEmpty();
-				}
-			});
 
 		return this.commandQueue;
-	}
-
-	_queueIsEmpty() {
-		// The queue is empty when the last promise has resolved
-		// and no new commands have been enqueued.
-		return this.commandQueue && this.commandQueue instanceof Promise;
-	}
-
-	_onQueueEmpty() {
-		if (!this.ready) {
-			this.ready = true;
-
-			window.logStatus?.(`${this.name}: Device is ready.`);
-
-			if (this._readyResolve) {
-				this._readyResolve();
-				this._readyResolve = null;
-			}
-
-			// NEW: broadcast a real "ready" event
-			document.dispatchEvent(new CustomEvent("serial-ready", {
-				detail: { device: this }
-			}));
-		}
 	}
 
   async _write(bytes) {
@@ -154,7 +127,26 @@ export class LegoLPF2 {
     });
   }
 
-  // ---------------- Connect ----------------
+	_onReady() {
+		if (this.ready) return;
+
+		this.ready = true;
+		this._readyTrackingActive = false;
+
+		window.logStatus?.(`${this.name}: Device is ready.`);
+
+		if (this._readyResolve) {
+			this._readyResolve();
+			this._readyResolve = null;
+		}
+
+		document.dispatchEvent(new CustomEvent("serial-ready", {
+			detail: { device: this }
+		}));
+	}
+
+
+	// ---------------- Connect ----------------
 
 	async connect() {
 		this.setStatus("connecting", "Requesting LPF2 hub...");
@@ -200,7 +192,9 @@ export class LegoLPF2 {
 		this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
 
 		this.ready = false;
-		this._readyTrackingActive = false;   // ensure off
+		this._readyTrackingActive = false;
+		this._pendingModeInfo = 0;
+		this.readyPromise = new Promise(res => (this._readyResolve = res));
 
 		// Request hub type (LPF2 Hub Property 0x06)
 		await this._write(new Uint8Array([
@@ -228,9 +222,8 @@ export class LegoLPF2 {
 		this.setStatus("connected", "Connected");
 		document.dispatchEvent(new Event("serial-connected"));
 
+		await new Promise(r => setTimeout(r, 20));
 		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
-
-		this._readyTrackingActive = true;
 
 	}
 
@@ -239,6 +232,9 @@ export class LegoLPF2 {
 
 	async _initializeLPF2() {
 		this.log("Initializing LPF2 hub...");
+
+    this._pendingModeInfo = 0;
+    this._readyTrackingActive = false;   // OFF for now
 
 		// ------------------------------------------------------------
 		// STEP 1 — Wait for initial Hub Attached I/O messages
@@ -403,6 +399,8 @@ export class LegoLPF2 {
 		const infoTypes = [0x00, 0x01, 0x02, 0x03, 0x04, 0x80];
 
 		for (const infoType of infoTypes) {
+			this._pendingModeInfo++;
+
 			const msg = new Uint8Array([
 				0x06,      // length
 				hubId,     // hub ID
@@ -455,6 +453,13 @@ export class LegoLPF2 {
 							m.valueFormat = this._parseValueFormat(payload);
 							break;
 			}
+
+			this._pendingModeInfo--;
+
+			if (this._readyTrackingActive && this._pendingModeInfo === 0) {
+					this._onReady();
+			}
+
 	}
 
 	_parseRange(payload) {
