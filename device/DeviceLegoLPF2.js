@@ -693,6 +693,24 @@ export class LegoLPF2 {
 				}
         this._handlePortValueCombined(msg);
         break;
+
+				case 0x82: {
+						// Minimum length = 5
+						const count = (msg.length - 3) / 2;
+
+						for (let i = 0; i < count; i++) {
+								const port = msg[3 + i*2];
+								const status = msg[4 + i*2];
+
+								const info = this.portInfo[port];
+								if (!info) continue;
+
+								// Save the full bitfield
+								info.cmdFbkSts = status;
+						}
+						break;
+				}
+
       default:
 				if (LPF2_DEBUG.traffic) {
 					console.log("[LPF2] → Unknown message type");
@@ -924,6 +942,7 @@ export class LegoLPF2 {
 			}
 
 			this.portInfo[portId] = { ioType, type };
+			this.portInfo[portId].cmdFbkSts = 0; // for motors, tracks whether command feedback
 	}
 
 	_handlePortValueSingle(msg) {
@@ -1433,6 +1452,24 @@ export class LegoLPF2 {
 		}
 	}
 
+	async waitForMotorCompletion(port) {
+			return new Promise(resolve => {
+					const check = () => {
+							const info = this.portInfo[port];
+							if (!info) return resolve(); // port disappeared
+
+							// Completion = bit 0x02
+							if (info.cmdFbkSts & 0x02) {
+									info.cmdFbkSts = 0; // reset
+									resolve();
+									return;
+							}
+
+							requestAnimationFrame(check);
+					};
+					check();
+			});
+	}
 
 	// ------------------ Motor Commands ----------------
 
@@ -1449,7 +1486,7 @@ export class LegoLPF2 {
 			hubId,
 			MSG_PORT_OUTPUT_COMMAND,
 			port & 0xFF,
-			0x11,
+			0x11,					// 00010001b = Execute Immediately, Command Feedback Status		
 			SUBCMD_START_POWER,
 			power & 0xFF,
 			0x00 // profile
@@ -1473,7 +1510,7 @@ export class LegoLPF2 {
 					hubId,
 					MSG_PORT_OUTPUT_COMMAND,
 					port & 0xFF,
-					0x11,
+					0x11,			// 00010001b = Execute Immediately, Command Feedback Status
 					SUBCMD_START_SPEED,   // 0x07
 					speed & 0xFF,         // signed
 					maxPower & 0xFF,
@@ -1483,7 +1520,7 @@ export class LegoLPF2 {
 			await this._write(msg);
 	}
 
-	async motorAngle(port, angle, speed, endState = 0x00, useProfile = 0x00) {
+	async motorAngle(port, angle, speed, endState = 0x00, useProfile = 0x00, waitFbk = true) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
 			port = this._resolvePort(port);
@@ -1495,12 +1532,16 @@ export class LegoLPF2 {
 			// LPF3: speed is signed Int8, -100..100
 			speed = Math.max(-100, Math.min(100, speed|0));
 
+			if (waitFbk && this.portInfo[port]) {
+					this.portInfo[port].cmdComplete = false;
+			}
+
 			const msg = new Uint8Array([
 					0x0E,          // length = 14 bytes
 					hubId,
 					0x81,          // Port Output Command
 					port & 0xFF,
-					0x11,          // StartPower/Speed/Position command
+					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
 					0x0B,          // SUBCMD_START_SPEED_FOR_DEGREES
 
 					// Degrees (Int32 LE)
@@ -1516,9 +1557,14 @@ export class LegoLPF2 {
 			]);
 
 			await this._write(msg);
+
+			if (waitFbk) {
+					await this.waitForMotorCompletion(port);
+			}
+
 	}
 
-	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00) {
+	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00, waitFbk = true) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
 			port = this._resolvePort(port);
@@ -1535,12 +1581,16 @@ export class LegoLPF2 {
 			// Ensure 32-bit signed integer
 			const p = position | 0;
 
+			if (waitFbk && this.portInfo[port]) {
+					this.portInfo[port].cmdComplete = false;
+			}
+
 			const msg = new Uint8Array([
 					0x0E,          // length = 14 bytes
 					hubId,
 					0x81,          // Port Output Command
 					port & 0xFF,
-					0x11,          // StartPower/Speed/Position command
+					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
 					0x0D,          // SUBCMD_GOTO_ABSOLUTE_POSITION
 
 					// AbsPos (Int32 LE)
@@ -1556,6 +1606,11 @@ export class LegoLPF2 {
 			]);
 
 			await this._write(msg);
+
+			if (waitFbk) {
+					await this.waitForMotorCompletion(port);
+			}
+
 	}
 
 	async resetPosition(port, newPos = 0) {
@@ -1573,7 +1628,7 @@ export class LegoLPF2 {
 					hubId,
 					0x81,          // Port Output Command
 					port & 0xFF,
-					0x11,          // StartPower/Speed/Position command
+					0x11,          // 00010001b = Execute Immediately, Command Feedback Status
 					0x51,          // WriteDirectModeData
 					0x02,          // Mode 2 = POS (relative position)
 
@@ -1587,7 +1642,7 @@ export class LegoLPF2 {
 			await this._write(msg);
 	}
 	
-	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00) {
+	async motorTime(port, ms, speed, endState = 0x00, useProfile = 0x00, waitFbk = true) {
 			if (!this.char) throw new Error("LPF3 not connected");
 
 			port = this._resolvePort(port);
@@ -1598,12 +1653,16 @@ export class LegoLPF2 {
 
 			const t = ms | 0; // ensure integer
 
+			if (waitFbk && this.portInfo[port]) {
+					this.portInfo[port].cmdComplete = false;
+			}
+
 			const msg = new Uint8Array([
 					0x0C,          // length = 12 bytes
 					hubId,
 					0x81,          // Port Output Command
 					port & 0xFF,
-					0x11,          // StartPower/Speed/Position command
+					waitFbk ? 0x11 : 0x10,          // 00010001b = Execute Immediately, Command Feedback Status
 					0x09,          // SUBCMD_START_SPEED_FOR_TIME
 
 					t & 0xFF,          // Time LSB
@@ -1616,6 +1675,11 @@ export class LegoLPF2 {
 			]);
 
 			await this._write(msg);
+
+			if (waitFbk) {
+					await this.waitForMotorCompletion(port);
+			}
+			
 	}
 
 	async motorStop(port, brake = 0) {
@@ -1631,7 +1695,7 @@ export class LegoLPF2 {
 					hubId,
 					0x81,
 					port,
-					0x11,
+					0x11,					// 00010001b = Execute Immediately, Command Feedback Status
 					0x51,   // WriteDirectModeData
 					0x00,   // Mode 0 = speed
 					value   // 0 = float, 127 = brake
