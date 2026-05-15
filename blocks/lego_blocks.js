@@ -2011,7 +2011,40 @@ window.addEventListener("load", () => {
 
   ]);
 
+  // ---------------- LPF2 BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "lpf2_get_distance",
+      "message0": "%1 port %2 Distance",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the Distance approx. 0-10 cm"
+    },
+    {
+      "type": "lpf2_get_color",
+      "message0": "%1 port %2 Color",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 80,
+      "tooltip": "Returns the Color: 0=Black, 3=Blue, 5=Green, 7=Yellow, 9=Red, 10=White"
+    },
     {
       "type": "lpf2_get_rot",
       "message0": "%1 port %2 tacho rel.Pos",

@@ -1402,6 +1402,30 @@ const toolbox = {
                   }
                 }
               }
+            },            
+            {
+              "kind": "block",
+              "type": "lpf2_get_distance",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                }
+              }
+            },            
+            {
+              "kind": "block",
+              "type": "lpf2_get_color",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "lpf2_ports",
+                    "fields": { "LPF2PORTS": "A" }
+                  }
+                }
+              }
             }                
           ]
         },

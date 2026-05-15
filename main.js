@@ -879,11 +879,7 @@ document.getElementById("stopBtn").onclick = async () => {
   NamedTask.stopAll();
   NamedEventTimer.cancelAll();
 
-  if (!window.isProgramRunning) return;
-
-  window.stopRequested = true;
-
-  logStatus("Stopping program...");
+  logStatus("Stopping all Devices...");
 
   for (const dev of window.deviceManager.devices) {
     try {
@@ -912,6 +908,13 @@ document.getElementById("stopBtn").onclick = async () => {
       console.warn("Output stop error:", err);
     }
   }
+
+  if (!window.isProgramRunning) return;
+
+  window.stopRequested = true;
+
+  logStatus("Stopping program...");
+
   // mqttClient.stop();
   logStatus("Program stopped (devices remain connected).");
 

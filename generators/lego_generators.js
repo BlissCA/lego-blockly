@@ -1404,6 +1404,25 @@ javascriptGenerator.forBlock["lpf2_endstate"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["lpf2_get_distance"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getDistance(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["lpf2_get_color"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getColor(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
 
 javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
