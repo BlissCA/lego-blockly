@@ -408,7 +408,7 @@ export class LegoLPF2 {
 					info.outputModesMask = outputMask;
 
 					// Determine max mode index from masks
-					const maxMode = Math.max(
+					let maxMode = Math.max(
 						Math.floor(Math.log2(inputMask || 1)),
 						Math.floor(Math.log2(outputMask || 1))
 					);
