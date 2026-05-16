@@ -412,7 +412,7 @@ export class LegoLPF2 {
 						Math.floor(Math.log2(inputMask || 1)),
 						Math.floor(Math.log2(outputMask || 1))
 					);
-					console.log(`LPF2: msg.lenght>=7 ioType ${ioType} maxMode (${maxMode})`);
+					console.log(`LPF2: msg.lenght>=7 ioType ${info.ioType} maxMode (${maxMode})`);
 				}
 
 				const ioType = info.ioType;
