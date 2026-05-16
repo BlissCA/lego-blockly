@@ -454,7 +454,7 @@ export class LegoLPF2 {
 		this.ready = true;
 		this._readyTrackingActive = false;
 
-		window.logStatus?.(`${this.name}: Device is ready.`);
+		window.logStatus?.(`${this.name}: Check Console log for new Device info.`);
 
 		if (this._readyResolve) {
 			this._readyResolve();
@@ -543,9 +543,6 @@ export class LegoLPF2 {
 		this.setStatus("connected", "Connected");
 		window.logStatus?.(`Connected: ${this.name}`);
 		document.dispatchEvent(new Event("serial-connected"));
-
-		window.logStatus?.(`${this.name}: Get I/O Info...`);
-		window.logStatus?.(`${this.name}: Wait for Ready.`);
 
 	}
 
@@ -1920,7 +1917,7 @@ export class LegoLPF2 {
 				if (window.stopRequested) {
 						return resolve();
 				}
-								
+
 				const info = this.portInfo[port];
 				if (!info) {
 					// Port disappeared → resolve silently
