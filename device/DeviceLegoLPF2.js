@@ -143,6 +143,9 @@ export class LegoLPF2 {
 		this._readyTrackingActive = false;
 		this._pendingModeInfo = 0;
 
+		this._unknownProfiles = {};
+		this._unknownProfilesComplete = {};
+
   }
 
   // ---------------- Status + Logging ----------------
@@ -412,7 +415,7 @@ export class LegoLPF2 {
 						Math.floor(Math.log2(inputMask || 1)),
 						Math.floor(Math.log2(outputMask || 1))
 					);
-					console.log(`LPF2: msg.lenght>=7 ioType ${info.ioType} maxMode (${maxMode})`);
+
 				}
 
 				const ioType = info.ioType;
@@ -535,30 +538,65 @@ export class LegoLPF2 {
 			// If this ioType is unknown, collect mode info for logging
 			const ioType = this.portInfo[port].ioType;
 
-			if (!LPF2_DEVICE_PROFILES[ioType]) {
-				if (!this._unknownProfiles) this._unknownProfiles = {};
-				if (!this._unknownProfiles[ioType]) this._unknownProfiles[ioType] = {};
+			// Skip known devices
+			if (LPF2_DEVICE_PROFILES[ioType]) return;
 
-				this._unknownProfiles[ioType][mode] = this.portInfo[port].modes[mode];
+			// Create entry if needed
+			if (!this._unknownProfiles[ioType]) {
+				this._unknownProfiles[ioType] = {
+					name: `ioType ${ioType}`,
+					modes: {}
+				};
+			}
 
-				// When all infoTypes for this mode are received, log it
-				const m = this.portInfo[port].modes[mode];
-				if (m.name && m.valueFormat && m.symbol && m.rawRange && m.siRange) {
-					/*
-					console.log(
-						`LPF2: Mode info for unknown ioType ${ioType}, mode ${mode}:`,
-						JSON.stringify(m, null, 2)
-					);
-					*/
-					console.log(
-						`%cLPF2: COMPLETE PROFILE for unknown ioType ${ioType} — copy/paste into LPF2_DEVICE_PROFILES:`,
-						"color: #0f0; font-weight: bold;"
-					);
+			// Copy mode info
+			this._unknownProfiles[ioType].modes[mode] = {
+				name: m.name,
+				symbol: m.symbol,
+				valueFormat: m.valueFormat,
+				rawRange: m.rawRange,
+				percentRange: m.percentRange,
+				siRange: m.siRange
+			};
 
-					console.log(
-						_formatProfileForDictionary(ioType, this._unknownProfiles[ioType])
-					);					
-				}
+			// Check if mode info is complete
+			const modeInfo = this._unknownProfiles[ioType].modes[mode];
+			const complete =
+				modeInfo.name &&
+				modeInfo.symbol &&
+				modeInfo.valueFormat &&
+				modeInfo.rawRange &&
+				modeInfo.percentRange &&
+				modeInfo.siRange;
+
+			// If complete, log it
+			if (complete) {
+				console.log(
+					`%cLPF2: Mode ${mode} for unknown ioType ${ioType}:`,
+					"color: #0af; font-weight: bold;"
+				);
+				console.log(JSON.stringify(modeInfo, null, 2));
+			}
+
+			// ------------------------------
+			// If ALL modes are complete → print full dictionary entry
+			// ------------------------------
+			const allModes = this._unknownProfiles[ioType].modes;
+			const allComplete = Object.values(allModes).every(m =>
+				m.name && m.symbol && m.valueFormat && m.rawRange && m.percentRange && m.siRange
+			);
+
+			if (allComplete && !this._unknownProfilesComplete[ioType]) {
+				this._unknownProfilesComplete[ioType] = true;
+
+				console.log(
+					`%cLPF2: COMPLETE PROFILE for unknown ioType ${ioType} — copy/paste into LPF2_DEVICE_PROFILES:`,
+					"color: #0f0; font-weight: bold;"
+				);
+
+				console.log(
+					_formatProfileForDictionary(ioType, this._unknownProfiles[ioType])
+				);
 			}
 
 	}
