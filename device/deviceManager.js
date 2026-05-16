@@ -129,9 +129,11 @@ export class DeviceManager {
   // Device List Management
   // -------------------------
 
-  _addDevice(dev) {
+  _addDevice(dev, isLogSts = true) {
     this.devices.push(dev);
-    window.logStatus?.(`Connected: ${dev.name}`);
+    if (isLogSts) {
+      window.logStatus?.(`Connected: ${dev.name}`);
+    }
     window.renderDeviceEntry?.(dev);
     window.refreshDevicesPanel?.();
     // Activate wake lock when a device connects
@@ -310,7 +312,7 @@ export class DeviceManager {
 
     try {
       await dev.connect();
-      this._addDevice(dev);
+      this._addDevice(dev, false); // Don't log status here, LPF2 logs its own status
       return dev;
 
     } catch (err) {

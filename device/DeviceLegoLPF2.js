@@ -220,10 +220,10 @@ export class LegoLPF2 {
 
 		this.log(`Connected as ${this.name}`);
 		this.setStatus("connected", "Connected");
+		window.logStatus?.(`Connected: ${this.name}`);
 		document.dispatchEvent(new Event("serial-connected"));
 
-		await new Promise(r => setTimeout(r, 100));
-		window.logStatus?.(`${this.name}: Getting attached I/O Information...`);
+		window.logStatus?.(`${this.name}: Getting attached I/O Information.  Wait for Ready status before running programs.`);
 
 	}
 
@@ -260,7 +260,7 @@ export class LegoLPF2 {
 		// STEP 2 — Request Mode Information for each port (LPF3-correct)
 		// ------------------------------------------------------------
 		this._readyTrackingActive = true;
-		
+
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
 
