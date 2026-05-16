@@ -1916,6 +1916,11 @@ export class LegoLPF2 {
 			const start = performance.now();
 
 			const check = () => {
+				// ⭐ STOP button pressed → abort wait immediately
+				if (window.stopRequested) {
+						return resolve();
+				}
+								
 				const info = this.portInfo[port];
 				if (!info) {
 					// Port disappeared → resolve silently
