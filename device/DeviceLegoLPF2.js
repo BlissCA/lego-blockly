@@ -18,7 +18,7 @@ const BRAKE_HOLD  = 0x7E;
 
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
-  traffic: false,  // logs for every notification/frame/message
+  traffic: true,  // logs for every notification/frame/message
 };
 
 export class LegoLPF2 {
@@ -223,7 +223,8 @@ export class LegoLPF2 {
 		window.logStatus?.(`Connected: ${this.name}`);
 		document.dispatchEvent(new Event("serial-connected"));
 
-		window.logStatus?.(`${this.name}: Getting attached I/O Information.  Wait for Ready status before running programs.`);
+		window.logStatus?.(`${this.name}: Get I/O Info...`);
+		window.logStatus?.(`${this.name}: Wait for Ready.`);
 
 	}
 
