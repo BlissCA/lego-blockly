@@ -73,7 +73,147 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1011613696, 1135869952]
       }
     }
-  }
+  },
+  37: {
+    name: "ioType 37",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "COLOR",
+        symbol: "IDX",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      1: {
+        name: "PROX",
+        symbol: "DIS",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      2: {
+        name: "COUNT",
+        symbol: "CNT",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      3: {
+        name: "REFLT",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      4: {
+        name: "AMBI",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      5: {
+        name: "COL O",
+        symbol: "IDX",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      6: {
+        name: "RGB I",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int16","figures":5,"decimals":0},
+        rawRange: [0,1149222912],
+        percentRange: [0,1120403456],
+        siRange: [0,1149222912]
+      }
+    }		
+  },
+  40: {
+    name: "ioType 40",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "ANGLE",
+        symbol: "DEG",
+        valueFormat: {"count":2,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-1028390912,1119092736],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1028390912,1119092736]
+      },
+      1: {
+        name: "TILT",
+        symbol: "DIR",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      2: {
+        name: "ORINT",
+        symbol: "DIR",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1084227584],
+        percentRange: [0,1120403456],
+        siRange: [0,1084227584]
+      },
+      3: {
+        name: "IMPCT",
+        symbol: "IMP",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      4: {
+        name: "ACCEL",
+        symbol: "ACC",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-1031667712,1115815936],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1031667712,1115815936]
+      }
+    }
+  },
+  21: {
+    name: "ioType 21",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "CUR L",
+        symbol: "mA",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1166012416],
+        percentRange: [0,1120403456],
+        siRange: [0,1159249920]
+      }
+    }
+  },
+  20: {
+    name: "ioType 20",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "VLT L",
+        symbol: "mV",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1165185024],
+        percentRange: [0,1120403456],
+        siRange: [0,1175846912]
+      }
+    }
+  }		
 };
 
 
