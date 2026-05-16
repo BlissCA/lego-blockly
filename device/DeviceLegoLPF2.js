@@ -228,6 +228,113 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1036779520,1110704128]
       }
     }
+  },
+  35: {
+    name: "ioType 35",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "LPF2-DETECT",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      }
+    }
+  },
+  23: {
+    name: "ioType 23",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "COL O",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      }
+    }
+  },
+  66: {
+    name: "ioType 66",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "TRIGGER",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      1: {
+        name: "CANVAS",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      2: {
+        name: "VAR",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int32","figures":1,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      }
+    }
+  },
+  1: {
+    name: "ioType 1",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "LPF2-MMOTOR",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      }
+    }
+  },
+  38: {
+    name: "ioType 38",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int32","figures":6,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      }
+    }
   }	
 };
 
