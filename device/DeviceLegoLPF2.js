@@ -21,6 +21,43 @@ const LPF2_DEBUG = {
   traffic: false,  // logs for every notification/frame/message
 };
 
+// ------------------------------------------------------------
+// LPF2 Device Profiles (cached mode info for known ioTypes)
+// ------------------------------------------------------------
+export const LPF2_DEVICE_PROFILES = {
+  39: {
+    name: "Boost Internal Motor",
+    defaultMode: 2,
+    modes: {
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: { count: 1, type: "Int8", figures: 1, decimals: 0 },
+        rawRange: [-1027080192, 1120403456],
+        percentRange: [-1027080192, 1120403456],
+        siRange: [-1027080192, 1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: { count: 1, type: "Int8", figures: 4, decimals: 0 },
+        rawRange: [-1027080192, 1120403456],
+        percentRange: [-1027080192, 1120403456],
+        siRange: [-1027080192, 1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: { count: 1, type: "Int32", figures: 4, decimals: 0 },
+        rawRange: [-1011613696, 1135869952],
+        percentRange: [-1027080192, 1120403456],
+        siRange: [-1011613696, 1135869952]
+      }
+    }
+  }
+};
+
+
 export class LegoLPF2 {
   constructor(name, manager) {
     this.name = name || null;
@@ -332,38 +369,51 @@ export class LegoLPF2 {
 		const infoType = msg[4];
 
 		const info = this.portInfo[port];
+		let maxMode = 0;
+		
 		if (!info) return;
 		
 		switch (infoType) {
 
 			// 0x02 — Possible Modes (input/output bitmasks)
 			case 0x02: {
-				// Some hubs send only input or only output; guard on length
-				if (msg.length < 7) {
-					if (LPF2_DEBUG.traffic) {
-						console.log("[LPF2] short 0x43/0x02 message, might be WeDo 2.0 sensor", msg);
-					}
-					info.modes = {};
-					this._requestModeInfo(port, 0);
+				
+				if (msg.length >= 7) {
+					const inputMask  = msg[5] | (msg[6] << 8);
+					const outputMask = (msg.length >= 9)
+						? (msg[7] | (msg[8] << 8))
+						: 0;
+
+					info.inputModesMask  = inputMask;
+					info.outputModesMask = outputMask;
+
+					// Determine max mode index from masks
+					const maxMode = Math.max(
+						Math.floor(Math.log2(inputMask || 1)),
+						Math.floor(Math.log2(outputMask || 1))
+					);
+
+				}
+
+				const ioType = info.ioType;
+
+				// ⭐ If we have a profile → load it and skip 0x22 requests
+				if (LPF2_DEVICE_PROFILES[ioType]) {
+					const profile = LPF2_DEVICE_PROFILES[ioType];
+					info.modes = profile.modes;
+					info.defaultMode = profile.defaultMode;
+
+					console.log(`LPF2: Loaded cached profile for ioType ${ioType} (${profile.name})`);
 					return;
 				}
 
-				const inputMask  = msg[5] | (msg[6] << 8);
-				const outputMask = (msg.length >= 9)
-					? (msg[7] | (msg[8] << 8))
-					: 0;
-
-				info.inputModesMask  = inputMask;
-				info.outputModesMask = outputMask;
-
-				// Determine max mode index from masks
-				const maxMode = Math.max(
-					Math.floor(Math.log2(inputMask || 1)),
-					Math.floor(Math.log2(outputMask || 1))
+        // ⭐ Unknown device → request mode info for all modes				
+				info.modes = {};
+				
+				console.warn(
+					`LPF2: Unknown ioType ${ioType}. Requesting mode info for ${maxMode + 1} modes.`
 				);
 
-				// Initialize mode table
-				info.modes = {};
 				for (let mode = 0; mode <= maxMode; mode++) {
 					// For each mode, request detailed Mode Information via 0x22
 					this._requestModeInfo(port, mode);
@@ -460,6 +510,25 @@ export class LegoLPF2 {
 
 			if (this._readyTrackingActive && this._pendingModeInfo === 0) {
 					this._onReady();
+			}
+
+			// If this ioType is unknown, collect mode info for logging
+			const ioType = this.portInfo[port].ioType;
+
+			if (!LPF2_DEVICE_PROFILES[ioType]) {
+				if (!this._unknownProfiles) this._unknownProfiles = {};
+				if (!this._unknownProfiles[ioType]) this._unknownProfiles[ioType] = {};
+
+				this._unknownProfiles[ioType][mode] = this.portInfo[port].modes[mode];
+
+				// When all infoTypes for this mode are received, log it
+				const m = this.portInfo[port].modes[mode];
+				if (m.name && m.valueFormat && m.symbol && m.rawRange && m.siRange) {
+					console.log(
+						`LPF2: Mode info for unknown ioType ${ioType}, mode ${mode}:`,
+						JSON.stringify(m, null, 2)
+					);
+				}
 			}
 
 	}
@@ -882,6 +951,7 @@ export class LegoLPF2 {
 					case 0x0030: // Technic Medium Angular Motor
 					case 0x0031: // Technic Large Angular Motor
 					case 0x0041: // Small Angular Motor (Spike Essential)
+					case 0x004B: // Spike prime/Robot inventor Medium Motor
 							type = "motorTacho";
 							break;
 
