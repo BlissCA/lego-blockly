@@ -213,7 +213,22 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [0,1175846912]
       }
     }
-  }		
+  },
+  34: {
+    name: "ioType 34",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "LPF2-ANGLE",
+        symbol: "DEG",
+        valueFormat: {"count":2,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-1036779520,1110704128],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1036779520,1110704128]
+      }
+    }
+  }	
 };
 
 
@@ -707,12 +722,11 @@ export class LegoLPF2 {
 			const modeInfo = this._unknownProfiles[ioType].modes[mode];
 			const modeComplete =
 				modeInfo.name &&
-				modeInfo.symbol &&
+				(modeInfo.symbol !== undefined) &&   // allow empty string ""
 				modeInfo.valueFormat &&
 				modeInfo.rawRange &&
 				modeInfo.percentRange &&
 				modeInfo.siRange;
-
 			// If not complete, wait for more 0x44 messages
 			if (!modeComplete) return;
 
@@ -721,7 +735,12 @@ export class LegoLPF2 {
 			const allComplete =
 				Object.keys(profile.modes).length === (profile.maxMode + 1) &&
 				Object.values(profile.modes).every(m =>
-					m.name && m.symbol && m.valueFormat && m.rawRange && m.percentRange && m.siRange
+					m.name &&
+					(m.symbol !== undefined) &&   // allow ""
+					m.valueFormat &&
+					m.rawRange &&
+					m.percentRange &&
+					m.siRange
 				);
 
 			// If not all modes complete, wait
