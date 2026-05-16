@@ -21,6 +21,25 @@ const LPF2_DEBUG = {
   traffic: false,  // logs for every notification/frame/message
 };
 
+function _formatProfileForDictionary(ioType, profile) {
+  return `
+  ${ioType}: {
+    name: "${profile.name || "Unknown Device"}",
+    defaultMode: ${profile.defaultMode ?? 0},
+    modes: {
+${Object.entries(profile.modes).map(([mode, m]) => `
+      ${mode}: {
+        name: "${m.name}",
+        symbol: "${m.symbol}",
+        valueFormat: ${JSON.stringify(m.valueFormat)},
+        rawRange: ${JSON.stringify(m.rawRange)},
+        percentRange: ${JSON.stringify(m.percentRange)},
+        siRange: ${JSON.stringify(m.siRange)}
+      }`).join(",")}
+    }
+  }`;
+}
+
 // ------------------------------------------------------------
 // LPF2 Device Profiles (cached mode info for known ioTypes)
 // ------------------------------------------------------------
@@ -299,6 +318,7 @@ export class LegoLPF2 {
 		// ------------------------------------------------------------
 		this._readyTrackingActive = true;
 
+		/* SKIP because Hub sends port info automatically on connect
 		for (const portStr of Object.keys(this.portInfo)) {
 				const port = Number(portStr);
 
@@ -310,7 +330,7 @@ export class LegoLPF2 {
 
 				await new Promise(r => setTimeout(r, 20));
 		}
-
+		*/
 		
 		// ------------------------------------------------------------
 		// STEP 3 — Configure Input Format for each sensor port (safe version)
@@ -524,10 +544,20 @@ export class LegoLPF2 {
 				// When all infoTypes for this mode are received, log it
 				const m = this.portInfo[port].modes[mode];
 				if (m.name && m.valueFormat && m.symbol && m.rawRange && m.siRange) {
+					/*
 					console.log(
 						`LPF2: Mode info for unknown ioType ${ioType}, mode ${mode}:`,
 						JSON.stringify(m, null, 2)
 					);
+					*/
+					console.log(
+						`%cLPF2: COMPLETE PROFILE for unknown ioType ${ioType} — copy/paste into LPF2_DEVICE_PROFILES:`,
+						"color: #0f0; font-weight: bold;"
+					);
+
+					console.log(
+						_formatProfileForDictionary(ioType, this._unknownProfiles[ioType])
+					);					
 				}
 			}
 
