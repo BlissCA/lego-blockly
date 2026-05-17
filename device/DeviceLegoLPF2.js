@@ -335,6 +335,159 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1011613696,1135869952]
       }
     }
+  },
+  60: {
+    name: "ioType 60",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "TEMP",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int16","figures":5,"decimals":1},
+        rawRange: [-1000275968,1147207680],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1028390912,1119092736]
+      }
+    }
+  },
+  57: {
+    name: "ioType 57",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "GRV",
+        symbol: "mG",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-956301312,1191182336],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-973471744,1174011904]
+      }
+    }
+  },
+  58: {
+    name: "ioType 58",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "ROT",
+        symbol: "DPS",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-958449961,1189033687],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-990248960,1157234688]
+      }
+    }
+  },
+  59: {
+    name: "ioType 59",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-1020002304,1127481344],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1020002304,1127481344]
+      }
+    }
+  },
+  54: {
+    name: "ioType 54",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "GEST",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1082130432],
+        percentRange: [0,1120403456],
+        siRange: [0,1082130432]
+      }
+    }
+  },
+  46: {
+    name: "ioType 46",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      },
+      3: {
+        name: "APOS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      }
+    }
+  },
+  47: {
+    name: "ioType 47",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      },
+      3: {
+        name: "APOS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      }
+    }
   }
 };
 
