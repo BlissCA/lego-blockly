@@ -1432,12 +1432,13 @@ export class LegoLPF2 {
 					// Modern Tacho Motors (Technic, SPIKE, Inventor)
 					// These support StartSpeed (0x07) and MoveForDegrees (0x0B).
 					// ------------------------------------------------------------
-					case 0x002E: // Technic Large Motor (88013)
-					case 0x002F: // Technic XL Motor (88014)
-					case 0x0030: // Technic Medium Angular Motor
-					case 0x0031: // Technic Large Angular Motor
-					case 0x0041: // Small Angular Motor (Spike Essential)
-					case 0x004B: // Spike prime/Robot inventor Medium Motor
+					case 0x002E: // 46 Technic Large Motor (88013)
+					case 0x002F: // 47 Technic XL Motor (88014)
+					case 0x0030: // 48 SPIKE Prime Medium Motor
+					case 0x0031: // 49 SPIKE Prime Large Motor
+					case 0x0041: // 65 Technic Small Angular Motor
+					case 0x004B: // 75 Technic Medium Angular Motor, gray
+					case 0x004C: // 76 Technic Large Angular motor, gray
 							type = "motorTacho";
 							break;
 
@@ -1447,8 +1448,8 @@ export class LegoLPF2 {
 					// 0x26 = External Motor with Tacho
 					// 0x27 = Internal Motor with Tacho
 					// ------------------------------------------------------------
-					case 0x0026: // External Tacho Motor
-					case 0x0027: // Internal Tacho Motor (Boost internal motors)
+					case 0x0026: // 38 External Tacho Motor
+					case 0x0027: // 39 Internal Tacho Motor (Boost internal motors)
 							type = "motorTacho";
 							break;
 
@@ -1465,44 +1466,39 @@ export class LegoLPF2 {
 							type = "light";
 							break;
 
-					case 0x0014: // Voltage
+					case 0x0014: // 20 Powered Up Hub battery voltage
 							type = "volt";
 							break;
 
-					case 0x0015: // Curent
+					case 0x0015: // 21 Powered Up Hub battery current
 							type = "current";
 							break;
 
-					case 0x0016: // Piezo Tone (Sound)
+					case 0x0016: // 22 Powered Up Hub piezo tone
 							type = "sound";
 							break;
 
-					case 0x0017: // RGB Light
+					case 0x0017: // 23 Powered Up Hub indicator light
 							type = "rgb";
 							break;
 
-					case 0x0022: // External Tilt Sensor (WeDo 2.0)
+					case 0x0022: // 34 WeDo 2.0 Tilt Sensor
 							type = "tilt";
 							break;
 
-					case 0x0023: // Motion/Distance Sensor (WeDo 2.0)
+					case 0x0023: // 35 WeDo 2.0 Motion Sensor
 							type = "distance";
 							break;
 
-					// ------------------------------------------------------------
-					// Color & Distance Sensor (Boost 88007)
-					// NOTE: Some hubs report it as 0x25, others as 0x26.
-					// ------------------------------------------------------------
-					case 0x0025: // 37 dec – Vision / Color+Distance on Boost
-					//case 0x0026: // 38 dec – Color & Distance Sensor (Boost)
+					case 0x0024: // 36 WeDo 2.0 generic device
+							type = "distance";
+							break;
+
+					case 0x0025: // 37 BOOST Color and Distance Sensor
 							type = "colorDistance";
 							break;
 
-
-					// ------------------------------------------------------------
-					// Multi-axis tilt (Boost)
-					// ------------------------------------------------------------
-					case 0x0028:
+					case 0x0028: // 40 BOOST Move Hub built-in accelerometer (tilt sensor)
 							type = "tiltMulti";
 							break;
 
@@ -1510,19 +1506,19 @@ export class LegoLPF2 {
 					// ------------------------------------------------------------
 					// Modern Spike / Inventor Sensors
 					// ------------------------------------------------------------
-					case 0x003D: // Spike Color Sensor
+					case 0x003D: // 61 Spike Color Sensor
 							type = "color";
 							break;
 
-					case 0x003E: // Spike Ultrasonic Distance Sensor
+					case 0x003E: // 62 Spike Ultrasonic Distance Sensor
 							type = "distance";
 							break;
 
-					case 0x003F: // Spike Force Sensor (Touch)
+					case 0x003F: // 63 Spike Force Sensor (Touch)
 							type = "force";
 							break;
 
-					case 0x0040: // Matrix Display (3x3 or 5x5)
+					case 0x0040: // 64 Matrix Display (3x3 or 5x5)
 							type = "matrix";
 							break;
 
@@ -1530,20 +1526,29 @@ export class LegoLPF2 {
 					// ------------------------------------------------------------
 					// Internal Virtual Hub Ports
 					// ------------------------------------------------------------
-					case 0x0036: // Internal IMU (gyro/accel)
-							type = "imu";
+					case 0x0036: // 54 Powered Up hub IMU gesture
+							type = "gesture";
+							break;
+					case 0x0037: // 55 Powered Up Handset Buttons
+							type = "buttons";
+							break;
+					case 0x0038: // 56 Powered Up hub Bluetooth RSSI
+							type = "rssi";
+							break;
+					case 0x0039: // 57 Powered Up hub IMU accelerometer
+							type = "accelerometer";
 							break;
 
-					case 0x003A: // Internal Tilt Sensor IMU (Technic Hub)
-							type = "tiltMulti";
+					case 0x003A: // 58 Powered Up hub IMU gyro
+							type = "gyro";
 							break;
 
-					case 0x003B: // Amperage Sensor
-							type = "current";
+					case 0x003B: // 59 Powered Up hub IMU position
+							type = "position";
 							break;
 
-					case 0x003C: // Voltage Sensor
-							type = "voltage";
+					case 0x003C: // 60 Powered Up hub IMU temperature
+							type = "temperature";
 							break;
 
 					default:
