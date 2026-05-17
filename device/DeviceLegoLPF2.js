@@ -335,7 +335,7 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1011613696,1135869952]
       }
     }
-  }	
+  }
 };
 
 
@@ -1381,7 +1381,7 @@ export class LegoLPF2 {
 							type = "imu";
 							break;
 
-					case 0x003A: // Internal Tilt Sensor (Boost)
+					case 0x003A: // Internal Tilt Sensor IMU (Technic Hub)
 							type = "tiltMulti";
 							break;
 
@@ -1660,7 +1660,7 @@ export class LegoLPF2 {
 	async getDistance(portName) {
 			const port = this._resolvePort(portName);
 
-			const mode = this._findMode(port, ["prox", "distance", "dist", "range"]);
+			const mode = this._findMode(port, ["prox", "distance", "dist", "range", "distl"]);
 			await this._ensureMode(port, mode);
 
 			return this.portValues[port] ?? 0;
@@ -1908,7 +1908,7 @@ export class LegoLPF2 {
 		}
 	}
 
-	async waitForMotorCompletion(port, timeoutMs = 30000) {
+	async waitForMotorCompletion(port, timeoutMs = 120000) {
 		return new Promise((resolve, reject) => {
 			const start = performance.now();
 
@@ -1954,7 +1954,7 @@ export class LegoLPF2 {
 		});
 	}
 
-	async _sendMotorCommand(port, payload, { waitFbk = false, timeoutMs = 5000 } = {}) {
+	async _sendMotorCommand(port, payload, { waitFbk = false, timeoutMs = 120000 } = {}) {
 		if (!this.char) throw new Error("LPF2 not connected");
 
 		port = this._resolvePort(port);
