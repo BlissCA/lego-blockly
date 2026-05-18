@@ -758,7 +758,7 @@ export class LegoLPF2 {
 				if (!info) continue;
 
 				// Skip motors
-				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt") {
+				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature") {
 						continue;
 				}
 				switch (info.type) {
