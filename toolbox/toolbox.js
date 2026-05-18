@@ -1440,7 +1440,7 @@ const toolbox = {
                 "AXIS": {
                     "shadow": {
                       "type": "lpf2_axis",
-                      "fields": { "NUM": "0" }
+                      "fields": { "LPF2AXIS": "0" }
                     }
                   }
 

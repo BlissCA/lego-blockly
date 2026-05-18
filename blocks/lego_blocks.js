@@ -3162,9 +3162,7 @@ Blockly.Blocks['lpf2_endstate'] = {
 Blockly.Blocks['lpf2_axis'] = {
   init: function() {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([
-        ["X", "0"], ["Y", "1"], ["Z", "2"]
-      ]), "NUM");
+      .appendField(new Blockly.FieldDropdown([["X", "0"], ["Y", "1"], ["Z", "2"]]), "LPF2AXIS");
 
     this.setOutput(true, "Number");
     this.setColour(80);

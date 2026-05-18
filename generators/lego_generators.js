@@ -1403,6 +1403,12 @@ javascriptGenerator.forBlock["lpf2_endstate"] = function (block) {
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
+javascriptGenerator.forBlock["lpf2_axis"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LPF2AXIS');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
 
 javascriptGenerator.forBlock["lpf2_get_distance"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
