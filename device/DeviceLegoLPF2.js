@@ -1969,6 +1969,12 @@ export class LegoLPF2 {
 
 					if (this.portInfo[0x10]) this.userPortMap.AB = 0x10;
 					if (this.portInfo[0x11]) this.userPortMap.CD = 0x11;
+					
+					if (this.portInfo[97]) this.userPortMap.ACC = 97;  // internal imu-accelerometer
+					if (this.portInfo[98]) this.userPortMap.GYRO = 98;  // internal imu-gyro
+					if (this.portInfo[99]) this.userPortMap.TILT = 99;  // internal imu-tilt
+					if (this.portInfo[100]) this.userPortMap.GEST = 100;  // internal imu-Gesture, 0 — None / Flat / Stationary, 1 — Tap / Bump, 2 — Free Fall, 3 — Shake, 4 — Impact / Crash
+
 					return;
 			}
 
