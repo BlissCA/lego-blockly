@@ -1429,28 +1429,23 @@ const toolbox = {
             },            
             {
               "kind": "block",
-              "type": "lpf2_get_tilt_fb",
+              "type": "lpf2_get_tilt",
               "inputs": {
                 "PORT": {
                   "shadow": {
                     "type": "lpf2_ports",
                     "fields": { "LPF2PORTS": "A" }
                   }
-                }
-              }
-            },
-            {
-              "kind": "block",
-              "type": "lpf2_get_tilt_lr",
-              "inputs": {
-                "PORT": {
-                  "shadow": {
-                    "type": "lpf2_ports",
-                    "fields": { "LPF2PORTS": "A" }
+                },
+                "AXIS": {
+                    "shadow": {
+                      "type": "lpf2_axis",
+                      "fields": { "NUM": "0" }
+                    }
                   }
-                }
+
               }
-            }                
+            }             
           ]
         },
         {

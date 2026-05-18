@@ -2046,36 +2046,25 @@ window.addEventListener("load", () => {
       "tooltip": "Returns the Color: 0=Black, 3=Blue, 5=Green, 7=Yellow, 9=Red, 10=White"
     },
     {
-      "type": "lpf2_get_tilt_fb",
-      "message0": "%1 port %2 Tilt Fwd/Back",
+      "type": "lpf2_get_tilt",
+      "message0": "%1 port %2 Tilt axis %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
         {
           "type": "input_value",
           "name": "PORT",
           "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "AXIS",
+          "check": ["Number"]
         }
       ],
       "inputsInline": true,
       "output": "Number",
       "colour": 80,
       "tooltip": "Returns the Tilt Fwd/Back: -90 to +90 degrees"
-    },
-    {
-      "type": "lpf2_get_tilt_lr",
-      "message0": "%1 port %2 Tilt L/R",
-      "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
-        {
-          "type": "input_value",
-          "name": "PORT",
-          "check": ["Number", "String"]
-        }
-      ],
-      "inputsInline": true,
-      "output": "Number",
-      "colour": 80,
-      "tooltip": "Returns the Tilt Left/Right: -90 to +90 degrees"
     },
     {
       "type": "lpf2_get_color",
@@ -3170,7 +3159,18 @@ Blockly.Blocks['lpf2_endstate'] = {
   }
 };
 
+Blockly.Blocks['lpf2_axis'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["X", "0"], ["Y", "1"], ["Z", "2"]
+      ]), "NUM");
 
+    this.setOutput(true, "Number");
+    this.setColour(80);
+    this.setTooltip("Returns a predefined constant value for LPF2 axis (X=0, Y=1, Z=2).");
+  }
+};
 
 //  LOOP WHILE / UNTIL WITH YIELD (for cooperative multitasking)
 Blockly.Blocks['loop_forever'] = {

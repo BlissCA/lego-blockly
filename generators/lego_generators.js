@@ -1424,22 +1424,12 @@ javascriptGenerator.forBlock["lpf2_get_color"] = function (block) {
   ];
 };
 
-javascriptGenerator.forBlock["lpf2_get_tilt_fb"] = function (block) {
+javascriptGenerator.forBlock["lpf2_get_tilt"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
-
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
   return [
-    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port}))[1]`, 
-    javascriptGenerator.ORDER_NONE
-  ];
-};
-
-javascriptGenerator.forBlock["lpf2_get_tilt_lr"] = function (block) {
-  const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
-
-  return [
-    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port}))[0]`, 
+    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port}))[${axis}]`, 
     javascriptGenerator.ORDER_NONE
   ];
 };
