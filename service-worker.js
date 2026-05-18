@@ -22,7 +22,7 @@ const ASSETS = [
   "./toolbox/toolbox.js",
 
   // Devices
-  "./device/DeviceManager.js",
+  "./device/deviceManager.js",
   "./device/DeviceLegoA.js",
   "./device/DeviceLegoA_v2.js",
   "./device/DeviceLegoA_ws.js",
