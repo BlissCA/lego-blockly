@@ -328,18 +328,27 @@ export class LegoWeDo2 {
 
   _onPortTypeNotification(event) {
     const data = new Uint8Array(event.target.value.buffer);
-    // Format: [portId, ioType, hwRev, swRev]
+    const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    this.log(`PortType notif raw: [${hex}]`);
+
     const portId = data[0];
     const ioType = data[1];
+
+    this.log(`Decoded portType: port=${portId}, ioType=${ioType}`);
 
     this._updatePortType(portId, ioType);
   }
 
+
   _onSensorValueNotification(event) {
     const data = new Uint8Array(event.target.value.buffer);
-    // Typical format: [portId, value, ...]
+    const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    this.log(`SensorValue notif raw: [${hex}]`);
+
     const portId = data[0];
-    const value = data[1];
+    const value  = data[1];
+
+    this.log(`Decoded sensorValue: port=${portId}, value=${value}`);
 
     this.portValues[portId] = value;
     this.manager?.updatePortValue?.(this, portId, value);
@@ -380,8 +389,10 @@ export class LegoWeDo2 {
     const p = clamp(power, -100, 100);
     const speedByte = p & 0xff;
 
-    // WeDo 2.0 motor command: [0x01, portId, speed]
     const bytes = new Uint8Array([0x01, portId, speedByte]);
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    this.log(`Motor cmd → [${hex}]`);
+
     await this._writeOutput(bytes);
     this.log(`Motor port ${portId} power set to ${p}`);
   }
