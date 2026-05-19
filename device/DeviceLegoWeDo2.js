@@ -327,7 +327,7 @@ export class LegoWeDo2 {
       portId,  // 3: Port ID
       ioType,  // 4: IO Type 
       0x01, // 5: Mode (0x01 = Discrete Tilt mode / Distance Mode)
-      0x00,0x00,0x00,0x00, // 6-9: Delta
+      0x01,0x00,0x00,0x00, // 6-9: Delta
       0x02, // 10: Unit Format (0x02 =SI Units)
       0x01  // 11: Notificaiton Switch (0x01 = Enable)
     ]);
@@ -376,8 +376,9 @@ export class LegoWeDo2 {
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
     this.log(`SensorValue notif raw: [${hex}]`);
 
-    const portId = data[0];
-    const value  = data[1];
+    const unit = data[0];    // 0x01 = tilt angle / motion steps, 0x02 = SI units (distance in cm / tilt state)
+    const portId = data[1];
+    const value  = data.getFloat32(2, true); // true = Little Endian
 
   //  this.log(`Decoded sensorValue: port=${portId}, value=${value}`);
 
