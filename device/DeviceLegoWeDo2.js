@@ -23,8 +23,8 @@ const WEDO_CHAR_OUTPUT_CMD   = "00001565-1212-efde-1523-785feabcd123"; // write 
 // Device types (WeDo 2.0 specific)
 const WEDO_DEVICE_NONE   = 0x00;
 const WEDO_DEVICE_MOTOR  = 0x01;
-const WEDO_DEVICE_MOTION = 0x02;
-const WEDO_DEVICE_TILT   = 0x03;
+const WEDO_DEVICE_MOTION = 0x23;
+const WEDO_DEVICE_TILT   = 0x22;
 
 // Helpers
 function clamp(value, min, max) {
@@ -290,6 +290,7 @@ export class LegoWeDo2 {
         typeName = "tilt";
         break;
       default:
+        typeName = `unknown (0x${ioType.toString(16)})`;
         break;
     }
 
@@ -332,9 +333,16 @@ export class LegoWeDo2 {
     this.log(`PortType notif raw: [${hex}]`);
 
     const portId = data[0];
-    const ioType = data[1];
+    const connected = data[1];     // 0 = empty, 1 = something plugged
+    const ioType = data[3];        // REAL device type
 
-    this.log(`Decoded portType: port=${portId}, ioType=${ioType}`);
+    if (!connected) {
+      this.log(`Port ${portId} disconnected`);
+      this._updatePortType(portId, 0x00);
+      return;
+    }
+
+    this.log(`Decoded portType: port=${portId}, ioType=0x${ioType.toString(16)}`);
 
     this._updatePortType(portId, ioType);
   }
