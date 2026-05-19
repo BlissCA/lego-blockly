@@ -326,7 +326,7 @@ export class LegoWeDo2 {
       0x01, 0x02,  // 1 & 2: Input Command Header
       portId,  // 3: Port ID
       ioType,  // 4: IO Type 
-      0x01, // 5: Mode (0x01 = Discrete Tilt mode / Distance Mode)
+      0x00, // 5: Mode (0x00 = Tilt Angle mode / Motion Detect, 0x01 = Discrete Tilt mode / Motion Count)
       0x01,0x00,0x00,0x00, // 6-9: Unkown, could be Delta?
       0x02, // 10: Unit Format (0x02 =SI Units)
       0x01  // 11: Notificaiton Switch (0x01 = Enable)
