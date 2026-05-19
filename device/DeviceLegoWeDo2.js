@@ -55,7 +55,7 @@ export class LegoWeDo2 {
     this.charInputCmd = null;
     this.charOutputCmd = null;
 
-    this.namePrefix = "WeDo 2.0";
+    this.namePrefix = "WeDo2_";
     this.status = "idle";
     this.statusMessage = "";
     this.isConnected = false;
