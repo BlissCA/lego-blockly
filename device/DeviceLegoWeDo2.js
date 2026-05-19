@@ -310,30 +310,14 @@ export class LegoWeDo2 {
   }
 
   async _enableSensorOnPort(portId) {
-    if (!this.charInputCmd || !this.charValueFormat) return;
+    if (!this.charInputCmd) return;
 
-    // Candidates based on various WeDo/LPF2 implementations
-    const candidates = [
-      { label: "VF [01 port 01]",  target: "value", bytes: (p) => [0x01, p, 0x01] },
-      { label: "IN [01 port 01]",  target: "input", bytes: (p) => [0x01, p, 0x01] },
-      { label: "IN [02 port 01 01]", target: "input", bytes: (p) => [0x02, p, 0x01, 0x01] },
-      { label: "IN [02 port 00 01]", target: "input", bytes: (p) => [0x02, p, 0x00, 0x01] },
-    ];
-
-    for (const c of candidates) {
-      const arr = new Uint8Array(c.bytes(portId));
-      const hex = Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join(" ");
-      this.log(`EnableSensor ${c.label} → [${hex}]`);
-
-      if (c.target === "value") {
-        await this._writeValueFormat(arr);
-      } else {
-        await this._writeInput(arr);
-      }
-
-      // Give the hub a moment; if it likes one of these, it should start sending SensorValue notifications
-      await new Promise(r => setTimeout(r, 50));
-    }
+    // WeDo 2.0 input enable: [0x01, portId, 0x01]
+    const bytes = new Uint8Array([portId, 0x01, 0x01]);
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    this.log(`EnableSensor cmd → [${hex}]`);
+    await this._writeValueFormat(bytes);
+    this.log(`Enabled sensor notifications on port ${portId}`);
   }
 
   // ---------------- Notification Handlers ----------------
