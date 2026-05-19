@@ -20,14 +20,11 @@ const WEDO_CHAR_VALUE_FORMAT = "00001561-1212-efde-1523-785feabcd123"; // write 
 const WEDO_CHAR_INPUT_CMD    = "00001563-1212-efde-1523-785feabcd123"; // write (input configuration)
 const WEDO_CHAR_OUTPUT_CMD   = "00001565-1212-efde-1523-785feabcd123"; // write (motor output)
 
-// Device types
+// Device types (WeDo 2.0 specific)
 const WEDO_DEVICE_NONE   = 0x00;
 const WEDO_DEVICE_MOTOR  = 0x01;
-const WEDO_DEVICE_TILT   = 0x04;
-const WEDO_DEVICE_MOTION = 0x08;
-
-// Internal tilt sensor port
-const WEDO_INTERNAL_TILT_PORT = 0x03;
+const WEDO_DEVICE_MOTION = 0x02;
+const WEDO_DEVICE_TILT   = 0x03;
 
 // Helpers
 function clamp(value, min, max) {
@@ -200,11 +197,6 @@ export class LegoWeDo2 {
     // Initialize ports
     this._initDefaultPorts();
 
-    // Enable internal tilt sensor
-    if (this.charInputCmd) {
-      await this._enableSensorOnPort(WEDO_INTERNAL_TILT_PORT);
-    }
-
     // Allocate name
     if (!this.name) {
       this.name = this.manager._allocateName(this.namePrefix);
@@ -271,41 +263,56 @@ export class LegoWeDo2 {
   // ---------------- Port / Device Management ----------------
 
   _initDefaultPorts() {
-    // WeDo 2.0 has two external ports (1 and 2) plus an internal tilt sensor on port 3.
+    // WeDo 2.0 has two external ports (1 and 2).
     this.portDevices = {
       0x01: { type: WEDO_DEVICE_NONE,  isMotor: false, isSensor: false },
-      0x02: { type: WEDO_DEVICE_NONE,  isMotor: false, isSensor: false },
-      [WEDO_INTERNAL_TILT_PORT]: { type: WEDO_DEVICE_TILT, isMotor: false, isSensor: true }
+      0x02: { type: WEDO_DEVICE_NONE,  isMotor: false, isSensor: false }
     };
-    this.log("Ports initialized: 1, 2 (external), 3 (internal tilt).");
+    this.log("Ports initialized: 1, 2 (external).");
   }
 
-  _updatePortType(portId, deviceType) {
-    const isMotor = deviceType === WEDO_DEVICE_MOTOR;
-    const isSensor = deviceType === WEDO_DEVICE_TILT || deviceType === WEDO_DEVICE_MOTION;
+  _updatePortType(portId, ioType) {
+    let isMotor = false;
+    let isSensor = false;
+    let typeName = "none";
+
+    switch (ioType) {
+      case WEDO_DEVICE_MOTOR:
+        isMotor = true;
+        typeName = "motor";
+        break;
+      case WEDO_DEVICE_MOTION:
+        isSensor = true;
+        typeName = "motion";
+        break;
+      case WEDO_DEVICE_TILT:
+        isSensor = true;
+        typeName = "tilt";
+        break;
+      default:
+        break;
+    }
 
     this.portDevices[portId] = {
-      type: deviceType,
+      type: ioType,
       isMotor,
       isSensor
     };
 
-    let typeName = "none";
-    if (deviceType === WEDO_DEVICE_MOTOR) typeName = "motor";
-    else if (deviceType === WEDO_DEVICE_TILT) typeName = "tilt";
-    else if (deviceType === WEDO_DEVICE_MOTION) typeName = "motion";
-
     this.log(`Port ${portId} device type: ${typeName}`);
+
+    if (isSensor) {
+      this._enableSensorOnPort(portId).catch(err => {
+        this.log("Enable sensor error: " + (err?.message || err));
+      });
+    }
   }
 
   async _enableSensorOnPort(portId) {
     if (!this.charInputCmd) return;
 
-    // Common pattern: [len, portId, mode, enable]
-    const len = 0x01;
-    const mode = 0x01;
-    const enable = 0x01;
-    const bytes = new Uint8Array([len, portId, mode, enable]);
+    // WeDo 2.0 input enable: [0x01, portId, 0x01]
+    const bytes = new Uint8Array([0x01, portId, 0x01]);
     await this._writeInput(bytes);
     this.log(`Enabled sensor notifications on port ${portId}`);
   }
@@ -321,17 +328,11 @@ export class LegoWeDo2 {
 
   _onPortTypeNotification(event) {
     const data = new Uint8Array(event.target.value.buffer);
-    // Typical format: [portId, deviceType, ...]
+    // Format: [portId, ioType, hwRev, swRev]
     const portId = data[0];
-    const deviceType = data[1];
+    const ioType = data[1];
 
-    this._updatePortType(portId, deviceType);
-
-    if (this.portDevices[portId]?.isSensor) {
-      this._enableSensorOnPort(portId).catch(err => {
-        this.log("Enable sensor error: " + (err?.message || err));
-      });
-    }
+    this._updatePortType(portId, ioType);
   }
 
   _onSensorValueNotification(event) {
@@ -346,24 +347,22 @@ export class LegoWeDo2 {
 
   // ---------------- Sensor Getters ----------------
 
-  // Internal tilt sensor (port 3)
-  getTiltRaw() {
-    return this.portValues[WEDO_INTERNAL_TILT_PORT] ?? 0;
-  }
-
-  // Simple mapping: raw 0–7 tilt states (implementation-specific)
-  getTiltState() {
-    return this.getTiltRaw();
-  }
-
-  // Motion sensor on external port (1 or 2)
+  // Motion / distance sensor on external port (1 or 2)
   getMotionRaw(portId = 0x01) {
     return this.portValues[portId] ?? 0;
   }
 
-  // Distance in arbitrary units (0–10 or 0–100 depending on firmware)
   getDistance(portId = 0x01) {
     return this.getMotionRaw(portId);
+  }
+
+  // Tilt sensor (external) raw value
+  getTiltRaw(portId = 0x01) {
+    return this.portValues[portId] ?? 0;
+  }
+
+  getTiltState(portId = 0x01) {
+    return this.getTiltRaw(portId);
   }
 
   // ---------------- Motor Control ----------------
@@ -379,16 +378,10 @@ export class LegoWeDo2 {
     }
 
     const p = clamp(power, -100, 100);
+    const speedByte = p & 0xff;
 
-    // WeDo 2.0 Output Command (common pattern):
-    // [len, portId, 0x01, 0x01, speedByte]
-    const len = 0x04;
-    let speedByte = p & 0xff;
-    if (p < 0) {
-      speedByte = 0x100 + p; // two's complement
-    }
-
-    const bytes = new Uint8Array([len, portId, 0x01, 0x01, speedByte]);
+    // WeDo 2.0 motor command: [0x01, portId, speed]
+    const bytes = new Uint8Array([0x01, portId, speedByte]);
     await this._writeOutput(bytes);
     this.log(`Motor port ${portId} power set to ${p}`);
   }
