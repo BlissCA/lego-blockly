@@ -6,6 +6,7 @@ import { LegoInterfaceA_ws } from './DeviceLegoA_ws.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
+import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
 
@@ -283,6 +284,28 @@ export class DeviceManager {
     }
   }
 
+  // -------------------------
+  // Connect LEGO WeDo 2.0
+  // -------------------------
+
+  async connectLegoWeDo2() {
+    const dev = new LegoWeDo2(null, this);
+
+    try {
+      await dev.connect();
+      if (dev.status === "Connected") {
+        this._addDevice(dev);
+        return dev;
+      } else {
+        return null;
+      }
+
+    } catch (err) {
+      console.warn("WeDo 2.0 connection failed:", err);
+      await dev.disconnect();
+      return null;
+    }
+  }
   // -------------------------
   // Connect LEGO VLL Serial
   // -------------------------

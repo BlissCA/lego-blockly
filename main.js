@@ -20,6 +20,7 @@ import "./device/DeviceLegoA_ws.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
+import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
 import "./device/DeviceLegoLPF2.js";
 import "./device/deviceManager.js";
@@ -974,6 +975,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "WD1":
       dev = await window.deviceManager.connectLegoWeDo1();   // your unified RCX/CM class
+      break;
+
+    case "WD2":
+      dev = await window.deviceManager.connectLegoWeDo2();   // your unified WeDo 2.0 class
       break;
 
     case "VLLSER":
