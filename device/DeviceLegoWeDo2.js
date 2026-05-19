@@ -11,15 +11,6 @@
 // Output Command: 00001565-1212-efde-1523-785feabcd123
 // Disconnect:     0000152c-1212-efde-1523-785feabcd123
 
-const WEDO_SERVICE_UUID       = "00001523-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_BUTTON        = "00001526-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_PORT_TYPE     = "00001527-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_SENSOR_VALUE  = "00001560-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_VALUE_FORMAT  = "00001561-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_INPUT_CMD     = "00001563-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_OUTPUT_CMD    = "00001565-1212-efde-1523-785feabcd123";
-const WEDO_CHAR_DISCONNECT    = "0000152c-1212-efde-1523-785feabcd123";
-
 
 // Known device types (from WeDo 2.0 protocol reverse‑engineering)
 const WEDO_DEVICE_NONE        = 0x00;
@@ -124,66 +115,80 @@ export class LegoWeDo2 {
   // ---------------- Connection Lifecycle ----------------
 
   async connect() {
+    this.setStatus("connecting", "Requesting WeDo 2.0 hub...");
+    this.log("Connecting to WeDo 2.0 hub...");
+
+    let device;
     try {
-      this.setStatus("connecting", "Requesting WeDo 2.0 device…");
-
-    device = await navigator.bluetooth.requestDevice({
-      filters: [
-          { services: [WEDO_SERVICE_UUID] }
-      ],
-      optionalServices: [WEDO_SERVICE_UUID]
-    });
-
-      this.device.addEventListener("gattserverdisconnected", this._onGattDisconnected);
-
-      this.setStatus("connecting", "Connecting GATT…");
-      this.server = await this.device.gatt.connect();
-
-      this.service = await this.server.getPrimaryService(WEDO_SERVICE_UUID);
-
-      // Get characteristics
-      this.charButton       = await this.service.getCharacteristic(WEDO_CHAR_BUTTON);
-      this.charPortType     = await this.service.getCharacteristic(WEDO_CHAR_PORT_TYPE);
-      this.charSensorValue  = await this.service.getCharacteristic(WEDO_CHAR_SENSOR_VALUE);
-      this.charValueFormat  = await this.service.getCharacteristic(WEDO_CHAR_VALUE_FORMAT);
-      this.charInputCmd     = await this.service.getCharacteristic(WEDO_CHAR_INPUT_CMD);
-      this.charOutputCmd    = await this.service.getCharacteristic(WEDO_CHAR_OUTPUT_CMD);
-      this.charDisconnect   = await this.service.getCharacteristic(WEDO_CHAR_DISCONNECT);
-
-      // Start notifications
-      await this.charButton.startNotifications();
-      this.charButton.addEventListener("characteristicvaluechanged", this._onButtonNotification);
-
-      await this.charPortType.startNotifications();
-      this.charPortType.addEventListener("characteristicvaluechanged", this._onPortTypeNotification);
-
-      await this.charSensorValue.startNotifications();
-      this.charSensorValue.addEventListener("characteristicvaluechanged", this._onSensorValueNotification);
-
-      // Allocate name
-      if (!this.name) {
-        this.name = this.manager._allocateName(this.namePrefix);
-      }
-
-      this.queueActive = true;
-      this.setStatus("connected", "Connected");
-      this.log(`Connected to ${this.device.name || "WeDo 2.0"}`);
-
-      // Initialize known ports (two external ports + internal tilt)
-      this._initDefaultPorts();
-
-      // Enable internal tilt sensor notifications
-      await this._enableSensorOnPort(WEDO_INTERNAL_TILT_PORT);
-
-      // Ask hub to report port types for external ports
-      // (Some stacks send these automatically; this is a safe nudge.)
-      await this._requestPortTypes();
-
+      device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ["00001523-1212-efde-1523-785feabcd123"] } // WeDo 2.0 service
+        ],
+        optionalServices: [
+          "00001523-1212-efde-1523-785feabcd123"
+        ]
+      });
     } catch (err) {
-      this.setStatus("error", "Connection failed");
-      this.log("Connection failed: " + (err?.message || err));
+      this.log("No WeDo 2.0 hub selected");
+      this.setStatus("idle", "No device selected");
       throw err;
     }
+
+    this.device = device;
+
+    // Lost-device detection
+    this.device.addEventListener("gattserverdisconnected", () => {
+      this.log("GATT server disconnected — device lost.");
+      this.manager?.handleDeviceLost?.(this);
+      this.forceDisconnect().catch(() => {});
+    });
+
+    this.setStatus("connecting", "Connecting via BLE...");
+    this.log(`Connecting to GATT server on ${device.name || "WeDo 2.0 hub"}...`);
+
+    // Connect
+    this.server = await device.gatt.connect();
+
+    // Primary service
+    this.service = await this.server.getPrimaryService("00001523-1212-efde-1523-785feabcd123");
+
+    // Characteristics
+    this.charButton       = await this.service.getCharacteristic("00001526-1212-efde-1523-785feabcd123");
+    this.charPortType     = await this.service.getCharacteristic("00001527-1212-efde-1523-785feabcd123");
+    this.charSensorValue  = await this.service.getCharacteristic("00001560-1212-efde-1523-785feabcd123");
+    this.charValueFormat  = await this.service.getCharacteristic("00001561-1212-efde-1523-785feabcd123");
+    this.charInputCmd     = await this.service.getCharacteristic("00001563-1212-efde-1523-785feabcd123");
+    this.charOutputCmd    = await this.service.getCharacteristic("00001565-1212-efde-1523-785feabcd123");
+    this.charDisconnect   = await this.service.getCharacteristic("0000152c-1212-efde-1523-785feabcd123");
+
+    // Notifications
+    await this.charButton.startNotifications();
+    this.charButton.addEventListener("characteristicvaluechanged", this._onButtonNotification);
+
+    await this.charPortType.startNotifications();
+    this.charPortType.addEventListener("characteristicvaluechanged", this._onPortTypeNotification);
+
+    await this.charSensorValue.startNotifications();
+    this.charSensorValue.addEventListener("characteristicvaluechanged", this._onSensorValueNotification);
+
+    // Allocate name
+    if (!this.name) {
+      this.name = this.manager._allocateName(this.namePrefix);
+    }
+
+    // Initialize ports
+    this._initDefaultPorts();
+
+    // Enable internal tilt sensor
+    await this._enableSensorOnPort(0x03);
+
+    this.isConnected = true;
+    this.queueActive = true;
+
+    this.log(`Connected as ${this.name}`);
+    this.setStatus("connected", "Connected");
+    window.logStatus?.(`Connected: ${this.name}`);
+    document.dispatchEvent(new Event("serial-connected"));
   }
 
   async disconnect() {

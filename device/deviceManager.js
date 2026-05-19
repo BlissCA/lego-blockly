@@ -288,24 +288,23 @@ export class DeviceManager {
   // Connect LEGO WeDo 2.0
   // -------------------------
 
+
   async connectLegoWeDo2() {
     const dev = new LegoWeDo2(null, this);
 
     try {
       await dev.connect();
-      if (dev.status === "Connected") {
-        this._addDevice(dev);
-        return dev;
-      } else {
-        return null;
-      }
+      this._addDevice(dev, false); // Don't log status here, WeDo2 logs its own status
+      return dev;
 
     } catch (err) {
-      console.warn("WeDo 2.0 connection failed:", err);
+      console.warn("Lego WeDo 2.0 Connection failed:", err);
       await dev.disconnect();
+      this._freeName(dev.name);
       return null;
     }
   }
+  
   // -------------------------
   // Connect LEGO VLL Serial
   // -------------------------
