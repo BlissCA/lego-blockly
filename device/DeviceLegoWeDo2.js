@@ -311,12 +311,25 @@ export class LegoWeDo2 {
 
   async _enableSensorOnPort(portId) {
     if (!this.charInputCmd) return;
+    const ioType = this.portDevices[portId]?.type || 0;
+    if (ioType === WEDO_DEVICE_NONE || !this.portDevices[portId]?.isSensor) {
+      this.log(`No device on port ${portId} to enable`);
+      return;
+    }
 
     // WeDo 2.0 input enable: [0x01, portId, 0x01]
-    const bytes = new Uint8Array([portId, 0x01, 0x01]);
+    const bytes = new Uint8Array([
+      0x01, 0x02,  // 1 & 2: Input Command Header
+      portId,  // 3: Port ID
+      ioType,  // 4: IO Type 
+      0x01, // 5: Mode (0x01 = Discrete Tilt mode / Distance Mode)
+      0x00,0x00,0x00,0x00, // 6-9: Delta
+      0x02, // 10: Unit Format (0x02 =SI Units)
+      0x01  // 11: Notificaiton Switch (0x01 = Enable)
+    ]);
     const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
     this.log(`EnableSensor cmd → [${hex}]`);
-    await this._writeValueFormat(bytes);
+    await this._writeInput(bytes);
     this.log(`Enabled sensor notifications on port ${portId}`);
   }
 
