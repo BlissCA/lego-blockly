@@ -375,11 +375,17 @@ export class LegoWeDo2 {
     const data = new Uint8Array(event.target.value.buffer);
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
     this.log(`SensorValue notif raw: [${hex}]`);
-
+    let value = 0;
     const unit = data[0];    // 0x01 = tilt angle / motion steps, 0x02 = SI units (distance in cm / tilt state)
     const portId = data[1];
+
     const view = new DataView(data.buffer);
-    const value  = view.getFloat32(2, true); // true = Little Endian
+    if (view.byteLength < 6) {
+      value = data[2]; // Fallback to raw value if packet is too short to contain float
+    } else {
+      value  = view.getFloat32(2, true); // true = Little Endian
+    }
+    
 
   //  this.log(`Decoded sensorValue: port=${portId}, value=${value}`);
 
