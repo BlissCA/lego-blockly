@@ -11,14 +11,15 @@
 // Output Command: 00001565-1212-efde-1523-785feabcd123
 // Disconnect:     0000152c-1212-efde-1523-785feabcd123
 
-const WEDO_SERVICE_UUID       = 0x1523;
-const WEDO_CHAR_BUTTON        = 0x1526;
-const WEDO_CHAR_PORT_TYPE     = 0x1527;
-const WEDO_CHAR_SENSOR_VALUE  = 0x1560;
-const WEDO_CHAR_VALUE_FORMAT  = 0x1561;
-const WEDO_CHAR_INPUT_CMD     = 0x1563;
-const WEDO_CHAR_OUTPUT_CMD    = 0x1565;
-const WEDO_CHAR_DISCONNECT    = 0x152c;
+const WEDO_SERVICE_UUID       = "00001523-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_BUTTON        = "00001526-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_PORT_TYPE     = "00001527-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_SENSOR_VALUE  = "00001560-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_VALUE_FORMAT  = "00001561-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_INPUT_CMD     = "00001563-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_OUTPUT_CMD    = "00001565-1212-efde-1523-785feabcd123";
+const WEDO_CHAR_DISCONNECT    = "0000152c-1212-efde-1523-785feabcd123";
+
 
 // Known device types (from WeDo 2.0 protocol reverse‑engineering)
 const WEDO_DEVICE_NONE        = 0x00;
@@ -126,11 +127,12 @@ export class LegoWeDo2 {
     try {
       this.setStatus("connecting", "Requesting WeDo 2.0 device…");
 
-      this.device = await navigator.bluetooth.requestDevice({
-        filters: [
+    device = await navigator.bluetooth.requestDevice({
+      filters: [
           { services: [WEDO_SERVICE_UUID] }
-        ]
-      });
+      ],
+      optionalServices: [WEDO_SERVICE_UUID]
+    });
 
       this.device.addEventListener("gattserverdisconnected", this._onGattDisconnected);
 
