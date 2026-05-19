@@ -115,11 +115,11 @@ export class LegoWeDo2 {
   }
 
   async _writeInput(bytes) {
-    //return this._write(this.charInputCmd, bytes);
-    return this.enqueueCommand(async () => {
-      if (!this.charInputCmd) return;
-      await this.charInputCmd.writeValueWithoutResponse(bytes);
-    });
+    return this._write(this.charInputCmd, bytes);
+    // return this.enqueueCommand(async () => {
+    //   if (!this.charInputCmd) return;
+    //   await this.charInputCmd.writeValueWithoutResponse(bytes);
+    // });
   }
 
   async _writeOutput(bytes) {
@@ -378,11 +378,12 @@ export class LegoWeDo2 {
 
     const unit = data[0];    // 0x01 = tilt angle / motion steps, 0x02 = SI units (distance in cm / tilt state)
     const portId = data[1];
-    const value  = new DataView(data.buffer, data.byteOffset + 2, 4).getFloat32(0, true); // true = Little Endian
+    const view = new DataView(data.buffer);
+    const value  = view.getFloat32(2, true); // true = Little Endian
 
   //  this.log(`Decoded sensorValue: port=${portId}, value=${value}`);
 
-    this.portValues[portId] = data; // store full buffer, not just data[1].  Was: value;
+    this.portValues[portId] = value; 
   }
 
   // ---------------- Sensor Getters ----------------
