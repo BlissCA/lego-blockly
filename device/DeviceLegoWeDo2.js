@@ -115,7 +115,11 @@ export class LegoWeDo2 {
   }
 
   async _writeInput(bytes) {
-    return this._write(this.charInputCmd, bytes);
+    //return this._write(this.charInputCmd, bytes);
+    return this.enqueueCommand(async () => {
+      if (!this.charInputCmd) return;
+      await this.charInputCmd.writeValueWithoutResponse(bytes);
+    });
   }
 
   async _writeOutput(bytes) {
@@ -330,6 +334,10 @@ export class LegoWeDo2 {
     const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
     this.log(`EnableSensor cmd → [${hex}]`);
     await this._writeInput(bytes);
+    await new Promise(r => setTimeout(r, 50)); // Short hardware pause
+    const startPort = new Uint8Array([0x00, 0x01, portId]);
+    await this._writeInput(startPort);
+
     this.log(`Enabled sensor notifications on port ${portId}`);
   }
 
