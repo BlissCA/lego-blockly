@@ -1,28 +1,24 @@
 // DeviceLegoWeDo2.js
-// LEGO WeDo 2.0 BLE driver — LPF2-style architecture, multi-service, full-featured
+// LEGO WeDo 2.0 BLE driver — LPF2-style architecture, multi-service
 
 // ---------------- UUIDs ----------------
 
 // Services
-const WEDO_SERVICE_MAIN    = "00001523-1212-efde-1523-785feabcd123"; // hub control
-const WEDO_SERVICE_IO      = "00001560-1212-efde-1523-785feabcd123"; // sensor/motor I/O
-const WEDO_SERVICE_BATTERY = "0000180f-0000-1000-8000-00805f9b34fb"; // standard battery service
+const WEDO_SERVICE_MAIN = "00001523-1212-efde-1523-785feabcd123"; // hub control
+const WEDO_SERVICE_IO   = "00004f0e-1212-efde-1523-785feabcd123"; // sensor/motor I/O
 
 // Main service characteristics (1523)
-const WEDO_CHAR_CMD_MAIN     = "00001524-1212-efde-1523-785feabcd123"; // write (generic hub commands)
-const WEDO_CHAR_BUTTON       = "00001525-1212-efde-1523-785feabcd123"; // notify (button)
-const WEDO_CHAR_PORT_TYPE    = "00001526-1212-efde-1523-785feabcd123"; // notify (port attached/detached + type)
-const WEDO_CHAR_PORT_MODE    = "00001527-1212-efde-1523-785feabcd123"; // notify (port mode changes)
-const WEDO_CHAR_DISCONNECT   = "00001528-1212-efde-1523-785feabcd123"; // write (disconnect / power off)
+const WEDO_CHAR_BUTTON     = "00001526-1212-efde-1523-785feabcd123"; // notify (button)
+const WEDO_CHAR_PORT_TYPE  = "00001527-1212-efde-1523-785feabcd123"; // notify (port attached/detached + type)
+// Optional: turn off / disconnect if you ever want them
+const WEDO_CHAR_TURNOFF    = "0000152b-1212-efde-1523-785feabcd123"; // write (turn off device)
+const WEDO_CHAR_DISCONNECT = "0000152e-1212-efde-1523-785feabcd123"; // write (disconnect)
 
-// IO service characteristics (1560)
+// IO service characteristics (4f0e)
 const WEDO_CHAR_SENSOR_VALUE = "00001560-1212-efde-1523-785feabcd123"; // notify (sensor values)
 const WEDO_CHAR_VALUE_FORMAT = "00001561-1212-efde-1523-785feabcd123"; // write (value format / mode)
-const WEDO_CHAR_INPUT_CMD    = "00001562-1212-efde-1523-785feabcd123"; // write (input configuration)
-const WEDO_CHAR_OUTPUT_CMD   = "00001563-1212-efde-1523-785feabcd123"; // write (motor output)
-
-// Battery characteristic
-const WEDO_CHAR_BATTERY      = "00002a19-0000-1000-8000-00805f9b34fb";
+const WEDO_CHAR_INPUT_CMD    = "00001563-1212-efde-1523-785feabcd123"; // write (input configuration)
+const WEDO_CHAR_OUTPUT_CMD   = "00001565-1212-efde-1523-785feabcd123"; // write (motor output)
 
 // Device types
 const WEDO_DEVICE_NONE   = 0x00;
@@ -48,20 +44,16 @@ export class LegoWeDo2 {
 
     this.serviceMain = null;
     this.serviceIO = null;
-    this.serviceBattery = null;
 
-    this.charCmdMain = null;
     this.charButton = null;
     this.charPortType = null;
-    this.charPortMode = null;
+    this.charTurnOff = null;
     this.charDisconnect = null;
 
     this.charSensorValue = null;
     this.charValueFormat = null;
     this.charInputCmd = null;
     this.charOutputCmd = null;
-
-    this.charBattery = null;
 
     this.namePrefix = "WeDo 2.0";
     this.status = "idle";
@@ -77,17 +69,14 @@ export class LegoWeDo2 {
     this.portDevices = {};
     // portValues[portId] = last raw value (0‑255)
     this.portValues = {};
-    // button + battery
+    // button
     this.buttonPressed = false;
-    this.batteryLevel = null;
 
     // Bind handlers
     this._onGattDisconnected = this._onGattDisconnected.bind(this);
     this._onButtonNotification = this._onButtonNotification.bind(this);
     this._onPortTypeNotification = this._onPortTypeNotification.bind(this);
-    this._onPortModeNotification = this._onPortModeNotification.bind(this);
     this._onSensorValueNotification = this._onSensorValueNotification.bind(this);
-    this._onBatteryNotification = this._onBatteryNotification.bind(this);
   }
 
   // ---------------- Status + Logging ----------------
@@ -128,10 +117,6 @@ export class LegoWeDo2 {
     });
   }
 
-  async _writeMain(bytes) {
-    return this._write(this.charCmdMain, bytes);
-  }
-
   async _writeInput(bytes) {
     return this._write(this.charInputCmd, bytes);
   }
@@ -158,8 +143,7 @@ export class LegoWeDo2 {
         ],
         optionalServices: [
           WEDO_SERVICE_MAIN,
-          WEDO_SERVICE_IO,
-          WEDO_SERVICE_BATTERY
+          WEDO_SERVICE_IO
         ]
       });
     } catch (err) {
@@ -185,15 +169,13 @@ export class LegoWeDo2 {
 
     // Services
     this.serviceMain = await this.server.getPrimaryService(WEDO_SERVICE_MAIN);
-    this.serviceIO = await this.server.getPrimaryService(WEDO_SERVICE_IO).catch(() => null);
-    this.serviceBattery = await this.server.getPrimaryService(WEDO_SERVICE_BATTERY).catch(() => null);
+    this.serviceIO   = await this.server.getPrimaryService(WEDO_SERVICE_IO).catch(() => null);
 
     // Main service characteristics
-    this.charCmdMain   = await this.serviceMain.getCharacteristic(WEDO_CHAR_CMD_MAIN);
     this.charButton    = await this.serviceMain.getCharacteristic(WEDO_CHAR_BUTTON);
     this.charPortType  = await this.serviceMain.getCharacteristic(WEDO_CHAR_PORT_TYPE);
-    this.charPortMode  = await this.serviceMain.getCharacteristic(WEDO_CHAR_PORT_MODE);
-    this.charDisconnect = await this.serviceMain.getCharacteristic(WEDO_CHAR_DISCONNECT);
+    this.charTurnOff   = await this.serviceMain.getCharacteristic(WEDO_CHAR_TURNOFF).catch(() => null);
+    this.charDisconnect = await this.serviceMain.getCharacteristic(WEDO_CHAR_DISCONNECT).catch(() => null);
 
     // IO service characteristics
     if (this.serviceIO) {
@@ -203,11 +185,6 @@ export class LegoWeDo2 {
       this.charOutputCmd   = await this.serviceIO.getCharacteristic(WEDO_CHAR_OUTPUT_CMD);
     }
 
-    // Battery characteristic
-    if (this.serviceBattery) {
-      this.charBattery = await this.serviceBattery.getCharacteristic(WEDO_CHAR_BATTERY);
-    }
-
     // Notifications
     await this.charButton.startNotifications();
     this.charButton.addEventListener("characteristicvaluechanged", this._onButtonNotification);
@@ -215,22 +192,9 @@ export class LegoWeDo2 {
     await this.charPortType.startNotifications();
     this.charPortType.addEventListener("characteristicvaluechanged", this._onPortTypeNotification);
 
-    await this.charPortMode.startNotifications();
-    this.charPortMode.addEventListener("characteristicvaluechanged", this._onPortModeNotification);
-
     if (this.charSensorValue) {
       await this.charSensorValue.startNotifications();
       this.charSensorValue.addEventListener("characteristicvaluechanged", this._onSensorValueNotification);
-    }
-
-    if (this.charBattery) {
-      await this.charBattery.startNotifications().catch(() => {});
-      this.charBattery.addEventListener("characteristicvaluechanged", this._onBatteryNotification);
-      // Also read once
-      try {
-        const v = await this.charBattery.readValue();
-        this._onBatteryNotification({ target: { value: v } });
-      } catch {}
     }
 
     // Initialize ports
@@ -265,14 +229,8 @@ export class LegoWeDo2 {
       if (this.charPortType) {
         this.charPortType.removeEventListener("characteristicvaluechanged", this._onPortTypeNotification);
       }
-      if (this.charPortMode) {
-        this.charPortMode.removeEventListener("characteristicvaluechanged", this._onPortModeNotification);
-      }
       if (this.charSensorValue) {
         this.charSensorValue.removeEventListener("characteristicvaluechanged", this._onSensorValueNotification);
-      }
-      if (this.charBattery) {
-        this.charBattery.removeEventListener("characteristicvaluechanged", this._onBatteryNotification);
       }
 
       if (this.server && this.server.connected) {
@@ -376,13 +334,6 @@ export class LegoWeDo2 {
     }
   }
 
-  _onPortModeNotification(event) {
-    const data = new Uint8Array(event.target.value.buffer);
-    const portId = data[0];
-    const mode = data[1];
-    this.log(`Port ${portId} mode changed to ${mode}`);
-  }
-
   _onSensorValueNotification(event) {
     const data = new Uint8Array(event.target.value.buffer);
     // Typical format: [portId, value, ...]
@@ -391,14 +342,6 @@ export class LegoWeDo2 {
 
     this.portValues[portId] = value;
     this.manager?.updatePortValue?.(this, portId, value);
-  }
-
-  _onBatteryNotification(event) {
-    const data = new Uint8Array(event.target.value.buffer);
-    const level = data[0];
-    this.batteryLevel = level;
-    this.log(`Battery level: ${level}%`);
-    this.manager?.updateBatteryLevel?.(this, level);
   }
 
   // ---------------- Sensor Getters ----------------
@@ -421,10 +364,6 @@ export class LegoWeDo2 {
   // Distance in arbitrary units (0–10 or 0–100 depending on firmware)
   getDistance(portId = 0x01) {
     return this.getMotionRaw(portId);
-  }
-
-  getBatteryLevel() {
-    return this.batteryLevel;
   }
 
   // ---------------- Motor Control ----------------
@@ -468,9 +407,9 @@ export class LegoWeDo2 {
   // ---------------- Hub Convenience ----------------
 
   async turnOffHub() {
-    if (!this.charDisconnect) return;
+    if (!this.charTurnOff) return;
     const bytes = new Uint8Array([0x01]);
-    await this._write(this.charDisconnect, bytes);
+    await this._write(this.charTurnOff, bytes);
     this.log("Turn off hub command sent.");
   }
 
