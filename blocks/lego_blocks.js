@@ -3356,7 +3356,7 @@ Blockly.Blocks['wedo2_ports'] = {
 Blockly.Blocks['wedo2_axis'] = {
   init: function() {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([["X", "0"], ["Y", "1"]]), "WEDO2AXIS");
+      .appendField(new Blockly.FieldDropdown([["X", "x"], ["Y", "y"]]), "WEDO2AXIS");
 
     this.setOutput(true, "Number");
     this.setColour(90);

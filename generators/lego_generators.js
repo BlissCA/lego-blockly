@@ -1594,9 +1594,9 @@ javascriptGenerator.forBlock["wedo2_get_distance"] = function (block) {
 javascriptGenerator.forBlock["wedo2_get_tilt"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
-  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "x";
   return [
-    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port}))[${axis}]`, 
+    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port})).${axis}`, 
     javascriptGenerator.ORDER_NONE
   ];
 };

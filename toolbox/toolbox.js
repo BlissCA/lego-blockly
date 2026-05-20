@@ -1376,7 +1376,7 @@ const toolbox = {
                 "AXIS": {
                     "shadow": {
                       "type": "wedo2_axis",
-                      "fields": { "WEDO2AXIS": "0" }
+                      "fields": { "WEDO2AXIS": "x" }
                     }
                   }
 
