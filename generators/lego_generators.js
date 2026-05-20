@@ -1574,13 +1574,6 @@ javascriptGenerator.forBlock["wedo2_ports"] = function (block) {
 
 };
 
-javascriptGenerator.forBlock["wedo2_axis"] = function (block) {
-  // Get the numerical value mapped to the selected letter
-  var code = block.getFieldValue('WEDO2AXIS');
-  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
-  return [code, Blockly.JavaScript.ORDER_ATOMIC];
-};
-
 javascriptGenerator.forBlock["wedo2_get_distance"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";

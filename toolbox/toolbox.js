@@ -1372,14 +1372,7 @@ const toolbox = {
                     "type": "wedo2_ports",
                     "fields": { "WEDO2PORTS": "1" }
                   }
-                },
-                "AXIS": {
-                    "shadow": {
-                      "type": "wedo2_axis",
-                      "fields": { "WEDO2AXIS": "x" }
-                    }
-                  }
-
+                }
               }
             },             
             {

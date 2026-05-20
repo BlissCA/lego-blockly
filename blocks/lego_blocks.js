@@ -2074,7 +2074,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "output": "Number",
       "colour": 80,
-      "tooltip": "Returns the Tilt Fwd/Back: -90 to +90 degrees"
+      "tooltip": "Returns the Tilt: -90 to +90 degrees"
     },
     {
       "type": "lpf2_get_color",
@@ -2367,11 +2367,7 @@ window.addEventListener("load", () => {
           "name": "PORT",
           "check": ["Number", "String"]
         },
-        {
-          "type": "input_value",
-          "name": "AXIS",
-          "check": ["String"]
-        }
+        { "type": "field_dropdown", "name": "AXIS", "options": [["x", "x"],["y", "y"]] }
       ],
       "inputsInline": true,
       "output": "Number",
@@ -3350,17 +3346,6 @@ Blockly.Blocks['wedo2_ports'] = {
     this.setOutput(true, "String");
     this.setColour(90);
     this.setTooltip("Returns a predefined constant value for WeDo 2.0 ports.");
-  }
-};
-
-Blockly.Blocks['wedo2_axis'] = {
-  init: function() {
-    this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown([["X", "x"], ["Y", "y"]]), "WEDO2AXIS");
-
-    this.setOutput(true, "String");
-    this.setColour(90);
-    this.setTooltip("Returns a predefined constant value for WeDo 2.0 axis (X=0, Y=1).");
   }
 };
 
