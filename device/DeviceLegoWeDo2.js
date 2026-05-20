@@ -116,10 +116,6 @@ export class LegoWeDo2 {
 
   async _writeInput(bytes) {
     return this._write(this.charInputCmd, bytes);
-    // return this.enqueueCommand(async () => {
-    //   if (!this.charInputCmd) return;
-    //   await this.charInputCmd.writeValueWithoutResponse(bytes);
-    // });
   }
 
   async _writeOutput(bytes) {
@@ -375,32 +371,37 @@ export class LegoWeDo2 {
     const data = new Uint8Array(event.target.value.buffer);
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
     this.log(`SensorValue notif raw: [${hex}]`);
-    let value = 0;
+
+    if (data.length < 3) return
+
     const unit = data[0];    // 0x01 = tilt angle / motion steps, 0x02 = SI units (distance in cm / tilt state)
     const portId = data[1];
+    const dev = this.portDevices[portId];
+    const ioType = dev?.type;
 
     const view = new DataView(data.buffer);
-    if (view.byteLength < 6) {
-      value = data[2]; // Fallback to raw value if packet is too short to contain float
+    let value = 0;
+  
+    if (ioType === 0x22 && unit === 0x01 && data.length >= 10) {
+      // Tilt, angle mode: two floats (x, y)
+      const x = view.getFloat32(2, true);
+      const y = view.getFloat32(6, true);
+      value = { x, y };
+    } else if (data.length >= 6) {
+      // Single float
+      value = view.getFloat32(2, true);
     } else {
-      value  = view.getFloat32(2, true); // true = Little Endian
+      // Fallback to raw byte
+      value = data[2];
     }
-    
-
-  //  this.log(`Decoded sensorValue: port=${portId}, value=${value}`);
 
     this.portValues[portId] = value; 
   }
 
   // ---------------- Sensor Getters ----------------
 
-  // Motion / distance sensor on external port (1 or 2)
-  getMotionRaw(portId = 0x01) {
-    return this.portValues[portId] ?? 0;
-  }
-
   getDistance(portId = 0x01) {
-    return this.getMotionRaw(portId);
+    return this.portValues[portId] ?? 0;
   }
 
   // Tilt sensor (external) raw value
