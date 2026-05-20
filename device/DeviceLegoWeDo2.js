@@ -459,7 +459,7 @@ export class LegoWeDo2 {
     //this.log(`Motor port ${portId} stopped`);
   }
 
-  async MotorTime(portId = 0x01, power = 50, durationMs = 1000, brake = 0) {
+  async motorTime(portId = 0x01, power = 50, durationMs = 1000, brake = 0) {
     await this.setMotorPower(portId, power);
     await new Promise(resolve => setTimeout(resolve, durationMs));
     await this.motorStop(portId, brake);
