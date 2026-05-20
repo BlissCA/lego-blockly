@@ -667,6 +667,16 @@ function getLPF2Dropdown() {
     : [['No LPF2', 'NONE']];
 }
 
+// Only LEGO WeDo 2.0 devices
+function getWeDo2Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "LegoWeDo2");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No WeDo 2.0', 'NONE']];
+}
+
 
 window.addEventListener("load", () => {
 
@@ -2327,9 +2337,171 @@ window.addEventListener("load", () => {
       "tooltip": "run motor for specified time in milliseconds"
     }
 
+  ]);  
+
+  // ---------------- WeDo 2.0 BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "wedo2_get_distance",
+      "message0": "%1 port %2 Distance",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 90,
+      "tooltip": "Returns the Distance approx. 0-8 cm"
+    },
+    {
+      "type": "wedo2_get_tilt",
+      "message0": "%1 port %2 Tilt axis %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "AXIS",
+          "check": ["Number"]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 90,
+      "tooltip": "Returns the Tilt -45 to +45 degrees"
+    },
+    {
+      "type": "wedo2_isButtonPressed",
+      "message0": "%1 Button Pressed?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 90,
+      "tooltip": "Returns the Button status: false=Not Pressed, true=Pressed"
+    },
+    {
+      "type": "wedo2_mot_power",
+      "message0": "%1 mot %2 pwr %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 90,
+      "tooltip": "Turn ON when power = -100 - +100, 0=FLOAT, 127=BRAKE"
+    },
+    {
+      "type": "wedo2_mot_stop",
+      "message0": "%1 mot %2 stop brake %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "BRAKE",
+          "check": ["Number", "Boolean"]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 90,
+      "tooltip": "Stop Motor, Brake: 0=FLOAT, >0=BRAKE"
+    },
+    {
+      "type": "wedo2_mot_time",
+      "message0": "%1 mot %2 ms %3 power %4 brake %5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number", "String"]
+        },
+        {
+          "type": "input_value",
+          "name": "TIME",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 1000 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "POWER",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "BRAKE",
+          "check": ["Number"],
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 90,
+      "tooltip": "run motor for specified time in milliseconds"
+    },
+    {
+      "type": "wedo2_led",
+      "message0": "%1 LED Color %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getWeDo2Dropdown },
+        {
+          "type": "input_value",
+          "name": "COLOR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 90,
+      "tooltip": "Hub LED Color: 0=Off, 1 to 10 (3=Blue, 5=Green, 7=Yellow, 9=Red, 10=White)"
+    }
 
   ]);  
 
+  // ---------------- Counter BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {
       "type": "counter_block",
@@ -3167,6 +3339,28 @@ Blockly.Blocks['lpf2_axis'] = {
     this.setOutput(true, "Number");
     this.setColour(80);
     this.setTooltip("Returns a predefined constant value for LPF2 axis (X=0, Y=1, Z=2).");
+  }
+};
+
+Blockly.Blocks['wedo2_ports'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["R","1"],["L","2"]]), "WEDO2PORTS");
+
+    this.setOutput(true, "String");
+    this.setColour(90);
+    this.setTooltip("Returns a predefined constant value for WeDo 2.0 ports.");
+  }
+};
+
+Blockly.Blocks['wedo2_axis'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["X", "0"], ["Y", "1"]]), "WEDO2AXIS");
+
+    this.setOutput(true, "Number");
+    this.setColour(90);
+    this.setTooltip("Returns a predefined constant value for WeDo 2.0 axis (X=0, Y=1).");
   }
 };
 

@@ -1346,6 +1346,136 @@ const toolbox = {
         }
       ]
     },
+    {"kind": "category", "name": "WeDo 2.0", "colour": 90, "contents": [
+        {
+          "kind": "category",
+          "name": "Input",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "wedo2_get_distance",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "wedo2_ports",
+                    "fields": { "WEDO2PORTS": "1" }
+                  }
+                }
+              }
+            },            
+            {
+              "kind": "block",
+              "type": "wedo2_get_tilt",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "wedo2_ports",
+                    "fields": { "WEDO2PORTS": "1" }
+                  }
+                },
+                "AXIS": {
+                    "shadow": {
+                      "type": "wedo2_axis",
+                      "fields": { "WEDO2AXIS": "0" }
+                    }
+                  }
+
+              }
+            },             
+            {
+              "kind": "block",
+              "type": "wedo2_isButtonPressed",
+              "inputs": {}
+            }            
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "wedo2_mot_power",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "wedo2_ports",
+                    "fields": { "WEDO2PORTS": "1" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "wedo2_mot_stop",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "wedo2_ports",
+                    "fields": { "WEDO2PORTS": "1" }
+                  }
+                },
+                "BRAKE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "wedo2_mot_time",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "wedo2_ports",
+                    "fields": { "WEDO2PORTS": "1" }
+                  }
+                },
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 1000 }
+                  }
+                },
+                "POWER": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 50 }
+                  }
+                },
+                "BRAKE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "wedo2_led",
+              "inputs": {
+                "COLOR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
     {"kind": "category", "name": "VLL Serial", "colour": 50, "contents": [
         {
           "kind": "block",

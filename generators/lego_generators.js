@@ -1563,6 +1563,112 @@ javascriptGenerator.forBlock["lpf2_mot_time"] = function (block) {
 };
 
 
+// ---------------- LEGO WeDo 2.0 GENERATORS ------------------
+
+// ---------------- WeDo 2.0 Ports ----------------
+javascriptGenerator.forBlock["wedo2_ports"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('WEDO2PORTS');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [`"${code}"`, Blockly.JavaScript.ORDER_ATOMIC];
+
+};
+
+javascriptGenerator.forBlock["wedo2_axis"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('WEDO2AXIS');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["wedo2_get_distance"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").getDistance(${port})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo2_get_tilt"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getTilt(${port}))[${axis}]`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo2_isButtonPressed"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `await deviceManager.getDeviceByName("${dev}").isButtonPressed()`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["wedo2_mot_power"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorPower(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["wedo2_mot_stop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+  const brake  = javascriptGenerator.valueToCode(block, "BRAKE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStop(${port},${brake});
+}
+`;
+};
+
+javascriptGenerator.forBlock["wedo2_mot_time"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+  const time = javascriptGenerator.valueToCode(block, "TIME", javascriptGenerator.ORDER_NONE) || "1000";
+  const power = javascriptGenerator.valueToCode(block, "POWER", javascriptGenerator.ORDER_NONE) || "50";
+  const brake = javascriptGenerator.valueToCode(block, "BRAKE", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorTime(${port},${time},${power},${brake});
+}
+`;
+};
+
+javascriptGenerator.forBlock["wedo2_led"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const color = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.ledRGB(${color});
+}
+`;
+};
 
 
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
