@@ -430,9 +430,10 @@ export class LegoWeDo2 {
 
   // ---------------- Motor Control ----------------
 
-  async setMotorPower(portId = 0x01, power = 50) {
-    if (!this.portDevices[portId]?.isMotor) {
-      this.log(`setMotorPower: port ${portId} is not a motor (type=${this.portDevices[portId]?.type || 0})`);
+  async motorPower(portId = 0x01, power = 50) {
+    const dev = this.portDevices[portId];
+    if (!dev?.isMotor) {
+      this.log(`setMotorPower: port ${portId} is not a motor (type=${dev?.type || 0})`);
       return;
     }
     if (!this.charOutputCmd) {
@@ -440,28 +441,56 @@ export class LegoWeDo2 {
       return;
     }
 
-    const p = clamp(power, -100, 100);
+    const p = clamp(power, -127, 127);
     const speedByte = p & 0xff;
 
-    const bytes = new Uint8Array([0x01, portId, speedByte]);
-    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
-    this.log(`Motor cmd → [${hex}]`);
+    const bytes = new Uint8Array([portId, 0x01, 0x01, speedByte]);
+    // const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    // this.log(`Motor cmd → [${hex}]`);
 
     await this._writeOutput(bytes);
-    this.log(`Motor port ${portId} power set to ${p}`);
+    // this.log(`Motor port ${portId} power set to ${p}`);
   }
 
-  async stopMotor(portId = 0x01) {
-    await this.setMotorPower(portId, 0);
-    this.log(`Motor port ${portId} stopped`);
+  async motorStop(portId = 0x01, brake = 0) {
+		const value = brake ? 0x7F : 0x00;
+
+    await this.motorPower(portId, value);
+    //this.log(`Motor port ${portId} stopped`);
   }
 
-  async runMotorTimed(portId = 0x01, power = 50, durationMs = 1000) {
+  async runMotorTimed(portId = 0x01, power = 50, durationMs = 1000, brake = 0) {
     await this.setMotorPower(portId, power);
     await new Promise(resolve => setTimeout(resolve, durationMs));
-    await this.stopMotor(portId);
+    await this.motorStop(portId, brake);
   }
 
+  // ---------------- RGB LED Control ---------------- 
+  async ledRGB(color=0x0A) {
+    const c = clamp(color, 0, 10);
+    const colorByte = c & 0xff;
+
+    const bytes = new Uint8Array([0x06, 0x04, 0x01, colorByte]);
+    // const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    // this.log(`LED cmd → [${hex}]`);
+
+    await this._writeOutput(bytes);
+    // this.log(`LED port 6 color set to ${c}`);
+  }
+
+  // ---------------- Piezo Control ---------------- 
+  async piezoPlay(frequency, duration) {
+    const freqInt16 = clamp(frequency, 0, 0x7FFF) & 0xffff;
+    const durInt16 = clamp(duration, 0, 0x7FFF) & 0xffff;
+
+    const bytes = new Uint8Array([0x05, 0x02, 0x04, freqInt16 & 0xFF,(freqInt16 >> 8) & 0xFF, durInt16 & 0xFF,(durInt16 >> 8) & 0xFF]);
+    // const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    // this.log(`Piezo cmd → [${hex}]`);
+
+    await this._writeOutput(bytes);
+    // this.log(`piezo port 5 frequency set to ${freqInt16}, duration set to ${durInt16}`);
+  }
+ 
   // ---------------- Hub Convenience ----------------
 
   async turnOffHub() {

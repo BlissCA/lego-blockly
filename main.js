@@ -902,7 +902,11 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.stopMotor();
       } else if (dev.stopAllMotors) {
         // LPF2: stop all motors
-          await dev.stopAllMotors();
+        await dev.stopAllMotors();
+      } else if (dev.motorStop) {
+        // WeDo 2.0: stop all motors
+        await dev.motorStop(1);
+        await dev.motorStop(2);
       }
 
     } catch (err) {
