@@ -301,6 +301,9 @@ export class LegoWeDo2 {
       case 0x17: // Internal hub RGB
         typeName = "rgb";
         break;
+      case 0x24: // Generic device
+        typeName = "generic";
+        break;
       default:
         typeName = `unknown (0x${ioType.toString(16)})`;
         break;
@@ -382,7 +385,7 @@ export class LegoWeDo2 {
   _onSensorValueNotification(event) {
     const data = new Uint8Array(event.target.value.buffer);
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, "0")).join(" ");
-    this.log(`SensorValue notif raw: [${hex}]`);
+    // this.log(`SensorValue notif raw: [${hex}]`);
 
     if (data.length < 3) return
 
