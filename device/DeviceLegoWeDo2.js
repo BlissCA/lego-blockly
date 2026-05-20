@@ -382,7 +382,7 @@ export class LegoWeDo2 {
     const view = new DataView(data.buffer);
     let value = 0;
   
-    if (ioType === 0x22 && unit === 0x01 && data.length >= 10) {
+    if (ioType === 0x22 && data.length >= 10) {
       // Tilt, angle mode: two floats (x, y)
       const x = view.getFloat32(2, true);
       const y = view.getFloat32(6, true);
