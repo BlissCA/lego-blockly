@@ -182,6 +182,9 @@ export class LegoWeDo2 {
       this.charOutputCmd   = await this.serviceIO.getCharacteristic(WEDO_CHAR_OUTPUT_CMD);
     }
 
+    // Initialize ports
+    this._initDefaultPorts();
+
     // Notifications
     await this.charButton.startNotifications();
     this.charButton.addEventListener("characteristicvaluechanged", this._onButtonNotification);
@@ -193,9 +196,6 @@ export class LegoWeDo2 {
       await this.charSensorValue.startNotifications();
       this.charSensorValue.addEventListener("characteristicvaluechanged", this._onSensorValueNotification);
     }
-
-    // Initialize ports
-    this._initDefaultPorts();
 
     // Allocate name
     if (!this.name) {
@@ -288,6 +288,18 @@ export class LegoWeDo2 {
       case WEDO_DEVICE_TILT:
         isSensor = true;
         typeName = "tilt";
+        break;
+      case 0x15: // Internal hub Current
+        typeName = "current";
+        break;
+      case 0x14: // Internal hub Voltage
+        typeName = "volt";
+        break;
+      case 0x16: // Internal hub piezo
+        typeName = "piezo";
+        break;
+      case 0x17: // Internal hub RGB
+        typeName = "rgb";
         break;
       default:
         typeName = `unknown (0x${ioType.toString(16)})`;
