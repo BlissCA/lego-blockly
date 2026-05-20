@@ -358,7 +358,7 @@ export class LegoWeDo2 {
     const data = new Uint8Array(event.target.value.buffer);
     const state = data[0] || 0;
     this.buttonPressed = !!state;
-    this.log(`Button ${this.buttonPressed ? "pressed" : "released"}`);
+    // this.log(`Button ${this.buttonPressed ? "pressed" : "released"}`);
   }
 
   _onPortTypeNotification(event) {
@@ -420,12 +420,12 @@ export class LegoWeDo2 {
   }
 
   // Tilt sensor (external) raw value
-  getTiltRaw(portId = 0x01) {
+  getTilt(portId = 0x01) {
     return this.portValues[portId] ?? 0;
   }
 
   getTiltState(portId = 0x01) {
-    return this.getTiltRaw(portId);
+    return this.getTilt(portId);
   }
 
   // ---------------- Motor Control ----------------
