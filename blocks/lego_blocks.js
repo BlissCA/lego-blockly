@@ -2370,7 +2370,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "AXIS",
-          "check": ["Number"]
+          "check": ["String"]
         }
       ],
       "inputsInline": true,
