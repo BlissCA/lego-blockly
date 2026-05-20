@@ -3358,7 +3358,7 @@ Blockly.Blocks['wedo2_axis'] = {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([["X", "x"], ["Y", "y"]]), "WEDO2AXIS");
 
-    this.setOutput(true, "Number");
+    this.setOutput(true, "String");
     this.setColour(90);
     this.setTooltip("Returns a predefined constant value for WeDo 2.0 axis (X=0, Y=1).");
   }
