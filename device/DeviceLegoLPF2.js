@@ -1114,23 +1114,27 @@ export class LegoLPF2 {
 							break;
 
 					case 0x45:
-							this.namePrefix = "TechSmall";
+							this.namePrefix = "TechS";  // Technic Small Hub
 							break;
 
 					case 0x80:
-							this.namePrefix = "Technic";
+							this.namePrefix = "Tech";  // Technic Large Hub
 							break;
 
 					case 0x81:
-							this.namePrefix = "Inventor";
+							this.namePrefix = "Invent";  // MindstormsInventor Hub
 							break;
 
 					case 0x83:
-							this.namePrefix = "SpikePrime";
+							this.namePrefix = "SpkP";  // Spike Prime
 							break;
 
 					case 0x84:
-							this.namePrefix = "SpikeEss";
+							this.namePrefix = "SpkE"; // Spike Essential
+							break;
+
+					case 0x8A:
+							this.namePrefix = "Tech3m"; // Technic integrated 3 motors 6 leds hub
 							break;
 
 					case 0x64:

@@ -19,8 +19,8 @@ Lego Blockly supports for now:
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
 - Wedo 1.0 (using the 2 ports USB hub)
-
-More to come (Wedo 2.0, Boost, etc)
+- WeDo 2.0 (BLE)
+- LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
 
 You need access to serial ports:
 - Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
@@ -67,4 +67,4 @@ Special thanks to people who participate in this forum thread.  They give precio
 
 ## Wonderful other related projects by others:
 - For RCX brick: [BlockNQC](https://www.webpbrick.com/nqc/blocknqc/) and [WebPBrick](https://www.webpbrick.com/ide/) by @maehw (https://github.com/maehw)
-- [BrickLogo](https://github.com/openbrickproject/BrickLogo) by the Open Brick Project. 
+- [BrickLogo](https://github.com/openbrickproject/BrickLogo) by the Open Brick Project. (https://github.com/nathankellenicki)
