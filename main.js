@@ -989,6 +989,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
       dev = await window.deviceManager.connectLegoVLL();   // your unified VLL Serial class
       break;
 
+    case "PFIR":
+      dev = await window.deviceManager.connectLegoPFIR();   // your unified PF IR DTR class
+      break;
+
     case "LPF2":
       dev = await window.deviceManager.connectLegoLPF2();   // your unified LPF2 class
       break;

@@ -324,6 +324,26 @@ export class DeviceManager {
       return null;
     }
   }
+  
+  // -------------------------
+  // Connect LEGO PF IR DTR
+  // -------------------------
+
+  async connectLegoPFIR() {
+    const dev = new LegoPFIR(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego PF IR DTR Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
 
   // -------------------------
   // Connect LEGO LPF2
