@@ -8,6 +8,7 @@ import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
+import { LegoPFIR } from './DeviceLegoPFIR.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
 
 // -------------------------

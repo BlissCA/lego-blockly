@@ -22,6 +22,7 @@ import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
+import "./device/DeviceLegoPFIR.js";
 import "./device/DeviceLegoLPF2.js";
 import "./device/deviceManager.js";
 
