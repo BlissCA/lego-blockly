@@ -22,7 +22,6 @@ import "./device/DeviceLegoRcx.js";
 import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
-import "./device/DeviceLegoPFIR.js";
 import "./device/DeviceLegoLPF2.js";
 import "./device/deviceManager.js";
 
@@ -988,10 +987,6 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "VLLSER":
       dev = await window.deviceManager.connectLegoVLL();   // your unified VLL Serial class
-      break;
-
-    case "PFIR":
-      dev = await window.deviceManager.connectLegoPFIR();   // your unified PF IR DTR class
       break;
 
     case "LPF2":

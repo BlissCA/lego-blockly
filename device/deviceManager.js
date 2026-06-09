@@ -8,7 +8,6 @@ import { LegoRcx } from './DeviceLegoRcx.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
-import { LegoPFIR } from './DeviceLegoPFIR.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
 
 // -------------------------
@@ -326,26 +325,6 @@ export class DeviceManager {
     }
   }
   
-  // -------------------------
-  // Connect LEGO PF IR DTR
-  // -------------------------
-
-  async connectLegoPFIR() {
-    const dev = new LegoPFIR(null, this);
-
-    try {
-      await dev.connect();
-      this._addDevice(dev);
-      return dev;
-
-    } catch (err) {
-      console.warn("Lego PF IR DTR Connection failed:", err);
-      await dev.disconnect();
-      this._freeName(dev.name);
-      return null;
-    }
-  }
-
   // -------------------------
   // Connect LEGO LPF2
   // -------------------------
