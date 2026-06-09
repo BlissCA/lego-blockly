@@ -1,8 +1,7 @@
 // ------------------------------------------------------------
 // device/DeviceLegoPFIR.js
 // LEGO Power Functions IR using FTDI DTR pin.
-// Based on Arduino PF IR protocol implementation.
-// Supports: Single Output Mode + Combo (via two single outputs).
+// Ported directly from Arduino PF IR implementation.
 // ------------------------------------------------------------
 
 export class LegoPFIR {
@@ -13,20 +12,16 @@ export class LegoPFIR {
     this.port = null;
     this.status = "idle";
 
-    // PF IR timing (Arduino-accurate)
-    this.T_US = 158;                    // base time unit
-    this.PREAMBLE_US = 16 * this.T_US;  // preamble carrier
-    this.FRAME_GAP_US = 39 * this.T_US; // inter-frame gap
-    this.FRAME_REPEAT = 5;              // repeat count
+    // Timing (from Arduino code)
+    this.TX_TIME_US = 156;      // oscillationWrite time
+    this.START_PAUSE_US = 1014;
+    this.HIGH_PAUSE_US = 546;
+    this.LOW_PAUSE_US = 260;
 
-    // Carrier timing (~38 kHz): 13 µs high, 13 µs low
-    this.CARRIER_HALF_US = 13;
+    this.toggle = [0, 0, 0, 0]; // per-channel toggle bit
 
-    // Queue
     this.queue = Promise.resolve();
     this.queueActive = true;
-
-    this._toggleBit = false;
   }
 
   // ------------------------------------------------------------
@@ -103,7 +98,7 @@ export class LegoPFIR {
   }
 
   // ------------------------------------------------------------
-  // PRECISE TIMING HELPERS
+  // TIMING HELPERS
   // ------------------------------------------------------------
   async sleepUs(us) {
     const start = performance.now();
@@ -113,111 +108,223 @@ export class LegoPFIR {
     }
   }
 
-  async carrierBurst(us) {
-    const half = this.CARRIER_HALF_US;
-    const end = performance.now() + us / 1000;
-
-    while (performance.now() < end) {
+  async oscillationWrite(timeUs) {
+    // Arduino: for (i = 0; i <= time/26; i++) { HIGH 13µs, LOW 13µs }
+    const cycles = Math.floor(timeUs / 26);
+    for (let i = 0; i <= cycles; i++) {
       await this.port.setSignals({ dataTerminalReady: true });
-      await this.sleepUs(half);
-
+      await this.sleepUs(13);
       await this.port.setSignals({ dataTerminalReady: false });
-      await this.sleepUs(half);
+      await this.sleepUs(13);
     }
   }
 
-  // ------------------------------------------------------------
-  // BIT ENCODING (Arduino-accurate)
-  // ------------------------------------------------------------
-  async sendBit0() {
-    // 0-bit: T high + T low
-    await this.carrierBurst(this.T_US);
-    await this.sleepUs(this.T_US);
+  async startPause() {
+    await this.sleepUs(this.START_PAUSE_US);
   }
 
-  async sendBit1() {
-    // 1-bit: T high + 3T low
-    await this.carrierBurst(this.T_US);
-    await this.sleepUs(3 * this.T_US);
+  async highPause() {
+    await this.sleepUs(this.HIGH_PAUSE_US);
   }
 
-  async sendStartStop() {
-    // Start/stop bits are 0-bits
-    await this.sendBit0();
+  async lowPause() {
+    await this.sleepUs(this.LOW_PAUSE_US);
+  }
+
+  async messagePause(channel, count) {
+    // Arduino message_pause(channel, count)
+    let a = 0;
+    if (count === 0) {
+      a = 4 - channel + 1;
+    } else if (count === 1 || count === 2) {
+      a = 5;
+    } else if (count === 3 || count === 4) {
+      a = 5 + (channel + 1) * 2;
+    }
+    await this.sleepUs(a * 77);
+  }
+
+  async startStopBit() {
+    // Arduino: oscillationWrite(156); start_pause();
+    await this.oscillationWrite(this.TX_TIME_US);
+    await this.startPause();
   }
 
   // ------------------------------------------------------------
-  // FRAME BUILDER (Arduino-accurate)
-  // ------------------------------------------------------------
-  async sendPFFrame(channel, mode, data) {
-    const toggle = (this._toggleBit = !this._toggleBit) ? 1 : 0;
+  // CORE SEND (pf_send)
+// ------------------------------------------------------------
+  async pfSend(code1, code2) {
+    let x = 0x80;
 
-    const nibble0 = (toggle << 3) | (channel & 0x03);
-    const nibble1 = mode & 0x0F;
-    const nibble2 = data & 0x0F;
-    const nibble3 = 0x0F ^ nibble0 ^ nibble1 ^ nibble2;
+    await this.startStopBit();
 
-    const frame =
-      (nibble3 << 12) |
-      (nibble2 << 8) |
-      (nibble1 << 4) |
-      nibble0;
+    // First byte
+    while (x) {
+      await this.oscillationWrite(this.TX_TIME_US);
 
-    for (let r = 0; r < this.FRAME_REPEAT; r++) {
-      // Preamble: 16T carrier
-      await this.carrierBurst(this.PREAMBLE_US);
-
-      // Start bit
-      await this.sendStartStop();
-
-      // 16 bits LSB-first
-      for (let i = 0; i < 16; i++) {
-        const bit = (frame >> i) & 1;
-        bit ? await this.sendBit1() : await this.sendBit0();
+      if (code1 & x) {
+        await this.highPause();
+      } else {
+        await this.lowPause();
       }
 
-      // Stop bit
-      await this.sendStartStop();
+      x >>= 1;
+    }
 
-      // Inter-frame gap
-      await this.sleepUs(this.FRAME_GAP_US);
+    // Second byte
+    x = 0x80;
+    while (x) {
+      await this.oscillationWrite(this.TX_TIME_US);
+
+      if (code2 & x) {
+        await this.highPause();
+      } else {
+        await this.lowPause();
+      }
+
+      x >>= 1;
+    }
+
+    await this.startStopBit();
+    await this.sleepUs(10000); // delay(10)
+  }
+
+  // ------------------------------------------------------------
+  // PF CONSTANTS (from Arduino code)
+// ------------------------------------------------------------
+  static get MODE() {
+    return {
+      COMBO_DIRECT_MODE: 0x01,
+      SINGLE_PIN_CONTINUOUS: 0x02,
+      SINGLE_PIN_TIMEOUT: 0x03,
+      SINGLE_OUTPUT: 0x04
+    };
+  }
+
+  static get PWM() {
+    return {
+      FLT: 0x0,
+      FWD1: 0x1,
+      FWD2: 0x2,
+      FWD3: 0x3,
+      FWD4: 0x4,
+      FWD5: 0x5,
+      FWD6: 0x6,
+      FWD7: 0x7,
+      BRK: 0x8,
+      REV7: 0x9,
+      REV6: 0xA,
+      REV5: 0xB,
+      REV4: 0xC,
+      REV3: 0xD,
+      REV2: 0xE,
+      REV1: 0xF
+    };
+  }
+
+  static get SPEED() {
+    return {
+      RED_FLT: 0x0,
+      RED_FWD: 0x1,
+      RED_REV: 0x2,
+      RED_BRK: 0x3,
+      BLUE_FLT: 0x0,
+      BLUE_FWD: 0x4,
+      BLUE_REV: 0x8,
+      BLUE_BRK: 0xC
+    };
+  }
+
+  static get CHANNEL() {
+    return { CH1: 0x0, CH2: 0x1, CH3: 0x2, CH4: 0x3 };
+  }
+
+  static get OUTPUT() {
+    return { RED: 0x0, BLUE: 0x1 };
+  }
+
+  // ------------------------------------------------------------
+  // ARDUINO-EQUIVALENT: ComboMode
+  // ------------------------------------------------------------
+  async comboMode(blueSpeed, redSpeed, channel) {
+    const MODE = LegoPFIR.MODE;
+    let nib1 = channel;
+    let nib2 = MODE.COMBO_DIRECT_MODE;
+    let nib3 = blueSpeed | redSpeed;
+    let nib4 = 0xF ^ nib1 ^ nib2 ^ nib3;
+
+    for (let i = 0; i < 6; i++) {
+      await this.messagePause(channel, i);
+      await this.pfSend((nib1 << 4) | nib2, (nib3 << 4) | nib4);
     }
   }
 
   // ------------------------------------------------------------
-  // POWER MAPPING (Arduino-accurate)
+  // ARDUINO-EQUIVALENT: SingleOutput
   // ------------------------------------------------------------
-  mapPowerToPF(p) {
-    // p: -7..7, 0 = float
-    if (p === 0) return 0;        // float
-    if (p > 0) return p;          // 1..7 forward
-    return 16 + p;                // -1..-7 → 15..9
+  async singleOutput(pwm, output, channel) {
+    const MODE = LegoPFIR.MODE;
+
+    let nib1 = this.toggle[channel] | channel;
+    let nib2 = MODE.SINGLE_OUTPUT | output;
+    let nib3 = pwm;
+    let nib4 = 0xF ^ nib1 ^ nib2 ^ nib3;
+
+    for (let i = 0; i < 6; i++) {
+      await this.messagePause(channel, i);
+      await this.pfSend((nib1 << 4) | nib2, (nib3 << 4) | nib4);
+    }
+
+    this.toggle[channel] = this.toggle[channel] === 0 ? 8 : 0;
   }
 
   // ------------------------------------------------------------
-  // PUBLIC API: SINGLE OUTPUT MODE
+  // POWER MAPPING: -7..7 → PWM codes
   // ------------------------------------------------------------
+  mapPowerToPWM(p) {
+    const PWM = LegoPFIR.PWM;
+    if (p === 0) return PWM.FLT;
+    if (p > 0) {
+      const step = Math.min(7, p);
+      return PWM[`FWD${step}`];
+    }
+    const step = Math.min(7, -p);
+    return PWM[`REV${step}`];
+  }
+
+  // ------------------------------------------------------------
+  // PUBLIC API: motorPower (SingleOutput)
+// ------------------------------------------------------------
   motorPower(channel, output, power) {
     return this.enqueue(async () => {
-      // Mode nibble for single output:
-      // 0x4 = single output, red (A)
-      // 0x5 = single output, blue (B)
-      const mode = (output === "A" || output === 0) ? 0x4 : 0x5;
-
-      const p = Math.max(-7, Math.min(7, power));
-      const pfPower = this.mapPowerToPF(p);
-
-      await this.sendPFFrame(channel, mode, pfPower);
+      const OUT = LegoPFIR.OUTPUT;
+      const pwm = this.mapPowerToPWM(Math.max(-7, Math.min(7, power)));
+      const outCode = (output === "A" || output === 0) ? OUT.RED : OUT.BLUE;
+      await this.singleOutput(pwm, outCode, channel);
     });
   }
 
   // ------------------------------------------------------------
-  // PUBLIC API: COMBO PWM MODE (emulated via two single outputs)
-  // ------------------------------------------------------------
+  // PUBLIC API: comboPWM (ComboMode)
+// ------------------------------------------------------------
   comboPWM(channel, powerA, powerB) {
     return this.enqueue(async () => {
-      await this.motorPower(channel, "A", powerA);
-      await this.motorPower(channel, "B", powerB);
+      const SPEED = LegoPFIR.SPEED;
+
+      const mapSimple = p => {
+        if (p === 0) return { red: SPEED.RED_FLT, blue: SPEED.BLUE_FLT };
+        if (p > 0) return { red: SPEED.RED_FWD, blue: SPEED.BLUE_FWD };
+        return { red: SPEED.RED_REV, blue: SPEED.BLUE_REV };
+      };
+
+      const a = mapSimple(Math.max(-7, Math.min(7, powerA)));
+      const b = mapSimple(Math.max(-7, Math.min(7, powerB)));
+
+      // ComboMode uses blue_speed | red_speed
+      const blueSpeed = b.blue;
+      const redSpeed = a.red;
+
+      await this.comboMode(blueSpeed, redSpeed, channel);
     });
   }
 
@@ -226,9 +333,11 @@ export class LegoPFIR {
   // ------------------------------------------------------------
   stopAll() {
     return this.enqueue(async () => {
+      const OUT = LegoPFIR.OUTPUT;
+      const PWM = LegoPFIR.PWM;
       for (let ch = 0; ch < 4; ch++) {
-        await this.motorPower(ch, "A", 0);
-        await this.motorPower(ch, "B", 0);
+        await this.singleOutput(PWM.FLT, OUT.RED, ch);
+        await this.singleOutput(PWM.FLT, OUT.BLUE, ch);
       }
     });
   }
