@@ -1,8 +1,8 @@
 // ------------------------------------------------------------
 // device/DeviceLegoPFIR.js
 // LEGO Power Functions IR using FTDI DTR pin.
-// Compatible with LEGO PF IR Receiver v1/v2.
-// Supports: Single Output Mode + Combo PWM Mode.
+// Based on Arduino PF IR protocol implementation.
+// Supports: Single Output Mode + Combo (via two single outputs).
 // ------------------------------------------------------------
 
 export class LegoPFIR {
@@ -13,16 +13,20 @@ export class LegoPFIR {
     this.port = null;
     this.status = "idle";
 
-    // PF IR timing constants (microseconds)
-    this.CARRIER_PERIOD_US = 26;     // 38 kHz → ~26 µs high, 26 µs low
-    this.BIT0_US = 600;              // logical 0 burst
-    this.BIT1_US = 1300;             // logical 1 burst
-    this.BIT_GAP_US = 600;           // silence after each bit
-    this.FRAME_REPEAT = 5;           // LEGO requires 5 repeats
+    // PF IR timing (Arduino-accurate)
+    this.T_US = 158;                    // base time unit
+    this.PREAMBLE_US = 16 * this.T_US;  // preamble carrier
+    this.FRAME_GAP_US = 39 * this.T_US; // inter-frame gap
+    this.FRAME_REPEAT = 5;              // repeat count
+
+    // Carrier timing (~38 kHz): 13 µs high, 13 µs low
+    this.CARRIER_HALF_US = 13;
 
     // Queue
     this.queue = Promise.resolve();
     this.queueActive = true;
+
+    this._toggleBit = false;
   }
 
   // ------------------------------------------------------------
@@ -104,78 +108,90 @@ export class LegoPFIR {
   async sleepUs(us) {
     const start = performance.now();
     const target = start + us / 1000;
-    while (performance.now() < target) { /* busy wait */ }
+    while (performance.now() < target) {
+      // busy wait
+    }
   }
 
-  async pulse(on, us) {
-    await this.port.setSignals({ dataTerminalReady: on });
-    await this.sleepUs(us);
-  }
-
-  // ------------------------------------------------------------
-  // 38 kHz CARRIER BURST
-  // ------------------------------------------------------------
   async carrierBurst(us) {
-    const period = this.CARRIER_PERIOD_US;
+    const half = this.CARRIER_HALF_US;
     const end = performance.now() + us / 1000;
 
     while (performance.now() < end) {
       await this.port.setSignals({ dataTerminalReady: true });
-      await this.sleepUs(period);
+      await this.sleepUs(half);
+
       await this.port.setSignals({ dataTerminalReady: false });
-      await this.sleepUs(period);
+      await this.sleepUs(half);
     }
   }
 
   // ------------------------------------------------------------
-  // PF BIT ENCODING
+  // BIT ENCODING (Arduino-accurate)
   // ------------------------------------------------------------
   async sendBit0() {
-    await this.carrierBurst(this.BIT0_US);
-    await this.sleepUs(this.BIT_GAP_US);
+    // 0-bit: T high + T low
+    await this.carrierBurst(this.T_US);
+    await this.sleepUs(this.T_US);
   }
 
   async sendBit1() {
-    await this.carrierBurst(this.BIT1_US);
-    await this.sleepUs(this.BIT_GAP_US);
+    // 1-bit: T high + 3T low
+    await this.carrierBurst(this.T_US);
+    await this.sleepUs(3 * this.T_US);
+  }
+
+  async sendStartStop() {
+    // Start/stop bits are 0-bits
+    await this.sendBit0();
   }
 
   // ------------------------------------------------------------
-  // PF FRAME BUILDER
+  // FRAME BUILDER (Arduino-accurate)
   // ------------------------------------------------------------
   async sendPFFrame(channel, mode, data) {
-    // LEGO PF frame:
-    // [Start=1][Toggle][Channel][Mode][Data][Checksum]
-
     const toggle = (this._toggleBit = !this._toggleBit) ? 1 : 0;
 
-    const nibble = (toggle << 3) | (channel & 0x03);
-    const checksum = 0xF ^ nibble ^ mode ^ data;
+    const nibble0 = (toggle << 3) | (channel & 0x03);
+    const nibble1 = mode & 0x0F;
+    const nibble2 = data & 0x0F;
+    const nibble3 = 0x0F ^ nibble0 ^ nibble1 ^ nibble2;
 
-    const frame = [
-      1,                // Start bit
-      (nibble >> 3) & 1,
-      (nibble >> 2) & 1,
-      (nibble >> 1) & 1,
-      (nibble >> 0) & 1,
-      (mode >> 1) & 1,
-      (mode >> 0) & 1,
-      (data >> 3) & 1,
-      (data >> 2) & 1,
-      (data >> 1) & 1,
-      (data >> 0) & 1,
-      (checksum >> 3) & 1,
-      (checksum >> 2) & 1,
-      (checksum >> 1) & 1,
-      (checksum >> 0) & 1
-    ];
+    const frame =
+      (nibble3 << 12) |
+      (nibble2 << 8) |
+      (nibble1 << 4) |
+      nibble0;
 
     for (let r = 0; r < this.FRAME_REPEAT; r++) {
-      for (const bit of frame) {
+      // Preamble: 16T carrier
+      await this.carrierBurst(this.PREAMBLE_US);
+
+      // Start bit
+      await this.sendStartStop();
+
+      // 16 bits LSB-first
+      for (let i = 0; i < 16; i++) {
+        const bit = (frame >> i) & 1;
         bit ? await this.sendBit1() : await this.sendBit0();
       }
-      await this.sleepUs(5000); // Inter-frame gap
+
+      // Stop bit
+      await this.sendStartStop();
+
+      // Inter-frame gap
+      await this.sleepUs(this.FRAME_GAP_US);
     }
+  }
+
+  // ------------------------------------------------------------
+  // POWER MAPPING (Arduino-accurate)
+  // ------------------------------------------------------------
+  mapPowerToPF(p) {
+    // p: -7..7, 0 = float
+    if (p === 0) return 0;        // float
+    if (p > 0) return p;          // 1..7 forward
+    return 16 + p;                // -1..-7 → 15..9
   }
 
   // ------------------------------------------------------------
@@ -183,31 +199,25 @@ export class LegoPFIR {
   // ------------------------------------------------------------
   motorPower(channel, output, power) {
     return this.enqueue(async () => {
-      const mode = 0b01; // Single Output Mode
+      // Mode nibble for single output:
+      // 0x4 = single output, red (A)
+      // 0x5 = single output, blue (B)
+      const mode = (output === "A" || output === 0) ? 0x4 : 0x5;
 
-      const out = (output === "A" || output === 0) ? 0 : 1;
+      const p = Math.max(-7, Math.min(7, power));
+      const pfPower = this.mapPowerToPF(p);
 
-      // Power: -7..+7 → PF encoding 0..15
-      let p = Math.max(-7, Math.min(7, power));
-      const data = (out << 4) | (p & 0x0F);
-
-      await this.sendPFFrame(channel, mode, data);
+      await this.sendPFFrame(channel, mode, pfPower);
     });
   }
 
   // ------------------------------------------------------------
-  // PUBLIC API: COMBO PWM MODE
+  // PUBLIC API: COMBO PWM MODE (emulated via two single outputs)
   // ------------------------------------------------------------
   comboPWM(channel, powerA, powerB) {
     return this.enqueue(async () => {
-      const mode = 0b10; // Combo PWM Mode
-
-      let a = Math.max(-7, Math.min(7, powerA));
-      let b = Math.max(-7, Math.min(7, powerB));
-
-      const data = ((a & 0x0F) << 4) | (b & 0x0F);
-
-      await this.sendPFFrame(channel, mode, data);
+      await this.motorPower(channel, "A", powerA);
+      await this.motorPower(channel, "B", powerB);
     });
   }
 
@@ -217,7 +227,8 @@ export class LegoPFIR {
   stopAll() {
     return this.enqueue(async () => {
       for (let ch = 0; ch < 4; ch++) {
-        await this.sendPFFrame(ch, 0b01, 0x00);
+        await this.motorPower(ch, "A", 0);
+        await this.motorPower(ch, "B", 0);
       }
     });
   }
