@@ -2022,7 +2022,7 @@ window.addEventListener("load", () => {
       "type": "legopf_single",
       "message0": "%1 ch %2 out %3 pwr %4",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
         {
           "type": "input_value",
           "name": "CHANNEL",
@@ -2049,7 +2049,7 @@ window.addEventListener("load", () => {
       "type": "legopf_combo",
       "message0": "%1 ch %2 Blue %3 Red %4",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
         {
           "type": "input_value",
           "name": "CHANNEL",
