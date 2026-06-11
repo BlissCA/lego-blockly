@@ -460,6 +460,35 @@ export class LegoInterfaceA_v2 {
 		}
 	}
 
+  // PF IR Single Output command
+  async pf_Single(channel, output, pwm) {
+    this.ensureAlive();
+    if (channel < 0 || channel > 3) return;
+    if (output < 0 || output > 1) return;
+
+    let v = Math.round(pwm);
+    v = ((output << 4) | (pwm & 0x0F)) & 0xFF;
+
+    const cmd = (0xA0 | (channel & 0x0F)) & 0xFF;
+
+    await this.writeBytes(new Uint8Array([cmd, v]));
+
+  }
+
+  // PF IR Combo PWM command
+  async pf_Combo(channel, pwm_b, pwm_r) {
+    this.ensureAlive();
+    if (channel < 0 || channel > 3) return;
+
+    let v = Math.round(pwm);
+    v = ((pwm_b << 4) | (pwm_r & 0x0F)) & 0xFF;
+
+    const cmd = (0xB0 | (channel & 0x0F)) & 0xFF;
+    
+    await this.writeBytes(new Uint8Array([cmd, v]));
+
+  }
+
   // ---------------- Disconnect ----------------
 
   async disconnect() {
