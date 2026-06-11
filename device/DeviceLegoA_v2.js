@@ -458,6 +458,10 @@ export class LegoInterfaceA_v2 {
 		for (let p = 0; p <= 5; p++) {
 			await this.outPwm(p, 0);
 		}
+
+		for (let p = 0; p <= 3; p++) {
+			await this.pf_Combo(p, 0, 0);
+		}
 	}
 
   // PF IR Single Output command
