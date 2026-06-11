@@ -2017,7 +2017,61 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 35,
       "tooltip": "Power the motor (combo port) using PWM value from 0 to 255 (0=Stop) at specified direction (0=Left, 1=Right)"
-    }    
+    },
+    {
+      "type": "legopf_single",
+      "message0": "%1 ch %2 out %3 pwr %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "OUTPUT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM",
+          "check": "Number",
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "PF IR Single Output Command to 7"
+    },    
+    {
+      "type": "legopf_combo",
+      "message0": "%1 ch %2 Blue %3 Red %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM_B",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM_R",
+          "check": "Number",
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 35,
+      "tooltip": "PF IR Single Output Command to 7"
+    },    
 
   ]);
 
@@ -2950,6 +3004,19 @@ Blockly.Blocks['Legopf_channel'] = {
     this.setOutput(true, "Number");
     this.setColour(230);
     this.setTooltip("Returns a predefined constant value for Lego PF IR Channel");
+  }
+};
+
+Blockly.Blocks['Legopf_pwm'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["Float", "0"], ["Fwd1", "1"], ["Fwd2", "2"], ["Fwd3", "3"], ["Fwd4", "4"], ["Fwd5", "5"], ["Fwd6", "6"], ["Fwd7", "7"], ["Brake", "8"], ["Rev7", "9"], ["Rev6", "10"], ["Rev5", "11"], ["Rev4", "12"], ["Rev3", "13"], ["Rev2", "14"], ["Rev1", "15"]
+      ]), "PWM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego PF IR pwm values");
   }
 };
 

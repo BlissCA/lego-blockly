@@ -687,7 +687,64 @@ const toolbox = {
               }
             }
           ]
-        }
+        },
+        {
+          "kind": "category",
+          "name": "PF IR",
+          "contents": [
+            { "kind": "block", "type": "Legopf_channel" },
+            { "kind": "block", "type": "Legopf_output" },
+            { "kind": "block", "type": "Legopf_pwm" },
+            {
+              "kind": "block",
+              "type": "legopf_single",
+              "inputs": {
+                "CHANNEL": {
+                  "shadow": {
+                    "type": "Legopf_channel",
+                    "fields": { "CHANNEL": "0" }
+                  }
+                },
+                "OUTPUT": {
+                  "shadow": {
+                    "type": "Legopf_output",
+                    "fields": { "OUTPUT": "0" }
+                  }
+                },
+                "PWM": {
+                  "shadow": {
+                    "type": "Legopf_pwm",
+                    "fields": { "PWM": "4" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legopf_combo",
+              "inputs": {
+                "CHANNEL": {
+                  "shadow": {
+                    "type": "Legopf_channel",
+                    "fields": { "CHANNEL": "0" }
+                  }
+                },
+                "PWM_B": {
+                  "shadow": {
+                    "type": "Legopf_pwm",
+                    "fields": { "PWM": "4" }
+                  }
+                },
+                "PWM_R": {
+                  "shadow": {
+                    "type": "Legopf_pwm",
+                    "fields": { "PWM": "4" }
+                  }
+                }
+              }
+            }
+          ]
+        }        
       ]
     },
 

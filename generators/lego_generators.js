@@ -1252,6 +1252,60 @@ javascriptGenerator.forBlock["legoa2_combo_pwm"] = function (block) {
 `;
 };
 
+// ---------------- PF IR GENERATORS ----------------
+
+javascriptGenerator.forBlock["Legopf_channel"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('CHANNEL');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["Legopf_output"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('OUTPUT');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["Legopf_pwm"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('PWM');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["legopf_single"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const output = javascriptGenerator.valueToCode(block, "OUTPUT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm = javascriptGenerator.valueToCode(block, "PWM", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.pf_Single(${channel},${output}, ${pwm});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legopf_combo"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm_b = javascriptGenerator.valueToCode(block, "PWM_B", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm_r = javascriptGenerator.valueToCode(block, "PWM_R", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.pf_Combo(${channel},${pwm_b}, ${pwm_r});
+}
+`;
+};
 
 // ---------------- LEGO WeDo 1.0 GENERATORS ----------------
 
