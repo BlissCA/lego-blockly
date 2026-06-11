@@ -2940,6 +2940,32 @@ Blockly.Blocks['Legoa_dir'] = {
   }
 };
 
+Blockly.Blocks['Legopf_channel'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["CH1", "0"], ["CH2", "1"], ["CH3", "2"], ["CH4", "3"]
+      ]), "CHANNEL");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego PF IR Channel");
+  }
+};
+
+Blockly.Blocks['Legopf_output'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["RED", "0"], ["BLUE", "1"]
+      ]), "OUTPUT");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for Lego PF IR Output");
+  }
+};
+
 Blockly.Blocks['Legob_outportalpha'] = {
   init: function() {
     this.appendDummyInput()
