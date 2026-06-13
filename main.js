@@ -92,8 +92,17 @@ async function openPromptDialog(message, defaultValue = "") {
   return new Promise((resolve) => {
     const dialog = document.getElementById("variableDialog");
     const input = document.getElementById("variableNameInput");
-    const okButton = dialog.querySelector(".ok-button");     // <-- ADD THIS
-    const cancelButton = dialog.querySelector(".cancel-button");
+
+    // Find buttons by their value attribute (recommended for <dialog>)
+    const okButton = dialog.querySelector("button[value='ok']");
+    const cancelButton = dialog.querySelector("button[value='cancel']");
+
+    // Safety check: avoid null errors
+    if (!okButton || !cancelButton) {
+      console.error("Dialog buttons not found. Check HTML structure.");
+      resolve(null);
+      return;
+    }
 
     // Update label text dynamically
     dialog.querySelector("label").textContent = message;
@@ -103,7 +112,7 @@ async function openPromptDialog(message, defaultValue = "") {
 
     dialog.returnValue = "cancel";
 
-    // --- ENTER KEY HANDLER (the missing piece) ---
+    // --- ENTER and ESCAPE key handling ---
     const handleKey = (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -128,9 +137,9 @@ async function openPromptDialog(message, defaultValue = "") {
       dialog.close();
     };
 
-    // --- When dialog closes, resolve the promise ---
+    // --- Resolve when dialog closes ---
     dialog.onclose = () => {
-      input.removeEventListener("keydown", handleKey); // cleanup
+      input.removeEventListener("keydown", handleKey);
       const ok = dialog.returnValue === "ok";
       const value = input.value.trim();
       resolve(ok ? value : null);
@@ -140,6 +149,7 @@ async function openPromptDialog(message, defaultValue = "") {
     input.focus();
   });
 }
+
 
 
 // ----------------- function to auto-select serial/bluetooth port ----------------
