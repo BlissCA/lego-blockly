@@ -92,6 +92,8 @@ async function openPromptDialog(message, defaultValue = "") {
   return new Promise((resolve) => {
     const dialog = document.getElementById("variableDialog");
     const input = document.getElementById("variableNameInput");
+    const okButton = dialog.querySelector(".ok-button");     // <-- ADD THIS
+    const cancelButton = dialog.querySelector(".cancel-button");
 
     // Update label text dynamically
     dialog.querySelector("label").textContent = message;
@@ -101,7 +103,34 @@ async function openPromptDialog(message, defaultValue = "") {
 
     dialog.returnValue = "cancel";
 
+    // --- ENTER KEY HANDLER (the missing piece) ---
+    const handleKey = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        dialog.returnValue = "ok";
+        dialog.close();
+      }
+      if (e.key === "Escape") {
+        dialog.returnValue = "cancel";
+        dialog.close();
+      }
+    };
+    input.addEventListener("keydown", handleKey);
+
+    // --- BUTTON HANDLERS ---
+    okButton.onclick = () => {
+      dialog.returnValue = "ok";
+      dialog.close();
+    };
+
+    cancelButton.onclick = () => {
+      dialog.returnValue = "cancel";
+      dialog.close();
+    };
+
+    // --- When dialog closes, resolve the promise ---
     dialog.onclose = () => {
+      input.removeEventListener("keydown", handleKey); // cleanup
       const ok = dialog.returnValue === "ok";
       const value = input.value.trim();
       resolve(ok ? value : null);
