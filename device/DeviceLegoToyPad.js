@@ -52,7 +52,12 @@ export class LegoToyPad {
       this._log("Requesting LEGO ToyPad HID device…");
 
       const devices = await navigator.hid.requestDevice({
-        filters: [{ vendorId: 0x0E6F, productId: 0x0241 }]
+        filters: [{
+          vendorId: 0x0E6F,
+          productId: 0x0241,
+          usagePage: 0xFF00,
+          usage: 0x0001
+        }]
       });
 
       if (!devices || devices.length === 0) {
@@ -76,6 +81,8 @@ export class LegoToyPad {
 
       this.status = "Connected";
       this._log("Connected.");
+
+      console.log(this.device.collections);
 
       return true;
 
