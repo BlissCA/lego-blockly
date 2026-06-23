@@ -9,6 +9,7 @@ import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
+import { LegoToyPad } from './DeviceLegoToyPad.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -345,6 +346,25 @@ export class DeviceManager {
     }
   }
 
+  // -------------------------
+  // Connect LEGO ToyPad (Lego Dimensions)
+  // -------------------------
+
+  async connectLegoToyPad() {
+    const dev = new LegoToyPad(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev);
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego ToyPad Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
 
   // -------------------------
   // Disconnect All

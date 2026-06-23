@@ -23,6 +23,7 @@ import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
 import "./device/DeviceLegoLPF2.js";
+import "./device/DeviceLegoToyPad.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
@@ -1030,6 +1031,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "LPF2":
       dev = await window.deviceManager.connectLegoLPF2();   // your unified LPF2 class
+      break;
+
+    case "ToyPad":
+      dev = await window.deviceManager.connectLegoToyPad();   // your unified ToyPad class
       break;
 
     default:
