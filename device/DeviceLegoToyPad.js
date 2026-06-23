@@ -54,9 +54,7 @@ export class LegoToyPad {
       const devices = await navigator.hid.requestDevice({
         filters: [{
           vendorId: 0x0E6F,
-          productId: 0x0241,
-          usagePage: 0xFF00,
-          usage: 0x0001
+          productId: 0x0241
         }]
       });
 
@@ -131,6 +129,7 @@ export class LegoToyPad {
 
     const type = data[2];
     const region = data[3];
+    console.log(`ToyPad input: type=${type}, region=${region}, data=${[...data].map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
 
     if (type === 0x00) {
       // Tag removed
