@@ -1738,7 +1738,8 @@ javascriptGenerator.forBlock["tpad_regionled"] = function (block) {
 
 javascriptGenerator.forBlock["tpad_get_taghex"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const region = block.getFieldValue("REGION") || "1";  // <-- IMPORTANT: read field directly
+  //const region = block.getFieldValue("REGION") || "1";  // <-- IMPORTANT: read field directly
+  const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "1";
 
   return [
     `(await deviceManager.getDeviceByName("${dev}").getTagHex(${region}))`,
@@ -1748,7 +1749,8 @@ javascriptGenerator.forBlock["tpad_get_taghex"] = function (block) {
 
 javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const region = block.getFieldValue("REGION") || "1";
+  //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly
+  const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
   const colorR = javascriptGenerator.valueToCode(block, "ColorR", javascriptGenerator.ORDER_NONE) || "0";
   const colorG = javascriptGenerator.valueToCode(block, "ColorG", javascriptGenerator.ORDER_NONE) || "0";
   const colorB = javascriptGenerator.valueToCode(block, "ColorB", javascriptGenerator.ORDER_NONE) || "0";
