@@ -677,6 +677,16 @@ function getWeDo2Dropdown() {
     : [['No WeDo 2.0', 'NONE']];
 }
 
+// Only LEGO Toy Pad devices
+function getTPadDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "LegoToyPad");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No ToyPad', 'NONE']];
+}
+
 
 window.addEventListener("load", () => {
 
@@ -2551,6 +2561,71 @@ window.addEventListener("load", () => {
 
   ]);  
 
+// ---------------- Lego ToyPad BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "tpad_get_taghex",
+      "message0": "%1 Tag Hex Region %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 140,
+      "tooltip": "Returns Tag UID Hex string OR 'NOTAG' if no tag is detected."
+    },
+    {
+      "type": "tpad_set_led",
+      "message0": "%1 set color region %2 R:%3 G:%4 B:%5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "ColorR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ColorG",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ColorB",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Set Led Color for a given Region"
+    }
+
+  ]);  
+  
   // ---------------- Counter BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {
@@ -3439,6 +3514,28 @@ Blockly.Blocks['wedo2_ports'] = {
     this.setOutput(true, "String");
     this.setColour(90);
     this.setTooltip("Returns a predefined constant value for WeDo 2.0 ports.");
+  }
+};
+
+Blockly.Blocks['tpad_region'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["Center", "1"], ["Left", "2"], ["Right", "3"]]), "TPADREGION");
+
+    this.setOutput(true, "Number");
+    this.setColour(140);
+    this.setTooltip("Returns a predefined constant value for Lego ToyPad regions. (Center=1, Left=2, Right=3)");
+  }
+};
+
+Blockly.Blocks['tpad_regionled'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([["All", "0"],["Center", "1"], ["Left", "2"], ["Right", "3"]]), "TPADREGIONLED");
+
+    this.setOutput(true, "Number");
+    this.setColour(140);
+    this.setTooltip("Returns a predefined constant value for Lego ToyPad LED regions. (All=0, Center=1, Left=2, Right=3)");
   }
 };
 

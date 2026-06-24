@@ -1803,8 +1803,65 @@ const toolbox = {
           ]
         }
       ]
-    }
+    },
 
+    {"kind": "category", "name": "ToyPad", "colour": 140, "contents": [
+        {
+          "kind": "category",
+          "name": "Tags",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "tpad_get_taghex",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_region",
+                    "fields": { "TPADREGION": "0" }
+                  }
+                }
+              }
+            }             
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Leds",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "tpad_set_led",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "All" }
+                  }
+                },
+                "ColorR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorB": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
 
     /*
     {

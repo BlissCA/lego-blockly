@@ -1720,6 +1720,49 @@ javascriptGenerator.forBlock["wedo2_led"] = function (block) {
 };
 
 
+// ---------------- LEGO ToyPad Generators ----------------
+
+javascriptGenerator.forBlock["tpad_region"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('TPADREGION');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["tpad_regionled"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('TPADREGIONLED');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["tpad_get_taghex"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const region = block.getFieldValue("REGION") || "1";  // <-- IMPORTANT: read field directly
+
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getTagHex(${region}))`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const region = block.getFieldValue("REGION") || "1";
+  const colorR = javascriptGenerator.valueToCode(block, "ColorR", javascriptGenerator.ORDER_NONE) || "0";
+  const colorG = javascriptGenerator.valueToCode(block, "ColorG", javascriptGenerator.ORDER_NONE) || "0";
+  const colorB = javascriptGenerator.valueToCode(block, "ColorB", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLED(${region}, ${colorR}, ${colorG}, ${colorB});
+}
+`;
+};
+
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;
