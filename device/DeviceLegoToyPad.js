@@ -154,6 +154,12 @@ export class LegoToyPad {
   // INPUT HANDLER (tag events)
   // ------------------------------------------------------------
   _handleInput(data) {
+
+    console.log(
+      "ToyPad RAW IN:",
+      [...data].map(b => b.toString(16).padStart(2, "0")).join(" ")
+    );
+
     // Expect: 56 LL RR 00 RR ACTION UID[7] CHECKSUM ...
     if (data[0] !== 0x56) {
       console.log("ToyPad: non-event packet", data);
@@ -164,11 +170,6 @@ export class LegoToyPad {
     const region  = data[2];   // 1=center, 2=left, 3=right
     const region2 = data[4];   // duplicate
     const action  = data[5];   // 0 = inserted, 1 = removed
-
-    console.log(
-      "ToyPad IN:",
-      [...data].map(b => b.toString(16).padStart(2, "0")).join(" ")
-    );
 
     if (action === 1) {
       // Tag removed
