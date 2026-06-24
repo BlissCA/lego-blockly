@@ -67,6 +67,13 @@ export class LegoToyPad {
       await this.device.open();
       this._log("ToyPad opened.");
 
+      navigator.hid.addEventListener("disconnect", e => {
+        if (e.device === this.device) {
+          this._log("ToyPad physically disconnected.");
+          this.disconnect();   // your own cleanup
+        }
+      });
+
       await new Promise(r => setTimeout(r, 500));
 
       // Wake/init sequence (mandatory)
@@ -74,9 +81,14 @@ export class LegoToyPad {
 
       // Listen for input reports (tag events)
       this.device.addEventListener("inputreport", e => {
-        if (e.reportId !== 0) return;
-        const data = new Uint8Array(e.data.buffer);
-        this._handleInput(data);
+        try {
+          if (e.reportId !== 0) return;
+          const data = new Uint8Array(e.data.buffer);
+          this._handleInput(data);
+        } catch (err) {
+          this._log("ToyPad input error (likely disconnected): " + err);
+          this.disconnect();
+        }
       });
 
       // Allocate name
