@@ -74,8 +74,9 @@ export class LegoToyPad {
 
       // Listen for input reports (tag events)
       this.device.addEventListener("inputreport", e => {
-        if (e.reportId !== 0x00) return;
-        this._handleInput(new Uint8Array(e.data.buffer));
+        if (e.reportId !== 0) return;
+        const data = new Uint8Array(e.data.buffer);
+        this._handleInput(data);
       });
 
       // Allocate name
@@ -153,28 +154,35 @@ export class LegoToyPad {
   // INPUT HANDLER (tag events)
   // ------------------------------------------------------------
   _handleInput(data) {
-    // Format (from node-toypad):
-    // 56 LL TT RR UU UU UU UU ...
-    // TT = event type
-    // RR = region (0=center,1=left,2=right)
-    // UU.. = UID or tag data
+    // Expect: 56 LL RR 00 RR ACTION UID[7] CHECKSUM ...
+    if (data[0] !== 0x56) {
+      console.log("ToyPad: non-event packet", data);
+      return;
+    }
 
-    const type = data[2];
-    const region = data[3];
+    const len     = data[1];
+    const region  = data[2];   // 1=center, 2=left, 3=right
+    const region2 = data[4];   // duplicate
+    const action  = data[5];   // 0 = inserted, 1 = removed
 
-    console.log(`ToyPad data=${[...data].map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
+    console.log(
+      "ToyPad IN:",
+      [...data].map(b => b.toString(16).padStart(2, "0")).join(" ")
+    );
 
-    if (type === 0x00) {
+    if (action === 1) {
       // Tag removed
       this.regions[region] = null;
       this._emitTagEvent(region, null);
+      return;
     }
 
-    if (type === 0x01) {
-      // Tag placed
-      const uid = data.slice(4, 11); // 7-byte UID
+    if (action === 0) {
+      // Tag inserted
+      const uid = data.slice(6, 13); // 7 bytes
       this.regions[region] = uid;
       this._emitTagEvent(region, uid);
+      return;
     }
   }
 
