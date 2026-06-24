@@ -66,19 +66,10 @@ export class LegoToyPad {
       await this.device.open();
       this._log("ToyPad opened.");
 
+      await new Promise(r => setTimeout(r, 500));
+
       // Wake/init sequence (mandatory)
-      const WAKE = new Uint8Array([
-        0x55, 0x0F, 0xB0, 0x01,
-        0x28, 0x63, 0x29, 0x20,
-        0x4C, 0x45, 0x47, 0x4F,
-        0x20, 0x32, 0x30, 0x31,
-        0x34, 0xF7, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00
-      ]);
-      await this.device.sendReport(0, WAKE);
-      this._log("ToyPad wake sequence sent.");
+      await this._sendWake();
 
       // Listen for input reports (tag events)
       this.device.addEventListener("inputreport", e => {
@@ -109,6 +100,34 @@ export class LegoToyPad {
     }
   }
 
+  // ------------------------------------------------------------
+  // WAKE SEQUENCE
+  // ------------------------------------------------------------
+  async _sendWake() {
+    const WAKE = new Uint8Array([
+      0x55, 0x0F, 0xB0, 0x01,
+      0x28, 0x63, 0x29, 0x20,
+      0x4C, 0x45, 0x47, 0x4F,
+      0x20, 0x32, 0x30, 0x31,
+      0x34, 0xF7, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00
+    ]);
+
+    for (let i = 0; i < 5; i++) {
+      try {
+        await this.device.sendReport(0, WAKE);
+        this._log("Wake OK");
+        return;
+      } catch (e) {
+        this._log("Wake failed, retrying…");
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    throw new Error("ToyPad did not accept wake sequence");
+  }
   // ------------------------------------------------------------
   // DISCONNECT
   // ------------------------------------------------------------
