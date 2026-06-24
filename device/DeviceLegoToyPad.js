@@ -30,12 +30,12 @@ export class LegoToyPad {
 
     // LED cache
     this.ledState = {
-      0: { r: 0, g: 0, b: 0 },
-      1: { r: 0, g: 0, b: 0 },
-      2: { r: 0, g: 0, b: 0 }
+      1: { effect: null, r:0, g:0, b:0, params:{} },
+      2: { effect: null, r:0, g:0, b:0, params:{} },
+      3: { effect: null, r:0, g:0, b:0, params:{} }
     };
 
-    this.lastMsg = new Map(); // region → last 32‑byte Uint8Array
+    this.msgCounter = 0;      // 0–255, wraps
 
   }
 
@@ -214,36 +214,80 @@ export class LegoToyPad {
   // ------------------------------------------------------------
   // LED CONTROL
   // ------------------------------------------------------------
-  async setLED(region, r, g, b) {
+  async _sendCommand(command, region, newState, payloadBytes) {
     return this.enqueue(async () => {
       if (!this.device || !this.device.opened) return;
 
-      this.ledState[region] = { r, g, b };
+      // --- SEMANTIC CACHE CHECK ---
+      if (region === 0) {
+        // If ANY region differs, we must send
+        const same =
+          ["1","2","3"].every(r => {
+            const old = this.ledState[r];
+            return old &&
+              old.effect === newState.effect &&
+              old.r === newState.r &&
+              old.g === newState.g &&
+              old.b === newState.b &&
+              JSON.stringify(old.params) === JSON.stringify(newState.params);
+          });
 
+        if (same) return;
+      } else {
+        const old = this.ledState[region];
+        if (old &&
+            old.effect === newState.effect &&
+            old.r === newState.r &&
+            old.g === newState.g &&
+            old.b === newState.b &&
+            JSON.stringify(old.params) === JSON.stringify(newState.params)) {
+          return;
+        }
+      }
+
+      // --- BUILD PACKET ---
+      const len = payloadBytes.length + 2;
       const payload = [
-        0x55,       // header
-        0x06,       // length (C0, 02, pad, r, g, b, checksum) → 6 bytes after this
-        0xC0, 0x07, // LED command
-        region & 0xFF,
-        r & 0xFF,
-        g & 0xFF,
-        b & 0xFF
-        // checksum will be appended by helper
+        0x55,
+        len,
+        command,
+        this.msgCounter,
+        ...payloadBytes
       ];
 
       const msg = this._calcChecksumAndPad(payload);
 
-      // --- CACHE CHECK ---
-      const last = this.lastMsg.get(region);
-      if (last && this._arraysEqual(last, msg)) {
-        return; // identical command → skip
+      // --- UPDATE SEMANTIC CACHE ---
+      if (region === 0) {
+        this.ledState[1] = newState;
+        this.ledState[2] = newState;
+        this.ledState[3] = newState;
+      } else {
+        this.ledState[region] = newState;
       }
 
-      // Update cache
-      this.lastMsg.set(region, msg);
+      this.msgCounter = (this.msgCounter + 1) & 0xFF;
 
       await this.device.sendReport(0, msg);
     });
+  }
+
+  async setLED(region, r, g, b) {
+    const newState = {
+      effect: "solid",
+      r, g, b,
+      params: {}
+    };
+
+    return this._sendCommand(
+      0xC0, // SWITCH_PAD
+      region,
+      newState,
+      [
+        region,
+        r, g, b
+      ]
+    );
   }
 
   async setAllLED(r, g, b) {
