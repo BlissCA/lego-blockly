@@ -19,9 +19,10 @@ export class LegoToyPad {
 
     // Last known tags per region
     this.regions = {
-      0: null, // center
-      1: null, // left
-      2: null  // right
+      0: null, // all
+      1: null, // center
+      2: null,  // left
+      3: null  // right
     };
 
     // Event callback (Blockly will hook into this)
@@ -214,8 +215,6 @@ export class LegoToyPad {
 
   async setAllLED(r, g, b) {
     await this.setLED(0, r, g, b);
-    await this.setLED(1, r, g, b);
-    await this.setLED(2, r, g, b);
   }
 
   // ------------------------------------------------------------
