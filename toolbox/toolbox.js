@@ -1835,7 +1835,7 @@ const toolbox = {
                 "REGION": {
                   "shadow": {
                     "type": "tpad_regionled",
-                    "fields": { "TPADREGIONLED": "All" }
+                    "fields": { "TPADREGIONLED": "0" }
                   }
                 },
                 "ColorR": {
