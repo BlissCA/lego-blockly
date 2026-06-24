@@ -74,7 +74,7 @@ export class LegoToyPad {
 
       // Listen for input reports (tag events)
       this.device.addEventListener("inputreport", e => {
-        if (e.reportId !== 0x56) return;
+        if (e.reportId !== 0x00) return;
         this._handleInput(new Uint8Array(e.data.buffer));
       });
 
