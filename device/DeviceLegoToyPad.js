@@ -228,6 +228,12 @@ export class LegoToyPad {
   // ------------------------------------------------------------
   // TAG READ / WRITE (NTAG213)
   // ------------------------------------------------------------
+  getTagHex(region) {
+    const uid = this.regions[region];
+    if (!uid) return "NOTAG";
+    return [...uid].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
   async readTag(region) {
     return this.enqueue(async () => {
       if (!this.regions[region]) return null;
