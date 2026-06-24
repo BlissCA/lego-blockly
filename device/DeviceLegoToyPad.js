@@ -162,13 +162,12 @@ export class LegoToyPad {
 
     // Expect: 56 LL RR 00 RR ACTION UID[7] CHECKSUM ...
     if (data[0] !== 0x56) {
-      console.log("ToyPad: non-event packet", data);
+      console.log("ToyPad: non-event packet", [...data].map(b => b.toString(16).padStart(2, "0")).join(" "));
       return;
     }
 
     const len     = data[1];
     const region  = data[2];   // 1=center, 2=left, 3=right
-    const region2 = data[4];   // duplicate
     const action  = data[5];   // 0 = inserted, 1 = removed
 
     if (action === 1) {
@@ -256,7 +255,7 @@ export class LegoToyPad {
         0, 0, 0
       ]);
 
-      await this.device.sendReport(0x55, cmd);
+      await this.device.sendReport(0x00, cmd);
     });
   }
 
