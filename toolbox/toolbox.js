@@ -1817,7 +1817,7 @@ const toolbox = {
                 "REGION": {
                   "shadow": {
                     "type": "tpad_region",
-                    "fields": { "TPADREGION": "0" }
+                    "fields": { "TPADREGION": "1" }
                   }
                 }
               }
