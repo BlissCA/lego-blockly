@@ -223,7 +223,7 @@ export class LegoToyPad {
       const payload = [
         0x55,       // header
         0x06,       // length (C0, 02, pad, r, g, b, checksum) → 6 bytes after this
-        0xC0, 0x02, // LED command
+        0xC0, 0x07, // LED command
         region & 0xFF,
         r & 0xFF,
         g & 0xFF,
