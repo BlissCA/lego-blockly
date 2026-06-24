@@ -34,6 +34,9 @@ export class LegoToyPad {
       1: { r: 0, g: 0, b: 0 },
       2: { r: 0, g: 0, b: 0 }
     };
+
+    this.lastMsg = new Map(); // region → last 32‑byte Uint8Array
+
   }
 
   // ------------------------------------------------------------
@@ -229,6 +232,16 @@ export class LegoToyPad {
       ];
 
       const msg = this._calcChecksumAndPad(payload);
+
+      // --- CACHE CHECK ---
+      const last = this.lastMsg.get(region);
+      if (last && this._arraysEqual(last, msg)) {
+        return; // identical command → skip
+      }
+
+      // Update cache
+      this.lastMsg.set(region, msg);
+
       await this.device.sendReport(0, msg);
     });
   }
@@ -315,5 +328,14 @@ export class LegoToyPad {
 
     return new Uint8Array(msg);
   }
+
+  _arraysEqual(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
 
 }
