@@ -66,6 +66,20 @@ export class LegoToyPad {
       await this.device.open();
       this._log("ToyPad opened.");
 
+      // Wake/init sequence (mandatory)
+      const WAKE = new Uint8Array([
+        0x55, 0x0F, 0xB0, 0x01,
+        0x28, 0x63, 0x29, 0x20,
+        0x4C, 0x45, 0x47, 0x4F,
+        0x20, 0x32, 0x30, 0x31,
+        0x34, 0xF7, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+      ]);
+      await this.device.sendReport(0, WAKE);
+      this._log("ToyPad wake sequence sent.");
+
       // Listen for input reports (tag events)
       this.device.addEventListener("inputreport", e => {
         if (e.reportId !== 0x56) return;
@@ -79,8 +93,6 @@ export class LegoToyPad {
 
       this.status = "Connected";
       this._log("Connected.");
-
-      console.log(this.device.collections);
 
       return true;
 
@@ -129,7 +141,8 @@ export class LegoToyPad {
 
     const type = data[2];
     const region = data[3];
-    console.log(`ToyPad input: type=${type}, region=${region}, data=${[...data].map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
+
+    console.log(`ToyPad data=${[...data].map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
 
     if (type === 0x00) {
       // Tag removed
@@ -162,21 +175,21 @@ export class LegoToyPad {
     return this.enqueue(async () => {
       if (!this.device || !this.device.opened) return;
 
-      // Cache
       this.ledState[region] = { r, g, b };
 
-      // Command format:
-      // 55 0E C8 06 <region> <R> <G> <B> 00 00 00 00
-      const cmd = new Uint8Array([
-        0x55, 0x0E, 0xC8, 0x06,
+      const payload = [
+        0x55,       // header
+        0x06,       // length (C0, 02, pad, r, g, b, checksum) → 6 bytes after this
+        0xC0, 0x02, // LED command
         region & 0xFF,
         r & 0xFF,
         g & 0xFF,
-        b & 0xFF,
-        0, 0, 0, 0
-      ]);
+        b & 0xFF
+        // checksum will be appended by helper
+      ];
 
-      await this.device.sendReport(0x55, cmd);
+      const msg = this._calcChecksumAndPad(payload);
+      await this.device.sendReport(0, msg);
     });
   }
 
@@ -241,4 +254,22 @@ export class LegoToyPad {
   _log(msg) {
     console.log(`[LegoToyPad] ${msg}`);
   }
+
+  // ------------------------------------------------------------
+  // CHECKSUM & PADDING (for commands)
+  // ------------------------------------------------------------
+  _calcChecksumAndPad(payload) {
+    // payload: array of bytes WITHOUT checksum
+    let checksum = 0;
+    for (let i = 0; i < payload.length; i++) {
+      checksum += payload[i];
+      if (checksum >= 256) checksum -= 256;
+    }
+
+    const msg = [...payload, checksum];
+    while (msg.length < 32) msg.push(0x00);
+
+    return new Uint8Array(msg);
+  }
+
 }
