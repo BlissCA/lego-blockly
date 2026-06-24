@@ -162,7 +162,7 @@ export class LegoToyPad {
 
     // Expect: 56 LL RR 00 RR ACTION UID[7] CHECKSUM ...
     if (data[0] !== 0x56) {
-      console.log("ToyPad: non-event packet", [...data].map(b => b.toString(16).padStart(2, "0")).join(" "));
+      //console.log("ToyPad: non-event packet", [...data].map(b => b.toString(16).padStart(2, "0")).join(" "));
       return;
     }
 
