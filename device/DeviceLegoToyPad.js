@@ -296,11 +296,11 @@ export class LegoToyPad {
     await this.setLED(0, r, g, b);
   }
 
-  async flashLED(region, r, g, b, t1, t2, pulseCnt) {
+  async flashLED(region, r, g, b, t1, t2, pulseCount) {
     const newState = {
       effect: "flash",
       r, g, b,
-      params: { t1, t2, pulseCnt }
+      params: { t1, t2, pulseCount }
     };
 
     // Flash is persistent ONLY when pulseCount = 0 or 255
@@ -313,7 +313,7 @@ export class LegoToyPad {
       newState,
       [
         region,
-        t1, t2, pulseCnt,
+        t1, t2, pulseCount,
         r, g, b
       ],
       {skipCache: !isPersistent} // skip only for transient flashes
