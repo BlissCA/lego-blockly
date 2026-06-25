@@ -214,34 +214,36 @@ export class LegoToyPad {
   // ------------------------------------------------------------
   // LED CONTROL
   // ------------------------------------------------------------
-  async _sendCommand(command, region, newState, payloadBytes) {
+  async _sendCommand(command, region, newState, payloadBytes, { skipCache = false } = {}) {
     return this.enqueue(async () => {
       if (!this.device || !this.device.opened) return;
 
       // --- SEMANTIC CACHE CHECK ---
-      if (region === 0) {
-        // If ANY region differs, we must send
-        const same =
-          ["1","2","3"].every(r => {
-            const old = this.ledState[r];
-            return old &&
+      if (!skipCache) {
+        if (region === 0) {
+          // If ANY region differs, we must send
+          const same =
+            ["1","2","3"].every(r => {
+              const old = this.ledState[r];
+              return old &&
+                old.effect === newState.effect &&
+                old.r === newState.r &&
+                old.g === newState.g &&
+                old.b === newState.b &&
+                JSON.stringify(old.params) === JSON.stringify(newState.params);
+            });
+
+          if (same) return;
+        } else {
+          const old = this.ledState[region];
+          if (old &&
               old.effect === newState.effect &&
               old.r === newState.r &&
               old.g === newState.g &&
               old.b === newState.b &&
-              JSON.stringify(old.params) === JSON.stringify(newState.params);
-          });
-
-        if (same) return;
-      } else {
-        const old = this.ledState[region];
-        if (old &&
-            old.effect === newState.effect &&
-            old.r === newState.r &&
-            old.g === newState.g &&
-            old.b === newState.b &&
-            JSON.stringify(old.params) === JSON.stringify(newState.params)) {
-          return;
+              JSON.stringify(old.params) === JSON.stringify(newState.params)) {
+            return;
+          }
         }
       }
 
@@ -301,6 +303,10 @@ export class LegoToyPad {
       params: { t1, t2, pulseCnt }
     };
 
+    // Flash is persistent ONLY when pulseCount = 0 or 255
+    const isPersistent =
+      pulseCount === 0 || pulseCount === 255;
+
     return this._sendCommand(
       0xC3, // FLASH_PAD
       region,
@@ -309,7 +315,8 @@ export class LegoToyPad {
         region,
         t1, t2, pulseCnt,
         r, g, b
-      ]
+      ],
+      {skipCache: !isPersistent} // skip only for transient flashes
     );
   }
 
