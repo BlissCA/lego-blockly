@@ -294,6 +294,26 @@ export class LegoToyPad {
     await this.setLED(0, r, g, b);
   }
 
+  async flashLED(region, r, g, b, onTime, offTime) {
+    const newState = {
+      effect: "flash",
+      r, g, b,
+      params: { onTime, offTime }
+    };
+
+    return this._sendCommand(
+      0xC3, // FLASH_PAD
+      region,
+      newState,
+      [
+        region,
+        r, g, b,
+        onTime,
+        offTime
+      ]
+    );
+  }
+
   // ------------------------------------------------------------
   // TAG READ / WRITE (NTAG213)
   // ------------------------------------------------------------
