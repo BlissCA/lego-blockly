@@ -294,11 +294,11 @@ export class LegoToyPad {
     await this.setLED(0, r, g, b);
   }
 
-  async flashLED(region, r, g, b, onTime, offTime) {
+  async flashLED(region, r, g, b, t1, t2, pulseCnt) {
     const newState = {
       effect: "flash",
       r, g, b,
-      params: { onTime, offTime }
+      params: { t1, t2, pulseCnt }
     };
 
     return this._sendCommand(
@@ -307,9 +307,8 @@ export class LegoToyPad {
       newState,
       [
         region,
-        r, g, b,
-        onTime,
-        offTime
+        t1, t2, pulseCnt,
+        r, g, b
       ]
     );
   }
