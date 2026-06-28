@@ -320,6 +320,30 @@ export class LegoToyPad {
     );
   }
 
+  async fadeLED(region, r, g, b, t1, pulseCount) {
+    const newState = {
+      effect: "fade",
+      r, g, b,
+      params: { t1, pulseCount }
+    };
+
+    // Fade is persistent ONLY when pulseCount = 0 or 255
+    const isPersistent =
+      pulseCount === 0 || pulseCount === 255;
+
+    return this._sendCommand(
+      0xC3, // FADE_PAD
+      region,
+      newState,
+      [
+        region,
+        t1, pulseCount,
+        r, g, b
+      ],
+      {skipCache: !isPersistent} // skip only for transient flashes
+    );
+  }
+
   // ------------------------------------------------------------
   // TAG READ / WRITE (NTAG213)
   // ------------------------------------------------------------
