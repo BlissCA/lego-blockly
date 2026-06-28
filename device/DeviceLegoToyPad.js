@@ -332,7 +332,7 @@ export class LegoToyPad {
       pulseCount === 0 || pulseCount === 255;
 
     return this._sendCommand(
-      0xC3, // FADE_PAD
+      0xC2, // FADE_PAD
       region,
       newState,
       [
