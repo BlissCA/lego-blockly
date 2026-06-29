@@ -1949,13 +1949,13 @@ const toolbox = {
                 "T1": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": { "NUM": 10 }
+                    "fields": { "NUM": 20 }
                   }
                 },
                 "CNT": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": { "NUM": 0 }
+                    "fields": { "NUM": 2 }
                   }
                 }
               }
