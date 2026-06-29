@@ -1917,7 +1917,49 @@ const toolbox = {
                   }
                 }
               }
-            }            
+            },
+            {
+              "kind": "block",
+              "type": "tpad_fade_led",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
+                  }
+                },
+                "ColorR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorB": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "T1": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                },
+                "CNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 0 }
+                  }
+                }
+              }
+            }                 
           ]
         }
       ]

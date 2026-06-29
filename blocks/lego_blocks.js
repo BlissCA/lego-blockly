@@ -2711,7 +2711,70 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 140,
       "tooltip": "Flash LED for a given Region, cnt=255 means flash forever"
-    }
+    },
+    {
+      "type": "tpad_fade_led",
+      "message0": "%1 fade %2 R:%3 G:%4 B:%5\nt1:%6 cnt:%7",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "ColorR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ColorG",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ColorB",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "T1",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "CNT",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 0 }
+          }
+        }
+
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Fade LED for a given Region, cnt=0 means flash/fade forever"
+    }    
 
   ]);  
   
