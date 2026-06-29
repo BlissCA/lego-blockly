@@ -1814,7 +1814,7 @@ javascriptGenerator.forBlock["tpad_fade_led"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.fadeLED(${region}, ${colorR}, ${colorG}, ${colorB}, ${t1},, ${cnt});
+  await dev.fadeLED(${region}, ${colorR}, ${colorG}, ${colorB}, ${t1}, ${cnt});
 }
 `;
 };
