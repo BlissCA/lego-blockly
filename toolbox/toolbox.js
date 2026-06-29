@@ -1857,7 +1857,67 @@ const toolbox = {
                   }
                 }
               }
-            }
+            },
+            {
+              "kind": "block",
+              "type": "tpad_led_off",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "tpad_flash_led",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
+                  }
+                },
+                "ColorR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorG": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "ColorB": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "T1": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                },
+                "T2": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                },
+                "CNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
+              }
+            }            
           ]
         }
       ]

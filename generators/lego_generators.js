@@ -1765,6 +1765,44 @@ javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["tpad_led_off"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly
+  const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLED(${region}, 0, 0, 0);
+}
+`;
+};
+
+javascriptGenerator.forBlock["tpad_flash_led"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly
+  const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
+  const colorR = javascriptGenerator.valueToCode(block, "ColorR", javascriptGenerator.ORDER_NONE) || "0";
+  const colorG = javascriptGenerator.valueToCode(block, "ColorG", javascriptGenerator.ORDER_NONE) || "0";
+  const colorB = javascriptGenerator.valueToCode(block, "ColorB", javascriptGenerator.ORDER_NONE) || "0";
+  const t1 = javascriptGenerator.valueToCode(block, "T1", javascriptGenerator.ORDER_NONE) || "10";
+  const t2 = javascriptGenerator.valueToCode(block, "T2", javascriptGenerator.ORDER_NONE) || "10";
+  const cnt = javascriptGenerator.valueToCode(block, "CNT", javascriptGenerator.ORDER_NONE) || "255";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.flashLED(${region}, ${colorR}, ${colorG}, ${colorB}, ${t1}, ${t2}, ${cnt});
+}
+`;
+};
+
+
+
+
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;
