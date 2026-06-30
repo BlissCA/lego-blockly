@@ -626,8 +626,16 @@ class FieldRGBSlider extends Blockly.Field {
     }
 
     const color = `rgb(${this.getValue()})`;
-    // !important in JS style prevents the Theme from forcing it to grey
+    // Ensure the visible fill is applied both as an attribute and a CSS style.
+    // Some Blockly themes or re-renders may override CSS but setting the
+    // attribute is more robust — do both and enforce opacity.
+    try {
+      this.previewRect_.setAttribute('fill', color);
+      this.previewRect_.setAttribute('fill-opacity', '1');
+    } catch (e) {}
+    // Also set inline style with !important to override theme rules
     this.previewRect_.style.setProperty('fill', color, 'important');
+    this.previewRect_.style.setProperty('fill-opacity', '1', 'important');
   }
 
   // Runs when block is created
