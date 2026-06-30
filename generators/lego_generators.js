@@ -1768,7 +1768,8 @@ javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
 javascriptGenerator.forBlock["tpad_set_led_cp"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
-  const rgb = block.getFieldValue('COLOR'); // returns {r,g,b}
+  //const rgb = block.getFieldValue('COLOR'); // returns {r,g,b}
+  const rgb = block.getField('COLOR').getRgb();
 
   const r = rgb.r;
   const g = rgb.g;

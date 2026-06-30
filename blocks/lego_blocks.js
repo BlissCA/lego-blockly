@@ -576,6 +576,9 @@ class FieldColorRGB extends Blockly.Field {
   constructor(defaultHex = '#ffffff') {
     super(defaultHex);
 
+    this.SERIALIZABLE = true;   // <-- REQUIRED
+    this.EDITABLE = true;       // <-- implied, but explicit is fine
+
     // Parse initial hex
     const rgb = FieldColorRGB.hexToRgb(defaultHex);
     this.color_ = rgb || { r: 255, g: 255, b: 255 };
@@ -685,6 +688,12 @@ class FieldColorRGB extends Blockly.Field {
    * Return the stored RGB object.
    */
   getValue() {
+    // MUST return a string
+    return FieldColorRGB.rgbToHex(this.color_);
+  }
+  
+  getRgb() {
+    // Generator-friendly helper
     return this.color_;
   }
 
