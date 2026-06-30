@@ -1790,10 +1790,20 @@ javascriptGenerator.forBlock["tpad_set_led_sliders"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
   
-  // Get the string "255,255,255"
-  const rgbString = block.getFieldValue("RGB_VALUE") || "255,255,255";
-  const [r, g, b] = rgbString.split(',');
-
+  const val = block.getFieldValue("RGB_VALUE");
+  
+  let r, g, b;
+  if (typeof val === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val.split(',');
+    r = parts[0]; g = parts[1]; b = parts[2];
+  } else if (val && typeof val === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    r = val.r; g = val.g; b = val.b;
+  } else {
+    r = 255; g = 255; b = 255;
+  }
+  
   return `
 {
   shouldStop();
