@@ -596,6 +596,14 @@ class FieldRGBSlider extends Blockly.Field {
     this.size_.height = 18;
   }
 
+  // Return the value as a string "r,g,b" so that applyColour() gets the right format
+  getValue() {
+    if (this.value_) {
+      return `${this.value_.r},${this.value_.g},${this.value_.b}`;
+    }
+    return super.getValue();
+  }
+
   // FIX: This is the official hook for styling fields in v12.
   // This is called EVERY time the block re-renders.
   applyColour() {
