@@ -576,27 +576,23 @@ class FieldColorRGB extends Blockly.Field {
   constructor(defaultHex = '#ffffff') {
     super(defaultHex);
 
-    this.SERIALIZABLE = true;   // <-- REQUIRED
-    this.EDITABLE = true;       // <-- implied, but explicit is fine
+    this.SERIALIZABLE = true;
+    this.EDITABLE = true;
 
-    // Parse initial hex
+    // ALWAYS initialize color_
     const rgb = FieldColorRGB.hexToRgb(defaultHex);
     this.color_ = rgb || { r: 255, g: 255, b: 255 };
   }
 
-  /**
-   * Required by Blockly: field type name.
-   */
   static fromJson(options) {
     return new FieldColorRGB(options.default || '#ffffff');
   }
 
-  /**
-   * Convert hex → {r,g,b}
-   */
   static hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string') return null;
     hex = hex.replace('#', '');
     if (hex.length !== 6) return null;
+
     return {
       r: parseInt(hex.substring(0, 2), 16),
       g: parseInt(hex.substring(2, 4), 16),
@@ -604,19 +600,15 @@ class FieldColorRGB extends Blockly.Field {
     };
   }
 
-  /**
-   * Convert {r,g,b} → hex
-   */
-  static rgbToHex({ r, g, b }) {
+  static rgbToHex(rgb) {
+    if (!rgb) return '#ffffff';   // <-- FIX
+    const { r = 255, g = 255, b = 255 } = rgb; // <-- FIX
     const toHex = (v) => ('0' + v.toString(16)).slice(-2);
     return '#' + toHex(r) + toHex(g) + toHex(b);
   }
 
-  /**
-   * Called when the user clicks the field.
-   */
   showEditor_() {
-    // Create widget content
+    // unchanged
     const div = document.createElement('div');
     div.style.padding = '8px';
     div.style.width = '200px';
@@ -659,7 +651,6 @@ class FieldColorRGB extends Blockly.Field {
     div.appendChild(makeSlider('G', this.color_.g, (v) => this.color_.g = v));
     div.appendChild(makeSlider('B', this.color_.b, (v) => this.color_.b = v));
 
-    // OK button
     const okBtn = document.createElement('button');
     okBtn.textContent = 'OK';
     okBtn.style.marginTop = '8px';
@@ -671,57 +662,48 @@ class FieldColorRGB extends Blockly.Field {
     });
     div.appendChild(okBtn);
 
-    // Show popup
     Blockly.DropDownDiv.showPositionedByField(this, this.widgetCreate_(div));
   }
 
-  /**
-   * Wrap widget content for DropDownDiv.
-   */
   widgetCreate_(content) {
     const wrapper = document.createElement('div');
     wrapper.appendChild(content);
     return wrapper;
   }
 
-  /**
-   * Return the stored RGB object.
-   */
   getValue() {
-    // MUST return a string
-    return FieldColorRGB.rgbToHex(this.color_);
+    return FieldColorRGB.rgbToHex(this.color_); // <-- SAFE NOW
   }
-  
+
   getRgb() {
-    // Generator-friendly helper
     return this.color_;
   }
 
-  /**
-   * Set hex value and update internal RGB.
-   */
   setValue(newHex) {
+    if (!newHex || typeof newHex !== 'string') {
+      // <-- FIX: always restore valid RGB
+      this.color_ = { r: 255, g: 255, b: 255 };
+      super.setValue('#ffffff');
+      return;
+    }
+
     super.setValue(newHex);
+
     const rgb = FieldColorRGB.hexToRgb(newHex);
-    if (rgb) this.color_ = rgb;
+    this.color_ = rgb || { r: 255, g: 255, b: 255 }; // <-- FIX
   }
 
-  /**
-   * Serialize field to XML.
-   */
   toXml(fieldElement) {
     fieldElement.setAttribute('rgb', JSON.stringify(this.color_));
   }
 
-  /**
-   * Deserialize field from XML.
-   */
   fromXml(fieldElement) {
     const rgb = JSON.parse(fieldElement.getAttribute('rgb'));
-    this.color_ = rgb;
-    this.setValue(FieldColorRGB.rgbToHex(rgb));
+    this.color_ = rgb || { r: 255, g: 255, b: 255 }; // <-- FIX
+    this.setValue(FieldColorRGB.rgbToHex(this.color_));
   }
 }
+
 
 // Register field type
 Blockly.fieldRegistry.register('field_color_rgb', FieldColorRGB);
