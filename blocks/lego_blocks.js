@@ -572,39 +572,49 @@ Blockly.Extensions.registerMutator(
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
   constructor(r = 255, g = 255, b = 255) {
+    // Value is stored as a string "r,g,b"
     super(`${r},${g},${b}`);
-    this.value_ = { r, g, b };
+    this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
     this.CURSOR = 'pointer';
   }
 
-  // Create the visual element on the block (the color swatch)
+  // UPDATED: Create the visual element on the block using v12 API
   initView() {
-    this.rectElement_ = Blockly.utils.dom.createDom('rect', {
+    // createSvgElement is the correct way to handle namespaces in v12
+    this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
       'class': 'blocklyColorRect',
-      'height': '15',
-      'width': '25',
+      'height': '16',
+      'width': '26',
       'fill': `rgb(${this.value_.r},${this.value_.g},${this.value_.b})`,
-      'rx': '2', 'ry': '2'
-    });
-    this.fieldGroup_.appendChild(this.rectElement_);
+      'rx': '4', 
+      'ry': '4',
+      'stroke': '#ccc',
+      'stroke-width': '1'
+    }, this.fieldGroup_);
   }
 
-  // When the user clicks the block, show the sliders
+  // Update width of the block to fit the rectangle
+  updateSize_() {
+    this.size_.width = 30;
+    this.size_.height = 20;
+  }
+
   showEditor_() {
     const div = Blockly.DropDownDiv.getContentDiv();
     
-    // Create HTML for 3 sliders
     div.innerHTML = `
       <style>
-        .rgb-container { padding: 10px; display: flex; flex-direction: column; gap: 8px; font-family: sans-serif; }
+        .rgb-container { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
         .rgb-row { display: flex; align-items: center; gap: 10px; }
-        .rgb-row label { width: 15px; font-weight: bold; }
-        .rgb-row input { cursor: pointer; }
+        .rgb-row label { width: 15px; font-weight: bold; font-family: sans-serif; font-size: 12px; }
+        .rgb-row input { flex-grow: 1; cursor: pointer; }
+        .rgb-preview { height: 10px; border-radius: 5px; border: 1px solid #888; }
       </style>
       <div class="rgb-container">
         <div class="rgb-row"><label>R</label><input type="range" id="slideR" min="0" max="255" value="${this.value_.r}"></div>
         <div class="rgb-row"><label>G</label><input type="range" id="slideG" min="0" max="255" value="${this.value_.g}"></div>
         <div class="rgb-row"><label>B</label><input type="range" id="slideB" min="0" max="255" value="${this.value_.b}"></div>
+        <div id="rgbPreview" class="rgb-preview" style="background: rgb(${this.value_.r},${this.value_.g},${this.value_.b})"></div>
       </div>
     `;
 
@@ -612,6 +622,7 @@ class FieldRGBSlider extends Blockly.Field {
       const r = document.getElementById('slideR').value;
       const g = document.getElementById('slideG').value;
       const b = document.getElementById('slideB').value;
+      document.getElementById('rgbPreview').style.background = `rgb(${r},${g},${b})`;
       this.setValue(`${r},${g},${b}`);
     };
 
@@ -619,27 +630,32 @@ class FieldRGBSlider extends Blockly.Field {
       input.addEventListener('input', update);
     });
 
+    // Match the dropdown color to the block color or white
+    Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
     Blockly.DropDownDiv.showPositionedByField(this, () => {});
   }
 
-  // Updates the internal value and the color on the block
   setValue(newValue) {
-    if (!newValue) return;
+    if (!newValue || typeof newValue !== 'string') return;
     const parts = newValue.split(',');
+    if (parts.length !== 3) return;
+
     this.value_ = { r: parts[0], g: parts[1], b: parts[2] };
+    
+    // Update the visual rectangle on the block
     if (this.rectElement_) {
       this.rectElement_.setAttribute('fill', `rgb(${newValue})`);
     }
     super.setValue(newValue);
   }
 
-  // Ensure JSON export/import works
+  // Helper for JSON initialization
   static fromJson(options) {
-    return new FieldRGBSlider(options['r'], options['g'], options['b']);
+    return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
   }
 }
 
-// Register the field so Blockly JSON can find it
+// Register the field
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 
