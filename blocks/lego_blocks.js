@@ -602,7 +602,19 @@ class FieldRGBSlider extends Blockly.Field {
     if (!this.sourceBlock_ || !this.fieldGroup_) return;
 
     // We create or update our own color box that stays ON TOP of everything
-    if (!this.previewRect_) {
+    // If the field's SVG group was recreated by Blockly (re-render), our
+    // previous previewRect_ may have been detached. Recreate it when missing
+    // or when it's not a child of the current fieldGroup_.
+    if (!this.previewRect_ || this.previewRect_.parentNode !== this.fieldGroup_) {
+      // If an old rect exists, try to remove it
+      try {
+        if (this.previewRect_ && this.previewRect_.parentNode) {
+          this.previewRect_.parentNode.removeChild(this.previewRect_);
+        }
+      } catch (e) {
+        // ignore
+      }
+
       this.previewRect_ = Blockly.utils.dom.createSvgElement('rect', {
         'height': '14',
         'width': '26',
