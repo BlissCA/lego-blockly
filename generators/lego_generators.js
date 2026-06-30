@@ -1791,7 +1791,7 @@ javascriptGenerator.forBlock["tpad_set_led_sliders"] = function (block) {
   const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
   
   // Get the string "255,255,255"
-  const rgbString = block.getFieldValue("RGB_VALUE");
+  const rgbString = block.getFieldValue("RGB_VALUE") || "255,255,255";
   const [r, g, b] = rgbString.split(',');
 
   return `

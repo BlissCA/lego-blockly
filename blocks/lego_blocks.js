@@ -572,40 +572,29 @@ Blockly.Extensions.registerMutator(
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
   constructor(r = 255, g = 255, b = 255) {
-    // Initial value as a string
+    // Store initial value as string
     super(`${r},${g},${b}`);
-    this.value_ = {r: Number(r), g: Number(g), b: Number(b)};
-  }
-
-  // Modern v12 State Management
-  saveState() {
-    return this.getValue(); // Returns "r,g,b"
-  }
-
-  loadState(state) {
-    this.setValue(state);
-  }
-
-  // Extremely defensive value updater
-  doValueUpdate_(newValue) {
-    // If it's null or undefined, use a default
-    if (!newValue) newValue = "255,255,255";
+    this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
     
-    // If Blockly passes an object (can happen during initialization), convert it
-    if (typeof newValue !== 'string') {
-      if (newValue.r !== undefined) {
-         newValue = `${newValue.r},${newValue.g},${newValue.b}`;
-      } else {
-         newValue = String(newValue);
-      }
-    }
+    // Fix for Serialization Warning in v12
+    this.SERIALIZABLE = true;
+  }
 
-    // Safety check: is it actually a string now?
-    if (typeof newValue.split !== 'function') {
-      console.error("FieldRGBSlider: Expected string but got", typeof newValue);
-      return;
-    }
+  // Explicitly tell Blockly this field is serializable
+  isSerializable() {
+    return true;
+  }
 
+  // FIX: Layout. This tells Blockly how much space to reserve inside the block.
+  updateSize_() {
+    this.size_.width = 30; // Width of the color rectangle
+    this.size_.height = 18; // Height of the color rectangle
+  }
+
+  // FIX: Visual Feedback. This runs whenever the value changes.
+  doValueUpdate_(newValue) {
+    if (!newValue) return "255,255,255";
+    
     const parts = newValue.split(',');
     if (parts.length === 3) {
       this.value_ = {
@@ -614,72 +603,72 @@ class FieldRGBSlider extends Blockly.Field {
         b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
       };
       
-      const cleanValue = `${this.value_.r},${this.value_.g},${this.value_.b}`;
-      super.doValueUpdate_(cleanValue);
-
+      const validatedValue = `${this.value_.r},${this.value_.g},${this.value_.b}`;
+      
+      // Update the rectangle color on the block
       if (this.rectElement_) {
-        this.rectElement_.setAttribute('fill', `rgb(${cleanValue})`);
+        this.rectElement_.setAttribute('fill', `rgb(${validatedValue})`);
       }
+      
+      return validatedValue; // IMPORTANT: Must return the value in v12
     }
+    return this.getValue();
   }
 
   initView() {
+    // Create the rectangle and attach it to the block's SVG group
     this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
       'class': 'blocklyColorRect',
       'height': '16',
       'width': '26',
       'fill': `rgb(${this.getValue()})`,
       'rx': '4', 'ry': '4',
-      'stroke': '#ccc', 'stroke-width': '1'
+      'stroke': '#444', 'stroke-width': '1',
+      'cursor': 'pointer'
     }, this.fieldGroup_);
   }
 
   showEditor_() {
     const div = Blockly.DropDownDiv.getContentDiv();
-    const {r, g, b} = this.value_;
+    
+    // FIX: Read CURRENT values from the field so sliders don't reset
+    const { r, g, b } = this.value_;
 
     div.innerHTML = `
       <style>
-        .rgb-container { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 160px; }
-        .rgb-row { display: flex; align-items: center; gap: 10px; }
-        .rgb-row label { width: 15px; font-weight: bold; font-family: sans-serif; font-size: 12px; color: #333; }
-        .rgb-row input { flex-grow: 1; cursor: pointer; height: 20px; }
-        .rgb-preview { height: 14px; border-radius: 4px; border: 1px solid #888; }
+        .rgb-pop { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
+        .rgb-pop label { font-family: sans-serif; font-size: 10px; font-weight: bold; width: 12px; }
+        .rgb-pop div { display: flex; align-items: center; gap: 8px; }
+        .rgb-pop input { flex-grow: 1; cursor: pointer; }
+        #rgbPreview { height: 10px; border: 1px solid #999; border-radius: 3px; }
       </style>
-      <div class="rgb-container">
-        <div class="rgb-row"><label>R</label><input type="range" id="slideR" min="0" max="255" value="${r}"></div>
-        <div class="rgb-row"><label>G</label><input type="range" id="slideG" min="0" max="255" value="${g}"></div>
-        <div class="rgb-row"><label>B</label><input type="range" id="slideB" min="0" max="255" value="${b}"></div>
-        <div id="rgbPreview" class="rgb-preview" style="background: rgb(${r},${g},${b})"></div>
+      <div class="rgb-pop">
+        <div><label>R</label><input type="range" id="sR" min="0" max="255" value="${r}"></div>
+        <div><label>G</label><input type="range" id="sG" min="0" max="255" value="${g}"></div>
+        <div><label>B</label><input type="range" id="sB" min="0" max="255" value="${b}"></div>
+        <div id="rgbPreview" style="background: rgb(${r},${g},${b})"></div>
       </div>
     `;
 
     const update = () => {
-      const rVal = document.getElementById('slideR').value;
-      const gVal = document.getElementById('slideG').value;
-      const bVal = document.getElementById('slideB').value;
-      document.getElementById('rgbPreview').style.background = `rgb(${rVal},${gVal},${bVal})`;
-      this.setValue(`${rVal},${gVal},${bVal}`);
+      const rv = document.getElementById('sR').value;
+      const gv = document.getElementById('sG').value;
+      const bv = document.getElementById('sB').value;
+      document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
+      
+      // Update the block in real-time
+      this.setValue(`${rv},${gv},${bv}`);
     };
 
-    div.querySelectorAll('input').forEach(input => {
-      input.addEventListener('input', update);
-    });
+    div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
 
     Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
     Blockly.DropDownDiv.showPositionedByField(this);
   }
-
-  static fromJson(options) {
-    return new FieldRGBSlider(options['r'], options['g'], options['b']);
-  }
 }
 
-// FIX: Setting SERIALIZABLE on the class and prototype ensures v12 finds it
+// Ensure the prototype has the serializable flag for the UMD loader
 FieldRGBSlider.prototype.SERIALIZABLE = true;
-FieldRGBSlider.SERIALIZABLE = true;
-
-// Register the field
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 
@@ -2756,7 +2745,7 @@ window.addEventListener("load", () => {
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
         { "type": "input_value", "name": "REGION", "check": "Number" },
-        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 }
+        { "type": "field_rgb_slider", "name": "RGB_VALUE" }
       ],
       "inputsInline": true,
       "previousStatement": null,
