@@ -572,57 +572,59 @@ Blockly.Extensions.registerMutator(
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
   constructor(r = 255, g = 255, b = 255) {
+    // We store the value as a string "r,g,b"
     super(`${r},${g},${b}`);
     this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
-    this.SERIALIZABLE = true;
   }
 
   static fromJson(options) {
-    return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
+    return new FieldRGBSlider(
+      options['r'] !== undefined ? options['r'] : 255,
+      options['g'] !== undefined ? options['g'] : 255,
+      options['b'] !== undefined ? options['b'] : 255
+    );
   }
 
+  // Tells Blockly 12 this field has state to save
   isSerializable() { return true; }
   saveState() { return this.getValue(); }
   loadState(state) { this.setValue(state); }
 
+  // Reserves space on the block
   updateSize_() {
     this.size_.width = 30;
     this.size_.height = 18;
   }
 
-  // This is the official hook to update colors in Blockly 12
+  // FIX: This is the official hook for styling fields in v12.
+  // This is called EVERY time the block re-renders.
   applyColour() {
-    if (this.colorRect_) {
-      const color = `rgb(${this.getValue()})`;
-      // We use .setAttribute to update the SVG directly
-      this.colorRect_.setAttribute('fill', color);
+    if (!this.sourceBlock_ || !this.fieldGroup_) return;
+
+    // We create or update our own color box that stays ON TOP of everything
+    if (!this.previewRect_) {
+      this.previewRect_ = Blockly.utils.dom.createSvgElement('rect', {
+        'height': '14',
+        'width': '26',
+        'rx': '3', 'ry': '3',
+        'stroke': '#444',
+        'stroke-width': '1',
+        'y': '2' // Slight offset to look centered
+      }, this.fieldGroup_);
     }
+
+    const color = `rgb(${this.getValue()})`;
+    // !important in JS style prevents the Theme from forcing it to grey
+    this.previewRect_.style.setProperty('fill', color, 'important');
   }
 
+  // Runs when block is created
   initView() {
-    // 1. Create the border/background (standard Blockly element)
-    this.borderRect_ = Blockly.utils.dom.createSvgElement('rect', {
-      'class': 'blocklyFieldRect',
-      'height': '16',
-      'width': '26',
-      'rx': '4', 'ry': '4',
-      'stroke': '#444',
-      'stroke-width': '1'
-    }, this.fieldGroup_);
-
-    // 2. Create the inner Color Box. 
-    // This sits ON TOP of the borderRect_ so themes won't hide it.
-    this.colorRect_ = Blockly.utils.dom.createSvgElement('rect', {
-      'height': '12',
-      'width': '22',
-      'x': '2', 'y': '2', // Centered inside the border
-      'rx': '2', 'ry': '2',
-      'cursor': 'pointer'
-    }, this.fieldGroup_);
-
+    // We call applyColour immediately to draw our box
     this.applyColour();
   }
 
+  // Handles value changes
   doValueUpdate_(newValue) {
     if (!newValue || typeof newValue !== 'string') return this.getValue();
     const parts = newValue.split(',');
@@ -633,7 +635,7 @@ class FieldRGBSlider extends Blockly.Field {
         b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
       };
       
-      // Update the visual state immediately
+      // Update our custom box
       this.applyColour();
       return `${this.value_.r},${this.value_.g},${this.value_.b}`;
     }
@@ -645,7 +647,7 @@ class FieldRGBSlider extends Blockly.Field {
     const { r, g, b } = this.value_;
 
     div.innerHTML = `
-      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:white; border:1px solid #ccc; border-radius:4px;">
+      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:white; border-radius:4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">R</label>
           <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1; cursor:pointer;">
@@ -667,13 +669,13 @@ class FieldRGBSlider extends Blockly.Field {
       const gv = document.getElementById('sG').value;
       const bv = document.getElementById('sB').value;
       
-      // Update preview in popup
       document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
       
-      // Update Field value (triggers doValueUpdate_ -> applyColour)
+      // Update field value
       this.setValue(`${rv},${gv},${bv}`);
       
-      // Force block to refresh its visual state
+      // CRITICAL: Force a visual refresh
+      this.applyColour();
       if (this.getSourceBlock()) {
         this.getSourceBlock().render();
       }
@@ -685,6 +687,7 @@ class FieldRGBSlider extends Blockly.Field {
   }
 }
 
+// Ensure the field is recognized as serializable in UMD
 FieldRGBSlider.prototype.SERIALIZABLE = true;
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
