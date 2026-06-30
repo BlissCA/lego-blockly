@@ -21,6 +21,19 @@
   <!-- The Color Field Plugin -->
   <script src="https://unpkg.com/@blockly/field-colour"></script>
 
+  <script>
+    // This is the critical step to fix "Unable to find field_colour"
+    // When loaded via script tag, the plugin puts the class at Blockly.FieldColour
+    if (Blockly.FieldColour) {
+      // Only register if it's not already there
+      if (!Blockly.fieldRegistry.hasItem('field_colour')) {
+        Blockly.fieldRegistry.register('field_colour', Blockly.FieldColour);
+      }
+    } else {
+      console.error("The Color Field plugin didn't load! Check internet connection.");
+    }
+  </script>
+
   <!-- CANCEL Loading MQTT.js for now since it requires WSS secure connection
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   -->
