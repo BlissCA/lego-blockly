@@ -1,2 +1,2 @@
 // version.js
-const LEGO_BLOCKLY_VERSION = "2026-06-30-0114";
+const LEGO_BLOCKLY_VERSION = "2026-06-30-0121";
