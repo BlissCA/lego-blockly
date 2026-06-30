@@ -570,28 +570,17 @@ Blockly.Extensions.registerMutator(
 
 
 // ---------------- RGB SLIDER FIELD ----------------
-// 1. Inject CSS to prevent the theme from forcing the field to be grey
-const style = document.createElement('style');
-style.innerHTML = `
-  .blocklyFieldRect.rgb-slider-rect {
-    fill: white !important;
-    fill-opacity: 1 !important;
-    stroke: #444 !important;
-  }
-`;
-document.head.appendChild(style);
-
 class FieldRGBSlider extends Blockly.Field {
   constructor(r = 255, g = 255, b = 255) {
     super(`${r},${g},${b}`);
     this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
+    this.SERIALIZABLE = true;
   }
 
   static fromJson(options) {
     return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
   }
 
-  // Proper v12 serialization
   isSerializable() { return true; }
   saveState() { return this.getValue(); }
   loadState(state) { this.setValue(state); }
@@ -601,22 +590,33 @@ class FieldRGBSlider extends Blockly.Field {
     this.size_.height = 18;
   }
 
-  // This is the only way to reliably beat the Geras/Zelos renderer grey box
+  // This is the official hook to update colors in Blockly 12
   applyColour() {
-    if (this.borderRect_) {
+    if (this.colorRect_) {
       const color = `rgb(${this.getValue()})`;
-      this.borderRect_.style.setProperty('fill', color, 'important');
+      // We use .setAttribute to update the SVG directly
+      this.colorRect_.setAttribute('fill', color);
     }
   }
 
   initView() {
-    // Create the rectangle. 
-    // We add a custom class 'rgb-slider-rect' to target it with our injected CSS
+    // 1. Create the border/background (standard Blockly element)
     this.borderRect_ = Blockly.utils.dom.createSvgElement('rect', {
-      'class': 'blocklyFieldRect rgb-slider-rect',
+      'class': 'blocklyFieldRect',
       'height': '16',
       'width': '26',
       'rx': '4', 'ry': '4',
+      'stroke': '#444',
+      'stroke-width': '1'
+    }, this.fieldGroup_);
+
+    // 2. Create the inner Color Box. 
+    // This sits ON TOP of the borderRect_ so themes won't hide it.
+    this.colorRect_ = Blockly.utils.dom.createSvgElement('rect', {
+      'height': '12',
+      'width': '22',
+      'x': '2', 'y': '2', // Centered inside the border
+      'rx': '2', 'ry': '2',
       'cursor': 'pointer'
     }, this.fieldGroup_);
 
@@ -632,6 +632,8 @@ class FieldRGBSlider extends Blockly.Field {
         g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
         b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
       };
+      
+      // Update the visual state immediately
       this.applyColour();
       return `${this.value_.r},${this.value_.g},${this.value_.b}`;
     }
@@ -646,15 +648,15 @@ class FieldRGBSlider extends Blockly.Field {
       <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:white; border:1px solid #ccc; border-radius:4px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">R</label>
-          <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1;">
+          <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1; cursor:pointer;">
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">G</label>
-          <input type="range" id="sG" min="0" max="255" value="${g}" style="flex-grow:1;">
+          <input type="range" id="sG" min="0" max="255" value="${g}" style="flex-grow:1; cursor:pointer;">
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">B</label>
-          <input type="range" id="sB" min="0" max="255" value="${b}" style="flex-grow:1;">
+          <input type="range" id="sB" min="0" max="255" value="${b}" style="flex-grow:1; cursor:pointer;">
         </div>
         <div id="rgbPreview" style="height:12px; border:1px solid #999; border-radius:3px; background:rgb(${r},${g},${b})"></div>
       </div>
@@ -664,10 +666,14 @@ class FieldRGBSlider extends Blockly.Field {
       const rv = document.getElementById('sR').value;
       const gv = document.getElementById('sG').value;
       const bv = document.getElementById('sB').value;
+      
+      // Update preview in popup
       document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
+      
+      // Update Field value (triggers doValueUpdate_ -> applyColour)
       this.setValue(`${rv},${gv},${bv}`);
       
-      // Force block to update visuals immediately
+      // Force block to refresh its visual state
       if (this.getSourceBlock()) {
         this.getSourceBlock().render();
       }
@@ -679,7 +685,6 @@ class FieldRGBSlider extends Blockly.Field {
   }
 }
 
-// Ensure serialization works in UMD
 FieldRGBSlider.prototype.SERIALIZABLE = true;
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
