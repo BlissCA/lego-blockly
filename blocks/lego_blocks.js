@@ -1,6 +1,6 @@
 // Blockly is global (loaded from blockly.min.js)
 
-//registerFieldColour();
+registerFieldColour();
 
 class FieldInteractiveButton extends Blockly.FieldTextInput {
   static TYPE = 'field_interactive_button';
