@@ -569,6 +569,78 @@ Blockly.Extensions.registerMutator(
 );
 
 
+// ---------------- RGB SLIDER FIELD ----------------
+class FieldRGBSlider extends Blockly.Field {
+  constructor(r = 255, g = 255, b = 255) {
+    super(`${r},${g},${b}`);
+    this.value_ = { r, g, b };
+    this.CURSOR = 'pointer';
+  }
+
+  // Create the visual element on the block (the color swatch)
+  initView() {
+    this.rectElement_ = Blockly.utils.dom.createDom('rect', {
+      'class': 'blocklyColorRect',
+      'height': '15',
+      'width': '25',
+      'fill': `rgb(${this.value_.r},${this.value_.g},${this.value_.b})`,
+      'rx': '2', 'ry': '2'
+    });
+    this.fieldGroup_.appendChild(this.rectElement_);
+  }
+
+  // When the user clicks the block, show the sliders
+  showEditor_() {
+    const div = Blockly.DropDownDiv.getContentDiv();
+    
+    // Create HTML for 3 sliders
+    div.innerHTML = `
+      <style>
+        .rgb-container { padding: 10px; display: flex; flex-direction: column; gap: 8px; font-family: sans-serif; }
+        .rgb-row { display: flex; align-items: center; gap: 10px; }
+        .rgb-row label { width: 15px; font-weight: bold; }
+        .rgb-row input { cursor: pointer; }
+      </style>
+      <div class="rgb-container">
+        <div class="rgb-row"><label>R</label><input type="range" id="slideR" min="0" max="255" value="${this.value_.r}"></div>
+        <div class="rgb-row"><label>G</label><input type="range" id="slideG" min="0" max="255" value="${this.value_.g}"></div>
+        <div class="rgb-row"><label>B</label><input type="range" id="slideB" min="0" max="255" value="${this.value_.b}"></div>
+      </div>
+    `;
+
+    const update = () => {
+      const r = document.getElementById('slideR').value;
+      const g = document.getElementById('slideG').value;
+      const b = document.getElementById('slideB').value;
+      this.setValue(`${r},${g},${b}`);
+    };
+
+    div.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', update);
+    });
+
+    Blockly.DropDownDiv.showPositionedByField(this, () => {});
+  }
+
+  // Updates the internal value and the color on the block
+  setValue(newValue) {
+    if (!newValue) return;
+    const parts = newValue.split(',');
+    this.value_ = { r: parts[0], g: parts[1], b: parts[2] };
+    if (this.rectElement_) {
+      this.rectElement_.setAttribute('fill', `rgb(${newValue})`);
+    }
+    super.setValue(newValue);
+  }
+
+  // Ensure JSON export/import works
+  static fromJson(options) {
+    return new FieldRGBSlider(options['r'], options['g'], options['b']);
+  }
+}
+
+// Register the field so Blockly JSON can find it
+Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 
 
@@ -2631,6 +2703,20 @@ window.addEventListener("load", () => {
           "name": "COLOR",
           "default": "#ffffff"
         }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Set Led Color for a given Region"
+    },
+    {
+      "type": "tpad_set_led_sliders",
+      "message0": "%1 set color %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        { "type": "input_value", "name": "REGION", "check": "Number" },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 }
       ],
       "inputsInline": true,
       "previousStatement": null,
