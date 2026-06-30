@@ -571,127 +571,124 @@ Blockly.Extensions.registerMutator(
 
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
-  constructor(r = 255, g = 255, b = 255) {
-    super(`${r},${g},${b}`);
-    this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
-    // Force the instance to know it's serializable
-    this.SERIALIZABLE = true;
-  }
-
-  static fromJson(options) {
-    return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
-  }
-
-  // Tells Blockly 12 to save/load this field
-  isSerializable() { return true; }
-  saveState() { return this.getValue(); }
-  loadState(state) { this.setValue(state); }
-
-  // Reserves the space inside the block
-  updateSize_() {
-    this.size_.width = 30;
-    this.size_.height = 18;
-  }
-
-  // This is called whenever the value is set
-  doValueUpdate_(newValue) {
-    if (!newValue || typeof newValue !== 'string') return this.getValue();
-
-    const parts = newValue.split(',');
-    if (parts.length === 3) {
-      this.value_ = {
-        r: Math.max(0, Math.min(255, parseInt(parts[0]) || 0)),
-        g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
-        b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
-      };
-      
-      const validatedString = `${this.value_.r},${this.value_.g},${this.value_.b}`;
-      
-      // Update the UI if the element exists
-      this.updateDisplay_();
-      
-      return validatedString;
+    constructor(r = 255, g = 255, b = 255) {
+        // Force default to white (255,255,255) if no values provided
+        const valString = `${r},${g},${b}`;
+        super(valString);
+        this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
+        this.SERIALIZABLE = true;
     }
-    return this.getValue();
-  }
 
-  // Helper to force the SVG rectangle to change color
-  updateDisplay_() {
-    if (this.rectElement_) {
-      // We use .style.fill because CSS themes often block .setAttribute('fill')
-      this.rectElement_.style.fill = 'rgb(' + this.getValue() + ')';
+    static fromJson(options) {
+        return new FieldRGBSlider(
+            options['r'] !== undefined ? options['r'] : 255,
+            options['g'] !== undefined ? options['g'] : 255,
+            options['b'] !== undefined ? options['b'] : 255
+        );
     }
-  }
 
-  // Official Blockly 12 method to apply colors to fields
-  applyColour() {
-    this.updateDisplay_();
-  }
+    isSerializable() { return true; }
+    saveState() { return this.getValue(); }
+    loadState(state) { this.setValue(state); }
 
-  initView() {
-    // Create the SVG rectangle
-    this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
-      'height': '16', 
-      'width': '26',
-      'rx': '4', 'ry': '4',
-      'stroke': '#444', 'stroke-width': '1',
-      'cursor': 'pointer'
-    }, this.fieldGroup_);
-    
-    // Set initial color
-    this.updateDisplay_();
-  }
+    // This defines the size of the clickable area on the block
+    updateSize_() {
+        this.size_.width = 30;
+        this.size_.height = 20;
+    }
 
-  showEditor_() {
-    const div = Blockly.DropDownDiv.getContentDiv();
-    const { r, g, b } = this.value_;
+    // This handles value logic
+    doValueUpdate_(newValue) {
+        if (!newValue || typeof newValue !== 'string') return this.getValue();
+        const parts = newValue.split(',');
+        if (parts.length === 3) {
+            this.value_ = {
+                r: Math.max(0, Math.min(255, parseInt(parts[0]) || 0)),
+                g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
+                b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
+            };
+            const validated = `${this.value_.r},${this.value_.g},${this.value_.b}`;
+            
+            // Signal that the field needs to be redrawn
+            this.isDirty_ = true;
+            return validated;
+        }
+        return this.getValue();
+    }
 
-    // Inline styles for the popup UI
-    div.innerHTML = `
-      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:#fff;">
+    // CRITICAL: This is where the actual SVG color is applied in v12
+    render_() {
+        super.render_();
+        if (this.rectElement_) {
+            const color = `rgb(${this.getValue()})`;
+            // Use !important to stop the Blockly Theme from forcing it to grey
+            this.rectElement_.style.setProperty('fill', color, 'important');
+        }
+    }
+
+    initView() {
+        // Create the rectangle
+        this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
+            'height': '16',
+            'width': '26',
+            'rx': '4', 'ry': '4',
+            'stroke': '#444', 
+            'stroke-width': '1',
+            'cursor': 'pointer'
+        }, this.fieldGroup_);
+
+        // Set the initial color immediately
+        const initialColor = `rgb(${this.getValue()})`;
+        this.rectElement_.style.setProperty('fill', initialColor, 'important');
+    }
+
+    showEditor_() {
+        const div = Blockly.DropDownDiv.getContentDiv();
+        const { r, g, b } = this.value_;
+
+        div.innerHTML = `
+      <div style="padding:12px; display:flex; flex-direction:column; gap:10px; min-width:150px; background:#fff; border-radius:4px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <label style="font:bold 11px sans-serif; width:12px; color:#333;">R</label>
+          <label style="font:bold 11px sans-serif; width:15px; color:#333;">R</label>
           <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1; cursor:pointer;">
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <label style="font:bold 11px sans-serif; width:12px; color:#333;">G</label>
+          <label style="font:bold 11px sans-serif; width:15px; color:#333;">G</label>
           <input type="range" id="sG" min="0" max="255" value="${g}" style="flex-grow:1; cursor:pointer;">
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <label style="font:bold 11px sans-serif; width:12px; color:#333;">B</label>
+          <label style="font:bold 11px sans-serif; width:15px; color:#333;">B</label>
           <input type="range" id="sB" min="0" max="255" value="${b}" style="flex-grow:1; cursor:pointer;">
         </div>
-        <div id="rgbPreview" style="height:12px; border:1px solid #999; border-radius:3px; background:rgb(${r},${g},${b})"></div>
+        <div id="rgbPreview" style="height:14px; border:1px solid #999; border-radius:3px; background:rgb(${r},${g},${b})"></div>
       </div>
     `;
 
-    const update = () => {
-      const rv = document.getElementById('sR').value;
-      const gv = document.getElementById('sG').value;
-      const bv = document.getElementById('sB').value;
-      
-      const newColor = `${rv},${gv},${bv}`;
-      
-      // Update the popup preview
-      document.getElementById('rgbPreview').style.background = `rgb(${newColor})`;
-      
-      // Update the Field value (triggers doValueUpdate_ and updateDisplay_)
-      this.setValue(newColor);
-      
-      // Force the block to redraw (v12 requirement for live updates)
-      if (this.getSourceBlock()) {
-        this.getSourceBlock().render();
-      }
-    };
+        const update = () => {
+            const rv = document.getElementById('sR').value;
+            const gv = document.getElementById('sG').value;
+            const bv = document.getElementById('sB').value;
+            
+            document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
+            
+            // 1. Update internal value
+            this.setValue(`${rv},${gv},${bv}`);
+            
+            // 2. Force the field and block to re-render visually
+            this.forceRerender(); 
+            if (this.getSourceBlock()) {
+                this.getSourceBlock().render();
+            }
+        };
 
-    div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
-    
-    Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
-    Blockly.DropDownDiv.showPositionedByField(this);
-  }
+        div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
+        
+        Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
+        Blockly.DropDownDiv.showPositionedByField(this);
+    }
 }
 
-// Final safety for v12 serialization and registration
+// Final registration
 FieldRGBSlider.prototype.SERIALIZABLE = true;
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
