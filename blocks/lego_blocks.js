@@ -571,83 +571,79 @@ Blockly.Extensions.registerMutator(
 
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
-    constructor(r = 255, g = 255, b = 255) {
-        // We store a string "r,g,b" as the primary value
-        super(`${r},${g},${b}`);
-        this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
+  constructor(r = 255, g = 255, b = 255) {
+    super(`${r},${g},${b}`);
+    this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
+    this.SERIALIZABLE = true;
+  }
+
+  static fromJson(options) {
+    return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
+  }
+
+  isSerializable() { return true; }
+
+  saveState() { return this.getValue(); }
+  loadState(state) { this.setValue(state); }
+
+  updateSize_() {
+    this.size_.width = 30;
+    this.size_.height = 18;
+  }
+
+  // The logic for updating the visual state
+  doValueUpdate_(newValue) {
+    if (!newValue || typeof newValue !== 'string') return this.getValue();
+
+    const parts = newValue.split(',');
+    if (parts.length === 3) {
+      this.value_ = {
+        r: Math.max(0, Math.min(255, parseInt(parts[0]) || 0)),
+        g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
+        b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
+      };
+
+      const validatedString = `${this.value_.r},${this.value_.g},${this.value_.b}`;
+      
+      // Update the SVG rectangle color
+      if (this.rectElement_) {
+        // Use standard rgb() syntax
+        this.rectElement_.setAttribute('fill', 'rgb(' + validatedString + ')');
+      }
+      
+      return validatedString;
     }
+    return this.getValue();
+  }
 
-    // FIX 1: Explicitly override this method to return true. 
-    // This is the most reliable way to stop the warning in v12.
-    isSerializable() {
-        return true;
+  // This is called by Blockly when it's time to draw the field
+  initView() {
+    // Create the field group if it doesn't exist
+    this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
+      'class': 'blocklyColorRect',
+      'height': '16', 
+      'width': '26',
+      'fill': 'rgb(' + this.getValue() + ')',
+      'rx': '4', 'ry': '4',
+      'stroke': '#444', 'stroke-width': '1',
+      'cursor': 'pointer'
+    }, this.fieldGroup_);
+  }
+
+  // IMPORTANT: Added this to ensure the block stays in sync
+  render_() {
+    super.render_();
+    if (this.rectElement_) {
+      this.rectElement_.setAttribute('fill', 'rgb(' + this.getValue() + ')');
     }
+  }
 
-    // FIX 2: Modern JSON-based state management for v12
-    saveState() {
-        return this.getValue(); // Returns the string "r,g,b"
-    }
+  showEditor_() {
+    const div = Blockly.DropDownDiv.getContentDiv();
+    const { r, g, b } = this.value_;
 
-    loadState(state) {
-        this.setValue(state);
-    }
-
-    // FIX 3: Registry requirement for JSON blocks
-    static fromJson(options) {
-        return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
-    }
-
-    // Standard v12 Layout: Reserves space on the block
-    updateSize_() {
-        this.size_.width = 30;
-        this.size_.height = 18;
-    }
-
-    // Handles the transition between the string value and the internal object
-    doValueUpdate_(newValue) {
-        if (!newValue || typeof newValue !== 'string') {
-            // Handle cases where v12 might pass the state object instead of string
-            if (newValue && typeof newValue === 'object') {
-                newValue = `${newValue.r},${newValue.g},${newValue.b}`;
-            } else {
-                return this.value_ ? `${this.value_.r},${this.value_.g},${this.value_.b}` : "255,255,255";
-            }
-        }
-
-        const parts = newValue.split(',');
-        if (parts.length === 3) {
-            this.value_ = {
-                r: Math.max(0, Math.min(255, parseInt(parts[0]) || 0)),
-                g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
-                b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
-            };
-
-            const validatedString = `${this.value_.r},${this.value_.g},${this.value_.b}`;
-            if (this.rectElement_) {
-                this.rectElement_.setAttribute('fill', `rgb(${validatedString})`);
-            }
-            return validatedString;
-        }
-        return this.getValue();
-    }
-
-    initView() {
-        this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
-            'class': 'blocklyColorRect',
-            'height': '16', 'width': '26',
-            'fill': `rgb(${this.getValue()})`,
-            'rx': '4', 'ry': '4',
-            'stroke': '#444', 'stroke-width': '1',
-            'cursor': 'pointer'
-        }, this.fieldGroup_);
-    }
-
-    showEditor_() {
-        const div = Blockly.DropDownDiv.getContentDiv();
-        const { r, g, b } = this.value_;
-
-        div.innerHTML = `
-      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px;">
+    div.innerHTML = `
+      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:white;">
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">R</label>
           <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1;">
@@ -664,25 +660,33 @@ class FieldRGBSlider extends Blockly.Field {
       </div>
     `;
 
-        const update = () => {
-            const rv = document.getElementById('sR').value;
-            const gv = document.getElementById('sG').value;
-            const bv = document.getElementById('sB').value;
-            document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
-            this.setValue(`${rv},${gv},${bv}`);
-        };
+    const update = () => {
+      const rv = document.getElementById('sR').value;
+      const gv = document.getElementById('sG').value;
+      const bv = document.getElementById('sB').value;
+      
+      const newColor = `${rv},${gv},${bv}`;
+      
+      // 1. Update the preview in the popup
+      document.getElementById('rgbPreview').style.background = `rgb(${newColor})`;
+      
+      // 2. Set the field value (this triggers doValueUpdate_)
+      this.setValue(newColor);
+      
+      // 3. Force the block to redraw immediately
+      if (this.getSourceBlock()) {
+        this.render_();
+      }
+    };
 
-        div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
-        Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
-        Blockly.DropDownDiv.showPositionedByField(this);
-    }
+    div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
+    Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
+    Blockly.DropDownDiv.showPositionedByField(this);
+  }
 }
 
-// FIX 4: The "Warning Killer". We must set this explicitly on the prototype
-// for the Blockly UMD bundle to recognize it during serialization.
+// Final safety for v12 serialization
 FieldRGBSlider.prototype.SERIALIZABLE = true;
-
-// Register the field
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 
