@@ -2762,7 +2762,7 @@ window.addEventListener("load", () => {
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
         { "type": "input_value", "name": "REGION", "check": "Number" },
-        { "type": "field_rgb_slider", "name": "RGB_VALUE" }
+        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 }
       ],
       "inputsInline": true,
       "previousStatement": null,
