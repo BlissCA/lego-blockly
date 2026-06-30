@@ -1765,6 +1765,25 @@ javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["tpad_set_led_cp"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
+  const rgb = block.getFieldValue('COLOR'); // returns {r,g,b}
+
+  const r = rgb.r;
+  const g = rgb.g;
+  const b = rgb.b;
+  
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLED(${region}, ${r}, ${g}, ${b});
+}
+`;
+};
+
 javascriptGenerator.forBlock["tpad_led_off"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly

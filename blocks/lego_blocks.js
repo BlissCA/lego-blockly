@@ -105,17 +105,6 @@ class FieldInteractiveButton extends Blockly.FieldTextInput {
 
 Blockly.fieldRegistry.register('field_interactive_button', FieldInteractiveButton);
 
-
-/*
-Blockly.serialization.registry.register(
-  'field_interactive_button',
-  {
-    save: (field) => field.getValue(),
-    load: (state) => new FieldInteractiveButton(state)
-  }
-);
-*/
-
 window.BlocklyButtonEvents = {};
 
 
@@ -577,6 +566,157 @@ Blockly.Extensions.registerMutator(
   null,
   []
 );
+
+
+/**
+ * Custom Blockly field: RGB color picker with popup dialog.
+ * Stores {r,g,b} internally but displays a hex color square.
+ */
+class FieldColorRGB extends Blockly.Field {
+  constructor(defaultHex = '#ffffff') {
+    super(defaultHex);
+
+    // Parse initial hex
+    const rgb = FieldColorRGB.hexToRgb(defaultHex);
+    this.color_ = rgb || { r: 255, g: 255, b: 255 };
+  }
+
+  /**
+   * Required by Blockly: field type name.
+   */
+  static fromJson(options) {
+    return new FieldColorRGB(options.default || '#ffffff');
+  }
+
+  /**
+   * Convert hex → {r,g,b}
+   */
+  static hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length !== 6) return null;
+    return {
+      r: parseInt(hex.substring(0, 2), 16),
+      g: parseInt(hex.substring(2, 4), 16),
+      b: parseInt(hex.substring(4, 6), 16)
+    };
+  }
+
+  /**
+   * Convert {r,g,b} → hex
+   */
+  static rgbToHex({ r, g, b }) {
+    const toHex = (v) => ('0' + v.toString(16)).slice(-2);
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+  }
+
+  /**
+   * Called when the user clicks the field.
+   */
+  showEditor_() {
+    // Create widget content
+    const div = document.createElement('div');
+    div.style.padding = '8px';
+    div.style.width = '200px';
+
+    const preview = document.createElement('div');
+    preview.style.width = '100%';
+    preview.style.height = '30px';
+    preview.style.border = '1px solid #ccc';
+    preview.style.marginBottom = '8px';
+    preview.style.background = FieldColorRGB.rgbToHex(this.color_);
+    div.appendChild(preview);
+
+    const makeSlider = (label, value, onChange) => {
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = '6px';
+
+      const lbl = document.createElement('div');
+      lbl.textContent = `${label}: ${value}`;
+      wrapper.appendChild(lbl);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 0;
+      slider.max = 255;
+      slider.value = value;
+      slider.style.width = '100%';
+
+      slider.addEventListener('input', () => {
+        const v = Number(slider.value);
+        lbl.textContent = `${label}: ${v}`;
+        onChange(v);
+        preview.style.background = FieldColorRGB.rgbToHex(this.color_);
+      });
+
+      wrapper.appendChild(slider);
+      return wrapper;
+    };
+
+    div.appendChild(makeSlider('R', this.color_.r, (v) => this.color_.r = v));
+    div.appendChild(makeSlider('G', this.color_.g, (v) => this.color_.g = v));
+    div.appendChild(makeSlider('B', this.color_.b, (v) => this.color_.b = v));
+
+    // OK button
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'OK';
+    okBtn.style.marginTop = '8px';
+    okBtn.style.width = '100%';
+    okBtn.addEventListener('click', () => {
+      const hex = FieldColorRGB.rgbToHex(this.color_);
+      this.setValue(hex);
+      Blockly.DropDownDiv.hideIfOwner(this);
+    });
+    div.appendChild(okBtn);
+
+    // Show popup
+    Blockly.DropDownDiv.showPositionedByField(this, this.widgetCreate_(div));
+  }
+
+  /**
+   * Wrap widget content for DropDownDiv.
+   */
+  widgetCreate_(content) {
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(content);
+    return wrapper;
+  }
+
+  /**
+   * Return the stored RGB object.
+   */
+  getValue() {
+    return this.color_;
+  }
+
+  /**
+   * Set hex value and update internal RGB.
+   */
+  setValue(newHex) {
+    super.setValue(newHex);
+    const rgb = FieldColorRGB.hexToRgb(newHex);
+    if (rgb) this.color_ = rgb;
+  }
+
+  /**
+   * Serialize field to XML.
+   */
+  toXml(fieldElement) {
+    fieldElement.setAttribute('rgb', JSON.stringify(this.color_));
+  }
+
+  /**
+   * Deserialize field from XML.
+   */
+  fromXml(fieldElement) {
+    const rgb = JSON.parse(fieldElement.getAttribute('rgb'));
+    this.color_ = rgb;
+    this.setValue(FieldColorRGB.rgbToHex(rgb));
+  }
+}
+
+// Register field type
+Blockly.fieldRegistry.register('field_color_rgb', FieldColorRGB);
+
 
 
 
@@ -2623,6 +2763,28 @@ window.addEventListener("load", () => {
       "colour": 140,
       "tooltip": "Set Led Color for a given Region"
     },
+    {
+      "type": "tpad_set_led_cp",
+      "message0": "%1 set color %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        },
+        {
+          "type": "field_color_rgb",
+          "name": "COLOR",
+          "default": "#ffffff"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Set Led Color for a given Region"
+    },    
     {
       "type": "tpad_led_off",
       "message0": "%1 LED off %2",

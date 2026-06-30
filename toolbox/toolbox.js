@@ -1860,6 +1860,17 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "tpad_set_led_cp",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
+                  }
+              }
+            },            
+            {
+              "kind": "block",
               "type": "tpad_led_off",
               "inputs": {
                 "REGION": {
