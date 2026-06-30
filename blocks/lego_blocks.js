@@ -571,83 +571,100 @@ Blockly.Extensions.registerMutator(
 
 // ---------------- RGB SLIDER FIELD ----------------
 class FieldRGBSlider extends Blockly.Field {
-  // Fix 1: Stop the "Not Serializable" warning (Standard v12 approach)
-  static SERIALIZABLE = true;
-
   constructor(r = 255, g = 255, b = 255) {
-    // Initial value is a string "r,g,b"
+    // Pass a default string to super
     super(`${r},${g},${b}`);
     this.value_ = { r: Number(r), g: Number(g), b: Number(b) };
   }
 
-  // Fix 2: THE TOOLBOX FIX. Registry requires this static method.
-  static fromJson(options) {
-    return new FieldRGBSlider(
-      options['r'] !== undefined ? options['r'] : 255,
-      options['g'] !== undefined ? options['g'] : 255,
-      options['b'] !== undefined ? options['b'] : 255
-    );
+  // FIX 1: The "Not Serializable" warning
+  // In the browser (UMD), we must set this on both the class and prototype
+  static SERIALIZABLE = true;
+
+  // FIX 2: Modern v12 State Management
+  // This ensures the value is saved/loaded as a simple string "r,g,b"
+  saveState() {
+    return `${this.value_.r},${this.value_.g},${this.value_.b}`;
   }
 
-  // Fix 3: Layout fix. This places the rectangle INSIDE the block.
+  loadState(state) {
+    this.setValue(state);
+  }
+
+  // FIX 3: Toolbox fix
+  static fromJson(options) {
+    return new FieldRGBSlider(options['r'] || 255, options['g'] || 255, options['b'] || 255);
+  }
+
+  // FIX 4: Placement inside the block
   updateSize_() {
     this.size_.width = 30;
     this.size_.height = 18;
   }
 
-  // Fix 4: Visual feedback. Updates the rectangle color.
+  // FIX 5: Handling both String and Object inputs safely
   doValueUpdate_(newValue) {
-    if (!newValue || typeof newValue !== 'string') return "255,255,255";
+    if (!newValue) return "255,255,255";
     
-    const parts = newValue.split(',');
-    if (parts.length === 3) {
-      this.value_ = {
-        r: Math.max(0, Math.min(255, parseInt(parts[0]) || 0)),
-        g: Math.max(0, Math.min(255, parseInt(parts[1]) || 0)),
-        b: Math.max(0, Math.min(255, parseInt(parts[2]) || 0))
-      };
-      
-      const validatedValue = `${this.value_.r},${this.value_.g},${this.value_.b}`;
-      
-      if (this.rectElement_) {
-        this.rectElement_.setAttribute('fill', `rgb(${validatedValue})`);
-      }
-      return validatedValue;
+    let r, g, b;
+
+    if (typeof newValue === 'string') {
+      const parts = newValue.split(',');
+      r = parseInt(parts[0]) || 0;
+      g = parseInt(parts[1]) || 0;
+      b = parseInt(parts[2]) || 0;
+    } else if (typeof newValue === 'object') {
+      r = newValue.r;
+      g = newValue.g;
+      b = newValue.b;
     }
-    return this.getValue();
+
+    this.value_ = {
+      r: Math.max(0, Math.min(255, r)),
+      g: Math.max(0, Math.min(255, g)),
+      b: Math.max(0, Math.min(255, b))
+    };
+
+    const validatedString = `${this.value_.r},${this.value_.g},${this.value_.b}`;
+    
+    if (this.rectElement_) {
+      this.rectElement_.setAttribute('fill', `rgb(${validatedString})`);
+    }
+    
+    return validatedString; // Always return the string for the generator
   }
 
   initView() {
-    // Create the visual element and append it to this.fieldGroup_
     this.rectElement_ = Blockly.utils.dom.createSvgElement('rect', {
       'class': 'blocklyColorRect',
       'height': '16',
       'width': '26',
       'fill': `rgb(${this.getValue()})`,
       'rx': '4', 'ry': '4',
-      'stroke': '#444', 'stroke-width': '1'
+      'stroke': '#444', 'stroke-width': '1',
+      'cursor': 'pointer'
     }, this.fieldGroup_);
   }
 
   showEditor_() {
     const div = Blockly.DropDownDiv.getContentDiv();
-    
-    // Read current values so sliders match the block
     const { r, g, b } = this.value_;
 
     div.innerHTML = `
-      <style>
-        .rgb-pop { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
-        .rgb-pop label { font-family: sans-serif; font-size: 11px; font-weight: bold; width: 12px; }
-        .rgb-pop div { display: flex; align-items: center; gap: 8px; }
-        .rgb-pop input { flex-grow: 1; cursor: pointer; }
-        #rgbPreview { height: 12px; border: 1px solid #999; border-radius: 3px; }
-      </style>
-      <div class="rgb-pop">
-        <div><label>R</label><input type="range" id="sR" min="0" max="255" value="${r}"></div>
-        <div><label>G</label><input type="range" id="sG" min="0" max="255" value="${g}"></div>
-        <div><label>B</label><input type="range" id="sB" min="0" max="255" value="${b}"></div>
-        <div id="rgbPreview" style="background: rgb(${r},${g},${b})"></div>
+      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font:bold 11px sans-serif; width:12px;">R</label>
+          <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1;">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font:bold 11px sans-serif; width:12px;">G</label>
+          <input type="range" id="sG" min="0" max="255" value="${g}" style="flex-grow:1;">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font:bold 11px sans-serif; width:12px;">B</label>
+          <input type="range" id="sB" min="0" max="255" value="${b}" style="flex-grow:1;">
+        </div>
+        <div id="rgbPreview" style="height:12px; border:1px solid #999; border-radius:3px; background:rgb(${r},${g},${b})"></div>
       </div>
     `;
 
@@ -660,13 +677,13 @@ class FieldRGBSlider extends Blockly.Field {
     };
 
     div.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
-
     Blockly.DropDownDiv.setColour('#ffffff', '#bbb');
     Blockly.DropDownDiv.showPositionedByField(this);
   }
 }
 
-// Register the field
+// CRITICAL for v12 Serializer detection in index.html environment
+FieldRGBSlider.prototype.SERIALIZABLE = true;
 Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 
