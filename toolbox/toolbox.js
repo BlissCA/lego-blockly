@@ -1867,6 +1867,7 @@ const toolbox = {
                     "type": "tpad_regionled",
                     "fields": { "TPADREGIONLED": "0" }
                   }
+                }
               }
             },            
             {
