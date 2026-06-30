@@ -2794,7 +2794,7 @@ window.addEventListener("load", () => {
           "check": "Number"
         },
         {
-          "type": "field_color_rgb",
+          "type": "field_colour",
           "name": "COLOR",
           "default": "#ffffff"
         }

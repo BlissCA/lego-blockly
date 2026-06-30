@@ -1768,13 +1768,14 @@ javascriptGenerator.forBlock["tpad_set_led"] = function (block) {
 javascriptGenerator.forBlock["tpad_set_led_cp"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const region = javascriptGenerator.valueToCode(block, "REGION", javascriptGenerator.ORDER_NONE) || "0";
-  //const rgb = block.getFieldValue('COLOR'); // returns {r,g,b}
-  const rgb = block.getField('COLOR').getRgb();
+  // Get the hex string from the color field (e.g. "#ff0000")
+  const hexColor = block.getFieldValue("COLOR");
 
-  const r = rgb.r;
-  const g = rgb.g;
-  const b = rgb.b;
-  
+  // Helper to convert hex to RGB
+  const r = parseInt(hexColor.substring(1, 3), 16);
+  const g = parseInt(hexColor.substring(3, 5), 16);
+  const b = parseInt(hexColor.substring(5, 7), 16);
+
   return `
 {
   shouldStop();
