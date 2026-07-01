@@ -234,6 +234,20 @@ export class LegoToyPad {
             });
 
           if (same) return;
+        } else if (region === 4) {
+          const same =
+            ["1","2","3"].every(r => {
+              const old = this.ledState[r];
+              return old &&
+                old.effect === newState.effect &&
+                old.r === newState[r-1].r &&
+                old.g === newState[r-1].g &&
+                old.b === newState[r-1].b &&
+                JSON.stringify(old.params) === JSON.stringify(newState[r-1].params);
+            });
+
+          if (same) return;
+
         } else {
           const old = this.ledState[region];
           if (old &&
@@ -264,6 +278,10 @@ export class LegoToyPad {
         this.ledState[1] = newState;
         this.ledState[2] = newState;
         this.ledState[3] = newState;
+      } else if (region === 4) {
+        this.ledState[1] = newState[0];
+        this.ledState[2] = newState[1];
+        this.ledState[3] = newState[2];
       } else {
         this.ledState[region] = newState;
       }
@@ -288,6 +306,24 @@ export class LegoToyPad {
       [
         region,
         r, g, b
+      ]
+    );
+  }
+
+  async setLEDS( rc, gc, bc, rl, gl, bl, rr, gr, br ) {
+    const newState = [
+      { effect: "solid", r: rc, g: gc, b: bc, params: {} },
+      { effect: "solid", r: rl, g: gl, b: bl, params: {} },
+      { effect: "solid", r: rr, g: gr, b: br, params: {} }
+    ];
+    const region = 4; // all regions
+
+    return this._sendCommand(
+      0xC8, // SWITCH_PADS
+      region,
+      newState,
+      [
+        1,rc, gc, bc, 1, rl, gl, bl, 1, rr, gr, br
       ]
     );
   }
