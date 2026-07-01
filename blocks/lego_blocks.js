@@ -2891,6 +2891,52 @@ window.addEventListener("load", () => {
       "tooltip": "Flash LED for a given Region, cnt=255 means flash forever"
     },
     {
+      "type": "tpad_flash_led_sliders",
+      "message0": "%1 flash %2 %3\nt1:%4 t2:%5 cnt:%6",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 },
+        {
+          "type": "input_value",
+          "name": "T1",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "T2",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "CNT",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Flash LED for a given Region, cnt=255 means flash forever"
+    },
+    {
       "type": "tpad_fade_led",
       "message0": "%1 fade %2 R:%3 G:%4 B:%5\nt1:%6 cnt:%7",
       "args0": [
@@ -2952,6 +2998,43 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 140,
       "tooltip": "Fade LED for a given Region, cnt=0 means flash/fade forever"
+    },
+    {
+      "type": "tpad_fade_led_sliders",
+      "message0": "%1 fade %2 %3\nt1:%4 cnt:%5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        {
+          "type": "input_value",
+          "name": "REGION",
+          "check": "Number"
+        },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 },
+        {
+          "type": "input_value",
+          "name": "T1",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "CNT",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 255 }
+          }
+        }
+
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Fade LED for a given Region, cnt=0/255 means flash/fade forever"
     }    
 
   ]);  

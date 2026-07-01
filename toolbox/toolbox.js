@@ -1944,6 +1944,36 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "tpad_flash_led_sliders",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
+                  }
+                },
+                "T1": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                },
+                "T2": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                },
+                "CNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 255 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
               "type": "tpad_fade_led",
               "inputs": {
                 "REGION": {
@@ -1968,6 +1998,30 @@ const toolbox = {
                   "shadow": {
                     "type": "math_number",
                     "fields": { "NUM": 255 }
+                  }
+                },
+                "T1": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 20 }
+                  }
+                },
+                "CNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 2 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "tpad_fade_led_sliders",
+              "inputs": {
+                "REGION": {
+                  "shadow": {
+                    "type": "tpad_regionled",
+                    "fields": { "TPADREGIONLED": "0" }
                   }
                 },
                 "T1": {
