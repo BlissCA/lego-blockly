@@ -675,18 +675,21 @@ class FieldRGBSlider extends Blockly.Field {
     const { r, g, b } = this.value_;
 
     div.innerHTML = `
-      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; background:white; border-radius:4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+      <div style="padding:10px; display:flex; flex-direction:column; gap:8px; min-width:170px; background:white; border-radius:4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">R</label>
           <input type="range" id="sR" min="0" max="255" value="${r}" style="flex-grow:1; cursor:pointer;">
+          <span id="sRValue" style="min-width:32px; text-align:right; font:11px sans-serif; color:#333;">${r}</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">G</label>
           <input type="range" id="sG" min="0" max="255" value="${g}" style="flex-grow:1; cursor:pointer;">
+          <span id="sGValue" style="min-width:32px; text-align:right; font:11px sans-serif; color:#333;">${g}</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font:bold 11px sans-serif; width:12px; color:#333;">B</label>
           <input type="range" id="sB" min="0" max="255" value="${b}" style="flex-grow:1; cursor:pointer;">
+          <span id="sBValue" style="min-width:32px; text-align:right; font:11px sans-serif; color:#333;">${b}</span>
         </div>
         <div id="rgbPreview" style="height:12px; border:1px solid #999; border-radius:3px; background:rgb(${r},${g},${b})"></div>
       </div>
@@ -696,12 +699,15 @@ class FieldRGBSlider extends Blockly.Field {
       const rv = document.getElementById('sR').value;
       const gv = document.getElementById('sG').value;
       const bv = document.getElementById('sB').value;
-      
+
+      document.getElementById('sRValue').textContent = rv;
+      document.getElementById('sGValue').textContent = gv;
+      document.getElementById('sBValue').textContent = bv;
       document.getElementById('rgbPreview').style.background = `rgb(${rv},${gv},${bv})`;
-      
+
       // Update field value
       this.setValue(`${rv},${gv},${bv}`);
-      
+
       // CRITICAL: Force a visual refresh
       this.applyColour();
       if (this.getSourceBlock()) {
