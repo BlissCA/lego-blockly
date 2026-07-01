@@ -3016,7 +3016,7 @@ window.addEventListener("load", () => {
           "check": "Number",
           "shadow": {
             "type": "math_number",
-            "fields": { "NUM": 10 }
+            "fields": { "NUM": 20 }
           }
         },
         {
@@ -3025,7 +3025,7 @@ window.addEventListener("load", () => {
           "check": "Number",
           "shadow": {
             "type": "math_number",
-            "fields": { "NUM": 255 }
+            "fields": { "NUM": 2 }
           }
         }
 
