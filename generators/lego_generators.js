@@ -1822,7 +1822,7 @@ javascriptGenerator.forBlock["tpad_set_leds_sliders"] = function (block) {
   const val_r = block.getFieldValue("RGB_VALUE_R");
   
   let rc, gc, bc, rl, gl, bl, rr, gr, br;
-  if (typeof val === 'string') {
+  if (typeof val_c === 'string') {
     // Standard case: "255,255,255"
     const parts = val_c.split(',');
     rc = parts[0]; gc = parts[1]; bc = parts[2];
