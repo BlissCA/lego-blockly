@@ -239,7 +239,7 @@ export class LegoToyPad {
             ["1","2","3"].every(r => {
               const old = this.ledState[r];
               return old &&
-                old.effect === newState.effect &&
+                old.effect === newState[r].effect &&
                 old.r === newState[r].r &&
                 old.g === newState[r].g &&
                 old.b === newState[r].b &&
