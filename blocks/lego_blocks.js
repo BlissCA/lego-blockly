@@ -2806,6 +2806,21 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 140,
       "tooltip": "Set Led Color for a given Region"
+    },
+    {
+      "type": "tpad_set_leds_sliders",
+      "message0": "%1 set color C:%2 L:%3 R:%4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_C", "r": 255, "g": 0, "b": 0 },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_L", "r": 0, "g": 255, "b": 0 },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_R", "r": 0, "g": 0, "b": 255 }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Set Led Color for all Region"
     },    
     {
       "type": "tpad_led_off",

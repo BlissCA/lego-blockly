@@ -1814,6 +1814,57 @@ javascriptGenerator.forBlock["tpad_set_led_sliders"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["tpad_set_leds_sliders"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  
+  const val_c = block.getFieldValue("RGB_VALUE_C");
+  const val_l = block.getFieldValue("RGB_VALUE_L");
+  const val_r = block.getFieldValue("RGB_VALUE_R");
+  
+  let rc, gc, bc, rl, gl, bl, rr, gr, br;
+  if (typeof val === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_c.split(',');
+    rc = parts[0]; gc = parts[1]; bc = parts[2];
+  } else if (val_c && typeof val_c === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rc = val_c.r; gc = val_c.g; bc = val_c.b;
+  } else {
+    rc = 255; gc = 0; bc = 0;
+  }
+
+  if (typeof val_l === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_l.split(',');
+    rl = parts[0]; gl = parts[1]; bl = parts[2];
+  } else if (val_l && typeof val_l === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rl = val_l.r; gl = val_l.g; bl = val_l.b;
+  } else {
+    rl = 255; gl = 0; bl = 0;
+  }
+
+  if (typeof val_r === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_r.split(',');
+    rr = parts[0]; gr = parts[1]; br = parts[2];
+  } else if (val_r && typeof val_r === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rr = val_r.r; gr = val_r.g; br = val_r.b;
+  } else {
+    rr = 255; gr = 0; br = 0;
+  }
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLEDS(${rc}, ${gc}, ${bc}, ${rl}, ${gl}, ${bl}, ${rr}, ${gr}, ${br});
+}
+`;
+};
+
 javascriptGenerator.forBlock["tpad_led_off"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly

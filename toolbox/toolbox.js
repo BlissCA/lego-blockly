@@ -1881,6 +1881,11 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "tpad_set_leds_sliders",
+              "inputs": {}
             },            
             {
               "kind": "block",
