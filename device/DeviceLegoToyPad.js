@@ -356,6 +356,31 @@ export class LegoToyPad {
     );
   }
 
+  async flashLEDS(rc, gc, bc, t1c, t2c, pulseCountc,  rl, gl, bl, t1l, t2l, pulseCountl, rr, gr, br, t1r, t2r, pulseCountr) {
+    const newState = {
+      1: { effect: "flash", r: rc, g: gc, b: bc, params: { t1c, t2c, pulseCountc } },
+      2: { effect: "flash", r: rl, g: gl, b: bl, params: { t1l, t2l, pulseCountl } },
+      3: { effect: "flash", r: rr, g: gr, b: br, params: { t1r, t2r, pulseCountr } }
+    };
+    const region = 4; // all regions
+
+    // Flash is persistent ONLY when pulseCount = 0 or 255
+    const isPersistent =
+      pulseCount === 0 || pulseCount === 255;
+
+    return this._sendCommand(
+      0xC7, // FLASH_PADS
+      region,
+      newState,
+      [
+        1,t1c, t2c, pulseCountc, rc, gc, bc,
+        1,t1l, t2l, pulseCountl, rl, gl, bl,
+        1,t1r, t2r, pulseCountr, rr, gr, br
+      ],
+      {skipCache: !isPersistent} // skip only for transient flashes
+    );
+  }
+
   async fadeLED(region, r, g, b, t1, pulseCount) {
     const newState = {
       effect: "fade",
@@ -375,6 +400,31 @@ export class LegoToyPad {
         region,
         t1, pulseCount,
         r, g, b
+      ],
+      {skipCache: !isPersistent} // skip only for transient flashes
+    );
+  }
+
+  async fadeLEDS(rc, gc, bc, tc, pulseCountc,  rl, gl, bl, tl, pulseCountl, rr, gr, br, tr, pulseCountr) {
+    const newState = {
+      1: { effect: "fade", r: rc, g: gc, b: bc, params: { tc, pulseCountc } },
+      2: { effect: "fade", r: rl, g: gl, b: bl, params: { tl, pulseCountl } },
+      3: { effect: "fade", r: rr, g: gr, b: br, params: { tr, pulseCountr } }
+    };
+    const region = 4; // all regions
+
+    // Fade is persistent ONLY when pulseCount = 0 or 255
+    const isPersistent =
+      pulseCount === 0 || pulseCount === 255;
+
+    return this._sendCommand(
+      0xC6, // FADE_PADS
+      region,
+      newState,
+      [
+        1,tc, pulseCountc, rc, gc, bc,
+        1,tl, pulseCountl, rl, gl, bl,
+        1,tr, pulseCountr, rr, gr, br
       ],
       {skipCache: !isPersistent} // skip only for transient flashes
     );
