@@ -366,7 +366,7 @@ export class LegoToyPad {
 
     // Flash is persistent ONLY when pulseCount = 0 or 255
     const isPersistent =
-      pulseCount === 0 || pulseCount === 255;
+      (pulseCountc === 0 || pulseCountc === 255) && (pulseCountl === 0 || pulseCountl === 255) && (pulseCountr === 0 || pulseCountr === 255);
 
     return this._sendCommand(
       0xC7, // FLASH_PADS
@@ -415,7 +415,7 @@ export class LegoToyPad {
 
     // Fade is persistent ONLY when pulseCount = 0 or 255
     const isPersistent =
-      pulseCount === 0 || pulseCount === 255;
+      (pulseCountc === 0 || pulseCountc === 255) && (pulseCountl === 0 || pulseCountl === 255) && (pulseCountr === 0 || pulseCountr === 255);
 
     return this._sendCommand(
       0xC6, // FADE_PADS
