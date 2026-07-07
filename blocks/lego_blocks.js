@@ -2959,7 +2959,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "tpad_flash_leds_sliders",
-      "message0": "%1 flash Leds\nc:%2 t1:%3 t2:%4 cnt:%5\nl:%6 t1:%7 t2:%8 cnt:%9\nr:%10 t1:%11 t2:%12 cnt:%13",
+      "message0": "%1 flash Leds\nC:%2 t1:%3 t2:%4 cnt:%5\nL:%6 t1:%7 t2:%8 cnt:%9\nR:%10 t1:%11 t2:%12 cnt:%13",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
         { "type": "field_rgb_slider", "name": "RGB_VALUE_C", "r": 255, "g": 0, "b": 0 },

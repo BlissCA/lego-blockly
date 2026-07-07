@@ -1980,6 +1980,17 @@ const toolbox = {
             {
               "kind": "block",
               "type": "tpad_flash_leds_sliders",
+              "inputs": {
+                "T1_C": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "T2_C": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "CNT_C": {"shadow": {"type": "math_number", "fields": { "NUM": 255 }}},
+                "T1_L": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "T2_L": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "CNT_L": {"shadow": {"type": "math_number", "fields": { "NUM": 255 }}},
+                "T1_R": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "T2_R": {"shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+                "CNT_R": {"shadow": {"type": "math_number", "fields": { "NUM": 255 }}}
+              }
             },
             {
               "kind": "block",
