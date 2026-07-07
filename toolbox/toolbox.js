@@ -1979,6 +1979,10 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "tpad_flash_leds_sliders",
+            },
+            {
+              "kind": "block",
               "type": "tpad_fade_led",
               "inputs": {
                 "REGION": {

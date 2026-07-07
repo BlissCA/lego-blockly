@@ -1932,6 +1932,71 @@ javascriptGenerator.forBlock["tpad_flash_led_sliders"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["tpad_flash_leds_sliders"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  const t1_c = javascriptGenerator.valueToCode(block, "T1_C", javascriptGenerator.ORDER_NONE) || "10";
+  const t2_c = javascriptGenerator.valueToCode(block, "T2_C", javascriptGenerator.ORDER_NONE) || "10";
+  const cnt_c = javascriptGenerator.valueToCode(block, "CNT_C", javascriptGenerator.ORDER_NONE) || "255";  
+  const val_c = block.getFieldValue("RGB_VALUE_C");
+
+  const t1_l = javascriptGenerator.valueToCode(block, "T1_L", javascriptGenerator.ORDER_NONE) || "10";
+  const t2_l = javascriptGenerator.valueToCode(block, "T2_L", javascriptGenerator.ORDER_NONE) || "10";
+  const cnt_l = javascriptGenerator.valueToCode(block, "CNT_L", javascriptGenerator.ORDER_NONE) || "255";
+  const val_l = block.getFieldValue("RGB_VALUE_L");
+
+  const t1_r = javascriptGenerator.valueToCode(block, "T1_R", javascriptGenerator.ORDER_NONE) || "10";
+  const t2_r = javascriptGenerator.valueToCode(block, "T2_R", javascriptGenerator.ORDER_NONE) || "10";
+  const cnt_r = javascriptGenerator.valueToCode(block, "CNT_R", javascriptGenerator.ORDER_NONE) || "255";
+  const val_r = block.getFieldValue("RGB_VALUE_R");
+  
+  let rc, gc, bc;
+  if (typeof val_c === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_c.split(',');
+    rc = parts[0]; gc = parts[1]; bc = parts[2];
+  } else if (val_c && typeof val_c === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rc = val_c.r; gc = val_c.g; bc = val_c.b;
+  } else {
+    rc = 255; gc = 255; bc = 255;
+  }
+
+  
+  let rl, gl, bl;
+  if (typeof val_l === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_l.split(',');
+    rl = parts[0]; gl = parts[1]; bl = parts[2];
+  } else if (val_l && typeof val_l === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rl = val_l.r; gl = val_l.g; bl = val_l.b;
+  } else {
+    rl = 255; gl = 255; bl = 255;
+  }
+
+    let rr, gr, br;
+  if (typeof val_r === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val_r.split(',');
+    rr = parts[0]; gr = parts[1]; br = parts[2];
+  } else if (val_r && typeof val_r === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    rr = val_r.r; gr = val_r.g; br = val_r.b;
+  } else {
+    rr = 255; gr = 255; br = 255;
+  }
+  
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.flashLEDS(${rc}, ${gc}, ${bc}, ${t1_l}, ${t2_l}, ${cnt_l}, ${rl}, ${gl}, ${bl}, ${t1_l}, ${t2_l}, ${cnt_l}, ${rr}, ${gr}, ${br}, ${t1_r}, ${t2_r}, ${cnt_r});
+}
+`;
+};
+
 javascriptGenerator.forBlock["tpad_fade_led"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   //const region = block.getFieldValue("REGION") || "0";  // <-- IMPORTANT: read field directly

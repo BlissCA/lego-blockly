@@ -2958,6 +2958,31 @@ window.addEventListener("load", () => {
       "tooltip": "Flash LED for a given Region, cnt=255 means flash forever"
     },
     {
+      "type": "tpad_flash_leds_sliders",
+      "message0": "%1 flash Leds\nc:%2 t1:%3 t2:%4 cnt:%5\nl:%6 t1:%7 t2:%8 cnt:%9\nr:%10 t1:%11 t2:%12 cnt:%13",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTPadDropdown },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_C", "r": 255, "g": 0, "b": 0 },
+        { "type": "input_value", "name": "T1_C", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "T2_C", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "CNT_C", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 255 }}},
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_L", "r": 0, "g": 255, "b": 0 },
+        { "type": "input_value", "name": "T1_L", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "T2_L", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "CNT_L", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 255 }}},
+        { "type": "field_rgb_slider", "name": "RGB_VALUE_R", "r": 0, "g": 0, "b": 255 },
+        { "type": "input_value", "name": "T1_R", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "T2_R", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 10 }}},
+        { "type": "input_value", "name": "CNT_R", "check": "Number", "shadow": {"type": "math_number", "fields": { "NUM": 255 }}}
+
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 140,
+      "tooltip": "Flash LEDS for all Region Independently, cnt=255 means flash forever"
+    },
+    {
       "type": "tpad_fade_led",
       "message0": "%1 fade %2 R:%3 G:%4 B:%5\nt1:%6 cnt:%7",
       "args0": [
