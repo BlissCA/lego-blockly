@@ -2057,6 +2057,18 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "tpad_fade_leds_sliders",
+              "inputs": {
+                "T1_C": {"shadow": {"type": "math_number", "fields": { "NUM": 20 }}},
+                "CNT_C": {"shadow": {"type": "math_number", "fields": { "NUM": 2 }}},
+                "T1_L": {"shadow": {"type": "math_number", "fields": { "NUM": 20 }}},
+                "CNT_L": {"shadow": {"type": "math_number", "fields": { "NUM": 2 }}},
+                "T1_R": {"shadow": {"type": "math_number", "fields": { "NUM": 20 }}},
+                "CNT_R": {"shadow": {"type": "math_number", "fields": { "NUM": 2 }}}
+              }
             }                 
           ]
         }
