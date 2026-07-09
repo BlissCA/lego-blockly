@@ -16,11 +16,13 @@ Lego Blockly supports for now:
 
 - Lego Interface B
 - Lego Interface A with an Arduino (Uno/Nano sketch provided).
+- Lego Power Function with the IR 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
 - Wedo 1.0 (using the 2 ports USB hub)
 - WeDo 2.0 (BLE)
 - LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
+- Lego Dimensions Toypad USB.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
 
 You need access to serial ports:
 - Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
@@ -57,12 +59,13 @@ Special thanks to people who participate in this forum thread.  They give precio
     - By the way, The HC-05 module's RX/TX logic levels are 3.3V, despite the module often being powered by a 5V VCC pin. The RX pin is not 5V tolerant, so a voltage divider (e.g., 1kΩ and 2kΩ resistors) is required to reduce a 5V Arduino TX signal to 3.3V, while the HC-05 TX can connect directly to a 5V RX.
     - Once HC-05 at 115200 bauds and reset to normal mode, Arduino 5v (not 5v in), GND, rx0, tx1 (using voltage divider) goes to HC-05 5v, GND, tx, rx.
 
-- To use Interface A with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably)
+- To use Interface A (AND lego power function IR) with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably)
   - You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
   - See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
   - You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
   - Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
   - Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
+  - For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
   
 
 ## Wonderful other related projects by others:
