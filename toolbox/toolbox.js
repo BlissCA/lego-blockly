@@ -148,7 +148,7 @@ const toolbox = {
       "contents": [
         {
           "kind": "category",
-          "name": "Loop, Wait, Print",
+          "name": "Loop, Wait",
           "contents": [
             { "kind": "block", "type": "loop_forever",
               "inputs": {
@@ -183,7 +183,18 @@ const toolbox = {
                   }
                 }
               }
-            },
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Interactive Control",
+          "contents": [
+            { "kind": "block", "type": "lego_button_event" },
+            { "kind": "block", "type": "display_value" },
+            { "kind": "block", "type": "interactive_value" },
+            { "kind": "block", "type": "interactive_slider"},
+            { "kind": "block", "type": "format_number"},
             {
               "kind": "block",
               "type": "lego_print_value",
@@ -196,16 +207,6 @@ const toolbox = {
                 }
               }
             }
-          ]
-        },
-        {
-          "kind": "category",
-          "name": "Interactive Control",
-          "contents": [
-            { "kind": "block", "type": "lego_button_event" },
-            { "kind": "block", "type": "display_value" },
-            { "kind": "block", "type": "interactive_value" },
-            { "kind": "block", "type": "interactive_slider"}
           ]
         },
 

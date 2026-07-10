@@ -2274,6 +2274,27 @@ javascriptGenerator.forBlock['bitwise_extract'] = function(block) {
 };
 
 
+//-------------- Format number to Decimal, Hexadecimal, Binary ----------------
+javascriptGenerator.forBlock['format_number'] = function(block) {
+  const value = javascriptGenerator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_NONE) || '0';
+  const radix = block.getFieldValue('RADIX');
+
+  let code;
+  switch (radix) {
+    case "HEX":
+      code = `("0x" + (${value}).toString(16))`;
+      break;
+    case "BIN":
+      code = `("0b" + (${value}).toString(2))`;
+      break;
+    default:
+      code = `(${value}).toString()`;
+  }
+
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {

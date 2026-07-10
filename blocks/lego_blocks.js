@@ -3248,6 +3248,31 @@ window.addEventListener("load", () => {
 
   ]);
 
+  // Format number
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "format_number",
+      "message0": "format %1 as %2",
+      "args0": [
+        { "type": "input_value", "name": "VALUE", "check": "Number" },
+        {
+          "type": "field_dropdown",
+          "name": "RADIX",
+          "options": [
+            ["decimal", "DEC"],
+            ["hex", "HEX"],
+            ["binary", "BIN"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 180,
+      "tooltip": "Format a number as decimal, hex, or binary"
+    }
+  ]);
+
+
 
   // ---------------- Counter BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
