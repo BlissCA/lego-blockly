@@ -2251,12 +2251,12 @@ javascriptGenerator.forBlock['bitwise_rotate'] = function(block) {
 
   if (dir === "LEFT") {
     return [
-      `((${A} << ${bits}) | (${A} >> (32 - ${bits})))`,
+      `((((${A}) << ${bits}) | ((${A}) >>> (32 - ${bits}))) >>> 0)`,
       javascriptGenerator.ORDER_BITWISE_SHIFT
     ];
   } else {
     return [
-      `((${A} >> ${bits}) | (${A} << (32 - ${bits})))`,
+      `((((${A}) >>> ${bits}) | ((${A}) << (32 - ${bits}))) >>> 0)`,
       javascriptGenerator.ORDER_BITWISE_SHIFT
     ];
   }
