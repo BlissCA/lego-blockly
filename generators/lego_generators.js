@@ -2192,60 +2192,72 @@ javascriptGenerator.forBlock['interactive_slider'] = function(block) {
 //
 javascriptGenerator.forBlock['bitwise_operation'] = function(block) {
   const op = block.getFieldValue('OP');
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  const B = javascriptGenerator.valueToCode(block, 'B', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(${A} ${op} ${B})`, javascriptGenerator.ORDER_BITWISE];
+
+  let order;
+  switch (op) {
+    case '&': order = javascriptGenerator.ORDER_BITWISE_AND; break;
+    case '|': order = javascriptGenerator.ORDER_BITWISE_OR; break;
+    case '^': order = javascriptGenerator.ORDER_BITWISE_XOR; break;
+    case '<<':
+    case '>>': order = javascriptGenerator.ORDER_BITWISE_SHIFT; break;
+    default: order = javascriptGenerator.ORDER_NONE;
+  }
+
+  const A = javascriptGenerator.valueToCode(block, 'A', order) || '0';
+  const B = javascriptGenerator.valueToCode(block, 'B', order) || '0';
+
+  return [`(${A} ${op} ${B})`, order];
 };
 
 javascriptGenerator.forBlock['bitwise_not'] = function(block) {
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(~${A})`, javascriptGenerator.ORDER_BITWISE];
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_NOT) || '0';
+  return [`(~${A})`, javascriptGenerator.ORDER_BITWISE_NOT];
 };
 
 javascriptGenerator.forBlock['bitwise_testbit'] = function(block) {
   const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_SHIFT) || '0';
   return [`((((${A}) >> (${bit})) & 1) === 1)`, javascriptGenerator.ORDER_LOGICAL_AND];
 };
 
 javascriptGenerator.forBlock['bitwise_setbit'] = function(block) {
   const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(${A} | (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_OR) || '0';
+  return [`(${A} | (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE_OR];
 };
 
 javascriptGenerator.forBlock['bitwise_clearbit'] = function(block) {
   const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(${A} & ~(1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_AND) || '0';
+  return [`(${A} & ~(1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE_AND];
 };
 
 javascriptGenerator.forBlock['bitwise_togglebit'] = function(block) {
   const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(${A} ^ (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_XOR) || '0';
+  return [`(${A} ^ (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE_XOR];
 };
 
 javascriptGenerator.forBlock['bitwise_mask'] = function(block) {
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
-  const mask = javascriptGenerator.valueToCode(block, 'MASK', javascriptGenerator.ORDER_BITWISE) || '0';
-  return [`(${A} & ${mask})`, javascriptGenerator.ORDER_BITWISE];
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_AND) || '0';
+  const mask = javascriptGenerator.valueToCode(block, 'MASK', javascriptGenerator.ORDER_BITWISE_AND) || '0';
+  return [`(${A} & ${mask})`, javascriptGenerator.ORDER_BITWISE_AND];
 };
 
 javascriptGenerator.forBlock['bitwise_rotate'] = function(block) {
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_SHIFT) || '0';
   const bits = javascriptGenerator.valueToCode(block, 'BITS', javascriptGenerator.ORDER_NONE) || '0';
   const dir = block.getFieldValue('DIR');
 
   if (dir === "LEFT") {
     return [
       `((${A} << ${bits}) | (${A} >> (32 - ${bits})))`,
-      javascriptGenerator.ORDER_BITWISE
+      javascriptGenerator.ORDER_BITWISE_SHIFT
     ];
   } else {
     return [
       `((${A} >> ${bits}) | (${A} << (32 - ${bits})))`,
-      javascriptGenerator.ORDER_BITWISE
+      javascriptGenerator.ORDER_BITWISE_SHIFT
     ];
   }
 };
@@ -2253,11 +2265,11 @@ javascriptGenerator.forBlock['bitwise_rotate'] = function(block) {
 javascriptGenerator.forBlock['bitwise_extract'] = function(block) {
   const start = javascriptGenerator.valueToCode(block, 'START', javascriptGenerator.ORDER_NONE) || '0';
   const end = javascriptGenerator.valueToCode(block, 'END', javascriptGenerator.ORDER_NONE) || '0';
-  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE_SHIFT) || '0';
 
   return [
     `(((${A}) >> ${start}) & ((1 << (${end} - ${start} + 1)) - 1))`,
-    javascriptGenerator.ORDER_BITWISE
+    javascriptGenerator.ORDER_BITWISE_SHIFT
   ];
 };
 
