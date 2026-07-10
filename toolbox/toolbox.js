@@ -60,7 +60,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Bitwise",
-      "colour": "60",
+      "colour": "#FFFF00",
       "contents": [
         { "kind": "block", "type": "bitwise_operation" },
         { "kind": "block", "type": "bitwise_not" },
