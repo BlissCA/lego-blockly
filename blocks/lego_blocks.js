@@ -2709,7 +2709,7 @@ window.addEventListener("load", () => {
 
   ]);  
 
-// ---------------- Lego ToyPad BLOCKS ----------------
+  // ---------------- Lego ToyPad BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {
       "type": "tpad_get_taghex",
@@ -3107,6 +3107,141 @@ window.addEventListener("load", () => {
 
   ]);  
   
+
+  // Bitwise Operators
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "bitwise_operation",
+      "message0": "%1 %2 %3",
+      "args0": [
+        { "type": "input_value", "name": "A", "check": "Number" },
+        {
+          "type": "field_dropdown",
+          "name": "OP",
+          "options": [
+            ["AND (&)", "&"],
+            ["OR (|)", "|"],
+            ["XOR (^)", "^"],
+            ["LEFT SHIFT (<<)", "<<"],
+            ["RIGHT SHIFT (>>)", ">>"]
+          ]
+        },
+        { "type": "input_value", "name": "B", "check": "Number" }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Bitwise operation between two numbers",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_not",
+      "message0": "NOT ~ %1",
+      "args0": [
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Bitwise NOT (~)",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_testbit",
+      "message0": "bit %1 of %2",
+      "args0": [
+        { "type": "input_value", "name": "BIT", "check": "Number" },
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Boolean",
+      "colour": 130,
+      "tooltip": "Test if a specific bit is set",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_setbit",
+      "message0": "set bit %1 of %2",
+      "args0": [
+        { "type": "input_value", "name": "BIT", "check": "Number" },
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Set a specific bit",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_clearbit",
+      "message0": "clear bit %1 of %2",
+      "args0": [
+        { "type": "input_value", "name": "BIT", "check": "Number" },
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Clear a specific bit",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_togglebit",
+      "message0": "toggle bit %1 of %2",
+      "args0": [
+        { "type": "input_value", "name": "BIT", "check": "Number" },
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Toggle a specific bit",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_mask",
+      "message0": "%1 masked with %2",
+      "args0": [
+        { "type": "input_value", "name": "A", "check": "Number" },
+        { "type": "input_value", "name": "MASK", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Apply a bit mask",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_rotate",
+      "message0": "rotate %1 %2 by %3 bits",
+      "args0": [
+        { "type": "input_value", "name": "A", "check": "Number" },
+        {
+          "type": "field_dropdown",
+          "name": "DIR",
+          "options": [
+            ["left", "LEFT"],
+            ["right", "RIGHT"]
+          ]
+        },
+        { "type": "input_value", "name": "BITS", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Rotate bits left or right",
+      "helpUrl": ""
+    },
+    {
+      "type": "bitwise_extract",
+      "message0": "extract bits %1 to %2 of %3",
+      "args0": [
+        { "type": "input_value", "name": "START", "check": "Number" },
+        { "type": "input_value", "name": "END", "check": "Number" },
+        { "type": "input_value", "name": "A", "check": "Number" }
+      ],
+      "output": "Number",
+      "colour": 130,
+      "tooltip": "Extract a range of bits",
+      "helpUrl": ""
+    }
+
+  ]);
+
+
   // ---------------- Counter BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {

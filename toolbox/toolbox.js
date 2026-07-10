@@ -59,6 +59,22 @@ const toolbox = {
     },
     {
       "kind": "category",
+      "name": "Bitwise",
+      "colour": "130",
+      "contents": [
+        { "kind": "block", "type": "bitwise_operation" },
+        { "kind": "block", "type": "bitwise_not" },
+        { "kind": "block", "type": "bitwise_testbit" },
+        { "kind": "block", "type": "bitwise_setbit" },
+        { "kind": "block", "type": "bitwise_clearbit" },
+        { "kind": "block", "type": "bitwise_togglebit" },
+        { "kind": "block", "type": "bitwise_mask" },
+        { "kind": "block", "type": "bitwise_rotate" },
+        { "kind": "block", "type": "bitwise_extract" }
+      ]
+    },
+    {
+      "kind": "category",
       "name": "Text",
       "categorystyle": "text_category",
       "contents": [

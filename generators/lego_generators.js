@@ -2186,6 +2186,82 @@ javascriptGenerator.forBlock['interactive_slider'] = function(block) {
   return [`__interactive_slider("${block.id}")`, javascriptGenerator.ORDER_FUNCTION_CALL];
 };
 
+
+
+// ---------------- Bitwise Generators ----------------
+//
+javascriptGenerator.forBlock['bitwise_operation'] = function(block) {
+  const op = block.getFieldValue('OP');
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const B = javascriptGenerator.valueToCode(block, 'B', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(${A} ${op} ${B})`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_not'] = function(block) {
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(~${A})`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_testbit'] = function(block) {
+  const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`((((${A}) >> (${bit})) & 1) === 1)`, javascriptGenerator.ORDER_LOGICAL_AND];
+};
+
+javascriptGenerator.forBlock['bitwise_setbit'] = function(block) {
+  const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(${A} | (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_clearbit'] = function(block) {
+  const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(${A} & ~(1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_togglebit'] = function(block) {
+  const bit = javascriptGenerator.valueToCode(block, 'BIT', javascriptGenerator.ORDER_NONE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(${A} ^ (1 << ${bit}))`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_mask'] = function(block) {
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const mask = javascriptGenerator.valueToCode(block, 'MASK', javascriptGenerator.ORDER_BITWISE) || '0';
+  return [`(${A} & ${mask})`, javascriptGenerator.ORDER_BITWISE];
+};
+
+javascriptGenerator.forBlock['bitwise_rotate'] = function(block) {
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+  const bits = javascriptGenerator.valueToCode(block, 'BITS', javascriptGenerator.ORDER_NONE) || '0';
+  const dir = block.getFieldValue('DIR');
+
+  if (dir === "LEFT") {
+    return [
+      `((${A} << ${bits}) | (${A} >> (32 - ${bits})))`,
+      javascriptGenerator.ORDER_BITWISE
+    ];
+  } else {
+    return [
+      `((${A} >> ${bits}) | (${A} << (32 - ${bits})))`,
+      javascriptGenerator.ORDER_BITWISE
+    ];
+  }
+};
+
+javascriptGenerator.forBlock['bitwise_extract'] = function(block) {
+  const start = javascriptGenerator.valueToCode(block, 'START', javascriptGenerator.ORDER_NONE) || '0';
+  const end = javascriptGenerator.valueToCode(block, 'END', javascriptGenerator.ORDER_NONE) || '0';
+  const A = javascriptGenerator.valueToCode(block, 'A', javascriptGenerator.ORDER_BITWISE) || '0';
+
+  return [
+    `(((${A}) >> ${start}) & ((1 << (${end} - ${start} + 1)) - 1))`,
+    javascriptGenerator.ORDER_BITWISE
+  ];
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT GENERATORS ----------------
 javascriptGenerator.forBlock["mqtt_config"] = function (block) {
