@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal LEGO Interface A Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 { margin-top: 0; color: #1a1a1a; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-connect { background: #007bff; color: white; width: 100%; padding: 15px; font-size: 18px; }
+        .btn-connect:hover { background: #0056b3; }
+        .grid-outputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .output-control {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .btn-toggle { background: #6c757d; color: white; width: 100%; margin-top: 10px; }
+        .btn-toggle.active { background: #28a745; }
+        .flex-inputs {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        .input-monitor {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            width: 40%;
+            text-align: center;
+        }
+        .indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #dc3545;
+            margin: 15px auto 0 auto;
+            transition: background 0.1s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .indicator.active { background: #28a745; box-shadow: 0 0 12px #28a745; }
+        .status-bar { font-weight: bold; text-align: center; margin-top: 10px; color: #666; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Universal LEGO Interface A</h1>
+        <p>Supports both FT245RL and FT232RL boards via WebUSB.</p>
+        <button id="connectBtn" class="btn-connect">🔌 Connect FTDI Chip</button>
+        <div id="connectionStatus" class="status-bar">Disconnected</div>
+    </div>
+
+    <div id="controlsContainer" class="hidden">
+        <!-- OUTPUT CONTROL SECTION -->
+        <div class="card">
+            <h2>Outputs (D0 - D5)</h2>
+            <div class="grid-outputs">
+                <div class="output-control">
+                    <div>Output D0</div>
+                    <button id="b0" class="btn-toggle" onclick="togglePin(0)">OFF</button>
+                </div>
+                <div class="output-control">
+                    <div>Output D1</div>
+                    <button id="b1" class="btn-toggle" onclick="togglePin(1)">OFF</button>
+                </div>
+                <div class="output-control">
+                    <div>Output D2</div>
+                    <button id="b2" class="btn-toggle" onclick="togglePin(2)">OFF</button>
+                </div>
+                <div class="output-control">
+                    <div>Output D3</div>
+                    <button id="b3" class="btn-toggle" onclick="togglePin(3)">OFF</button>
+                </div>
+                <div class="output-control">
+                    <div>Output D4</div>
+                    <button id="b4" class="btn-toggle" onclick="togglePin(4)">OFF</button>
+                </div>
+                <div class="output-control">
+                    <div>Output D5</div>
+                    <button id="b5" class="btn-toggle" onclick="togglePin(5)">OFF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- INPUT MONITOR SECTION -->
+        <div class="card">
+            <h2>Live Inputs (D6, D7)</h2>
+            <div class="flex-inputs">
+                <div class="input-monitor">
+                    <b>Input D6</b>
+                    <div id="ind6" class="indicator"></div>
+                </div>
+                <div class="input-monitor">
+                    <b>Input D7</b>
+                    <div id="ind7" class="indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let device;
+        let currentOutputByte = 0x00;
+        const DIRECTION_MASK = 0x3F; // Pins 0-5 = Outputs, 6-7 = Inputs
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusText = document.getElementById('connectionStatus');
+        const controlsContainer = document.getElementById('controlsContainer');
+
+        connectBtn.addEventListener('click', async () => {
+            try {
+                // Request any standard FTDI device layout
+                device = await navigator.usb.requestDevice({ filters: [] });
+                await device.open();
+                await device.claimInterface(0);
+
+                // Determine chip type based on Product ID (FT232RL is usually 0x6001)
+                let chipType = "FT245RL / Generic FIFO";
+                let clockSettingValue = 0x4138; 
+
+                if (device.productId === 0x6001) {
+                    chipType = "FT232RL Serial Board";
+                    clockSettingValue = 0x001A; 
+                }
+
+                statusText.innerText = `Connected: ${chipType}`;
+                statusText.style.color = "#28a745";
+                
+                // 1. Force Selected Hardware into Bit-Bang Mode
+                await device.controlTransferOut({
+                    requestType: 'vendor', recipient: 'device',
+                    request: 0x0B, value: (0x01 << 8) | DIRECTION_MASK, index: 1 
+                });
+
+                // 2. Transmit the Hardware Clock Speed
+                await device.controlTransferOut({
+                    requestType: 'vendor', recipient: 'device',
+                    request: 0x03, value: clockSettingValue, index: 1
+                });
+
+                // Reveal UI controls safely
+                connectBtn.classList.add('hidden');
+                controlsContainer.classList.remove('hidden');
+
+                startInputPolling();
+
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = `Connection Failed: ${err.message || err}`;
+                statusText.style.color = "#dc3545";
+            }
+        });
+
+        async function togglePin(bitIndex) {
+            const btn = document.getElementById(`b${bitIndex}`);
+            const mask = 1 << bitIndex;
+
+            if ((currentOutputByte & mask) === 0) {
+                currentOutputByte |= mask;
+                btn.innerText = "ON";
+                btn.classList.add('active');
+            } else {
+                currentOutputByte &= ~mask;
+                btn.innerText = "OFF";
+                btn.classList.remove('active');
+            }
+
+            if (device) {
+                const dataBuffer = new Uint8Array([currentOutputByte]);
+                await device.transferOut(2, dataBuffer); 
+            }
+        }
+
+        function startInputPolling() {
+            const ind6 = document.getElementById('ind6');
+            const ind7 = document.getElementById('ind7');
+
+            setInterval(async () => {
+                if (!device) return;
+                try {
+                    let result = await device.controlTransferIn({
+                        requestType: 'vendor', recipient: 'device',
+                        request: 0x0C, value: 0, index: 1
+                    }, 1);
+
+                    let pinByte = result.data.getUint8(0);
+
+                    if ((pinByte & 0x40) >> 6 === 1) ind6.classList.add('active');
+                    else ind6.classList.remove('active');
+
+                    if ((pinByte & 0x80) >> 7 === 1) ind7.classList.add('active');
+                    else ind7.classList.remove('active');
+                } catch (e) {
+                    // Drop lost packets quietly
+                }
+            }, 80); 
+        }
+    </script>
+</body>
+</html>
