@@ -3130,7 +3130,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Bitwise operation between two numbers",
       "helpUrl": ""
     },
@@ -3141,7 +3141,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Bitwise NOT (~)",
       "helpUrl": ""
     },
@@ -3154,7 +3154,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Boolean",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Test if a specific bit is set",
       "helpUrl": ""
     },
@@ -3167,7 +3167,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Set a specific bit",
       "helpUrl": ""
     },
@@ -3180,7 +3180,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Clear a specific bit",
       "helpUrl": ""
     },
@@ -3193,7 +3193,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Toggle a specific bit",
       "helpUrl": ""
     },
@@ -3206,7 +3206,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Apply a bit mask",
       "helpUrl": ""
     },
@@ -3227,7 +3227,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Rotate bits left or right",
       "helpUrl": ""
     },
@@ -3241,7 +3241,7 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Number",
-      "colour": 130,
+      "colour": 170,
       "tooltip": "Extract a range of bits",
       "helpUrl": ""
     }
