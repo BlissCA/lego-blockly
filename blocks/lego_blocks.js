@@ -3152,6 +3152,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BIT", "check": "Number" },
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Boolean",
       "colour": 130,
       "tooltip": "Test if a specific bit is set",
@@ -3164,6 +3165,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BIT", "check": "Number" },
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Set a specific bit",
@@ -3176,6 +3178,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BIT", "check": "Number" },
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Clear a specific bit",
@@ -3188,6 +3191,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "BIT", "check": "Number" },
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Toggle a specific bit",
@@ -3200,6 +3204,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "A", "check": "Number" },
         { "type": "input_value", "name": "MASK", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Apply a bit mask",
@@ -3220,6 +3225,7 @@ window.addEventListener("load", () => {
         },
         { "type": "input_value", "name": "BITS", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Rotate bits left or right",
@@ -3233,6 +3239,7 @@ window.addEventListener("load", () => {
         { "type": "input_value", "name": "END", "check": "Number" },
         { "type": "input_value", "name": "A", "check": "Number" }
       ],
+      "inputsInline": true,
       "output": "Number",
       "colour": 130,
       "tooltip": "Extract a range of bits",
