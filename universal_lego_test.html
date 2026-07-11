@@ -132,102 +132,110 @@
     </div>
 
     <script>
-        let device;
-        let currentOutputByte = 0x00;
-        const DIRECTION_MASK = 0x3F; // Pins 0-5 = Outputs, 6-7 = Inputs
+				let device;
+				let currentOutputByte = 0x00;
+				const DIRECTION_MASK = 0x3F; // Pins 0-5 = Outputs, 6-7 = Inputs
 
-        const connectBtn = document.getElementById('connectBtn');
-        const statusText = document.getElementById('connectionStatus');
-        const controlsContainer = document.getElementById('controlsContainer');
+				const connectBtn = document.getElementById('connectBtn');
+				const statusText = document.getElementById('connectionStatus');
+				const controlsContainer = document.getElementById('controlsContainer');
 
-        connectBtn.addEventListener('click', async () => {
-            try {
-                // Request any standard FTDI device layout
-                device = await navigator.usb.requestDevice({ filters: [] });
-                await device.open();
-                await device.claimInterface(0);
+				connectBtn.addEventListener('click', async () => {
+						try {
+								// Request any standard FTDI device layout
+								device = await navigator.usb.requestDevice({ filters: [] });
+								await device.open();
+								await device.claimInterface(0);
 
-                // Determine chip type based on Product ID (FT232RL is usually 0x6001)
-                let chipType = "FT245RL / Generic FIFO";
-                let clockSettingValue = 0x4138; 
+								// --- IMPROVED AUTOMATIC CHIP IDENTIFICATION ---
+								// Pull the exact text name you saw in the selection box and make it uppercase
+								const fullName = (device.productName || "").toUpperCase();
+								
+								let chipType = "Generic FTDI Device";
+								let clockSettingValue = 0x4138; // Default parallel clock fallback
 
-                if (device.productId === 0x6001) {
-                    chipType = "FT232RL Serial Board";
-                    clockSettingValue = 0x001A; 
-                }
+								// Scan the actual name string for explicit hardware keywords
+								if (fullName.includes("245") || fullName.includes("FIFO")) {
+										chipType = "FT245RL / Generic FIFO";
+										clockSettingValue = 0x4138; // Proper parallel latch clock
+								} else if (fullName.includes("232") || fullName.includes("UART") || fullName.includes("SERIAL")) {
+										chipType = "FT232RL Serial Board";
+										clockSettingValue = 0x001A; // Specialized UART clock configuration
+								}
 
-                statusText.innerText = `Connected: ${chipType}`;
-                statusText.style.color = "#28a745";
-                
-                // 1. Force Selected Hardware into Bit-Bang Mode
-                await device.controlTransferOut({
-                    requestType: 'vendor', recipient: 'device',
-                    request: 0x0B, value: (0x01 << 8) | DIRECTION_MASK, index: 1 
-                });
+								statusText.innerText = `Connected: ${chipType}`;
+								statusText.style.color = "#28a745";
+								
+								// 1. Force Selected Hardware into Bit-Bang Mode
+								await device.controlTransferOut({
+										requestType: 'vendor', recipient: 'device',
+										request: 0x0B, value: (0x01 << 8) | DIRECTION_MASK, index: 1 
+								});
 
-                // 2. Transmit the Hardware Clock Speed
-                await device.controlTransferOut({
-                    requestType: 'vendor', recipient: 'device',
-                    request: 0x03, value: clockSettingValue, index: 1
-                });
+								// 2. Transmit the Dynamically Calculated Hardware Clock Speed
+								await device.controlTransferOut({
+										requestType: 'vendor', recipient: 'device',
+										request: 0x03, value: clockSettingValue, index: 1
+								});
 
-                // Reveal UI controls safely
-                connectBtn.classList.add('hidden');
-                controlsContainer.classList.remove('hidden');
+								// Reveal UI controls safely
+								connectBtn.classList.add('hidden');
+								controlsContainer.classList.remove('hidden');
 
-                startInputPolling();
+								startInputPolling();
 
-            } catch (err) {
-                console.error(err);
-                statusText.innerText = `Connection Failed: ${err.message || err}`;
-                statusText.style.color = "#dc3545";
-            }
-        });
+						} catch (err) {
+								console.error(err);
+								statusText.innerText = `Connection Failed: ${err.message || err}`;
+								statusText.style.color = "#dc3545";
+						}
+				});
 
-        async function togglePin(bitIndex) {
-            const btn = document.getElementById(`b${bitIndex}`);
-            const mask = 1 << bitIndex;
+				async function togglePin(bitIndex) {
+						const btn = document.getElementById(`b${bitIndex}`);
+						const mask = 1 << bitIndex;
 
-            if ((currentOutputByte & mask) === 0) {
-                currentOutputByte |= mask;
-                btn.innerText = "ON";
-                btn.classList.add('active');
-            } else {
-                currentOutputByte &= ~mask;
-                btn.innerText = "OFF";
-                btn.classList.remove('active');
-            }
+						if ((currentOutputByte & mask) === 0) {
+								currentOutputByte |= mask;
+								btn.innerText = "ON";
+								btn.classList.add('active');
+						} else {
+								currentOutputByte &= ~mask;
+								btn.innerText = "OFF";
+								btn.classList.remove('active');
+						}
 
-            if (device) {
-                const dataBuffer = new Uint8Array([currentOutputByte]);
-                await device.transferOut(2, dataBuffer); 
-            }
-        }
+						if (device) {
+								const dataBuffer = new Uint8Array([currentOutputByte]);
+								await device.transferOut(2, dataBuffer); 
+						}
+				}
 
-        function startInputPolling() {
-            const ind6 = document.getElementById('ind6');
-            const ind7 = document.getElementById('ind7');
+				function startInputPolling() {
+						const ind6 = document.getElementById('ind6');
+						const ind7 = document.getElementById('ind7');
 
-            setInterval(async () => {
-                if (!device) return;
-                try {
-                    let result = await device.controlTransferIn({
-                        requestType: 'vendor', recipient: 'device',
-                        request: 0x0C, value: 0, index: 1
-                    }, 1);
+						setInterval(async () => {
+								if (!device) return;
+								try {
+										let result = await device.controlTransferIn({
+												requestType: 'vendor', recipient: 'device',
+												request: 0x0C, value: 0, index: 1
+										}, 1);
 
-                    let pinByte = result.data.getUint8(0);
+										let pinByte = result.data.getUint8(0);
 
-                    if ((pinByte & 0x40) >> 6 === 1) ind6.classList.add('active');
-                    else ind6.classList.remove('active');
+										if ((pinByte & 0x40) >> 6 === 1) ind6.classList.add('active');
+										else ind6.classList.remove('active');
 
-                    if ((pinByte & 0x80) >> 7 === 1) ind7.classList.add('active');
-                    else ind7.classList.remove('active');
-                } catch (e) {
-                    // Drop lost packets quietly
-                }
-            }, 80); 
-        }
+										if ((pinByte & 0x80) >> 7 === 1) ind7.classList.add('active');
+										else ind7.classList.remove('active');
+								} catch (e) {
+										// Drop lost packets quietly
+								}
+						}, 80); 
+				}
+
     </script>
 </body>
 </html>
