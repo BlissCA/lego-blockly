@@ -436,11 +436,25 @@
         <mxCell id="Gso4z4nvXB3stpEafE8O-249" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;PLACE JUMPER TO 5V&lt;/b&gt;" vertex="1">
           <mxGeometry height="35" width="95" x="952.5" y="230" as="geometry" />
         </mxCell>
-        <mxCell id="Gso4z4nvXB3stpEafE8O-250" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;b&gt;Notes:&lt;/b&gt;&lt;div&gt;&lt;ol&gt;&lt;li&gt;You may need to install pyusb and / or pyserial in your python.&lt;br&gt;If you use Thonny, go in Tools -&amp;gt; Manage Plug-ins...&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;The gateway python program is set to 9600 bauds, 8, N, 1...&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;LegoGwy_FT232.py:&amp;nbsp;&lt;a href=&quot;https://github.com/BlissCA/lego-blockly/blob/main/Misc/LegoGwy_FT232.py&quot;&gt;https://github.com/BlissCA/lego-blockly/blob/main/Misc/LegoGwy_FT232.py&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;Zadig:&amp;nbsp;&lt;a href=&quot;https://zadig.akeo.ie/&quot;&gt;https://zadig.akeo.ie/&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;@alexGS TCLOGO_S.COM:&amp;nbsp;&lt;a href=&quot;https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_S.COM&quot;&gt;https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_S.COM&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;com0com-2.2.2.0-x64-fre-signed.zip:&lt;br&gt;&amp;nbsp;&lt;a href=&quot;https://sourceforge.net/projects/com0com/files/com0com/2.2.2.0/&quot;&gt;https://sourceforge.net/projects/com0com/files/com0com/2.2.2.0/&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;DOSBox-X:&amp;nbsp;&lt;a href=&quot;https://dosbox-x.com/&quot;&gt;https://dosbox-x.com/&lt;/a&gt;&lt;/li&gt;&lt;/ol&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="300" width="490" x="30" y="270" as="geometry" />
+        <mxCell id="Gso4z4nvXB3stpEafE8O-250" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;b&gt;Notes:&lt;/b&gt;&lt;div&gt;&lt;ol&gt;&lt;li&gt;You may need to install pyusb and / or pyserial in your python.&lt;br&gt;If you use Thonny, go in Tools -&amp;gt; Manage Plug-ins...&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;In the Python program, you must change COM13 to whatever port you configured in com0com second com port (me it&#39;s COM13)&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;Edit the Dosbox-x.conf in notepad++ to specify the first com port configured in com0com for serial1.&lt;br&gt;Ex.:&amp;nbsp;serial1&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;= directserial realport:COM12&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;The gateway python program is set to 9600 bauds, 8, N, 1...&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;LegoGwy_FT232.py:&amp;nbsp;&lt;a href=&quot;https://github.com/BlissCA/lego-blockly/blob/main/Misc/LegoGwy_FT232.py&quot;&gt;https://github.com/BlissCA/lego-blockly/blob/main/Misc/LegoGwy_FT232.py&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;Zadig:&amp;nbsp;&lt;a href=&quot;https://zadig.akeo.ie/&quot;&gt;https://zadig.akeo.ie/&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;@alexGS TCLOGO_S.COM:&amp;nbsp;&lt;a href=&quot;https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_S.COM&quot;&gt;https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_S.COM&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;com0com-2.2.2.0-x64-fre-signed.zip:&lt;br&gt;&amp;nbsp;&lt;a href=&quot;https://sourceforge.net/projects/com0com/files/com0com/2.2.2.0/&quot;&gt;https://sourceforge.net/projects/com0com/files/com0com/2.2.2.0/&lt;/a&gt;&lt;br&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;DOSBox-X:&amp;nbsp;&lt;a href=&quot;https://dosbox-x.com/&quot;&gt;https://dosbox-x.com/&lt;/a&gt;&lt;/li&gt;&lt;/ol&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="430" width="490" x="30" y="270" as="geometry" />
         </mxCell>
         <mxCell id="Gso4z4nvXB3stpEafE8O-251" parent="1" style="text;strokeColor=none;fillColor=none;html=1;fontSize=21;fontStyle=1;verticalAlign=middle;align=center;autosizeText=1;" value="Software Gateway to use Legacy DOS software to program Lego Interface A (9750) using a cheap FT232RL module" vertex="1">
           <mxGeometry height="40" width="1090" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="zBjHfKzoM7gxy5D3LDDr-2" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://bricksafe.com/files/Bliss2025/lego-blockly-july-2026/setupg_piE9tEex8K.png/400x332.png;" value="" vertex="1">
+          <mxGeometry height="270" width="325.3" x="750" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="zBjHfKzoM7gxy5D3LDDr-3" edge="1" parent="1" style="curved=1;endArrow=none;html=1;rounded=0;entryX=0.97;entryY=0.952;entryDx=0;entryDy=0;entryPerimeter=0;startArrow=classic;startFill=1;endFill=0;" target="Gso4z4nvXB3stpEafE8O-9" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="650" />
+              <mxPoint x="550" y="500" />
+              <mxPoint x="550" y="280" />
+            </Array>
+            <mxPoint x="740" y="650" as="sourcePoint" />
+            <mxPoint x="610" y="500" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
