@@ -75,7 +75,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
 		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
 		The newer ESP32-S3, C3, C6 only have BLE...
-		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_V2 provided in the Sketch folder [folder SketchArduino].
+		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_V2 provided in the [folder SketchArduino](SketchArduino).
 		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
 		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 12, 13, 14, 25, 26, 27.
 		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 32 and 33 respectively.
