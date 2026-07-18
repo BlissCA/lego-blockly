@@ -1,11 +1,5 @@
-//
-// ---------- Lego Interface A 9750 BT Driver for ESP32 WROOM
-// ---------- MUST USE ESP32 Board Package V2.0.17 using the Board Management in Tools menu of Arduino IDE.
-//
-
 #include "BluetoothSerial.h"
 
-// Instantiate Bluetooth Classic (Requires standard dual-core ESP32 WROOM)
 BluetoothSerial SerialBT;
 
 // --- GPIO PIN MAPPING (3.3V Side going to Level Shifter) ---
@@ -16,14 +10,18 @@ const int InputPins[]  = {32, 33};
 uint8_t currentOutputByte = 0x00;
 uint8_t lastReportedInputs = 0x00;
 
+// --- IDLE TIMING KEEPALIVE ---
+unsigned long lastTxTime = 0; 
+const unsigned long HEARTBEAT_INTERVAL = 3000; // Force a pulse every 3 seconds if idle
+
 void setup() {
   Serial.begin(115200);
-  Serial.println("--- Windows 11 Compatible LEGO Bluetooth Gateway Booting ---");
+  Serial.println("--- Restored Fast Bluetooth Interface A Gateway Booting ---");
 
   // Initialize physical Output GPIOs
   for (int i = 0; i < 6; i++) {
     pinMode(OutputPins[i], OUTPUT);
-    digitalWrite(OutputPins[i], LOW); // Force 0V on power-up for safety
+    digitalWrite(OutputPins[i], LOW); // Safe default
   }
 
   // Initialize physical Input GPIOs
@@ -33,15 +31,14 @@ void setup() {
 
   // Open the Bluetooth broadcast engine
   SerialBT.begin("LEGO_InterfaceA_BT"); 
-  Serial.println("HC-05 Standard SPP Profile Broadcast Active!");
+  Serial.println("SPP Profile Broadcast Active!");
 }
 
 void loop() {
-  // CRITICAL PROTECTION BLOCK FOR 2.x CORE: 
-  // Only execute logic loops if a PC client has safely bound to the RFCOMM socket
+  // Safe Client Guard Check: Keep everything dark if no PC is bound
   if (!SerialBT.hasClient()) {
-    // Turn off all LEGO motors for safety if connection drops
     for (int i = 0; i < 6; i++) { digitalWrite(OutputPins[i], LOW); }
+    currentOutputByte = 0x00;
     delay(100);
     return;
   }
@@ -58,12 +55,12 @@ void loop() {
     uint8_t inboundByte = SerialBT.read();
     currentOutputByte = inboundByte & 0x3F; // Isolate D0-D5
 
-    // Write physical states to the output pins
+    // Physical write to pins
     for (int i = 0; i < 6; i++) {
       digitalWrite(OutputPins[i], (currentOutputByte & (1 << i)) ? HIGH : LOW);
     }
     
-    // Direct specs requirement: Flush any redundant bytes sitting in the queue
+    // Clear out any redundant bytes sitting in the queue
     while(SerialBT.available() > 0) { SerialBT.read(); }
     
     forceUpdate = true; 
@@ -74,16 +71,23 @@ void loop() {
     forceUpdate = true;
   }
 
-  // --- STEP D: Safe Overwrite Data Transmission ---
+  // --- STEP D: Automated Idle Heartbeat ---
+  // If the model sits completely still, force a pulse to keep the PC radio awake
+  if (millis() - lastTxTime >= HEARTBEAT_INTERVAL) {
+    forceUpdate = true;
+  }
+
+  // --- STEP E: Unblocked Fast Transmission ---
   if (forceUpdate) {
-    // Combine outputs with the fresh real-time sensor states
+    // Assemble the universal 8-bit handshake register byte
     uint8_t returnByte = (currentOutputByte & 0x3F) | currentInputs;
 
-    // Send the fresh data packet down the wireless pipe instantly
+    // Send the data packet down the wireless pipe instantly
     SerialBT.write(returnByte);
-
-    // Save tracking states for the next pass
+       
+    // Lock in the tracking markers
     lastReportedInputs = currentInputs;
+    lastTxTime = millis(); 
   }
 
   // Microsecond execution delay to keep the radio pipeline healthy
