@@ -15,7 +15,7 @@ This is a web application that will work only in chromium based browsers like Ch
 Lego Blockly supports for now:
 
 - Lego Interface B
-- Lego Interface A with an Arduino (Uno/Nano sketch provided).
+- Lego Interface A with an Arduino (Uno/Nano or ESP32(BT) sketch provided).
 - Lego Power Function with the IR 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
@@ -50,8 +50,8 @@ Special thanks to people who participate in this forum thread.  They give precio
     - You will need a 5v source and wire 5v and GND to both Max3232 and HC-05 modules.\
       ![HC-05 with Max3232](https://bricksafe.com/files/Bliss2025/lego-blockly/IMG_7785.jpeg/800x600.jpeg)
   - For Interface A: 
-    - The arduino code uses 115200 bauds so the HC-05 default baud rate must be changed by entering the AT Command Mode.
-    - You must use an arduino or FTDI connected to HC-05 ttl lines to send specific AT commands.  
+    - The arduino Uno/Nano code uses 115200 bauds so the HC-05 default baud rate must be changed by entering the AT Command Mode.
+    - You must use an Arduino or FTDI connected to HC-05 ttl lines to send specific AT commands.  
     - To enter AT Command mode, hold HC-05 button while powering on.  
     - Set baud rate to 38400 baud of Serial Monitor (Arduino IDE) or Termite (if using FTDI, you can use other terminal software Hercules, putty).
     - Wire Tx on Rx, and Rx on Tx.  If it does not work, wire Tx on Tx and Rx on Rx. (I thinkk using an arduino to enter AT mode of HC-05, it must be rx on rx and tx on tx, but an FTDI, it is Rx-Tx Tx-Rx if I recall)
@@ -59,14 +59,31 @@ Special thanks to people who participate in this forum thread.  They give precio
     - By the way, The HC-05 module's RX/TX logic levels are 3.3V, despite the module often being powered by a 5V VCC pin. The RX pin is not 5V tolerant, so a voltage divider (e.g., 1kΩ and 2kΩ resistors) is required to reduce a 5V Arduino TX signal to 3.3V, while the HC-05 TX can connect directly to a 5V RX.
     - Once HC-05 at 115200 bauds and reset to normal mode, Arduino 5v (not 5v in), GND, rx0, tx1 (using voltage divider) goes to HC-05 5v, GND, tx, rx.
 
-- To use Interface A (AND lego power function IR) with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably)
-  - You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
-  - See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
-  - You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
-  - Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
-  - Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
-  - For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
+- To use Interface A (AND lego power function IR) with Lego Blockly you need to upload a "sketch" into an arduino (UNO or Nano preferably OR an ESP32 for BT communication)
+
+	- ARDUINO UNO/NANO:
+		- You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
+		- See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2.
+		- You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
+		- Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
+		- Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
+		- For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
   
+	- ESP32 (BLUETOOTH)
+		- The ESP32 uses Built-in Bluetooth, not serial lines.
+		- You must have bluetooth on your PC.  Or you can buy a cheap TP-Link BT/BLE dongle.
+		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
+		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
+		The newer ESP32-S3, C3, C6 only have BLE...
+		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_V2 provided in the Sketch folder [folder SketchArduino].
+		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
+		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 12, 13, 14, 25, 26, 27.
+		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 32 and 33 respectively.
+		- For Power Function IR, you have to wire a IR Led to ESP32 Pin 4 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
+		- NOTE that this ESP32 has DUAL protocol support.  (Not the Arduino UNO).
+		It means you can also use the ESP32 with legacy DOS lego software like le patched TC_LOGO_S.COM found on [alexGS bricksafe]( https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_P.COM).
+		
+		
 
 ## Wonderful other related projects by others:
 - For RCX brick: [BlockNQC](https://www.webpbrick.com/nqc/blocknqc/) and [WebPBrick](https://www.webpbrick.com/ide/) by @maehw (https://github.com/maehw)
