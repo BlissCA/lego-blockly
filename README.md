@@ -77,7 +77,8 @@ Special thanks to people who participate in this forum thread.  They give precio
 		The newer ESP32-S3, C3, C6 only have BLE...
 		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_V2 provided in the [folder SketchArduino](SketchArduino).
 		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
-		- IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...
+		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
+		Apparently, The Interface A tolerates 3.3V level out of the box...
 		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 12, 13, 14, 25, 26, 27.
 		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 32 and 33 respectively.
 		- For Power Function IR, you have to wire a IR Led to ESP32 Pin 4 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
