@@ -5,8 +5,8 @@
 BluetoothSerial SerialBT;
 
 // ---------------- Pin mapping ----------------
-const uint8_t OUT_PINS[6] = {12, 13, 14, 25, 26, 27};  // Outputs 0-5
-const uint8_t IN_PINS[2]  = {32, 33};                  // Inputs 6-7
+const uint8_t OUT_PINS[6] = {13, 12, 14, 27, 26, 25};  // Outputs 0-5
+const uint8_t IN_PINS[2]  = {33, 32};                  // Inputs 6-7
 
 // ---------------- Protocol constants ----------------
 const uint8_t HEADER0 = 0xA1;
