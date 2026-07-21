@@ -15,7 +15,7 @@ This is a web application that will work only in chromium based browsers like Ch
 Lego Blockly supports for now:
 
 - Lego Interface B
-- Lego Interface A with an Arduino (Uno/Nano or ESP32(BT) sketch provided).
+- Lego Interface A with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
 - Lego Power Function with the IR 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
@@ -70,6 +70,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
   
 	- ESP32 (BLUETOOTH)
+		- Prefered Board: ESP-WROOM-32 Devkit 1 30-pin variant as the pins allign with Interface A Connector
 		- The ESP32 uses Built-in Bluetooth, not serial lines.
 		- You must have bluetooth on your PC.  Or you can buy a cheap TP-Link BT/BLE dongle.
 		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
@@ -89,6 +90,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 			- Connector pin 5 (or 7, 9, 11, 13, 15, 17, 19) goes to ESP32 GND
 			- Connector pins 6, 8, 10, 12, 14, 16 goes to ESP32 13, 12, 14, 27, 26, 25 (Int.A Outputs 0 to 5)
 			- Connector Pins 18, 20 goes to ESP32 33, 32. (Int.A Inputs 6 and 7)
+		- See very small footprint setup by @Toastie on Eurobrick forum: [Lego Interface A ESP32 setup](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/25/#findComment-3838950)
 		
 		
 
