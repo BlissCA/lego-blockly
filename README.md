@@ -79,11 +79,16 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
 		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
 		Apparently, The Interface A tolerates 3.3V level out of the box...
-		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 12, 13, 14, 25, 26, 27.
-		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 32 and 33 respectively.
+		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 13, 12, 14, 27, 26, 25.
+		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 33 and 32 respectively.
 		- For Power Function IR, you have to wire a IR Led to ESP32 Pin 4 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
-		- NOTE that this ESP32 has DUAL protocol support.  (Not the Arduino UNO).
+		- NOTE that the ESP32 has DUAL protocol support.  (Not the Arduino UNO).
 		It means you can also use the ESP32 with legacy DOS lego software like le patched TC_LOGO_S.COM found on [alexGS bricksafe]( https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_P.COM).
+		- Lego Interface A 20 pin Connector wiring:
+			- Connector pin 1 or 3 goes to ESP32 3.3V
+			- Connector pin 5 (or 7, 9, 11, 13, 15, 17, 19) goes to ESP32 GND
+			- Connector pins 6, 8, 10, 12, 14, 16 goes to ESP32 13, 12, 14, 27, 26, 25 (Int.A Outputs 0 to 5)
+			- Connector Pins 18, 20 goes to ESP32 33, 32. (Int.A Inputs 6 and 7)
 		
 		
 
