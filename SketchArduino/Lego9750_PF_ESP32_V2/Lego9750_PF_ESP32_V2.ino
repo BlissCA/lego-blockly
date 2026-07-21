@@ -238,7 +238,7 @@ void pf_comboPWM(uint8_t blue_pwm, uint8_t red_pwm, uint8_t channel) {
 // PWM (ESP32 LEDC) for Blockly outputs
 // =========================================================
 const int LEDC_CHANNELS[6] = {0,1,2,3,4,5};
-const int LEDC_FREQ = 20000; // 20 kHz
+const int LEDC_FREQ = 1000; // 1 kHz
 const int LEDC_RES  = 8;     // 0-255
 
 // =========================================================
