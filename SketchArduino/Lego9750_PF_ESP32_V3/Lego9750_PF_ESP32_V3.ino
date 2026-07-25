@@ -439,12 +439,17 @@ void loopLegacy() {
 
     // Legacy command: raw output byte
     while (SerialBT.available() > 0) {
+
       uint8_t inboundByte = (uint8_t)SerialBT.read();
       legacyOutputByte = inboundByte & 0x3F;
 
       // Reply immediately for this byte (TCLOGO requirement)
+      uint8_t currentInputs = 0x00;
+      if (digitalRead(IN_PINS[0]) == HIGH) currentInputs |= 0x40; // bit 6
+      if (digitalRead(IN_PINS[1]) == HIGH) currentInputs |= 0x80; // bit 7
       uint8_t returnByte = (legacyOutputByte & 0x3F) | currentInputs;
       SerialBT.write(returnByte);
+      legacyLastInputs = currentInputs;
       legacyLastTxTime = millis();
 
       // Update PWM detection window
@@ -454,7 +459,7 @@ void loopLegacy() {
         legacyLastNonZero = legacyOutputByte;
       }
 
-      // Decide streaming vs plain bit-bang every 20 ms
+      // Decide streaming vs plain bit-bang every xx ms
       unsigned long nowMs = millis();
       if ((nowMs - legacyWindowStartMs) >= 80) {
 
@@ -506,7 +511,7 @@ void loopLegacy() {
       }
     }
 
-    forceUpdate = true;
+    //forceUpdate = true;
   }
 
   if (currentInputs != legacyLastInputs) {
