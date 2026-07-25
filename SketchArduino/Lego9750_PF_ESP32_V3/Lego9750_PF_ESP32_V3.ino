@@ -451,7 +451,7 @@ void loopLegacy() {
 
       // Decide streaming vs plain bit-bang every 20 ms
       unsigned long nowMs = millis();
-      if ((nowMs - legacyWindowStartMs) >= 50) {
+      if ((nowMs - legacyWindowStartMs) >= 80) {
 
         // If many bytes in this window → TCLOGO streaming PWM
         legacyStreamingPWM = (legacyCountTotal >= 10);
