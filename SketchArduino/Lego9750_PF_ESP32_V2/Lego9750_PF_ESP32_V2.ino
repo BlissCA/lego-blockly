@@ -416,15 +416,16 @@ void loopLegacy() {
     }
 
     // Legacy command: raw output byte
-    uint8_t inboundByte = (uint8_t)SerialBT.read();
-    legacyOutputByte = inboundByte & 0x3F;
+    while (SerialBT.available() > 0) {
+      uint8_t inboundByte = (uint8_t)SerialBT.read();
+      legacyOutputByte = inboundByte & 0x3F;
 
-    for (int i = 0; i < 6; i++) {
-      uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
-      ledcWrite(LEDC_CHANNELS[i], val);
+      for (int i = 0; i < 6; i++) {
+        uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+        ledcWrite(LEDC_CHANNELS[i], val);
+      }
+
     }
-
-    while (SerialBT.available() > 0) SerialBT.read();
 
     forceUpdate = true;
   }
