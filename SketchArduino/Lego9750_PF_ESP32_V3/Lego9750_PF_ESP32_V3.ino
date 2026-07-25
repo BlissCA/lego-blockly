@@ -442,6 +442,11 @@ void loopLegacy() {
       uint8_t inboundByte = (uint8_t)SerialBT.read();
       legacyOutputByte = inboundByte & 0x3F;
 
+      // Reply immediately for this byte (TCLOGO requirement)
+      uint8_t returnByte = (legacyOutputByte & 0x3F) | currentInputs;
+      SerialBT.write(returnByte);
+      legacyLastTxTime = millis();
+
       // Update PWM detection window
       legacyCountTotal++;
       if (legacyOutputByte > 0) {
