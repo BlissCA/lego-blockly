@@ -1,0 +1,2 @@
+DEBUG < 115200.txt > NUL
+TCLOGO_S.COM

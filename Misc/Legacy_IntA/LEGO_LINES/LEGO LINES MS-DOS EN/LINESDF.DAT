@@ -1,0 +1,42 @@
+REPEAT0IF0COUNT0ENDREPEAT0UNTIL0ENDIF0FOREVER0
+Too many REPEAT0
+Too many IF0
+In COUNT: input … specify0
+In COUNT: missing value0
+REPEAT without UNTIL/FOREVER0
+REPEAT without ENDREPEAT0
+IF without ENDIF0
+UNTIL/FOREVER without REPEAT0
+ENDREPEAT without REPEAT n0
+ENDIF without IF0
+REPEAT n: incorrect structure0
+REPEAT: incorrect structure0
+ENDIF out of structure REPEAT n0
+ENDIF out of structure REPEAT0
+ENDREPEAT/UNTIL out of structure IF0
+Floppy directory0
+MENU0
+1 Load0
+2 Save0
+3 Delete0
+4 Return0
+Continue with0
+<ENTER>0
+Your choice:0
+Enter the file name:0
+This file does not exist!0
+This file already exists!0
+Replace? (Yes/No) 0
+Disk error!0
+Are you sure? (Yes/No) 0
+Directory LEGO Lines full0
+Quit LEGO Lines? 0
+Disk write-protected!0
+Delete the program?0
+(Yes/No) 0
+Print the program?0
+Printing error!0
+Continue with <ENTER>0
+Press any key!0
+
+

@@ -1,0 +1,42 @@
+REPETE0SI0COMPTE0FIN REPETE0JUSQU'A0FIN SI0INDEFINIMENT0
+Trop de REPETE0
+Trop de SI0
+Dans COMPTE : entr‚e … pr‚ciser0
+Dans COMPTE : valeur manquante0
+REPETE sans JUSQU'A/INDEFINIMENT0
+REPETE sans FIN REPETE0
+SI sans FIN SI0
+JUSQU'A/INDEFINIMENT sans REPETE0
+FIN REPETE sans REPETE n0
+FIN SI sans SI0
+REPETE n : structure incorrecte0
+REPETE : structure incorrecte0
+FIN SI hors structure REPETE n0
+FIN SI hors structure REPETE0
+FIN REPETE/JUSQU'A hors structure SI0
+R‚pertoire disquette0
+MENU0
+1 Charger0
+2 Sauvegarder0
+3 Effacer0
+4 Retour0
+Continuer avec0
+<ENTREE>0
+Votre choix:0
+Entrer le nom du fichier:0
+Ce fichier n'existe pas!0
+Ce fichier existe d‚j…!0
+Remplacer? (Oui/Non) 0
+Erreur disquette!0
+En ˆtes-vous certain? (Oui/Non) 0
+R‚pertoire LEGO Lines complet0
+Quitter LEGO Lines? 0
+Disquette prot‚g‚e en ‚criture!0
+Effacer le programme ?0
+(Oui/Non) 0
+Imprimer le programme ?0
+Faute d'impression!0
+Continuer avec <ENTREE>0
+Appuyer sur une touche !0
+
+
