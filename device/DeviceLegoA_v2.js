@@ -115,12 +115,14 @@ export class LegoInterfaceA_v2 {
       baudRate: 115200,
       dataBits: 8,
       stopBits: 1,
-      parity: "none"
+      parity: "none", 
+      dataTerminalReady: false // Prevents the DTR drop and subsequent reset of Arduino
     });
 
     this.log("Port opened.");
 		this.setStatus("waiting", "Waiting for READY...");
 
+    /*
     // wait for Arduino reboot to finish
     
 		try {
@@ -129,11 +131,15 @@ export class LegoInterfaceA_v2 {
 		} catch (err) {
 			this.log("READY not received — continuing anyway.");
 		}
-		
-
-		//await this.waitForLine("READY", 3000);
+		*/
 
     this.setStatus("handshaking", "Performing handshake...");
+    
+    // Discard all unread data in the system buffer
+    if (this.port.readable) {
+      await this.port.readable.cancel();
+    }
+
 
     try {
       await this.sendHandshake();
