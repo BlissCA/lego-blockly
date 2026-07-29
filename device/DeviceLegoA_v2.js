@@ -116,7 +116,7 @@ export class LegoInterfaceA_v2 {
       dataBits: 8,
       stopBits: 1,
       parity: "none", 
-      dataTerminalReady: false // Prevents the DTR drop and subsequent reset of Arduino
+      dataTerminalReady: true // Prevents the DTR drop and subsequent reset of Arduino
     });
 
     this.log("Port opened.");
@@ -134,7 +134,7 @@ export class LegoInterfaceA_v2 {
 		*/
 
     this.setStatus("handshaking", "Performing handshake...");
-    
+
     // Discard all unread data in the system buffer
     if (this.port.readable) {
       await this.port.readable.cancel();
