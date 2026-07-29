@@ -83,7 +83,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 13, 12, 14, 27, 26, 25.
 		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 33 and 32 respectively.
 		- For Power Function IR, you have to wire a IR Led to ESP32 Pin 4 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
-		- NOTE that the ESP32 has DUAL protocol support.  (Not the Arduino UNO).
+		- NOTE that the ESP32 has DUAL protocol support.
 		It means you can also use the ESP32 with legacy DOS lego software like le patched TC_LOGO_S.COM found on [alexGS bricksafe]( https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_P.COM).
 		- Lego Interface A 20 pin Connector wiring:
 			- Connector pin 1 or 3 goes to ESP32 3.3V
