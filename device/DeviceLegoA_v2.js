@@ -115,14 +115,12 @@ export class LegoInterfaceA_v2 {
       baudRate: 115200,
       dataBits: 8,
       stopBits: 1,
-      parity: "none", 
-      dataTerminalReady: true // Prevents the DTR drop and subsequent reset of Arduino
+      parity: "none"
     });
 
     this.log("Port opened.");
 		this.setStatus("waiting", "Waiting for READY...");
 
-    /*
     // wait for Arduino reboot to finish
     
 		try {
@@ -131,7 +129,6 @@ export class LegoInterfaceA_v2 {
 		} catch (err) {
 			this.log("READY not received — continuing anyway.");
 		}
-		*/
 
     this.setStatus("handshaking", "Performing handshake...");
 
