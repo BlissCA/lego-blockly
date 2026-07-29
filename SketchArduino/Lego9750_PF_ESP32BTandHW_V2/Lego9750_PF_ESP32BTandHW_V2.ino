@@ -2,6 +2,7 @@
 #include "BluetoothSerial.h"
 #include "driver/rmt.h"
 
+Stream* activeSerial = nullptr;
 BluetoothSerial SerialBT;
 
 // ---------------- Pin mapping ----------------
@@ -244,18 +245,18 @@ const int LEDC_RES  = 8;     // 0-255
 // =========================================================
 // HANDSHAKE (Blockly)
 // =========================================================
-void waitForHandshake() {
+void waitForHandshake(Stream &port) {
   const size_t targetLen = strlen(HANDSHAKE_JS);
   size_t idx = 0;
 
   while (true) {
-    if (SerialBT.available()) {
-      char c = (char)SerialBT.read();
+    if (port.available()) {
+      char c = (char)port.read();
       if (c == HANDSHAKE_JS[idx]) {
         idx++;
         if (idx >= targetLen) {
-          SerialBT.print(HANDSHAKE_ARD);
-          SerialBT.flush();
+          port.print(HANDSHAKE_ARD);
+          port.flush();
           delay(50);
           return;
         }
@@ -270,10 +271,10 @@ void waitForHandshake() {
 // =========================================================
 // COMMAND HANDLING (Blockly)
 // =========================================================
-void handleCommands() {
-  while (SerialBT.available()) {
+void handleCommands(Stream &port) {
+  while (port.available()) {
 
-    uint8_t cmd = (uint8_t)SerialBT.read();
+    uint8_t cmd = (uint8_t)port.read();
     lastCommandTime = millis();
 
     if (cmd == 0x02) {
@@ -281,13 +282,13 @@ void handleCommands() {
     }
 
     if (cmd == 0x70) {
-      forceDisconnect();
+      forceDisconnect(port);
       return;
     }
 
     if ((cmd & 0xF0) == 0x90) {
-      while (!SerialBT.available());
-      uint8_t val = (uint8_t)SerialBT.read();
+      while (!port.available());
+      uint8_t val = (uint8_t)port.read();
 
       uint8_t port = cmd & 0x0F;
       if (port < 6) {
@@ -298,8 +299,8 @@ void handleCommands() {
     }
 
     if ((cmd & 0xF0) == 0xA0) {
-      while (!SerialBT.available());
-      uint8_t val = (uint8_t)SerialBT.read();
+      while (!port.available());
+      uint8_t val = (uint8_t)port.read();
 
       uint8_t ch     = cmd & 0x0F;
       uint8_t pf_out = (val & 0xF0) >> 4;
@@ -311,8 +312,8 @@ void handleCommands() {
     }
 
     if ((cmd & 0xF0) == 0xB0) {
-      while (!SerialBT.available());
-      uint8_t val = (uint8_t)SerialBT.read();
+      while (!port.available());
+      uint8_t val = (uint8_t)port.read();
 
       uint8_t ch       = cmd & 0x0F;
       uint8_t pf_pwm_b = (val & 0xF0) >> 4;
@@ -344,7 +345,7 @@ void pollInputs() {
 // =========================================================
 // STATUS PACKET (Blockly)
 // =========================================================
-void sendStatusPacket() {
+void sendStatusPacket(Stream &port) {
   uint8_t buf[11];
 
   buf[0] = HEADER0;
@@ -371,13 +372,13 @@ void sendStatusPacket() {
   for (uint8_t i = 0; i < 10; i++) sum += buf[i];
   buf[10] = (uint8_t)(sum & 0xFF);
 
-  SerialBT.write(buf, 11);
+  port.write(buf, 11);
 }
 
 // =========================================================
 // FORCE DISCONNECT (Blockly)
 // =========================================================
-void forceDisconnect() {
+void forceDisconnect(Stream &port) {
   for (uint8_t i = 0; i < 6; i++) {
     pwmValues[i] = 0;
     ledcWrite(LEDC_CHANNELS[i], 0);
@@ -386,7 +387,7 @@ void forceDisconnect() {
   connected    = false;
   currentMode  = MODE_NONE;
 
-  while (SerialBT.available()) SerialBT.read();
+  while (port.available()) port.read();
 }
 
 // =========================================================
@@ -396,8 +397,9 @@ uint8_t legacyOutputByte   = 0x00;
 uint8_t legacyLastInputs   = 0x00;
 unsigned long legacyLastTxTime = 0;
 const unsigned long LEGACY_HEARTBEAT_INTERVAL = 3000; // ms
+static uint32_t lastApplyUs = 0;
 
-void loopLegacy() {
+void loopLegacy(Stream &port) {
   uint8_t currentInputs = 0x00;
   if (digitalRead(IN_PINS[0]) == HIGH) currentInputs |= 0x40; // bit 6
   if (digitalRead(IN_PINS[1]) == HIGH) currentInputs |= 0x80; // bit 7
@@ -405,10 +407,10 @@ void loopLegacy() {
   bool forceUpdate = false;
 
   // Check if Blockly handshake is starting
-  if (SerialBT.available() > 0) {
-    uint8_t peekByte = (uint8_t)SerialBT.peek();
+  if (port.available() > 0) {
+    uint8_t peekByte = (uint8_t)port.peek();
     if (peekByte == '#') {
-      waitForHandshake();
+      waitForHandshake(port);
       currentMode = MODE_BLOCKLY;
       lastPacketTime  = micros();
       lastCommandTime = millis();
@@ -416,8 +418,10 @@ void loopLegacy() {
     }
 
     // Legacy command: raw output byte
-    while (SerialBT.available() > 0) {
-      uint8_t inboundByte = (uint8_t)SerialBT.read();
+
+    uint32_t interval = (port.available() > 8) ? 940 : 1020;
+    if ((uint32_t)(micros() - lastApplyUs) >= interval) {
+      uint8_t inboundByte = (uint8_t)port.read();
       legacyOutputByte = inboundByte & 0x3F;
 
       for (int i = 0; i < 6; i++) {
@@ -425,9 +429,10 @@ void loopLegacy() {
         ledcWrite(LEDC_CHANNELS[i], val);
       }
 
+      forceUpdate = true;
+      lastApplyUs = micros();
     }
 
-    forceUpdate = true;
   }
 
   if (currentInputs != legacyLastInputs) {
@@ -440,14 +445,43 @@ void loopLegacy() {
 
   if (forceUpdate) {
     uint8_t returnByte = (legacyOutputByte & 0x3F) | currentInputs;
-    SerialBT.write(returnByte);
+    port.write(returnByte);
 
     legacyLastInputs = currentInputs;
     legacyLastTxTime = millis();
   }
 
-  delayMicroseconds(100);
+//  delayMicroseconds(100);
 }
+
+bool usbConnected() {
+  return Serial && Serial.availableForWrite();
+}
+
+bool btConnected() {
+  return SerialBT.hasClient();
+}
+
+void selectTransport() {
+  if (btConnected()) {
+    activeSerial = &SerialBT;
+  } else if (usbConnected()) {
+    activeSerial = &Serial;
+  } else {
+    activeSerial = nullptr;
+  }
+}
+
+void resetOutputs() {
+  for (uint8_t i = 0; i < 6; i++) {
+    pwmValues[i] = 0;
+    ledcWrite(LEDC_CHANNELS[i], 0);
+    digitalWrite(OUT_PINS[i], LOW);
+  }
+  connected   = false;
+  currentMode = MODE_NONE;
+}
+
 
 // =========================================================
 // SETUP
@@ -482,34 +516,36 @@ void setup() {
 // MAIN LOOP
 // =========================================================
 void loop() {
-  if (!SerialBT.hasClient()) {
-    for (uint8_t i = 0; i < 6; i++) {
-      pwmValues[i] = 0;
-      ledcWrite(LEDC_CHANNELS[i], 0);
-      digitalWrite(OUT_PINS[i], LOW);
-    }
-    connected   = false;
-    currentMode = MODE_NONE;
+
+  // 1. Select transport
+  selectTransport();
+
+  // 2. If no transport → reset outputs and idle
+  if (activeSerial == nullptr) {
+    resetOutputs();
     delay(100);
     return;
   }
 
+  // 3. If transport just became active → send READY
   if (!connected) {
-    SerialBT.println("READY");
-    SerialBT.flush();
+    activeSerial->println("READY");
+    activeSerial->flush();
     delay(50);
 
     connected   = true;
-    currentMode = MODE_LEGACY;  // default to legacy on connect
+    currentMode = MODE_LEGACY;   // default
     lastPacketTime  = micros();
     lastCommandTime = millis();
   }
 
+  // 4. Handle modes
   if (currentMode == MODE_BLOCKLY) {
-    handleCommands();
+
+    handleCommands(*activeSerial);
 
     if ((millis() - lastCommandTime) > KEEPALIVE_TIMEOUT_MS) {
-      forceDisconnect();
+      resetOutputs();
       return;
     }
 
@@ -518,11 +554,15 @@ void loop() {
     unsigned long now = micros();
     if ((now - lastPacketTime) >= PACKET_INTERVAL_US) {
       lastPacketTime = now;
-      sendStatusPacket();
+      sendStatusPacket(*activeSerial);
     }
+
   } else if (currentMode == MODE_LEGACY) {
-    loopLegacy();
+
+    loopLegacy(*activeSerial);
+
   } else {
     currentMode = MODE_LEGACY;
   }
 }
+
