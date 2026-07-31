@@ -368,7 +368,7 @@ const toolbox = {
       ]
     },
 
-    {"kind": "category", "name": "Int. A V2", "colour": 35, "contents": [
+    {"kind": "category", "name": "Int. A", "colour": 35, "contents": [
         {
           "kind": "category",
           "name": "Input",
