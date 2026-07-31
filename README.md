@@ -69,22 +69,24 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
 		- For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
   
-	- ESP32 (BLUETOOTH)
+	- ESP32 (Onboard BLUETOOTH AND USB Serial)
 		- Prefered Board: ESP-WROOM-32 Devkit 1 30-pin variant as the pins allign with Interface A Connector
-		- The ESP32 uses Built-in Bluetooth, not serial lines.
+		- The ESP32 uses Built-in Bluetooth and USB to Serial chip onboard.
 		- You must have bluetooth on your PC.  Or you can buy a cheap TP-Link BT/BLE dongle.
 		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
 		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
 		The newer ESP32-S3, C3, C6 only have BLE...
-		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_V2 provided in the [folder SketchArduino](SketchArduino).
+		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V4 provided in the [folder SketchArduino](SketchArduino).
 		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
 		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
-		Apparently, The Interface A tolerates 3.3V level out of the box...
+		Apparently, The Interface A tolerates 3.3V level out of the box, so no need for a logic level converter...
 		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 13, 12, 14, 27, 26, 25.
 		- Interface A Inputs 6 and 7 should be wired to ESP32 pins 33 and 32 respectively.
 		- For Power Function IR, you have to wire a IR Led to ESP32 Pin 4 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
 		- NOTE that the ESP32 has DUAL protocol support.
 		It means you can also use the ESP32 with legacy DOS lego software like le patched TC_LOGO_S.COM found on [alexGS bricksafe]( https://bricksafe.com/files/alexGSofNZ/interface-a-tc-logo/TCLOGO_P.COM).
+		You need DOSBOX-X emulator installed on you PC to use legacy patche programs.
+		Download Legacy patched programs from [folder Misc/Legacy_IntA](Misc/Legacy_IntA).  in Dosbox-x, use the .bat (Batch file) that will set the baud rate to 115.2 kB and start the legacy patched parogram. 
 		- Lego Interface A 20 pin Connector wiring:
 			- Connector pin 1 or 3 goes to ESP32 3.3V
 			- Connector pin 5 (or 7, 9, 11, 13, 15, 17, 19) goes to ESP32 GND
