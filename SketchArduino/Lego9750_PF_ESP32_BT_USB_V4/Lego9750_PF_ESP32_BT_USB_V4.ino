@@ -399,14 +399,21 @@ unsigned long legacyLastTxTime = 0;
 const unsigned long LEGACY_HEARTBEAT_INTERVAL = 3000; // ms
 static uint32_t lastApplyUs = 0;
 
+// SoftPWM accumulation (TCLOGO 8-sample duty cycle)
+uint8_t  softOnCount[6]      = {0,0,0,0,0,0};
+uint8_t  softSampleCount     = 0;
+uint32_t softCycleStartTime  = 0;
+bool     softPwmActive       = false;
+const uint32_t SOFTPWM_MAX_CYCLE_US = 80000;  // 80 ms window
+
 void loopLegacy(Stream &port) {
   uint8_t currentInputs = 0x00;
-  if (digitalRead(IN_PINS[0]) == HIGH) currentInputs |= 0x40; // bit 6
-  if (digitalRead(IN_PINS[1]) == HIGH) currentInputs |= 0x80; // bit 7
+  if (digitalRead(IN_PINS[0]) == HIGH) currentInputs |= 0x40;
+  if (digitalRead(IN_PINS[1]) == HIGH) currentInputs |= 0x80;
 
   bool forceUpdate = false;
 
-  // Check if Blockly handshake is starting
+  // Blockly handshake
   if (port.available() > 0) {
     uint8_t peekByte = (uint8_t)port.peek();
     if (peekByte == '#') {
@@ -416,33 +423,85 @@ void loopLegacy(Stream &port) {
       lastCommandTime = millis();
       return;
     }
+  }
 
-    // Legacy command: raw output byte
+  // -------------------------------
+  // SOFTPWM + LEGACY BIT-BANG LOGIC
+  // -------------------------------
+  if (port.available() > 0) {
 
-    uint32_t interval = (port.available() > 8) ? 940 : 1020;
-    if ((uint32_t)(micros() - lastApplyUs) >= interval) {
+      uint32_t now = micros();
       uint8_t inboundByte = (uint8_t)port.read();
       legacyOutputByte = inboundByte & 0x3F;
 
-      for (int i = 0; i < 6; i++) {
-        uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
-        ledcWrite(LEDC_CHANNELS[i], val);
+      // Start a new SoftPWM cycle if needed
+      if (softSampleCount == 0) {
+        softCycleStartTime = now;
+        for (int i = 0; i < 6; i++) softOnCount[i] = 0;
       }
 
-      forceUpdate = true;
-      lastApplyUs = micros();
-    }
+      // If the window expired → NOT TCLOGO
+      if ((now - softCycleStartTime) >= SOFTPWM_MAX_CYCLE_US) {
 
+        // Reset SoftPWM
+        softSampleCount = 0;
+        softPwmActive   = false;
+
+        // Immediate ON/OFF fallback
+        for (int i = 0; i < 6; i++) {
+          uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+          ledcWrite(LEDC_CHANNELS[i], val);
+        }
+
+        forceUpdate = true;
+        lastApplyUs = now;
+
+        // IMPORTANT: do NOT return — continue to input/heartbeat/returnByte
+      }
+      else {
+        // Accumulate SoftPWM samples
+        for (int i = 0; i < 6; i++) {
+          if (legacyOutputByte & (1 << i)) {
+            softOnCount[i]++;
+          }
+        }
+        softSampleCount++;
+
+        // If we have 8 samples within the window → TCLOGO SoftPWM
+        if (softSampleCount == 8) {
+
+          for (int i = 0; i < 6; i++) {
+            float duty = (float)softOnCount[i] / 8.0f;
+            uint8_t pwm = (uint8_t)(duty * 255.0f);
+            ledcWrite(LEDC_CHANNELS[i], pwm);
+          }
+
+          softSampleCount = 0;
+          softPwmActive   = true;
+          forceUpdate     = true;
+          lastApplyUs     = now;
+
+          // DO NOT return — continue to input/heartbeat/returnByte
+        }
+        else if (!softPwmActive) {
+          // Not enough samples yet → fallback ON/OFF
+          for (int i = 0; i < 6; i++) {
+            uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+            ledcWrite(LEDC_CHANNELS[i], val);
+          }
+
+          forceUpdate = true;
+          lastApplyUs = now;
+        }
+      }
   }
 
-  if (currentInputs != legacyLastInputs) {
-    forceUpdate = true;
-  }
 
-  if (millis() - legacyLastTxTime >= LEGACY_HEARTBEAT_INTERVAL) {
-    forceUpdate = true;
-  }
+  // Input change + heartbeat
+  if (currentInputs != legacyLastInputs) forceUpdate = true;
+  if (millis() - legacyLastTxTime >= LEGACY_HEARTBEAT_INTERVAL) forceUpdate = true;
 
+  // Return byte
   if (forceUpdate) {
     uint8_t returnByte = (legacyOutputByte & 0x3F) | currentInputs;
     port.write(returnByte);
@@ -450,9 +509,8 @@ void loopLegacy(Stream &port) {
     legacyLastInputs = currentInputs;
     legacyLastTxTime = millis();
   }
-
-//  delayMicroseconds(100);
 }
+
 
 bool usbConnected() {
   return Serial && Serial.availableForWrite();
