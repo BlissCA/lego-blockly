@@ -63,7 +63,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 
 	- ARDUINO UNO/NANO:
 		- You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
-		- See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2 (NO PF IR, HW PWM) or the latest Lego9750_PF_UNO_V4 (SOFT PWM) or Lego9750_UNO_V3 (NO PF IR, HW PWM) (V3, V4 support dual protocol (Blockly and Bit Bang for Lego Legacy DOS software), See ESP32 below).
+		- See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2 (NO PF IR, HW PWM) or the latest Lego9750_PF_UNO_V4 (PF IR, SOFT PWM) or Lego9750_UNO_V3 (NO PF IR, HW PWM) (V3, V4 support dual protocol (Blockly and Bit Bang for Lego Legacy DOS software), See ESP32 below).
 		- You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
 		- Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
 		- Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
