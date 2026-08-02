@@ -164,7 +164,7 @@ export class LegoInterfaceA_v2 {
   async sendHandshake() {
     this.log("Sending handshake phrase...");
     await this.writeBytes(this.HANDSHAKE_SEND);
-    const reply = await this.waitForHandshakeReply();
+    const reply = await this.waitForHandshakeReply(2000);
     this.log(`Received handshake reply: ${reply}`);
     return reply;
   }
