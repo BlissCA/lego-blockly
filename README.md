@@ -76,7 +76,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
 		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
 		The newer ESP32-S3, C3, C6 only have BLE...
-		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V4 provided in the [folder SketchArduino](SketchArduino).
+		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V5 provided in the [folder SketchArduino](SketchArduino).
 		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
 		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
 		Apparently, The Interface A tolerates 3.3V level out of the box, so no need for a logic level converter...

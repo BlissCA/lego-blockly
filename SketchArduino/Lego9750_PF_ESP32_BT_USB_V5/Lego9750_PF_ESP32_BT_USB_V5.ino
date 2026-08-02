@@ -245,9 +245,9 @@ const int LEDC_RES  = 8;     // 0-255
 // =========================================================
 // HANDSHAKE (Blockly)
 // =========================================================
-void waitForHandshake(Stream &port) {
-  const size_t targetLen = strlen(HANDSHAKE_JS);
-  size_t idx = 0;
+void waitForHandshakePartial(Stream &port, uint8_t startIdx) {
+  size_t targetLen = strlen(HANDSHAKE_JS);
+  size_t idx = startIdx;
 
   while (true) {
     if (port.available()) {
@@ -261,7 +261,7 @@ void waitForHandshake(Stream &port) {
           return;
         }
       } else {
-        idx = 0;
+          idx = 0;  // restart matching
       }
     }
     delay(1);
@@ -398,6 +398,8 @@ uint8_t legacyLastInputs   = 0x00;
 unsigned long legacyLastTxTime = 0;
 const unsigned long LEGACY_HEARTBEAT_INTERVAL = 3000; // ms
 static uint32_t lastApplyUs = 0;
+static uint8_t hs_idx = 0;  // handshake index
+const char *HS = HANDSHAKE_JS;   // "###Do you byte, when I knock?$$$"
 
 // SoftPWM accumulation (TCLOGO 8-sample duty cycle)
 uint8_t  softOnCount[6]      = {0,0,0,0,0,0};
@@ -413,41 +415,92 @@ void loopLegacy(Stream &port) {
 
   bool forceUpdate = false;
 
-  // Blockly handshake
-  if (port.available() > 0) {
-    uint8_t peekByte = (uint8_t)port.peek();
-    if (peekByte == '#') {
-      waitForHandshake(port);
-      currentMode = MODE_BLOCKLY;
-      lastPacketTime  = micros();
-      lastCommandTime = millis();
-      return;
-    }
-  }
-
   // -------------------------------
   // SOFTPWM + LEGACY BIT-BANG LOGIC
   // -------------------------------
   if (port.available() > 0) {
 
-      uint32_t now = micros();
-      uint8_t inboundByte = (uint8_t)port.read();
-      legacyOutputByte = inboundByte & 0x3F;
+    uint32_t now = micros();
+    uint8_t inboundByte = (uint8_t)port.read();
+    legacyOutputByte = inboundByte & 0x3F;
 
-      // Start a new SoftPWM cycle if needed
-      if (softSampleCount == 0) {
-        softCycleStartTime = now;
-        for (int i = 0; i < 6; i++) softOnCount[i] = 0;
+    // Handshake detection
+    if (inboundByte == HS[hs_idx]) {
+        hs_idx++;
+
+      if (hs_idx == 7) {
+        // We matched the first 7 bytes of the handshake
+        // Switch to Blockly mode
+        currentMode = MODE_BLOCKLY;
+        for (uint8_t i = 0; i < 6; i++) {
+          pwmValues[i] = 0;
+          ledcWrite(LEDC_CHANNELS[i], 0);
+        }
+        // Continue handshake from byte 7 onward
+        waitForHandshakePartial(port, 7);
+        lastPacketTime  = micros();
+        lastCommandTime = millis();
+
+        // Reset index
+        hs_idx = 0;
+        return;
+      }
+    } else {
+        // Mismatch → reset handshake index
+        hs_idx = 0;
+    }
+
+    // Start a new SoftPWM cycle if needed
+    if (softSampleCount == 0) {
+      softCycleStartTime = now;
+      for (int i = 0; i < 6; i++) softOnCount[i] = 0;
+    }
+
+    // If the window expired → NOT TCLOGO
+    if ((now - softCycleStartTime) >= SOFTPWM_MAX_CYCLE_US) {
+
+      // Reset SoftPWM
+      softSampleCount = 0;
+      softPwmActive   = false;
+
+      // Immediate ON/OFF fallback
+      for (int i = 0; i < 6; i++) {
+        uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+        ledcWrite(LEDC_CHANNELS[i], val);
       }
 
-      // If the window expired → NOT TCLOGO
-      if ((now - softCycleStartTime) >= SOFTPWM_MAX_CYCLE_US) {
+      forceUpdate = true;
+      lastApplyUs = now;
 
-        // Reset SoftPWM
+      // IMPORTANT: do NOT return — continue to input/heartbeat/returnByte
+    }
+    else {
+      // Accumulate SoftPWM samples
+      for (int i = 0; i < 6; i++) {
+        if (legacyOutputByte & (1 << i)) {
+          softOnCount[i]++;
+        }
+      }
+      softSampleCount++;
+
+      // If we have 8 samples within the window → TCLOGO SoftPWM
+      if (softSampleCount == 8) {
+
+        for (int i = 0; i < 6; i++) {
+          float duty = (float)softOnCount[i] / 8.0f;
+          uint8_t pwm = (uint8_t)(duty * 255.0f);
+          ledcWrite(LEDC_CHANNELS[i], pwm);
+        }
+
         softSampleCount = 0;
-        softPwmActive   = false;
+        softPwmActive   = true;
+        forceUpdate     = true;
+        lastApplyUs     = now;
 
-        // Immediate ON/OFF fallback
+        // DO NOT return — continue to input/heartbeat/returnByte
+      }
+      else if (!softPwmActive) {
+        // Not enough samples yet → fallback ON/OFF
         for (int i = 0; i < 6; i++) {
           uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
           ledcWrite(LEDC_CHANNELS[i], val);
@@ -455,45 +508,8 @@ void loopLegacy(Stream &port) {
 
         forceUpdate = true;
         lastApplyUs = now;
-
-        // IMPORTANT: do NOT return — continue to input/heartbeat/returnByte
       }
-      else {
-        // Accumulate SoftPWM samples
-        for (int i = 0; i < 6; i++) {
-          if (legacyOutputByte & (1 << i)) {
-            softOnCount[i]++;
-          }
-        }
-        softSampleCount++;
-
-        // If we have 8 samples within the window → TCLOGO SoftPWM
-        if (softSampleCount == 8) {
-
-          for (int i = 0; i < 6; i++) {
-            float duty = (float)softOnCount[i] / 8.0f;
-            uint8_t pwm = (uint8_t)(duty * 255.0f);
-            ledcWrite(LEDC_CHANNELS[i], pwm);
-          }
-
-          softSampleCount = 0;
-          softPwmActive   = true;
-          forceUpdate     = true;
-          lastApplyUs     = now;
-
-          // DO NOT return — continue to input/heartbeat/returnByte
-        }
-        else if (!softPwmActive) {
-          // Not enough samples yet → fallback ON/OFF
-          for (int i = 0; i < 6; i++) {
-            uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
-            ledcWrite(LEDC_CHANNELS[i], val);
-          }
-
-          forceUpdate = true;
-          lastApplyUs = now;
-        }
-      }
+    }
   }
 
 
