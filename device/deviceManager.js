@@ -5,6 +5,7 @@ import { LegoInterfaceA_v2 } from './DeviceLegoA_v2.js';
 import { LegoInterfaceA_ws } from './DeviceLegoA_ws.js';
 import { LegoInterfaceB } from './DeviceLegoB.js';
 import { LegoRcx } from './DeviceLegoRcx.js';
+import { LegoNxt } from './DeviceLegoNxt.js';
 import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
@@ -257,6 +258,29 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("RCX connection failed:", err);
+      await dev.disconnect();
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO NXT
+  // -------------------------
+
+  async connectNxt() {
+    const dev = new LegoNxt(null, this);
+
+    try {
+      await dev.connect();
+      if (dev.status === "Connected") {
+        this._addDevice(dev);
+        return dev;
+      } else {
+        return null;
+      }
+
+    } catch (err) {
+      console.warn("NXT connection failed:", err);
       await dev.disconnect();
       return null;
     }

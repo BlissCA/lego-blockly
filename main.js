@@ -19,6 +19,7 @@ import "./device/DeviceLegoA_v2.js";
 import "./device/DeviceLegoA_ws.js";
 import "./device/DeviceLegoB.js";
 import "./device/DeviceLegoRcx.js";
+import "./device/DeviceLegoNxt.js";
 import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
@@ -1015,6 +1016,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
     case "CM":
       window.useCyberMaster = true;
       dev = await window.deviceManager.connectRcx();   // your unified RCX/CM class
+      break;
+
+    case "NXT":
+      dev = await window.deviceManager.connectNxt();   // your unified NXT class
       break;
 
     case "WD1":
