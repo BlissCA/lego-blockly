@@ -1151,6 +1151,23 @@ const toolbox = {
         }
       ]
     },
+    {
+      "kind": "category",
+      "name": "NXT",
+      "colour": "#0040d6",
+      "contents": [
+        { "kind": "category", "name": "Motors", "colour": "#0040d6", "contents": [
+					]
+        },
+        { "kind": "category", "name": "Sensors", "colour": "#0040d6", "contents": [
+          ]
+        },
+        { "kind": "category", "name": "Misc", "colour": "#0040d6", "contents": [
+                                   
+          ]
+        }
+      ]
+    },
     {"kind": "category", "name": "WeDo 1.0", "colour": 40, "contents": [
         { "kind": "block", "type": "wedo1_tiltval" },
         {
