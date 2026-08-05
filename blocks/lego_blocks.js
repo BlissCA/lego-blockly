@@ -4627,6 +4627,52 @@ Blockly.defineBlocksWithJsonArray([{
 }]);
 
 
+Blockly.defineBlocksWithJsonArray([
+{
+  "type": "number_limited",
+  "message0": "%1",
+  "args0": [
+    {
+      "type": "field_number",
+      "name": "NUM",
+      "value": 0,
+      "min": 0,
+      "max": 10000000000,
+      "precision": 1
+    }
+  ],
+  "output": "Number",
+  "colour": 230
+}
+]);
+
+Blockly.Blocks['number_limited'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(0), "NUM");
+    this.setOutput(true, "Number");
+    this.setColour(230);
+  },
+
+  mutationToDom: function() {
+    const container = document.createElement('mutation');
+    container.setAttribute('min', this.min || 0);
+    container.setAttribute('max', this.max || 999999);
+    container.setAttribute('precision', this.precision || 1);
+    return container;
+  },
+
+  domToMutation: function(xmlElement) {
+    this.min = Number(xmlElement.getAttribute('min'));
+    this.max = Number(xmlElement.getAttribute('max'));
+    this.precision = Number(xmlElement.getAttribute('precision'));
+
+    const field = this.getField('NUM');
+    field.setConstraints(this.min, this.max, this.precision);
+  }
+};
+
+
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------
 
