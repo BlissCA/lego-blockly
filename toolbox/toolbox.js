@@ -1170,10 +1170,12 @@ const toolbox = {
                 "PWR": {
                   "shadow": {
                     "type": "math_number",
-                    "fields": { "NUM": 80 },
-                    "min": -100,
-                    "max": 100,
-                    "precision": 1
+                    "extraState": {
+                      "min": -100,
+                      "max": 100,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 80 }
                   }
                 }
                 
@@ -1186,8 +1188,35 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Misc", "colour": "#0040d6", "contents": [
-            { "kind": "block", "type": "nxt_playtone" }
-                                   
+            {
+              "kind": "block",
+              "type": "nxt_playtone",
+              "inputs": {
+                "FREQ": {
+                  "shadow": {
+                    "type": "math_number",
+                    "extraState": {
+                      "min": 200,
+                      "max": 14000,
+                      "precision": 1
+                    },
+                    "fields": {
+                      "NUM": 200
+                    }
+                  }
+                },
+                "DURATION": {
+                  "shadow": {
+                    "type": "math_number",
+                    "extraState": {
+                      "min": 0,
+                      "precision": 1
+                    },
+                    "fields": {"NUM": 1000}
+                  }
+                }
+              }              
+            }                                   
           ]
         }
       ]

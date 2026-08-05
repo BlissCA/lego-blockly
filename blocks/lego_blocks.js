@@ -3160,26 +3160,12 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "FREQ",
-          "check": "Number",
-          "shadow": {
-            "type": "math_number",
-            "fields": { "NUM": 200 },
-            "min": 200,
-            "max": 14000,
-            "precision": 1
-          }
+          "check": "Number"
         },
         {
           "type": "input_value",
           "name": "DURATION",
-          "check": "Number",
-          "shadow": {
-            "type": "math_number",
-            "fields": { "NUM": 2000 },
-            "min": 0,
-            "precision": 1
-          }
-
+          "check": "Number"
         }
       ],
       "inputsInline": true,
