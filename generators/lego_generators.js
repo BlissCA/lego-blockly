@@ -769,9 +769,14 @@ javascriptGenerator.forBlock["Nxt_InpPort"] = function (block) {
 };
 
 javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
+  
   const dev  = block.getFieldValue("DEVICE");
+  
+  const pwrBlock = block.getInputTargetBlock('PWR')
+  
   const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
-  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+  //const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+  const pwr = pwrBlock ? Number(pwrBlock.getFieldValue('NUM')) : 0;
   const mode  = block.getFieldValue("MODE");
 
   return `

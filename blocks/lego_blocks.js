@@ -4627,6 +4627,35 @@ Blockly.defineBlocksWithJsonArray([{
 }]);
 
 
+// number_limited: generic Number output with configurable min/max/precision
+Blockly.Blocks['number_limited'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldNumber(0), "NUM");
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Number with configurable min/max/precision via mutation.");
+  },
+
+  mutationToDom: function() {
+    const container = document.createElement('mutation');
+    container.setAttribute('min', this.min ?? 0);
+    container.setAttribute('max', this.max ?? 1000000);
+    container.setAttribute('precision', this.precision ?? 1);
+    return container;
+  },
+
+  domToMutation: function(xmlElement) {
+    this.min = Number(xmlElement.getAttribute('min') ?? 0);
+    this.max = Number(xmlElement.getAttribute('max') ?? 1000000);
+    this.precision = Number(xmlElement.getAttribute('precision') ?? 1);
+
+    const field = this.getField('NUM');
+    field.setConstraints(this.min, this.max, this.precision);
+  }
+};
+
+
 
 /* NOT USING MQTT FOR NOW SINCE IT REQUIRES WSS SECURE CONNECTION WHICH IS HARD TO SETUP LOCALLY. MAY RECONSIDER IN THE FUTURE IF THERE'S A GOOD USE CASE FOR IT.
 // ---------------- MQTT BLOCKS ----------------
