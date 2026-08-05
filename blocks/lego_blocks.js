@@ -788,7 +788,7 @@ function getCMDropdown() {
 // NXT + CyberMaster devices
 function getNxtDropdown() {
   const devices = window.deviceManager?.devices || [];
-  const list = devices.filter(d => d.name.startsWith("Nxt")););
+  const list = devices.filter(d => d.name.startsWith("Nxt"));
 
   return list.length
     ? list.map(d => [d.name, d.name])
@@ -3893,7 +3893,7 @@ Blockly.Blocks['Nxt_MotPort'] = {
   init: function() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([
-        ["A", "0"], ["B", "1"], ["C", "2"], ["ALL", "255"]]
+        ["A", "0"], ["B", "1"], ["C", "2"], ["ALL", "255"]
       ]), "LETTER");
 
     this.setOutput(true, "Number");
