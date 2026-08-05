@@ -785,6 +785,16 @@ function getCMDropdown() {
     : [['No CyberMaster', 'NONE']];
 }
 
+// NXT + CyberMaster devices
+function getNxtDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("Nxt")););
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No NXT', 'NONE']];
+}
+
 // Only WeDo 1.0 devices
 function getWedo1Dropdown() {
   const devices = window.deviceManager?.devices || [];
@@ -3108,6 +3118,88 @@ window.addEventListener("load", () => {
   ]);  
   
 
+  // ---------------- LEGO NXT BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+
+    {
+      "type": "nxt_mot_pow",
+      "message0": "%1 Motors %2 Pwr %3 mode %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 },
+            "min": -100,
+            "max": 100,
+            "precision": 1
+          }
+        },
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            ["FLOAT", "1"],
+            ["BRAKE", "3"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Motor, Port A=0, B=1, C=2, Power: -100 to +100, Stop Mode at Power 0: FLOAT, BRAKE"
+    },
+
+    {
+      "type": "nxt_playtone",
+      "message0": "%1 TONE %2 Hz %3 ms",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "FREQ",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 200 },
+            "min": 200,
+            "max": 14000,
+            "precision": 1
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "DURATION",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 2000 },
+            "min": 0,
+            "precision": 1
+          }
+
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT PLAY TONE: Frequency range 200-14000 Hz, Duration in ms"
+    }
+
+  ]);
+
+
+
   // Bitwise Operators
   Blockly.defineBlocksWithJsonArray([
     {
@@ -3793,6 +3885,33 @@ Blockly.Blocks['Rcx_InpPort'] = {
     this.setOutput(true, "Number");
     this.setColour(230);
     this.setTooltip("Returns a predefined constant value for RCX input ports.");
+  }
+};
+
+
+Blockly.Blocks['Nxt_MotPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "0"], ["B", "1"], ["C", "2"], ["ALL", "255"]]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT output ports.");
+  }
+};
+
+Blockly.Blocks['Nxt_InpPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["1", "0"], ["2", "1"], ["3", "2"], ["4","3"]
+      ]), "INPPORT");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT input ports.");
   }
 };
 

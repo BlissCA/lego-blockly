@@ -749,6 +749,57 @@ javascriptGenerator.forBlock["rcx_sensorclear"] = function (block) {
 `;
 };
 
+
+// ---------------- NXT DEVICE GENERATORS ----------------
+
+// ---------------- Lego NXT Output Port Letters A, B, C = 0, 1, 2 ----------------
+javascriptGenerator.forBlock["Nxt_MotPort"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+// ---------------- Lego NXT Input Port 1, 2, 3, 4 = 0, 1, 2, 3 ----------------
+javascriptGenerator.forBlock["Nxt_InpPort"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('INPPORT');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+  const mode = javascriptGenerator.valueToCode(block, "MODE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setOutputState(${ports}, ${pwr}, ${mode}, 0x00, 0x00, 0x20, 0);
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const freq = javascriptGenerator.valueToCode(block, "FREQ", javascriptGenerator.ORDER_NONE) || "0";
+  const duration = javascriptGenerator.valueToCode(block, "DURATION", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.playTone(${freq}, ${duration});
+}
+`;
+};
+
+
 javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   const A = generator.valueToCode(block, 'A', javascriptGenerator.ORDER_NONE) || '0';
   const X = generator.valueToCode(block, 'X', javascriptGenerator.ORDER_NONE) || '0';

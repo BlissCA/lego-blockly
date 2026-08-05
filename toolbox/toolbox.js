@@ -984,7 +984,6 @@ const toolbox = {
                 }
               }
             },
-
             {
               "kind": "block",
               "type": "rcx_mot_pow",
@@ -1157,12 +1156,26 @@ const toolbox = {
       "colour": "#0040d6",
       "contents": [
         { "kind": "category", "name": "Motors", "colour": "#0040d6", "contents": [
-					]
+            { "kind": "block", "type": "Nxt_MotPort" },
+            {
+              "kind": "block",
+              "type": "nxt_mot_pow",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+              }
+            }					]
         },
         { "kind": "category", "name": "Sensors", "colour": "#0040d6", "contents": [
+            { "kind": "block", "type": "Nxt_InpPort" }
           ]
         },
         { "kind": "category", "name": "Misc", "colour": "#0040d6", "contents": [
+            { "kind": "block", "type": "nxt_playtone" }
                                    
           ]
         }
