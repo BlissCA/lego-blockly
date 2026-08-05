@@ -772,7 +772,7 @@ javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
-  const mode = javascriptGenerator.valueToCode(block, "MODE",  javascriptGenerator.ORDER_NONE) || "0";
+  const mode  = block.getFieldValue("MODE");
 
   return `
 {
