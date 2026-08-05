@@ -771,7 +771,7 @@ javascriptGenerator.forBlock["Nxt_InpPort"] = function (block) {
 javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
-  const pwr = block.getInputTargetBlock('PWR').getFieldValue('NUM');
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
   const mode  = block.getFieldValue("MODE");
 
   return `
@@ -786,8 +786,8 @@ javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
 
 javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const freq = block.getInputTargetBlock('FREQ').getFieldValue('NUM');
-  const duration = block.getInputTargetBlock('DURATION').getFieldValue('NUM');
+  const freq = javascriptGenerator.valueToCode(block, "FREQ", javascriptGenerator.ORDER_NONE) || "0";
+  const duration = javascriptGenerator.valueToCode(block, "DURATION", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
 {

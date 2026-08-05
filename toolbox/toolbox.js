@@ -1169,7 +1169,7 @@ const toolbox = {
                 },
                 "PWR": {
                   "shadow": {
-                    "type": "number_limited",
+                    "type": "math_number",
                     "extraState": {
                       "min": -100,
                       "max": 100,
@@ -1194,7 +1194,7 @@ const toolbox = {
               "inputs": {
                 "FREQ": {
                   "shadow": {
-                    "type": "number_limited",
+                    "type": "math_number",
                     "extraState": {
                       "min": 200,
                       "max": 14000,
@@ -1207,10 +1207,9 @@ const toolbox = {
                 },
                 "DURATION": {
                   "shadow": {
-                    "type": "number_limited",
+                    "type": "math_number",
                     "extraState": {
                       "min": 0,
-                      "max": 1000000000,
                       "precision": 1
                     },
                     "fields": {"NUM": 1000}
