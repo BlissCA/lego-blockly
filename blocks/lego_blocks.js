@@ -3135,14 +3135,7 @@ window.addEventListener("load", () => {
           "type": "input_value",
           "name": "PWR",
           "check": "Number",
-          "shadow": {
-            "type": "math_number",
-            "fields": { "NUM": 50 },
-            "min": -100,
-            "max": 100,
-            "precision": 1
-          }
-        },
+         },
         {
           "type": "field_dropdown",
           "name": "MODE",

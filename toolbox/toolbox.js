@@ -1166,9 +1166,20 @@ const toolbox = {
                     "type": "Nxt_MotPort",
                     "fields": { "LETTER": "0" }
                   }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 80 },
+                    "min": -100,
+                    "max": 100,
+                    "precision": 1
+                  }
                 }
+                
               }
-            }					]
+            }					
+          ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#0040d6", "contents": [
             { "kind": "block", "type": "Nxt_InpPort" }
