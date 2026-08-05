@@ -1194,7 +1194,7 @@ const toolbox = {
               "inputs": {
                 "FREQ": {
                   "shadow": {
-                    "type": "math_number",
+                    "type": "math_number_constrained",
                     "extraState": {
                       "min": 200,
                       "max": 14000,
@@ -1207,9 +1207,10 @@ const toolbox = {
                 },
                 "DURATION": {
                   "shadow": {
-                    "type": "math_number",
+                    "type": "math_number_constrained",
                     "extraState": {
                       "min": 0,
+                      "max": 100000000,
                       "precision": 1
                     },
                     "fields": {"NUM": 1000}
