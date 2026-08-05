@@ -4629,7 +4629,7 @@ Blockly.defineBlocksWithJsonArray([{
 
 Blockly.Blocks['math_number_constrained'] = {
   init: function() {
-    // 1. Establish the number field with loose defaults
+    // 1. Initialize a vanilla FieldNumber
     this.fieldNumber = new Blockly.FieldNumber(0);
     
     this.appendDummyInput()
@@ -4637,18 +4637,28 @@ Blockly.Blocks['math_number_constrained'] = {
     this.setOutput(true, 'Number');
     this.setColour('%{BKY_MATH_HUE}');
   },
-  
-  // 2. Read parameters dynamically from your JSON toolbox definition
+
+  // 2. EXTREMELY IMPORTANT FOR V12+: Captures and saves the limits
+  saveExtraState: function() {
+    return {
+      'min': this.fieldNumber.getMin(),
+      'max': this.fieldNumber.getMax(),
+      'precision': this.fieldNumber.getPrecision()
+    };
+  },
+
+  // 3. Re-applies boundaries when rendering on the workspace canvas
   loadExtraState: function(state) {
     if (state) {
-      if (state.min !== undefined) this.fieldNumber.setMin(state.min);
-      if (state.max !== undefined) this.fieldNumber.setMax(state.max);
-      if (state.precision !== undefined) this.fieldNumber.setPrecision(state.precision);
+      // Use standard FieldNumber constraint methods
+      if (state.min !== undefined && state.min !== -Infinity) this.fieldNumber.setMin(state.min);
+      if (state.max !== undefined && state.max !== Infinity) this.fieldNumber.setMax(state.max);
+      if (state.precision !== undefined && state.precision !== 0) this.fieldNumber.setPrecision(state.precision);
     }
   }
 };
 
-// Also copy the standard generator to ensure it compiles to code
+// Map your code generator logic over to this block so it behaves like math_number
 Blockly.JavaScript.forBlock['math_number_constrained'] = Blockly.JavaScript.forBlock['math_number'];
 
 
