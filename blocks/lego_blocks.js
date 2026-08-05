@@ -4627,33 +4627,29 @@ Blockly.defineBlocksWithJsonArray([{
 }]);
 
 
-// number_limited: generic Number output with configurable min/max/precision
-Blockly.Blocks['number_limited'] = {
+Blockly.Blocks['math_number_constrained'] = {
   init: function() {
+    // 1. Establish the number field with loose defaults
+    this.fieldNumber = new Blockly.FieldNumber(0);
+    
     this.appendDummyInput()
-      .appendField(new Blockly.FieldNumber(0), "NUM");
-    this.setOutput(true, "Number");
-    this.setColour(230);
-    this.setTooltip("Number with configurable min/max/precision via mutation.");
+        .appendField(this.fieldNumber, 'NUM');
+    this.setOutput(true, 'Number');
+    this.setColour('%{BKY_MATH_HUE}');
   },
-
-  mutationToDom: function() {
-    const container = document.createElement('mutation');
-    container.setAttribute('min', this.min ?? 0);
-    container.setAttribute('max', this.max ?? 1000000);
-    container.setAttribute('precision', this.precision ?? 1);
-    return container;
-  },
-
-  domToMutation: function(xmlElement) {
-    this.min = Number(xmlElement.getAttribute('min') ?? 0);
-    this.max = Number(xmlElement.getAttribute('max') ?? 1000000);
-    this.precision = Number(xmlElement.getAttribute('precision') ?? 1);
-
-    const field = this.getField('NUM');
-    field.setConstraints(this.min, this.max, this.precision);
+  
+  // 2. Read parameters dynamically from your JSON toolbox definition
+  loadExtraState: function(state) {
+    if (state) {
+      if (state.min !== undefined) this.fieldNumber.setMin(state.min);
+      if (state.max !== undefined) this.fieldNumber.setMax(state.max);
+      if (state.precision !== undefined) this.fieldNumber.setPrecision(state.precision);
+    }
   }
 };
+
+// Also copy the standard generator to ensure it compiles to code
+Blockly.JavaScript.forBlock['math_number_constrained'] = Blockly.JavaScript.forBlock['math_number'];
 
 
 

@@ -1169,16 +1169,13 @@ const toolbox = {
                 },
                 "PWR": {
                   "shadow": {
-                    "type": "number_limited",
-//                    "extraState": {
-//                      "min": -100,
-//                      "max": 100,
-//                      "precision": 1
-//                    },
-                    "fields": { "NUM": 80 },
-                    // Power: -100–+100
-                    "mutation": "<mutation min=\"-100\" max=\"100\" precision=\"1\"></mutation>"
-                        
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": -100,
+                      "max": 100,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 80 }
                   }
                 }
                 
