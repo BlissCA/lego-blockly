@@ -1200,13 +1200,13 @@ const toolbox = {
                 "INPUTTYPE": {
                   "shadow": {
                     "type": "Nxt_SensorType",
-                    "fields": { "SENSORTYPE": 1 }
+                    "fields": { "SENSORTYPE": "1" }
                   }
                 },
                 "INPUTMODE": {
                   "shadow": {
                     "type": "Nxt_SensorMode",
-                    "fields": { "SENSORMODE": 0 }
+                    "fields": { "SENSORMODE": "0" }
                   }
                 }
                 

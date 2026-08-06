@@ -3958,7 +3958,7 @@ Blockly.Blocks['Nxt_SensorType'] = {
 
     this.setOutput(true, "Number");
     this.setColour("#0040d6");
-    this.setTooltip("Returns a predefined constant value for NXT input ports.");
+    this.setTooltip("Returns a predefined constant value for NXT Sensor Types.");
   }
 };
 
@@ -3971,7 +3971,7 @@ Blockly.Blocks['Nxt_SensorMode'] = {
 
     this.setOutput(true, "Number");
     this.setColour("#0040d6");
-    this.setTooltip("Returns a predefined constant value for NXT input ports.");
+    this.setTooltip("Returns a predefined constant value for NXT Sensor Modes.");
   }
 };
 
