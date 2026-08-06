@@ -178,6 +178,12 @@ export class LegoNxt {
     });
   }
 
+  _clamp(v, min, max) {
+    v = Number(v);
+    if (isNaN(v)) return min;
+    return Math.min(max, Math.max(min, v));
+	}
+
   // ---------------- High-level commands ----------------
 
   // 0x0D KeepAlive (response required)
@@ -214,8 +220,8 @@ export class LegoNxt {
 
   // 0x03 PlayTone (no response)
   async playTone(freqHz, durationMs) {
-    const f = freqHz & 0xFFFF;
-    const d = durationMs & 0xFFFF;
+    const f = this._clamp(freqHz, 200, 14000);
+    const d = this._clamp(durationMs, 0, 0xFFFF);
     const payload = [
       f & 0xFF,
       (f >> 8) & 0xFF,
@@ -228,10 +234,10 @@ export class LegoNxt {
   // 0x04 SetOutputState (no response)
   async setOutputState(port, power, mode, regulationMode, turnRatio, runState, tachoLimit = 0) {
     const p = port & 0xFF;
-    const pw = power & 0xFF;
+    const pw = this._clamp(power, -100, 100);
     const m = mode & 0xFF;
     const reg = regulationMode & 0xFF;
-    const tr = turnRatio & 0xFF;
+    const tr = this._clamp(turnRatio, -100, 100);
     const rs = runState & 0xFF;
     const tl = tachoLimit >>> 0;
 

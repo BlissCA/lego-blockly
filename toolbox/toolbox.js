@@ -1184,7 +1184,48 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#0040d6", "contents": [
-            { "kind": "block", "type": "Nxt_InpPort" }
+            { "kind": "block", "type": "Nxt_InpPort" },
+            { "kind": "block", "type": "Nxt_SensorType" },
+            { "kind": "block", "type": "Nxt_SensorMode" },
+            {
+              "kind": "block",
+              "type": "nxt_set_input_mode",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_InputPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                },
+                "INPUTTYPE": {
+                  "shadow": {
+                    "type": "Nxt_SensorType",
+                    "fields": { "SENSORTYPE": 1 }
+                  }
+                },
+                "INPUTMODE": {
+                  "shadow": {
+                    "type": "Nxt_SensorMode",
+                    "fields": { "SENSORMODE": 0 }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "nxt_get_input_values",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_InputPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }
+                
+              }
+            }					            
+
           ]
         },
         { "kind": "category", "name": "Misc", "colour": "#0040d6", "contents": [

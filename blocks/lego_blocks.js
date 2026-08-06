@@ -3153,6 +3153,60 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "nxt_set_input_mode",
+      "message0": "%1 Input %2 Type %3 mode %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "INPUTTYPE",
+          "check": "Number"
+         },
+        {
+          "type": "input_value",
+          "name": "INPUTMODE",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Set Sensor Mode"
+    },
+
+    {
+      "type": "nxt_get_input_values",
+      "message0": "%1 Input %2 Value %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "FORMAT",
+          "options": [
+            ["SCALED", "0"],
+            ["RAW", "1"],
+            ["NORMALISED", "2"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#0040d6",
+      "tooltip": "Returns the Value of the Sensor. Choose the format"
+    },
+
+    {
       "type": "nxt_playtone",
       "message0": "%1 TONE %2 Hz %3 ms",
       "args0": [
@@ -3893,6 +3947,34 @@ Blockly.Blocks['Nxt_InpPort'] = {
     this.setTooltip("Returns a predefined constant value for NXT input ports.");
   }
 };
+
+Blockly.Blocks['Nxt_SensorType'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["No Sensor", "0"], ["Switch", "1"], ["Temperature", "2"], ["Reflection","3"], ["Angle", "4"], ["Light Active", "5"], ["Light Inactive", "6"], ["Sound DB", "7"], ["Sound DBA", "8"], ["Custom", "9"], ["Low Speed", "10"], ["Low Speed 9V", "11"],
+        ["High Speed", "12"], ["Color Full", "13"], ["Color Red", "14"], ["Color Green", "15"], ["Color Blue", "16"], ["Color None", "17"]
+      ]), "SENSORTYPE");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT input ports.");
+  }
+};
+
+Blockly.Blocks['Nxt_SensorMode'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["Raw mode", "0"], ["Boolean mode", "32"], ["Transition-count mode", "64"], ["Period-counter mode", "96"], ["Raw-percent mode", "128"], ["Celcius mode", "160"], ["Fahrenheit mode", "192"], ["Angle step mode", "224"]
+      ]), "SENSORMODE");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT input ports.");
+  }
+};
+
 
 Blockly.Blocks['wedo1_portinp'] = {
   init: function() {

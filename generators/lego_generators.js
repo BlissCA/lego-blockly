@@ -768,6 +768,21 @@ javascriptGenerator.forBlock["Nxt_InpPort"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+// ---------------- Lego NXT Input Port 1, 2, 3, 4 = 0, 1, 2, 3 ----------------
+javascriptGenerator.forBlock["Nxt_SensorType"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('SENSORTYPE');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["Nxt_SensorMode"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('SENSORMODE');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
   
   const dev  = block.getFieldValue("DEVICE");
@@ -799,6 +814,43 @@ javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
 }
 `;
 };
+
+javascriptGenerator.forBlock["nxt_set_input_mode"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const sensorType  = javascriptGenerator.valueToCode(block, "INPUTTYPE",  javascriptGenerator.ORDER_NONE) || "0";
+  const sensorMode  = javascriptGenerator.valueToCode(block, "INPUTMODE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setInputMode(${ports}, ${sensorType}, ${sensorMode});
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_get_input_values"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const format = block.getFieldValue("FORMAT");  // 0 = scaled, 1 = raw, 2 = normalized
+
+  let field;
+  switch (format) {
+    case "1": field = "rawValue"; break;
+    case "2": field = "normalizedValue"; break;
+    default:  field = "scaledValue"; break;
+  }
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").getInputValues(${port})).${field}`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
+
 
 
 javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
