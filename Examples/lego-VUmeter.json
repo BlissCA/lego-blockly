@@ -1,0 +1,776 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "nxt_set_input_mode",
+        "id": "1?G(p|P%|_4(u1_QBwI*",
+        "x": 157,
+        "y": 47,
+        "fields": {
+          "DEVICE": "Nxt1"
+        },
+        "inputs": {
+          "PORTS": {
+            "shadow": {
+              "type": "Nxt_InpPort",
+              "id": "6-`c4D2+:eu/Z6@FLU]R",
+              "fields": {
+                "INPPORT": "0"
+              }
+            }
+          },
+          "INPUTTYPE": {
+            "shadow": {
+              "type": "Nxt_SensorType",
+              "id": "(9v#M}{tM-1!KD*cq:./",
+              "fields": {
+                "SENSORTYPE": "7"
+              }
+            }
+          },
+          "INPUTMODE": {
+            "shadow": {
+              "type": "Nxt_SensorMode",
+              "id": "]`(Dcy$b:!_*[=)V(riJ",
+              "fields": {
+                "SENSORMODE": "0"
+              }
+            }
+          }
+        },
+        "next": {
+          "block": {
+            "type": "loop_forever",
+            "id": "$?tFA;a)[IRs]yRL-7z?",
+            "fields": {
+              "MODE": "WHILE"
+            },
+            "inputs": {
+              "COND": {
+                "shadow": {
+                  "type": "logic_boolean",
+                  "id": "x86J9u-aKWOSfl2O,VYY",
+                  "fields": {
+                    "BOOL": "TRUE"
+                  }
+                }
+              },
+              "DO": {
+                "block": {
+                  "type": "variables_set",
+                  "id": "B;z8a`W14*V!r-N!J?^=",
+                  "fields": {
+                    "VAR": {
+                      "id": "TUig;f),{S4HALTgVqB7"
+                    }
+                  },
+                  "inputs": {
+                    "VALUE": {
+                      "block": {
+                        "type": "nxt_get_input_values",
+                        "id": "kc0zjD#wYD}56v/Md^Pd",
+                        "fields": {
+                          "DEVICE": "Nxt1",
+                          "FORMAT": "0"
+                        },
+                        "inputs": {
+                          "PORTS": {
+                            "shadow": {
+                              "type": "Nxt_InpPort",
+                              "id": "6}yK+g@JOrYr-T+eN(|E",
+                              "fields": {
+                                "INPPORT": "0"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "variables_set",
+                      "id": "SR:e{h$)OogJb=40u%C8",
+                      "fields": {
+                        "VAR": {
+                          "id": "qwFTs:m=75rtjNg{;Tv+"
+                        }
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "QIiD`WhiT2:?ZiE9e*rF",
+                            "fields": {
+                              "OP": "MULTIPLY"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "-3ka,M|T|*2y5i4xeBas",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "TUig;f),{S4HALTgVqB7"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "[YjXM[8g:EF;npL$UHN.",
+                                  "fields": {
+                                    "NUM": 1.5
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "display_value",
+                          "id": "aBMc#Hd9X9a5rdc]J#0a",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "g-io!;,Nkd3?%[gGa~J$",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "TUig;f),{S4HALTgVqB7"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "legoa2_out_pwm",
+                              "id": "q,VHSBIK*g+#87-p6L#p",
+                              "fields": {
+                                "DEVICE": "LegoA1"
+                              },
+                              "inputs": {
+                                "PORT": {
+                                  "shadow": {
+                                    "type": "Legoa_outportnum",
+                                    "id": "BrK~`5SJtX#2q*{/LpFk",
+                                    "fields": {
+                                      "NUM": "0"
+                                    }
+                                  }
+                                },
+                                "PWR": {
+                                  "shadow": {
+                                    "type": "math_number",
+                                    "id": "/:PL,c:MP,.1/HMc3=DX",
+                                    "fields": {
+                                      "NUM": 255
+                                    }
+                                  },
+                                  "block": {
+                                    "type": "math_constrain",
+                                    "id": "gjQ;zv5!z})fI[`-I=(v",
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "arfh?fM`~GyYk/h0*i_,",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "qwFTs:m=75rtjNg{;Tv+"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "LOW": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "c3.jeh%6Is^uSA^t@/-D",
+                                          "fields": {
+                                            "NUM": 0
+                                          }
+                                        }
+                                      },
+                                      "HIGH": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "S!eis!siUOzlIsRJd3Pg",
+                                          "fields": {
+                                            "NUM": 255
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "variables_set",
+                                  "id": "9AO}arVBN%wzPY4rv)]p",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                    }
+                                  },
+                                  "inputs": {
+                                    "VALUE": {
+                                      "block": {
+                                        "type": "math_arithmetic",
+                                        "id": "etB}Ex(z##;l$8,-a*+]",
+                                        "fields": {
+                                          "OP": "MINUS"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "uJvECqH=J]pe]Nstz)C~",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "math_number",
+                                              "id": "|cx_=:(AlwpnoGU`;};q",
+                                              "fields": {
+                                                "NUM": 255
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "next": {
+                                    "block": {
+                                      "type": "legoa2_out_pwm",
+                                      "id": "eUZHse:59$?S8FhrV{`a",
+                                      "fields": {
+                                        "DEVICE": "LegoA1"
+                                      },
+                                      "inputs": {
+                                        "PORT": {
+                                          "shadow": {
+                                            "type": "Legoa_outportnum",
+                                            "id": "@LW;LQ8^UPC_Y-dl_G:1",
+                                            "fields": {
+                                              "NUM": "1"
+                                            }
+                                          }
+                                        },
+                                        "PWR": {
+                                          "shadow": {
+                                            "type": "math_number",
+                                            "id": "/:PL,c:MP,.1/HMc3=DX",
+                                            "fields": {
+                                              "NUM": 255
+                                            }
+                                          },
+                                          "block": {
+                                            "type": "math_constrain",
+                                            "id": "dU84,e|PbIDD^a4L.a}g",
+                                            "inputs": {
+                                              "VALUE": {
+                                                "block": {
+                                                  "type": "variables_get",
+                                                  "id": ",!_x`-r/IWNSzITWuIi,",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "LOW": {
+                                                "block": {
+                                                  "type": "math_number",
+                                                  "id": "08%IQIpK((jg#}#aMQP2",
+                                                  "fields": {
+                                                    "NUM": 0
+                                                  }
+                                                }
+                                              },
+                                              "HIGH": {
+                                                "block": {
+                                                  "type": "math_number",
+                                                  "id": "sV)g%2mDftIs.hg6w3|k",
+                                                  "fields": {
+                                                    "NUM": 255
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "next": {
+                                        "block": {
+                                          "type": "variables_set",
+                                          "id": "93-fG66IC%I-`x3B,Ve#",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "qwFTs:m=75rtjNg{;Tv+"
+                                            }
+                                          },
+                                          "inputs": {
+                                            "VALUE": {
+                                              "block": {
+                                                "type": "math_arithmetic",
+                                                "id": "KE%*N.%eZ^]BP(S0zXYY",
+                                                "fields": {
+                                                  "OP": "MINUS"
+                                                },
+                                                "inputs": {
+                                                  "A": {
+                                                    "block": {
+                                                      "type": "variables_get",
+                                                      "id": "$4D4F$A{9+l3BcX=XPXk",
+                                                      "fields": {
+                                                        "VAR": {
+                                                          "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "B": {
+                                                    "block": {
+                                                      "type": "math_number",
+                                                      "id": ";e0Z$Z-a]_EUC-4uN1*(",
+                                                      "fields": {
+                                                        "NUM": 255
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "next": {
+                                            "block": {
+                                              "type": "legoa2_out_pwm",
+                                              "id": "GGF|Gv=BV]tM7H}?:j2U",
+                                              "fields": {
+                                                "DEVICE": "LegoA1"
+                                              },
+                                              "inputs": {
+                                                "PORT": {
+                                                  "shadow": {
+                                                    "type": "Legoa_outportnum",
+                                                    "id": "S+/:WP{))t/=-y}VR;?x",
+                                                    "fields": {
+                                                      "NUM": "2"
+                                                    }
+                                                  }
+                                                },
+                                                "PWR": {
+                                                  "shadow": {
+                                                    "type": "math_number",
+                                                    "id": "/:PL,c:MP,.1/HMc3=DX",
+                                                    "fields": {
+                                                      "NUM": 255
+                                                    }
+                                                  },
+                                                  "block": {
+                                                    "type": "math_constrain",
+                                                    "id": "Mp8y!~7Sr8%)LeU!ih^5",
+                                                    "inputs": {
+                                                      "VALUE": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "mVAmGizsMy-LKouSQvbD",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "LOW": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "#e#.4!({BwnKbtzf@fuP",
+                                                          "fields": {
+                                                            "NUM": 0
+                                                          }
+                                                        }
+                                                      },
+                                                      "HIGH": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "+eG[jT^$eRJg,QpzV)bc",
+                                                          "fields": {
+                                                            "NUM": 255
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "next": {
+                                                "block": {
+                                                  "type": "variables_set",
+                                                  "id": "S+k2dK|Om5mt:(o*2@:`",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                    }
+                                                  },
+                                                  "inputs": {
+                                                    "VALUE": {
+                                                      "block": {
+                                                        "type": "math_arithmetic",
+                                                        "id": "KF7A=G=0-{uf@-YG6q`e",
+                                                        "fields": {
+                                                          "OP": "MINUS"
+                                                        },
+                                                        "inputs": {
+                                                          "A": {
+                                                            "block": {
+                                                              "type": "variables_get",
+                                                              "id": "HYJE=c$0kcAG@3n.I]*?",
+                                                              "fields": {
+                                                                "VAR": {
+                                                                  "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                }
+                                                              }
+                                                            }
+                                                          },
+                                                          "B": {
+                                                            "block": {
+                                                              "type": "math_number",
+                                                              "id": ",aSPrJ,o74Sxyl1+of/_",
+                                                              "fields": {
+                                                                "NUM": 255
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "next": {
+                                                    "block": {
+                                                      "type": "legoa2_out_pwm",
+                                                      "id": "ehbr]X87(.fYiWq`,L;k",
+                                                      "fields": {
+                                                        "DEVICE": "LegoA1"
+                                                      },
+                                                      "inputs": {
+                                                        "PORT": {
+                                                          "shadow": {
+                                                            "type": "Legoa_outportnum",
+                                                            "id": "`w!k5`V:]J44OTo7HE/n",
+                                                            "fields": {
+                                                              "NUM": "3"
+                                                            }
+                                                          }
+                                                        },
+                                                        "PWR": {
+                                                          "shadow": {
+                                                            "type": "math_number",
+                                                            "id": "/:PL,c:MP,.1/HMc3=DX",
+                                                            "fields": {
+                                                              "NUM": 255
+                                                            }
+                                                          },
+                                                          "block": {
+                                                            "type": "math_constrain",
+                                                            "id": "POdGlio2y`TRJ:D9Rvm!",
+                                                            "inputs": {
+                                                              "VALUE": {
+                                                                "block": {
+                                                                  "type": "variables_get",
+                                                                  "id": "05OFt1gBFk/1.yy0)HF3",
+                                                                  "fields": {
+                                                                    "VAR": {
+                                                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                    }
+                                                                  }
+                                                                }
+                                                              },
+                                                              "LOW": {
+                                                                "block": {
+                                                                  "type": "math_number",
+                                                                  "id": "B2Oh)lV1if|iu;EK*DQ{",
+                                                                  "fields": {
+                                                                    "NUM": 0
+                                                                  }
+                                                                }
+                                                              },
+                                                              "HIGH": {
+                                                                "block": {
+                                                                  "type": "math_number",
+                                                                  "id": "XSTGv*gL#_Uc4Zb|_j#j",
+                                                                  "fields": {
+                                                                    "NUM": 255
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "next": {
+                                                        "block": {
+                                                          "type": "variables_set",
+                                                          "id": "Fu{[;{p3{3e)=ZX59:Ie",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                            }
+                                                          },
+                                                          "inputs": {
+                                                            "VALUE": {
+                                                              "block": {
+                                                                "type": "math_arithmetic",
+                                                                "id": "^L)g5zvtlOVhpBQRH)e|",
+                                                                "fields": {
+                                                                  "OP": "MINUS"
+                                                                },
+                                                                "inputs": {
+                                                                  "A": {
+                                                                    "block": {
+                                                                      "type": "variables_get",
+                                                                      "id": "n+*PrHRkvcw?g{pWmV,J",
+                                                                      "fields": {
+                                                                        "VAR": {
+                                                                          "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "B": {
+                                                                    "block": {
+                                                                      "type": "math_number",
+                                                                      "id": "g1vcTV:qz22{BS:T*N@U",
+                                                                      "fields": {
+                                                                        "NUM": 255
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          },
+                                                          "next": {
+                                                            "block": {
+                                                              "type": "legoa2_out_pwm",
+                                                              "id": "*U^,gkT!y}sWUCiN/yZV",
+                                                              "fields": {
+                                                                "DEVICE": "LegoA1"
+                                                              },
+                                                              "inputs": {
+                                                                "PORT": {
+                                                                  "shadow": {
+                                                                    "type": "Legoa_outportnum",
+                                                                    "id": "i|;a18}Az3/_j.:;Qe)N",
+                                                                    "fields": {
+                                                                      "NUM": "4"
+                                                                    }
+                                                                  }
+                                                                },
+                                                                "PWR": {
+                                                                  "shadow": {
+                                                                    "type": "math_number",
+                                                                    "id": "/:PL,c:MP,.1/HMc3=DX",
+                                                                    "fields": {
+                                                                      "NUM": 255
+                                                                    }
+                                                                  },
+                                                                  "block": {
+                                                                    "type": "math_constrain",
+                                                                    "id": "]vDeZ;W7dsg*EOj|/~{]",
+                                                                    "inputs": {
+                                                                      "VALUE": {
+                                                                        "block": {
+                                                                          "type": "variables_get",
+                                                                          "id": "zN}K6eg({.70[2HQ3lRl",
+                                                                          "fields": {
+                                                                            "VAR": {
+                                                                              "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      },
+                                                                      "LOW": {
+                                                                        "block": {
+                                                                          "type": "math_number",
+                                                                          "id": "rUhT4|%#t5]znI%=x~0P",
+                                                                          "fields": {
+                                                                            "NUM": 0
+                                                                          }
+                                                                        }
+                                                                      },
+                                                                      "HIGH": {
+                                                                        "block": {
+                                                                          "type": "math_number",
+                                                                          "id": "sr#%Sq}iwIe`LrrXb(xw",
+                                                                          "fields": {
+                                                                            "NUM": 255
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              },
+                                                              "next": {
+                                                                "block": {
+                                                                  "type": "variables_set",
+                                                                  "id": "H[5MM-2/4c)IS)SB@M]s",
+                                                                  "fields": {
+                                                                    "VAR": {
+                                                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                    }
+                                                                  },
+                                                                  "inputs": {
+                                                                    "VALUE": {
+                                                                      "block": {
+                                                                        "type": "math_arithmetic",
+                                                                        "id": "h?eWUb9N,(iP#tkwZ;U;",
+                                                                        "fields": {
+                                                                          "OP": "MINUS"
+                                                                        },
+                                                                        "inputs": {
+                                                                          "A": {
+                                                                            "block": {
+                                                                              "type": "variables_get",
+                                                                              "id": "GR}V_6:0!]k}?}ejqq^4",
+                                                                              "fields": {
+                                                                                "VAR": {
+                                                                                  "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          },
+                                                                          "B": {
+                                                                            "block": {
+                                                                              "type": "math_number",
+                                                                              "id": "ApS4V|@Ku4lhGd+BQN|B",
+                                                                              "fields": {
+                                                                                "NUM": 255
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "next": {
+                                                                    "block": {
+                                                                      "type": "legoa2_out_pwm",
+                                                                      "id": "ag`VV,t4M-eFXWAb#D|o",
+                                                                      "fields": {
+                                                                        "DEVICE": "LegoA1"
+                                                                      },
+                                                                      "inputs": {
+                                                                        "PORT": {
+                                                                          "shadow": {
+                                                                            "type": "Legoa_outportnum",
+                                                                            "id": "35e70ZeXOg8ooTlgL||y",
+                                                                            "fields": {
+                                                                              "NUM": "5"
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        "PWR": {
+                                                                          "shadow": {
+                                                                            "type": "math_number",
+                                                                            "id": "/:PL,c:MP,.1/HMc3=DX",
+                                                                            "fields": {
+                                                                              "NUM": 255
+                                                                            }
+                                                                          },
+                                                                          "block": {
+                                                                            "type": "math_constrain",
+                                                                            "id": "}%lB:O4q=4w*i9WL@h(M",
+                                                                            "inputs": {
+                                                                              "VALUE": {
+                                                                                "block": {
+                                                                                  "type": "variables_get",
+                                                                                  "id": "d-MBGhJ@+5*Rv5,WMwZ5",
+                                                                                  "fields": {
+                                                                                    "VAR": {
+                                                                                      "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              },
+                                                                              "LOW": {
+                                                                                "block": {
+                                                                                  "type": "math_number",
+                                                                                  "id": "2OXye-xo*Ld^OiOjbKuy",
+                                                                                  "fields": {
+                                                                                    "NUM": 0
+                                                                                  }
+                                                                                }
+                                                                              },
+                                                                              "HIGH": {
+                                                                                "block": {
+                                                                                  "type": "math_number",
+                                                                                  "id": "vSGp2Ar(VRGrunv;n$b7",
+                                                                                  "fields": {
+                                                                                    "NUM": 255
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "sndLevel",
+      "id": "TUig;f),{S4HALTgVqB7"
+    },
+    {
+      "name": "sndLevAjd",
+      "id": "qwFTs:m=75rtjNg{;Tv+"
+    }
+  ]
+}
