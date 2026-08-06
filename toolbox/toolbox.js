@@ -1193,7 +1193,7 @@ const toolbox = {
               "inputs": {
                 "PORTS": {
                   "shadow": {
-                    "type": "Nxt_InputPort",
+                    "type": "Nxt_InpPort",
                     "fields": { "INPPORT": "0" }
                   }
                 },
@@ -1218,7 +1218,7 @@ const toolbox = {
               "inputs": {
                 "PORTS": {
                   "shadow": {
-                    "type": "Nxt_InputPort",
+                    "type": "Nxt_InpPort",
                     "fields": { "INPPORT": "0" }
                   }
                 }
