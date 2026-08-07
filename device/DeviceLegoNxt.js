@@ -164,9 +164,6 @@ export class LegoNxt {
     const type = noReply ? 0x80 : 0x00;
     const cmd = Uint8Array.from([type, opcode, ...payload]);
 
-  //  if (!this.isBluetooth) {
-  //    return cmd;
-  //  }
 		if (this.isWebUSB) {
 			const usbPacket = new Uint8Array(64); // Initializes all 64 bytes to 0x00
 			usbPacket.set(cmd);                   // Copies your command bytes into the front
@@ -180,98 +177,78 @@ export class LegoNxt {
   }
 
 	async _readReply(expectedOpcode) {
-			const timeoutMs = 1000;
-			const t0 = performance.now();
-			let collected = new Uint8Array(0);
+		const timeoutMs = 1000;
+		const t0 = performance.now();
 
-			const append = (value) => {
-					const tmp = new Uint8Array(collected.length + value.length);
-					tmp.set(collected);
-					tmp.set(value, collected.length);
-					collected = tmp;
-			};
+		// ---------------------------------------------------------
+		// USB (LEGO Windows driver — fixed 64-byte packets)
+		// ---------------------------------------------------------
+		if (this.isWebUSB) {
+			this.log("Waiting for Reply (USB)...");
 
-			// ---------------------------------------------------------
-			// SERIAL (Bluetooth SPP or CDC USB)
-			// ---------------------------------------------------------
-			if (this.isBluetooth) {
-					const readChunk = async () => {
-							const { value, done } = await this.reader.read();
-							if (done || !value) return null;
-							append(value);
-							return value.length;
-					};
+			while (performance.now() - t0 < timeoutMs) {
+				const result = await this.device.transferIn(this.usbIn, 64);
+				if (!result || result.status !== "ok") continue;
 
-					// Read length header
-					while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
-							const n = await readChunk();
-							if (!n) break;
-					}
-					if (collected.length < 2) return null;
+				const reply = new Uint8Array(result.data.buffer);
 
-					const len = collected[0] | (collected[1] << 8);
+				// Must start with reply telegram type
+				if (reply[0] !== 0x02) continue;
 
-					// Read full packet
-					while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
-							const n = await readChunk();
-							if (!n) break;
-					}
-					if (collected.length < 2 + len) return null;
+				// Must match opcode
+				if (reply[1] !== expectedOpcode) continue;
 
-					const pkt = collected.slice(2, 2 + len);
-					if (pkt[0] !== 0x02) return null;
-					if (pkt[1] !== expectedOpcode) return null;
-					return pkt;
-			}
+				// Trim trailing zeros
+				let end = reply.length;
+				while (end > 0 && reply[end - 1] === 0x00) end--;
 
-			// ---------------------------------------------------------
-			// USB (WebUSB bulk endpoints)
-			// ---------------------------------------------------------
-			if (this.isWebUSB) {
-
-				this.log("Waiting for Reply (USB)...");
-
-				const result = await this.device.transferIn(2, 64);
-
-				if (result.status === 'ok') {
-						// Convert DataView to Uint8Array for easy checking
-						const replyBytes = new Uint8Array(result.data.buffer);
-						
-						console.log("Raw USB Reply received:", replyBytes);
-						return null; // For now, we are not processing the USB reply further
-						
-						// A successful KeepAlive reply over USB will be exactly 7 bytes long:
-						// replyBytes[0] = 0x02 (Reply marker)
-						// replyBytes[1] = 0x0D (Command echo)
-						// replyBytes[2] = 0x00 (Status: Success)
-						// replyBytes[3-6] = 4 bytes representing the Limit Counter (Current sleep timer tick)
-				}
-				if (result.status !== 'ok') this.log("Reply Not OK (USB)...");
-				/*
-					while (performance.now() - t0 < timeoutMs) {
-							const chunk = await this._readUsbChunk();
-							if (!chunk) continue;
-
-							append(chunk);
-
-							// Same framing as Bluetooth
-							if (collected.length >= 2) {
-									const len = collected[0] | (collected[1] << 8);
-
-									if (collected.length >= 2 + len) {
-											const pkt = collected.slice(2, 2 + len);
-											if (pkt[0] !== 0x02) return null;
-											if (pkt[1] !== expectedOpcode) return null;
-											return pkt;
-									}
-							}
-					}
-
-					return null;
-				*/
+				const pkt = reply.slice(0, end);
+				return pkt;
 			}
 
 			return null;
+		}
+
+		// ---------------------------------------------------------
+		// BLUETOOTH (framed packets with length header)
+		// ---------------------------------------------------------
+		let collected = new Uint8Array(0);
+
+		const append = (chunk) => {
+			const tmp = new Uint8Array(collected.length + chunk.length);
+			tmp.set(collected);
+			tmp.set(chunk, collected.length);
+			collected = tmp;
+		};
+
+		const readChunk = async () => {
+			const { value, done } = await this.reader.read();
+			if (done || !value) return null;
+			append(value);
+			return value.length;
+		};
+
+		// Read length header
+		while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
+			const n = await readChunk();
+			if (!n) break;
+		}
+		if (collected.length < 2) return null;
+
+		const len = collected[0] | (collected[1] << 8);
+
+		// Read full packet
+		while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
+			const n = await readChunk();
+			if (!n) break;
+		}
+		if (collected.length < 2 + len) return null;
+
+		const pkt = collected.slice(2, 2 + len);
+		if (pkt[0] !== 0x02) return null;
+		if (pkt[1] !== expectedOpcode) return null;
+
+		return pkt;
 	}
 
   async _sendCommand(opcode, payload = [], expectReply = true) {
