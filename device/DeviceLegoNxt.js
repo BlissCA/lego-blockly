@@ -102,7 +102,7 @@ export class LegoNxt {
 			this.usbOut = 1;
 			this.usbIn  = 2;
 
-			this.log("Sending KeepAlive...");
+			this.log("Sending KeepAlive USB...");
 
 			const ok = await this.keepAlive();
 			if (!ok) {
@@ -256,8 +256,10 @@ export class LegoNxt {
 
       if (!expectReply) return null;
 
+			this.log("Waiting for Reply...");
       const reply = await this._readReply(opcode);
       if (!reply) return null;
+			this.log("Reply Received...");
 
       const status = reply[2];
       if (status !== 0x00) {
