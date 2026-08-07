@@ -27,72 +27,157 @@ export class LegoNxt {
     return this.queue;
   }
 
-  async connect() {
-    this.log("Requesting serial port...");
+	async connect() {
+		this.log("Connecting to NXT...");
 
-    try {
-      this.port = await window.autoSelectPort();
-    } catch (err) {
-      this.log("User cancelled port selection");
-      throw err;
-    }
+		// ---------------------------------------------------------
+		// STEP 1 — Try Bluetooth first (filtered)
+		// ---------------------------------------------------------
+		try {
+			// Get already‑granted serial ports
+			const grantedPorts = await navigator.serial.getPorts();
+			const nxtBtPorts = grantedPorts.filter(p => this._isValidNxtBtPort(p));
 
-    const info = this.port.getInfo ? this.port.getInfo() : {};
-    // Heuristic: USB has vendorId/productId, BT SPP usually does not
-    this.isBluetooth = !info.usbVendorId && !info.usbProductId;
+			if (nxtBtPorts.length > 0) {
+				// Auto‑select the first valid BT port
+				this.port = nxtBtPorts[0];
+				this.isBluetooth = true;
+			} else {
+				// No pre‑granted ports → show Serial picker
+				this.port = await navigator.serial.requestPort();
+				this.isBluetooth = true;
+			}
 
-    await this.port.open({
-      baudRate: 115200,
-      dataBits: 8,
-      stopBits: 1,
-      parity: "none",
-      bufferSize: 32 * 1024
-    });
+			// --- Open BT serial port ---
+			await this.port.open({
+				baudRate: 115200,
+				dataBits: 8,
+				stopBits: 1,
+				parity: "none",
+				bufferSize: 32 * 1024
+			});
 
-    this.writer = this.port.writable.getWriter();
-    this.reader = this.port.readable.getReader();
+			this.writer = this.port.writable.getWriter();
+			this.reader = this.port.readable.getReader();
 
-    const ok = await this.keepAlive();
-    if (!ok) {
-      this.log("NXT did not respond to KeepAlive.");
-      window.logStatus("Nxt: Please power on the device and Reconnect.");
-      await this.disconnect();
-      return;
-    }
+			const ok = await this.keepAlive();
+			if (!ok) {
+				this.log("NXT did not respond to KeepAlive (BT).");
+				window.logStatus("Nxt: Please power on the device and Reconnect.");
+				await this.disconnect();
+				return;
+			}
 
-    if (!this.name) {
-      this.name = this.manager._allocateName("Nxt");
-    }
+			if (!this.name) {
+				this.name = this.manager._allocateName("Nxt");
+			}
 
-    this.log("Connected.");
-    this.status = "Connected";
-  }
+			this.log("Connected via Bluetooth.");
+			this.status = "Connected";
+			return;
 
-  async disconnect() {
-    this.queueActive = false;
+		} catch (err) {
+			if (err.name === "AbortError") {
+				// User cancelled Serial picker → do NOT fallback yet
+				this.log("User cancelled Bluetooth port selection.");
+			} else {
+				this.log("Bluetooth connection failed:", err);
+			}
+		}
 
-    try { this.reader?.releaseLock(); } catch {}
-    try { this.writer?.releaseLock(); } catch {}
-    try { await this.port?.close(); } catch {}
+		// ---------------------------------------------------------
+		// STEP 2 — Check if USB NXT exists BEFORE showing WebUSB popup
+		// ---------------------------------------------------------
+		const devices = await navigator.usb.getDevices();
+		const nxtUsbDevices = devices.filter(d =>
+			d.vendorId === 0x0694 && d.productId === 0x0002
+		);
 
-    this.reader = null;
-    this.writer = null;
-    this.port = null;
+		if (nxtUsbDevices.length === 0) {
+			this.log("No LEGO NXT USB device detected.");
+			throw new Error("No NXT Bluetooth or USB device available.");
+		}
 
-    if (this.name) {
-      this.manager._removeDevice(this);
-      this.name = null;
-    }
+		// ---------------------------------------------------------
+		// STEP 3 — Show WebUSB picker ONLY if NXT USB exists
+		// ---------------------------------------------------------
+		this.log("Requesting NXT USB device...");
 
-    this.status = "Disconnected";
-  }
+		try {
+			this.device = await navigator.usb.requestDevice({
+				filters: [{ vendorId: 0x0694, productId: 0x0002 }]
+			});
+		} catch (err) {
+			this.log("User cancelled USB device selection.");
+			throw err;
+		}
+
+		this.isWebUSB = true;
+
+		// --- Open USB device ---
+		await this.device.open();
+		await this.device.selectConfiguration(1);
+		await this.device.claimInterface(0);
+
+		// NXT USB endpoints (official LEGO spec)
+		this.usbOut = 1;
+		this.usbIn  = 1;
+
+		const ok = await this.keepAlive();
+		if (!ok) {
+			this.log("NXT did not respond to KeepAlive (USB).");
+			window.logStatus("Nxt: Please power on the device and Reconnect.");
+			await this.disconnect();
+			return;
+		}
+
+		if (!this.name) {
+			this.name = this.manager._allocateName("Nxt");
+		}
+
+		this.log("Connected via USB.");
+		this.status = "Connected";
+	}
+
+
+	async disconnect() {
+		this.queueActive = false;
+
+		try { this.reader?.releaseLock(); } catch {}
+		try { this.writer?.releaseLock(); } catch {}
+
+		if (this.isWebUSB && this.device) {
+			try { await this.device.close(); } catch {}
+		} else {
+			try { await this.port?.close(); } catch {}
+		}
+
+		this.reader = null;
+		this.writer = null;
+		this.port = null;
+		this.device = null;
+
+		if (this.name) {
+			this.manager._removeDevice(this);
+			this.name = null;
+		}
+
+		this.status = "Disconnected";
+	}
 
   // ---------------- Low-level packet I/O ----------------
 
-  async writeBytes(bytes) {
-    if (!this.writer) return;
-    await this.writer.write(bytes);
-  }
+	async writeBytes(bytes) {
+		// --- USB transport ---
+		if (this.isWebUSB && this.device) {
+			await this.device.transferOut(this.usbOut, bytes);
+			return;
+		}
+
+		// --- Serial transport ---
+		if (!this.writer) return;
+		await this.writer.write(bytes);
+	}
 
   _buildCommand(opcode, payload = [], noReply = false) {
     const type = noReply ? 0x80 : 0x00;
@@ -108,55 +193,81 @@ export class LegoNxt {
     return Uint8Array.from([lsb, msb, ...cmd]);
   }
 
-  async _readReply(expectedOpcode) {
-    if (!this.reader) return null;
+	async _readReply(expectedOpcode) {
+		const timeoutMs = 1000;
+		const t0 = performance.now();
+		let collected = new Uint8Array(0);
 
-    const timeoutMs = 1000;
-    const t0 = performance.now();
-    let collected = new Uint8Array(0);
+		// ---------------------------------------------------------
+		// Helper: append new bytes to collected buffer
+		// ---------------------------------------------------------
+		const append = (value) => {
+			const tmp = new Uint8Array(collected.length + value.length);
+			tmp.set(collected);
+			tmp.set(value, collected.length);
+			collected = tmp;
+		};
 
-    const readChunk = async () => {
-      const { value, done } = await this.reader.read();
-      if (done || !value) return null;
-      const tmp = new Uint8Array(collected.length + value.length);
-      tmp.set(collected);
-      tmp.set(value, collected.length);
-      collected = tmp;
-      return value.length;
-    };
+		// ---------------------------------------------------------
+		// SERIAL (Bluetooth SPP or CDC USB)
+		// ---------------------------------------------------------
+		if (this.isBluetooth) {
+			const readChunk = async () => {
+				const { value, done } = await this.reader.read();
+				if (done || !value) return null;
+				append(value);
+				return value.length;
+			};
 
-    if (this.isBluetooth) {
-      // First two bytes: length
-      while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
-        const n = await readChunk();
-        if (!n) break;
-      }
-      if (collected.length < 2) return null;
+			// First two bytes: length
+			while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
+				const n = await readChunk();
+				if (!n) break;
+			}
+			if (collected.length < 2) return null;
 
-      const len = collected[0] | (collected[1] << 8);
-      while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
-        const n = await readChunk();
-        if (!n) break;
-      }
-      if (collected.length < 2 + len) return null;
+			const len = collected[0] | (collected[1] << 8);
 
-      const pkt = collected.slice(2, 2 + len);
-      if (pkt[0] !== 0x02) return null;
-      if (pkt[1] !== expectedOpcode) return null;
-      return pkt;
-    } else {
-      while (collected.length < 3 && performance.now() - t0 < timeoutMs) {
-        const n = await readChunk();
-        if (!n) break;
-      }
-      if (collected.length < 3) return null;
+			while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
+				const n = await readChunk();
+				if (!n) break;
+			}
+			if (collected.length < 2 + len) return null;
 
-      // We don't know exact length; just return what we have
-      if (collected[0] !== 0x02) return null;
-      if (collected[1] !== expectedOpcode) return null;
-      return collected;
-    }
-  }
+			const pkt = collected.slice(2, 2 + len);
+			if (pkt[0] !== 0x02) return null;
+			if (pkt[1] !== expectedOpcode) return null;
+			return pkt;
+		}
+
+		// ---------------------------------------------------------
+		// USB (LEGO NXT driver)
+		// ---------------------------------------------------------
+		if (this.isWebUSB) {
+			while (performance.now() - t0 < timeoutMs) {
+				const chunk = await this._readUsbChunk();
+				if (!chunk) continue;
+
+				append(chunk);
+
+				// USB packets also begin with length LSB/MSB
+				if (collected.length >= 2) {
+					const len = collected[0] | (collected[1] << 8);
+
+					if (collected.length >= 2 + len) {
+						const pkt = collected.slice(2, 2 + len);
+						if (pkt[0] !== 0x02) return null;
+						if (pkt[1] !== expectedOpcode) return null;
+						return pkt;
+					}
+				}
+			}
+
+			return null;
+		}
+
+		return null;
+	}
 
   async _sendCommand(opcode, payload = [], expectReply = true) {
     return this.enqueue(async () => {
@@ -182,6 +293,32 @@ export class LegoNxt {
     v = Number(v);
     if (isNaN(v)) return min;
     return Math.min(max, Math.max(min, v));
+	}
+
+	_isValidNxtBtPort(port) {
+		const info = port.getInfo();
+
+		// Reject inbound ports (Windows marks them differently)
+		if (info.serialNumber && info.serialNumber.includes("IN")) return false;
+
+		// Prefer ports with names
+		if (port.displayName && port.displayName.includes("NXT")) return true;
+		if (port.displayName && port.displayName.includes("Mindstorms")) return true;
+
+		// Otherwise accept outbound SPP ports (no USB IDs)
+		if (!info.usbVendorId && !info.usbProductId) return true;
+
+		return false;
+	}
+
+	async _readUsbChunk() {
+		try {
+			const result = await this.device.transferIn(this.usbIn, 64);
+			if (!result || !result.data) return null;
+			return new Uint8Array(result.data.buffer);
+		} catch {
+			return null;
+		}
 	}
 
   // ---------------- High-level commands ----------------
