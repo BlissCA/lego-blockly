@@ -38,15 +38,10 @@ export class LegoNxt {
 			const grantedPorts = await navigator.serial.getPorts();
 			const nxtBtPorts = grantedPorts.filter(p => this._isValidNxtBtPort(p));
 
-			if (nxtBtPorts.length > 0) {
-				// Auto‑select the first valid BT port
-				this.port = nxtBtPorts[0];
-				this.isBluetooth = true;
-			} else {
-				// No pre‑granted ports → show Serial picker
-				this.port = await navigator.serial.requestPort();
-				this.isBluetooth = true;
-			}
+			// if (nxtBtPorts.length > 0) {
+			this.port = await navigator.serial.requestPort();
+			this.isBluetooth = true;
+			// }
 
 			// --- Open BT serial port ---
 			await this.port.open({
