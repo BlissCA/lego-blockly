@@ -102,6 +102,8 @@ export class LegoNxt {
 			this.usbOut = 1;
 			this.usbIn  = 2;
 
+			this.log("Sending KeepAlive...");
+
 			const ok = await this.keepAlive();
 			if (!ok) {
 					this.log("NXT did not respond to KeepAlive (USB).");
