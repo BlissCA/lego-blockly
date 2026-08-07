@@ -223,6 +223,23 @@ export class LegoNxt {
 			// USB (WebUSB bulk endpoints)
 			// ---------------------------------------------------------
 			if (this.isWebUSB) {
+				const result = await this.device.transferIn(2, 64);
+
+				if (result.status === 'ok') {
+						// Convert DataView to Uint8Array for easy checking
+						const replyBytes = new Uint8Array(result.data.buffer);
+						
+						console.log("Raw USB Reply received:", replyBytes);
+						return null; // For now, we are not processing the USB reply further
+						
+						// A successful KeepAlive reply over USB will be exactly 7 bytes long:
+						// replyBytes[0] = 0x02 (Reply marker)
+						// replyBytes[1] = 0x0D (Command echo)
+						// replyBytes[2] = 0x00 (Status: Success)
+						// replyBytes[3-6] = 4 bytes representing the Limit Counter (Current sleep timer tick)
+				}
+
+				/*
 					while (performance.now() - t0 < timeoutMs) {
 							const chunk = await this._readUsbChunk();
 							if (!chunk) continue;
@@ -243,6 +260,7 @@ export class LegoNxt {
 					}
 
 					return null;
+				*/
 			}
 
 			return null;
@@ -257,8 +275,10 @@ export class LegoNxt {
       if (!expectReply) return null;
 
 			this.log("Waiting for Reply...");
+
       const reply = await this._readReply(opcode);
       if (!reply) return null;
+			
 			this.log("Reply Received...");
 
       const status = reply[2];
