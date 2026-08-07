@@ -82,31 +82,8 @@ export class LegoNxt {
 
 			try {
 					this.device = await navigator.usb.requestDevice({
-							filters: [{ vendorId: 0x0694, productId: 0x0002 }]
+							filters: [{ vendorId: 0x0694 }]
 					});
-
-					console.log("USB device:", this.device);
-
-					for (const config of this.device.configurations) {
-						console.log("Configuration:", config.configurationValue);
-
-						for (const iface of config.interfaces) {
-							console.log(" Interface:", iface.interfaceNumber);
-
-							for (const alternate of iface.alternates) {
-								console.log("  Alternate:", alternate.alternateSetting);
-								console.log("   Class:", alternate.interfaceClass);
-								console.log("   Subclass:", alternate.interfaceSubclass);
-								console.log("   Protocol:", alternate.interfaceProtocol);
-
-								for (const ep of alternate.endpoints) {
-									console.log("    Endpoint:", ep.endpointNumber,
-															"Direction:", ep.direction,
-															"Type:", ep.type);
-								}
-							}
-						}
-					}
 
 			} catch (err) {
 					this.log("User cancelled USB device selection.");
