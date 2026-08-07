@@ -223,6 +223,9 @@ export class LegoNxt {
 			// USB (WebUSB bulk endpoints)
 			// ---------------------------------------------------------
 			if (this.isWebUSB) {
+
+				this.log("Waiting for Reply (USB)...");
+
 				const result = await this.device.transferIn(2, 64);
 
 				if (result.status === 'ok') {
@@ -238,7 +241,7 @@ export class LegoNxt {
 						// replyBytes[2] = 0x00 (Status: Success)
 						// replyBytes[3-6] = 4 bytes representing the Limit Counter (Current sleep timer tick)
 				}
-
+				if (result.status !== 'ok') this.log("Reply Not OK (USB)...");
 				/*
 					while (performance.now() - t0 < timeoutMs) {
 							const chunk = await this._readUsbChunk();
@@ -274,13 +277,9 @@ export class LegoNxt {
 
       if (!expectReply) return null;
 
-			this.log("Waiting for Reply...");
-
       const reply = await this._readReply(opcode);
       if (!reply) return null;
 			
-			this.log("Reply Received...");
-
       const status = reply[2];
       if (status !== 0x00) {
         this.log(`NXT error for opcode 0x${opcode.toString(16)}: status 0x${status.toString(16)}`);
