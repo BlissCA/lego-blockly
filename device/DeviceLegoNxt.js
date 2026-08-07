@@ -167,6 +167,11 @@ export class LegoNxt {
   //  if (!this.isBluetooth) {
   //    return cmd;
   //  }
+		if (this.isWebUSB) {
+			const usbPacket = new Uint8Array(64); // Initializes all 64 bytes to 0x00
+			usbPacket.set(cmd);                   // Copies your command bytes into the front
+			return usbPacket;
+		}
 
     const len = cmd.length;
     const lsb = len & 0xFF;
