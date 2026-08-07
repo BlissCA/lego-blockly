@@ -27,111 +27,94 @@ export class LegoNxt {
     return this.queue;
   }
 
+	
 	async connect() {
-		this.log("Connecting to NXT...");
+			this.log("Connecting to NXT...");
 
-		// ---------------------------------------------------------
-		// STEP 1 — Try Bluetooth first (filtered)
-		// ---------------------------------------------------------
-		try {
-			// Get already‑granted serial ports
-			const grantedPorts = await navigator.serial.getPorts();
-			const nxtBtPorts = grantedPorts.filter(p => this._isValidNxtBtPort(p));
+			// ---------------------------------------------------------
+			// STEP 1 — Try Bluetooth first (filtered)
+			// ---------------------------------------------------------
+			try {
+					// Always show Serial picker
+					this.port = await navigator.serial.requestPort();
+					this.isBluetooth = true;
 
-			// if (nxtBtPorts.length > 0) {
-			this.port = await navigator.serial.requestPort();
-			this.isBluetooth = true;
-			// }
+					// --- Open BT serial port ---
+					await this.port.open({
+							baudRate: 115200,
+							dataBits: 8,
+							stopBits: 1,
+							parity: "none",
+							bufferSize: 32 * 1024
+					});
 
-			// --- Open BT serial port ---
-			await this.port.open({
-				baudRate: 115200,
-				dataBits: 8,
-				stopBits: 1,
-				parity: "none",
-				bufferSize: 32 * 1024
-			});
+					this.writer = this.port.writable.getWriter();
+					this.reader = this.port.readable.getReader();
 
-			this.writer = this.port.writable.getWriter();
-			this.reader = this.port.readable.getReader();
+					const ok = await this.keepAlive();
+					if (!ok) {
+							this.log("NXT did not respond to KeepAlive (BT).");
+							window.logStatus("Nxt: Please power on the device and Reconnect.");
+							await this.disconnect();
+							return;
+					}
+
+					if (!this.name) {
+							this.name = this.manager._allocateName("Nxt");
+					}
+
+					this.log("Connected via Bluetooth.");
+					this.status = "Connected";
+					return;
+
+			} catch (err) {
+					if (err.name === "AbortError") {
+							this.log("User cancelled Bluetooth port selection.");
+					} else {
+							this.log("Bluetooth connection failed:", err);
+					}
+			}
+
+			// ---------------------------------------------------------
+			// STEP 2 — Serial canceled → ALWAYS show WebUSB picker
+			// ---------------------------------------------------------
+			this.log("Requesting NXT USB device...");
+
+			try {
+					this.device = await navigator.usb.requestDevice({
+							filters: [{ vendorId: 0x0694, productId: 0x0002 }]
+					});
+			} catch (err) {
+					this.log("User cancelled USB device selection.");
+					throw new Error("No NXT Bluetooth or USB device available.");
+			}
+
+			// ---------------------------------------------------------
+			// STEP 3 — Connect via USB
+			// ---------------------------------------------------------
+			this.isWebUSB = true;
+
+			await this.device.open();
+			await this.device.selectConfiguration(1);
+			await this.device.claimInterface(0);
+
+			this.usbOut = 1;
+			this.usbIn  = 1;
 
 			const ok = await this.keepAlive();
 			if (!ok) {
-				this.log("NXT did not respond to KeepAlive (BT).");
-				window.logStatus("Nxt: Please power on the device and Reconnect.");
-				await this.disconnect();
-				return;
+					this.log("NXT did not respond to KeepAlive (USB).");
+					window.logStatus("Nxt: Please power on the device and Reconnect.");
+					await this.disconnect();
+					return;
 			}
 
 			if (!this.name) {
-				this.name = this.manager._allocateName("Nxt");
+					this.name = this.manager._allocateName("Nxt");
 			}
 
-			this.log("Connected via Bluetooth.");
+			this.log("Connected via USB.");
 			this.status = "Connected";
-			return;
-
-		} catch (err) {
-			if (err.name === "AbortError") {
-				// User cancelled Serial picker → do NOT fallback yet
-				this.log("User cancelled Bluetooth port selection.");
-			} else {
-				this.log("Bluetooth connection failed:", err);
-			}
-		}
-
-		// ---------------------------------------------------------
-		// STEP 2 — Check if USB NXT exists BEFORE showing WebUSB popup
-		// ---------------------------------------------------------
-		const devices = await navigator.usb.getDevices();
-		const nxtUsbDevices = devices.filter(d =>
-			d.vendorId === 0x0694 && d.productId === 0x0002
-		);
-
-		if (nxtUsbDevices.length === 0) {
-			this.log("No LEGO NXT USB device detected.");
-			throw new Error("No NXT Bluetooth or USB device available.");
-		}
-
-		// ---------------------------------------------------------
-		// STEP 3 — Show WebUSB picker ONLY if NXT USB exists
-		// ---------------------------------------------------------
-		this.log("Requesting NXT USB device...");
-
-		try {
-			this.device = await navigator.usb.requestDevice({
-				filters: [{ vendorId: 0x0694, productId: 0x0002 }]
-			});
-		} catch (err) {
-			this.log("User cancelled USB device selection.");
-			throw err;
-		}
-
-		this.isWebUSB = true;
-
-		// --- Open USB device ---
-		await this.device.open();
-		await this.device.selectConfiguration(1);
-		await this.device.claimInterface(0);
-
-		// NXT USB endpoints (official LEGO spec)
-		this.usbOut = 1;
-		this.usbIn  = 1;
-
-		const ok = await this.keepAlive();
-		if (!ok) {
-			this.log("NXT did not respond to KeepAlive (USB).");
-			window.logStatus("Nxt: Please power on the device and Reconnect.");
-			await this.disconnect();
-			return;
-		}
-
-		if (!this.name) {
-			this.name = this.manager._allocateName("Nxt");
-		}
-
-		this.log("Connected via USB.");
-		this.status = "Connected";
 	}
 
 
