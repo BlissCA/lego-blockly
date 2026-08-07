@@ -84,7 +84,7 @@ export class LegoNxt {
 					this.device = await navigator.usb.requestDevice({
 							filters: [{ vendorId: 0x0694, productId: 0x0002 }]
 					});
-					
+
 					console.log("USB device:", this.device);
 
 					for (const config of this.device.configurations) {
@@ -185,9 +185,9 @@ export class LegoNxt {
     const type = noReply ? 0x80 : 0x00;
     const cmd = Uint8Array.from([type, opcode, ...payload]);
 
-    if (!this.isBluetooth) {
-      return cmd;
-    }
+  //  if (!this.isBluetooth) {
+  //    return cmd;
+  //  }
 
     const len = cmd.length;
     const lsb = len & 0xFF;
@@ -196,79 +196,77 @@ export class LegoNxt {
   }
 
 	async _readReply(expectedOpcode) {
-		const timeoutMs = 1000;
-		const t0 = performance.now();
-		let collected = new Uint8Array(0);
+			const timeoutMs = 1000;
+			const t0 = performance.now();
+			let collected = new Uint8Array(0);
 
-		// ---------------------------------------------------------
-		// Helper: append new bytes to collected buffer
-		// ---------------------------------------------------------
-		const append = (value) => {
-			const tmp = new Uint8Array(collected.length + value.length);
-			tmp.set(collected);
-			tmp.set(value, collected.length);
-			collected = tmp;
-		};
-
-		// ---------------------------------------------------------
-		// SERIAL (Bluetooth SPP or CDC USB)
-		// ---------------------------------------------------------
-		if (this.isBluetooth) {
-			const readChunk = async () => {
-				const { value, done } = await this.reader.read();
-				if (done || !value) return null;
-				append(value);
-				return value.length;
+			const append = (value) => {
+					const tmp = new Uint8Array(collected.length + value.length);
+					tmp.set(collected);
+					tmp.set(value, collected.length);
+					collected = tmp;
 			};
 
-			// First two bytes: length
-			while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
-				const n = await readChunk();
-				if (!n) break;
-			}
-			if (collected.length < 2) return null;
+			// ---------------------------------------------------------
+			// SERIAL (Bluetooth SPP or CDC USB)
+			// ---------------------------------------------------------
+			if (this.isBluetooth) {
+					const readChunk = async () => {
+							const { value, done } = await this.reader.read();
+							if (done || !value) return null;
+							append(value);
+							return value.length;
+					};
 
-			const len = collected[0] | (collected[1] << 8);
+					// Read length header
+					while (collected.length < 2 && performance.now() - t0 < timeoutMs) {
+							const n = await readChunk();
+							if (!n) break;
+					}
+					if (collected.length < 2) return null;
 
-			while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
-				const n = await readChunk();
-				if (!n) break;
-			}
-			if (collected.length < 2 + len) return null;
-
-			const pkt = collected.slice(2, 2 + len);
-			if (pkt[0] !== 0x02) return null;
-			if (pkt[1] !== expectedOpcode) return null;
-			return pkt;
-		}
-
-		// ---------------------------------------------------------
-		// USB (LEGO NXT driver)
-		// ---------------------------------------------------------
-		if (this.isWebUSB) {
-			while (performance.now() - t0 < timeoutMs) {
-				const chunk = await this._readUsbChunk();
-				if (!chunk) continue;
-
-				append(chunk);
-
-				// USB packets also begin with length LSB/MSB
-				if (collected.length >= 2) {
 					const len = collected[0] | (collected[1] << 8);
 
-					if (collected.length >= 2 + len) {
-						const pkt = collected.slice(2, 2 + len);
-						if (pkt[0] !== 0x02) return null;
-						if (pkt[1] !== expectedOpcode) return null;
-						return pkt;
+					// Read full packet
+					while (collected.length < 2 + len && performance.now() - t0 < timeoutMs) {
+							const n = await readChunk();
+							if (!n) break;
 					}
-				}
+					if (collected.length < 2 + len) return null;
+
+					const pkt = collected.slice(2, 2 + len);
+					if (pkt[0] !== 0x02) return null;
+					if (pkt[1] !== expectedOpcode) return null;
+					return pkt;
+			}
+
+			// ---------------------------------------------------------
+			// USB (WebUSB bulk endpoints)
+			// ---------------------------------------------------------
+			if (this.isWebUSB) {
+					while (performance.now() - t0 < timeoutMs) {
+							const chunk = await this._readUsbChunk();
+							if (!chunk) continue;
+
+							append(chunk);
+
+							// Same framing as Bluetooth
+							if (collected.length >= 2) {
+									const len = collected[0] | (collected[1] << 8);
+
+									if (collected.length >= 2 + len) {
+											const pkt = collected.slice(2, 2 + len);
+											if (pkt[0] !== 0x02) return null;
+											if (pkt[1] !== expectedOpcode) return null;
+											return pkt;
+									}
+							}
+					}
+
+					return null;
 			}
 
 			return null;
-		}
-
-		return null;
 	}
 
   async _sendCommand(opcode, payload = [], expectReply = true) {
