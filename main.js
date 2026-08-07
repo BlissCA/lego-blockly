@@ -948,6 +948,9 @@ document.getElementById("stopBtn").onclick = async () => {
         // WeDo 2.0: stop all motors
         await dev.motorStop(1);
         await dev.motorStop(2);
+      } else if (dev.setOutputState) {
+        // NXT: stop all motors
+        await dev.setOutputState(0xFF, 0, 0x01, 0, 0, 0x20);
       }
 
     } catch (err) {
