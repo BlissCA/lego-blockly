@@ -27,7 +27,7 @@ export class LegoNxt {
     return this.queue;
   }
 
-	
+
 	async connect() {
 			this.log("Connecting to NXT...");
 
@@ -99,7 +99,7 @@ export class LegoNxt {
 			await this.device.claimInterface(0);
 
 			this.usbOut = 1;
-			this.usbIn  = 1;
+			this.usbIn  = 2;
 
 			const ok = await this.keepAlive();
 			if (!ok) {
