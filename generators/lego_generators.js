@@ -815,6 +815,14 @@ javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
 `;
 };
 
+// ---------------- Lego NXT Built-in Sound Files ----------------
+javascriptGenerator.forBlock["Nxt_SoundFiles"] = function (block) {
+  // Get the sound file name mapped to the selected option
+  var code = block.getFieldValue('SOUNDFILE');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
