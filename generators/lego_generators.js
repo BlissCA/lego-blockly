@@ -870,7 +870,7 @@ javascriptGenerator.forBlock["nxt_stopplaysound"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.stopSoundFile();
+  await dev.stopSoundPlayback();
 }
 `;
 };
