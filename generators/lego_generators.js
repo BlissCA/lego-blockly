@@ -829,15 +829,25 @@ javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
   let filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
 
   // ---------------------------------------------------------
-  // FIX: Remove async wrapper if monkey‑patch added it
+  // 1. Remove async wrapper if monkey‑patch added it
   // ---------------------------------------------------------
   if (filename.startsWith("(await (") && filename.endsWith("))")) {
     filename = filename.slice(8, -2);  // remove "(await (" and "))"
   }
 
-  // Also remove extra parentheses if present
+  // ---------------------------------------------------------
+  // 2. Remove outer parentheses
+  // ---------------------------------------------------------
   if (filename.startsWith("(") && filename.endsWith(")")) {
     filename = filename.slice(1, -1);
+  }
+
+  // ---------------------------------------------------------
+  // 3. Ensure the filename is a STRING literal
+  // ---------------------------------------------------------
+  // If it is NOT already quoted, quote it
+  if (!/^['"].*['"]$/.test(filename)) {
+    filename = `"${filename}"`;
   }
 
   const loop = block.getFieldValue("LOOP") === "TRUE" ? "true" : "false";
@@ -851,7 +861,6 @@ javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
 }
 `;
 };
-
 
 javascriptGenerator.forBlock["nxt_stopsoundfile"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
