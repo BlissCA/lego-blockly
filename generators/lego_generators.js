@@ -862,7 +862,7 @@ javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
 `;
 };
 
-javascriptGenerator.forBlock["nxt_stopsoundfile"] = function (block) {
+javascriptGenerator.forBlock["nxt_stopplaysound"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
 
   return `
