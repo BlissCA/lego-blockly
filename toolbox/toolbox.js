@@ -1258,7 +1258,20 @@ const toolbox = {
                   }
                 }
               }              
-            }                                   
+            },
+            {
+              "kind": "block",
+              "type": "nxt_playsoundfile",
+              "inputs": {
+                "FILENAME": {
+                  "shadow": {
+                    "type": "Nxt_SoundFiles",
+                    "fields": { "SOUNDFILE": "! Startup.rso" }
+                  }
+                }
+              }            
+            },
+            {"kind": "block", "type": "nxt_stopplaysound"}
           ]
         }
       ]

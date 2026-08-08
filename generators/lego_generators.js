@@ -815,6 +815,33 @@ javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
+  const loop = block.getFieldValue("LOOP") === "TRUE" ? "true" : "false";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.playSoundFile(${filename}, ${loop});
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_stopsoundfile"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopSoundFile();
+}
+`;
+};
+
 javascriptGenerator.forBlock["nxt_set_input_mode"] = function (block) {
   
   const dev  = block.getFieldValue("DEVICE");

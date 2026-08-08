@@ -3227,8 +3227,43 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT PLAY TONE: Frequency range 200-14000 Hz, Duration in ms"
-    }
+    },
 
+    {
+      "type": "nxt_playsoundfile",
+      "message0": "%1 Play sound file %2 Loop %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "FILENAME",
+          "check": "String"
+        },
+        {
+          "type": "field_checkbox",
+          "name": "LOOP",
+          "checked": false
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Play a sound file"
+    },
+
+    {
+      "type": "nxt_stopplaysound",
+      "message0": "%1 Stop playing sound file",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Stop playing sound file"
+    }
   ]);
 
 
@@ -3972,6 +4007,19 @@ Blockly.Blocks['Nxt_SensorMode'] = {
     this.setOutput(true, "Number");
     this.setColour("#0040d6");
     this.setTooltip("Returns a predefined constant value for NXT Sensor Modes.");
+  }
+};
+
+Blockly.Blocks['Nxt_SoundFiles'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["! Startup.rso", "! Startup.rso"], ["! Click.rso", "! Click.rso"], ["! Attention.rso", "! Attention.rso"], ["Woops.rso","Woops.rso"]
+      ]), "SOUNDFILE");
+
+    this.setOutput(true, "String");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT built-insound files.");
   }
 };
 
