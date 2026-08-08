@@ -1187,7 +1187,6 @@ const toolbox = {
             { "kind": "block", "type": "Nxt_InpPort" },
             { "kind": "block", "type": "Nxt_SensorType" },
             { "kind": "block", "type": "Nxt_SensorMode" },
-            { "kind": "block", "type": "Nxt_SoundFiles" },
             {
               "kind": "block",
               "type": "nxt_set_input_mode",
@@ -1230,6 +1229,7 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Misc", "colour": "#0040d6", "contents": [
+            { "kind": "block", "type": "Nxt_SoundFiles" },
             {
               "kind": "block",
               "type": "nxt_playtone",

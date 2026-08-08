@@ -832,7 +832,7 @@ javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.playSoundFile(${filename}, ${loop});
+  await dev.playSoundFile("${filename}", ${loop});
 }
 `;
 };
