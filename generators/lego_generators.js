@@ -825,17 +825,33 @@ javascriptGenerator.forBlock["Nxt_SoundFiles"] = function (block) {
 
 javascriptGenerator.forBlock["nxt_playsoundfile"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
+
+  let filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
+
+  // ---------------------------------------------------------
+  // FIX: Remove async wrapper if monkey‑patch added it
+  // ---------------------------------------------------------
+  if (filename.startsWith("(await (") && filename.endsWith("))")) {
+    filename = filename.slice(8, -2);  // remove "(await (" and "))"
+  }
+
+  // Also remove extra parentheses if present
+  if (filename.startsWith("(") && filename.endsWith(")")) {
+    filename = filename.slice(1, -1);
+  }
+
   const loop = block.getFieldValue("LOOP") === "TRUE" ? "true" : "false";
+
   return `
 {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.playSoundFile("${filename}", ${loop});
+  await dev.playSoundFile(${filename}, ${loop});
 }
 `;
 };
+
 
 javascriptGenerator.forBlock["nxt_stopsoundfile"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
