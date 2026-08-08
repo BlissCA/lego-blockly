@@ -18,6 +18,7 @@ Lego Blockly supports for now:
 - Lego Interface A with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
 - Lego Power Function with the IR 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
+- Lego NXT (BT or USB)
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
 - Wedo 1.0 (using the 2 ports USB hub)
 - WeDo 2.0 (BLE)
