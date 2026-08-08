@@ -1,0 +1,624 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defnoreturn",
+        "id": "e0QsH3$}9{pcH(@=]l$}",
+        "x": 211,
+        "y": 443,
+        "extraState": {
+          "params": [
+            {
+              "name": "outNo",
+              "id": "RY+t55=LXIv6hnyaLw/j"
+            },
+            {
+              "name": "sndLevB",
+              "id": "w]9Na[2yt`|%#[9zABxQ"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "LegoB_OutVU"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "controls_if",
+              "id": "Y1IpI9xc2f2(Vr@A71e*",
+              "extraState": {
+                "hasElse": true
+              },
+              "inputs": {
+                "IF0": {
+                  "block": {
+                    "type": "logic_compare",
+                    "id": "kGhD*t,Scdg;s?/QVmec",
+                    "fields": {
+                      "OP": "LT"
+                    },
+                    "inputs": {
+                      "A": {
+                        "block": {
+                          "type": "math_round",
+                          "id": "(WaDlU7TaZz56r2uD02a",
+                          "fields": {
+                            "OP": "ROUND"
+                          },
+                          "inputs": {
+                            "NUM": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "xO|48)n2Nlt5_gHs14u7",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "w]9Na[2yt`|%#[9zABxQ"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "B": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "F~K,eyDy7TPa[iIDY)k.",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "DO0": {
+                  "block": {
+                    "type": "lego_out",
+                    "id": "Do~_:qcnOOJk[##pG]tt",
+                    "fields": {
+                      "DEVICE": "LegoB1",
+                      "CMD": "outOff"
+                    },
+                    "inputs": {
+                      "PORT": {
+                        "shadow": {
+                          "type": "Legob_outportalpha",
+                          "id": "x[6S]d)hAN6QGLv.2[a`",
+                          "fields": {
+                            "LETTER": "1"
+                          }
+                        },
+                        "block": {
+                          "type": "variables_get",
+                          "id": "zm5DtBugvNje-aJ)D;38",
+                          "fields": {
+                            "VAR": {
+                              "id": "RY+t55=LXIv6hnyaLw/j"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "ELSE": {
+                  "block": {
+                    "type": "variables_set",
+                    "id": "wHi=eqd-:DK11_s;o$*2",
+                    "fields": {
+                      "VAR": {
+                        "id": "+5-s|BZ=/(pMwRz:VyUL"
+                      }
+                    },
+                    "inputs": {
+                      "VALUE": {
+                        "block": {
+                          "type": "math_round",
+                          "id": "e~@nL(v(4IMfCH=J4=hR",
+                          "fields": {
+                            "OP": "ROUND"
+                          },
+                          "inputs": {
+                            "NUM": {
+                              "block": {
+                                "type": "math_arithmetic",
+                                "id": "Xg0owgY,z:k[IZT0ttUH",
+                                "fields": {
+                                  "OP": "MINUS"
+                                },
+                                "inputs": {
+                                  "A": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "^/x9qqO@W?ZYLJ*:1cs7",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "w]9Na[2yt`|%#[9zABxQ"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "B": {
+                                    "block": {
+                                      "type": "math_number",
+                                      "id": "fP%eFX36*5WlTN{6f1b[",
+                                      "fields": {
+                                        "NUM": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "lego_out_pow",
+                        "id": "fSk9/;_zNCpti{t`9G{k",
+                        "fields": {
+                          "DEVICE": "LegoB1"
+                        },
+                        "inputs": {
+                          "PORT": {
+                            "shadow": {
+                              "type": "Legob_outportalpha",
+                              "id": "?0jV(MDDe6DU*r|!qyHG",
+                              "fields": {
+                                "LETTER": "1"
+                              }
+                            },
+                            "block": {
+                              "type": "variables_get",
+                              "id": "U2EX%S;6_m32E)SIOr.1",
+                              "fields": {
+                                "VAR": {
+                                  "id": "RY+t55=LXIv6hnyaLw/j"
+                                }
+                              }
+                            }
+                          },
+                          "PWR": {
+                            "shadow": {
+                              "type": "math_number",
+                              "id": "oB#*/zz;e(AF))Hxz)Gf",
+                              "fields": {
+                                "NUM": 7
+                              }
+                            },
+                            "block": {
+                              "type": "variables_get",
+                              "id": "aWqxPB,Rsbbha|O:TgD8",
+                              "fields": {
+                                "VAR": {
+                                  "id": "+5-s|BZ=/(pMwRz:VyUL"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "lego_out",
+                            "id": "+8g`@z@7hTAe~NbR(04P",
+                            "fields": {
+                              "DEVICE": "LegoB1",
+                              "CMD": "outOn"
+                            },
+                            "inputs": {
+                              "PORT": {
+                                "shadow": {
+                                  "type": "Legob_outportalpha",
+                                  "id": "x[6S]d)hAN6QGLv.2[a`",
+                                  "fields": {
+                                    "LETTER": "1"
+                                  }
+                                },
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "A;K3#(mB+!yANH$tUA|1",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "RY+t55=LXIv6hnyaLw/j"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "nxt_set_input_mode",
+        "id": "t9#bp%=[M?;uCizt:).@",
+        "x": 35,
+        "y": -15,
+        "fields": {
+          "DEVICE": "Nxt1"
+        },
+        "inputs": {
+          "PORTS": {
+            "shadow": {
+              "type": "Nxt_InpPort",
+              "id": "~Zg,jR$iA42i*XnFo5ep",
+              "fields": {
+                "INPPORT": "0"
+              }
+            }
+          },
+          "INPUTTYPE": {
+            "shadow": {
+              "type": "Nxt_SensorType",
+              "id": "C0`3=aw%n7!@X`Y2y:mK",
+              "fields": {
+                "SENSORTYPE": "7"
+              }
+            }
+          },
+          "INPUTMODE": {
+            "shadow": {
+              "type": "Nxt_SensorMode",
+              "id": "stX14^aZ;0tIopvd%zx!",
+              "fields": {
+                "SENSORMODE": "0"
+              }
+            }
+          }
+        },
+        "next": {
+          "block": {
+            "type": "loop_forever",
+            "id": "M65CVO3,#*b05,S3GB54",
+            "fields": {
+              "MODE": "WHILE"
+            },
+            "inputs": {
+              "COND": {
+                "shadow": {
+                  "type": "logic_boolean",
+                  "id": "NKhQ!~Gr-|E{{A1:OS:u",
+                  "fields": {
+                    "BOOL": "TRUE"
+                  }
+                }
+              },
+              "DO": {
+                "block": {
+                  "type": "variables_set",
+                  "id": "E7GgAcIa2n0~|6?LG%Cd",
+                  "fields": {
+                    "VAR": {
+                      "id": "TUig;f),{S4HALTgVqB7"
+                    }
+                  },
+                  "inputs": {
+                    "VALUE": {
+                      "block": {
+                        "type": "nxt_get_input_values",
+                        "id": ",Lq0!LJJyQUu:/x*y;_V",
+                        "fields": {
+                          "DEVICE": "Nxt1",
+                          "FORMAT": "0"
+                        },
+                        "inputs": {
+                          "PORTS": {
+                            "shadow": {
+                              "type": "Nxt_InpPort",
+                              "id": "RL(F,6FNb!g~a3tD_tp6",
+                              "fields": {
+                                "INPPORT": "0"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "variables_set",
+                      "id": "P|O:s-PLSez1U2[Ya$?:",
+                      "fields": {
+                        "VAR": {
+                          "id": "qwFTs:m=75rtjNg{;Tv+"
+                        }
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "UK@H|G4.DO.M$-/*riDf",
+                            "fields": {
+                              "OP": "MULTIPLY"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "math_arithmetic",
+                                  "id": "Gmjt/crf/o6fKmhaUP?M",
+                                  "fields": {
+                                    "OP": "MINUS"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "#D-=)OBBg}I9gOp^VsHK",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "TUig;f),{S4HALTgVqB7"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "math_number",
+                                        "id": "cvBsUzctzke73}gUpSOZ",
+                                        "fields": {
+                                          "NUM": 64
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "%kC7Kpik|v~PSxg-!;7S",
+                                  "fields": {
+                                    "NUM": 0.075
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "display_value",
+                          "id": ".7cUR/#XYaRIx/rS.[7Y",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "0W%YOtDI[Oh,~L^uK0A,",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "TUig;f),{S4HALTgVqB7"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "display_value",
+                              "id": "Oj%F!;8]?TtA38|O8I}c",
+                              "inputs": {
+                                "VALUE": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "d!D;iEMe2Jte=QV(E?5v",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "qwFTs:m=75rtjNg{;Tv+"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "controls_for",
+                                  "id": "-)lu:Ty|L~1|w{@})!EQ",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "m40m7OyZHp+G17DeF5WF"
+                                    }
+                                  },
+                                  "inputs": {
+                                    "FROM": {
+                                      "block": {
+                                        "type": "math_number",
+                                        "id": "w0FhiA+;9_2y(d8wu`,@",
+                                        "fields": {
+                                          "NUM": 1
+                                        }
+                                      }
+                                    },
+                                    "TO": {
+                                      "block": {
+                                        "type": "math_number",
+                                        "id": "sKWSczTB-.1!RZLKA[Sa",
+                                        "fields": {
+                                          "NUM": 8
+                                        }
+                                      }
+                                    },
+                                    "BY": {
+                                      "block": {
+                                        "type": "math_number",
+                                        "id": "aU%BhI|qD6.HcXz+8P2R",
+                                        "fields": {
+                                          "NUM": 1
+                                        }
+                                      }
+                                    },
+                                    "DO": {
+                                      "block": {
+                                        "type": "procedures_callnoreturn",
+                                        "id": "EL:iQRJ91=O=uJ(7Z)SY",
+                                        "extraState": {
+                                          "name": "LegoB_OutVU",
+                                          "params": [
+                                            "outNo",
+                                            "sndLevB"
+                                          ]
+                                        },
+                                        "inputs": {
+                                          "ARG0": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "1?Ck!D/=D-!]ot0s;^Bp",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "m40m7OyZHp+G17DeF5WF"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "ARG1": {
+                                            "block": {
+                                              "type": "math_constrain",
+                                              "id": "tvPy9BV#sy2^[4W}Bf-;",
+                                              "inputs": {
+                                                "VALUE": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "wm{bVm@$}86)TF_=Wv3k",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "LOW": {
+                                                  "block": {
+                                                    "type": "math_number",
+                                                    "id": "{Yo!b/fY/J}o2([UGZ.x",
+                                                    "fields": {
+                                                      "NUM": 0
+                                                    }
+                                                  }
+                                                },
+                                                "HIGH": {
+                                                  "block": {
+                                                    "type": "math_number",
+                                                    "id": "Z}xLM$-r=j_QRH`O`;%R",
+                                                    "fields": {
+                                                      "NUM": 8
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "next": {
+                                          "block": {
+                                            "type": "variables_set",
+                                            "id": "SQix+tWq)0`K9A00~%`e",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "qwFTs:m=75rtjNg{;Tv+"
+                                              }
+                                            },
+                                            "inputs": {
+                                              "VALUE": {
+                                                "block": {
+                                                  "type": "math_arithmetic",
+                                                  "id": "Twvj{x`SuVErJq(q+s2c",
+                                                  "fields": {
+                                                    "OP": "MINUS"
+                                                  },
+                                                  "inputs": {
+                                                    "A": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "!/.s`_!!FvScpkdpxWu:",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "qwFTs:m=75rtjNg{;Tv+"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "B": {
+                                                      "block": {
+                                                        "type": "math_number",
+                                                        "id": "DWl(k~IC+_FqR4Ffd_.8",
+                                                        "fields": {
+                                                          "NUM": 9
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "sndLevel",
+      "id": "TUig;f),{S4HALTgVqB7"
+    },
+    {
+      "name": "sndLevAjd",
+      "id": "qwFTs:m=75rtjNg{;Tv+"
+    },
+    {
+      "name": "i",
+      "id": "m40m7OyZHp+G17DeF5WF"
+    },
+    {
+      "name": "x",
+      "id": "l*Ff5k[OY}XrWd5a!rZk"
+    },
+    {
+      "name": "pwr",
+      "id": "+5-s|BZ=/(pMwRz:VyUL"
+    },
+    {
+      "name": "outNo",
+      "id": "RY+t55=LXIv6hnyaLw/j"
+    },
+    {
+      "name": "sndLevB",
+      "id": "w]9Na[2yt`|%#[9zABxQ"
+    }
+  ]
+}
