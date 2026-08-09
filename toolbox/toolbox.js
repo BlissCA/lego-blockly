@@ -1310,7 +1310,8 @@ const toolbox = {
                 }
               }            
             },
-            {"kind": "block", "type": "nxt_stopplaysound"}
+            {"kind": "block", "type": "nxt_stopplaysound"},
+            {"kind": "block", "type": "nxt_keepalive" }
           ]
         }
       ]

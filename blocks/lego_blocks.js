@@ -3176,7 +3176,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "nxt_get_output_state",
-      "message0": "%1 Output %2 State %3",
+      "message0": "%1 Motor %2 Get State %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
         {
@@ -3335,7 +3335,31 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT Stop playing sound file"
+    },
+
+    {
+      "type": "nxt_keepalive",
+      "message0": "%1 Keep Alive",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Keep Alive"
+    },
+
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Reset Scaled Value like switch pulse counter"
     }
+
   ]);
 
 

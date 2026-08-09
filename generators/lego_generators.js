@@ -930,15 +930,6 @@ javascriptGenerator.forBlock["nxt_reset_input_scaled_value"] = function (block) 
   await dev.resetInputScaledValue(${ports});
 }
 `;
-
-  return `
-{
-  shouldStop();
-  const dev = deviceManager.getDeviceByName("${dev}");
-  if (!dev) throw new Error("Device lost");
-  await dev.setInputMode(${ports}, ${sensorType}, ${sensorMode});
-}
-`;
 };
 
 javascriptGenerator.forBlock["nxt_get_input_values"] = function (block) {
@@ -983,7 +974,19 @@ javascriptGenerator.forBlock["nxt_get_output_state"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["nxt_keepalive"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
 
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.keepAlive();
+}
+`;
+};
 
 javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   const A = generator.valueToCode(block, 'A', javascriptGenerator.ORDER_NONE) || '0';
