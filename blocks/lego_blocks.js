@@ -3153,6 +3153,38 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "nxt_get_output_state",
+      "message0": "%1 Output %2 State %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "STATE",
+          "options": [
+            ["PowerSetPoint", "0"],
+            ["Mode", "1"],
+            ["RegulationMode", "2"],
+            ["TurnRatio", "3"],
+            ["RunState", "4"],
+            ["TachoLimit", "5"],
+            ["TachoCount", "6"],
+            ["BlockTachoCount", "7"],
+            ["RotationCount", "8"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#0040d6",
+      "tooltip": "Returns the Output State. Choose the state to return"
+    },
+    
+    {
       "type": "nxt_set_input_mode",
       "message0": "%1 Input %2 Type %3 mode %4",
       "args0": [

@@ -1180,7 +1180,20 @@ const toolbox = {
                 }
                 
               }
-            }					
+            },
+            {
+              "kind": "block",
+              "type": "nxt_get_output_state",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            }					 		
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#0040d6", "contents": [
@@ -1224,7 +1237,7 @@ const toolbox = {
                 }
                 
               }
-            }					            
+            }        
 
           ]
         },

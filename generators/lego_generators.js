@@ -910,6 +910,29 @@ javascriptGenerator.forBlock["nxt_get_input_values"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["nxt_get_output_state"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const state = block.getFieldValue("STATE");  // 0 = power, 1 = mode, 2 = Regulation mode, 3 = Turn ratio, 4 = Run state, 5 = Tacho limit, 6 = Tacho count, 7 = Block count, 8 = Rotation count
+
+  let field;
+  switch (state) {
+    case "1": field = "mode"; break;
+    case "2": field = "regulationMode"; break;
+    case "3": field = "turnRatio"; break;
+    case "4": field = "runState"; break;
+    case "5": field = "tachoLimit"; break;
+    case "6": field = "tachoCount"; break;
+    case "7": field = "blockTachoCount"; break;
+    case "8": field = "rotationCount"; break;
+    default:  field = "power"; break;
+  }
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").getOutputState(${port})).${field}`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
 
 
 
