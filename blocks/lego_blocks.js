@@ -3348,16 +3348,6 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT Keep Alive"
-    },
-
-          "check": "Number"
-        }
-      ],
-      "inputsInline": true,
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": "#0040d6",
-      "tooltip": "NXT Reset Scaled Value like switch pulse counter"
     }
 
   ]);
