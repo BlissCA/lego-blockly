@@ -806,8 +806,13 @@ javascriptGenerator.forBlock["nxt_mot_speed"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
   const speed  = javascriptGenerator.valueToCode(block, "SPEED",  javascriptGenerator.ORDER_NONE) || "0";
-  const mode  = block.getFieldValue("MODE");
-  if (speed!=0) mode = "0x07";
+  const modeTemp  = block.getFieldValue("MODE");
+  let mode;
+  if (speed!=0) {
+    mode = "0x07";
+  } else {
+    mode = modeTemp;
+  }
 
   return `
 {
