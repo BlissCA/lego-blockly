@@ -1183,6 +1183,19 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "nxt_reset_motor_position",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
               "type": "nxt_get_output_state",
               "inputs": {
                 "PORTS": {
@@ -1223,6 +1236,18 @@ const toolbox = {
                   }
                 }
                 
+              }
+            },
+            {
+              "kind": "block",
+              "type": "nxt_reset_input_scaled_value",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }
               }
             },
             {

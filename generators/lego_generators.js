@@ -800,6 +800,31 @@ javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["nxt_reset_motor_position"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const relative = block.getFieldValue("RELATIVE") === "TRUE" ? "true" : "false";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.resetMotorPosition(${ports}, ${relative});
+}
+`;
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setOutputState(${ports}, ${pwr}, ${mode}, 0x00, 0x00, 0x20, 0);
+}
+`;
+};
+
 javascriptGenerator.forBlock["nxt_playtone"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const freq = javascriptGenerator.valueToCode(block, "FREQ", javascriptGenerator.ORDER_NONE) || "0";
@@ -881,6 +906,30 @@ javascriptGenerator.forBlock["nxt_set_input_mode"] = function (block) {
   const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
   const sensorType  = javascriptGenerator.valueToCode(block, "INPUTTYPE",  javascriptGenerator.ORDER_NONE) || "0";
   const sensorMode  = javascriptGenerator.valueToCode(block, "INPUTMODE",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setInputMode(${ports}, ${sensorType}, ${sensorMode});
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_reset_input_scaled_value"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.resetInputScaledValue(${ports});
+}
+`;
 
   return `
 {

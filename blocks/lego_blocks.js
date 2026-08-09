@@ -3123,7 +3123,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "nxt_mot_pow",
-      "message0": "%1 Motors %2 Pwr %3 mode %4",
+      "message0": "%1 Motor %2 Pwr %3 mode %4",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
         {
@@ -3152,6 +3152,28 @@ window.addEventListener("load", () => {
       "tooltip": "NXT Motor, Port A=0, B=1, C=2, Power: -100 to +100, Stop Mode at Power 0: FLOAT, BRAKE"
     },
 
+    {
+      "type": "nxt_reset_motor_position",
+      "message0": "%1 Motor %2 Reset Position, Relative? %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "field_checkbox",
+          "name": "RELATIVE",
+          "checked": false
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Reset Motor Position"
+    },
     {
       "type": "nxt_get_output_state",
       "message0": "%1 Output %2 State %3",
@@ -3183,7 +3205,7 @@ window.addEventListener("load", () => {
       "colour": "#0040d6",
       "tooltip": "Returns the Output State. Choose the state to return"
     },
-    
+
     {
       "type": "nxt_set_input_mode",
       "message0": "%1 Input %2 Type %3 mode %4",
@@ -3210,6 +3232,24 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT Set Sensor Mode"
+    },
+
+    {
+      "type": "nxt_reset_input_scaled_value",
+      "message0": "%1 Input %2 Reset Scaled Value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Reset Scaled Value like switch pulse counter"
     },
 
     {
