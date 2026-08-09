@@ -1183,6 +1183,30 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "nxt_mot_speed",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": -100,
+                      "max": 100,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 50 }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
               "type": "nxt_reset_motor_position",
               "inputs": {
                 "PORTS": {

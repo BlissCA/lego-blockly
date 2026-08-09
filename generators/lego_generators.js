@@ -800,6 +800,25 @@ javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
 `;
 };
 
+
+javascriptGenerator.forBlock["nxt_mot_speed"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const speed  = javascriptGenerator.valueToCode(block, "SPEED",  javascriptGenerator.ORDER_NONE) || "0";
+  const mode  = block.getFieldValue("MODE");
+  if (speed!=0) mode = "0x07";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setOutputState(${ports}, ${speed}, ${mode}, 0x01, 0x00, 0x20, 0);
+}
+`;
+};
+
 javascriptGenerator.forBlock["nxt_reset_motor_position"] = function (block) {
   
   const dev  = block.getFieldValue("DEVICE");

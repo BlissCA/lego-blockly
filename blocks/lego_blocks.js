@@ -3153,6 +3153,37 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "nxt_mot_speed",
+      "message0": "%1 Motor %2 Speed %3 mode %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+         },
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            ["FLOAT", "1"],
+            ["BRAKE", "3"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Motor, Port A=0, B=1, C=2, Speed: -100 to +100, Stop Mode at Speed 0: FLOAT, BRAKE"
+    },
+
+    {
       "type": "nxt_reset_motor_position",
       "message0": "%1 Motor %2 Reset Position, Relative? %3",
       "args0": [
