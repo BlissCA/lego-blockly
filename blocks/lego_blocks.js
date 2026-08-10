@@ -3183,6 +3183,44 @@ window.addEventListener("load", () => {
       "tooltip": "NXT Motor, Port A=0, B=1, C=2, Speed: -100 to +100, Stop Mode at Speed 0: FLOAT, BRAKE"
     },
 
+        {
+      "type": "nxt_mot_gotopos",
+      "message0": "%1 Motor %2 Speed %3 Goto %4 mode %5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": "Number",
+         },
+        {
+          "type": "input_value",
+          "name": "GOTO",
+          "check": "Number"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            ["Idle", "0x00"],
+            ["RampUp", "0x10"],
+            ["Running", "0x20"],
+            ["RampDown", "0x40"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Motor, Port A=0, B=1, C=2, Speed: -100 to +100, Go to Position degree: 0 to ? , RunState: Idle, RampUp, Running, RampDown"
+    },
+
     {
       "type": "nxt_reset_motor_position",
       "message0": "%1 Motor %2 Reset Position, Relative? %3",

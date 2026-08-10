@@ -800,7 +800,6 @@ javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
 `;
 };
 
-
 javascriptGenerator.forBlock["nxt_mot_speed"] = function (block) {
   
   const dev  = block.getFieldValue("DEVICE");
@@ -820,6 +819,24 @@ javascriptGenerator.forBlock["nxt_mot_speed"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.setOutputState(${ports}, ${speed}, ${mode}, 0x01, 0x00, 0x20, 0);
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_mot_gotopos"] = function (block) {
+  
+  const dev  = block.getFieldValue("DEVICE");
+  const ports = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const speed  = javascriptGenerator.valueToCode(block, "SPEED",  javascriptGenerator.ORDER_NONE) || "0";
+  const goto  = javascriptGenerator.valueToCode(block, "GOTO",  javascriptGenerator.ORDER_NONE) || "0";
+  const runState  = block.getFieldValue("MODE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setOutputState(${ports}, ${speed}, 0x07, 0x01, 0x00, ${runState}, ${goto});
 }
 `;
 };
