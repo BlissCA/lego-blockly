@@ -1029,6 +1029,83 @@ javascriptGenerator.forBlock["nxt_keepalive"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["nxt_startprogram"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  let filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
+
+  // ---------------------------------------------------------
+  // 1. Remove async wrapper if monkey‑patch added it
+  // ---------------------------------------------------------
+  if (filename.startsWith("(await (") && filename.endsWith("))")) {
+    filename = filename.slice(8, -2);  // remove "(await (" and "))"
+  }
+
+  // ---------------------------------------------------------
+  // 2. Remove outer parentheses
+  // ---------------------------------------------------------
+  if (filename.startsWith("(") && filename.endsWith(")")) {
+    filename = filename.slice(1, -1);
+  }
+
+  // ---------------------------------------------------------
+  // 3. Ensure the filename is a STRING literal
+  // ---------------------------------------------------------
+  // If it is NOT already quoted, quote it
+  if (!/^['"].*['"]$/.test(filename)) {
+    filename = `"${filename}"`;
+  }
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.startProgram(${filename});
+}
+`;
+};
+
+javascriptGenerator.forBlock["nxt_stopprogram"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  let filename = javascriptGenerator.valueToCode(block, "FILENAME", javascriptGenerator.ORDER_NONE) || '""';
+
+  // ---------------------------------------------------------
+  // 1. Remove async wrapper if monkey‑patch added it
+  // ---------------------------------------------------------
+  if (filename.startsWith("(await (") && filename.endsWith("))")) {
+    filename = filename.slice(8, -2);  // remove "(await (" and "))"
+  }
+
+  // ---------------------------------------------------------
+  // 2. Remove outer parentheses
+  // ---------------------------------------------------------
+  if (filename.startsWith("(") && filename.endsWith(")")) {
+    filename = filename.slice(1, -1);
+  }
+
+  // ---------------------------------------------------------
+  // 3. Ensure the filename is a STRING literal
+  // ---------------------------------------------------------
+  // If it is NOT already quoted, quote it
+  if (!/^['"].*['"]$/.test(filename)) {
+    filename = `"${filename}"`;
+  }
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopProgram(${filename});
+}
+`;
+};
+
+
+
+
 javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   const A = generator.valueToCode(block, 'A', javascriptGenerator.ORDER_NONE) || '0';
   const X = generator.valueToCode(block, 'X', javascriptGenerator.ORDER_NONE) || '0';
