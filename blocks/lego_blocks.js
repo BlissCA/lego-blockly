@@ -3420,10 +3420,18 @@ window.addEventListener("load", () => {
     },
 
     {
-      "type": "nxt_startprogram",
-      "message0": "%1 Start Program %2",
+      "type": "nxt_startstopprogram",
+      "message0": "%1 %2 Program %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "field_dropdown",
+          "name": "ACTION",
+          "options": [
+            ["Start", "START"],
+            ["Stop", "STOP"]
+          ]
+        },
         {
           "type": "input_value",
           "name": "FILENAME",
@@ -3435,24 +3443,6 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT Start a program"
-    },
-
-    {
-      "type": "nxt_stopprogram",
-      "message0": "%1 Stop Program %2",
-      "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
-        {
-          "type": "input_value",
-          "name": "FILENAME",
-          "check": "String"
-        }
-      ],
-      "inputsInline": true,
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": "#0040d6",
-      "tooltip": "NXT Stop a program"
     }
 
   ]);

@@ -1373,19 +1373,7 @@ const toolbox = {
             {"kind": "block", "type": "nxt_keepalive" },
             {
               "kind": "block",
-              "type": "nxt_startprogram",
-              "inputs": {
-                "FILENAME": {
-                  "shadow": {
-                    "type": "text",
-                    "fields": { "TEXT": "DemoV2.rxe" }
-                  }
-                }
-              }            
-            },
-            {
-              "kind": "block",
-              "type": "nxt_stopprogram",
+              "type": "nxt_startstopprogram",
               "inputs": {
                 "FILENAME": {
                   "shadow": {
