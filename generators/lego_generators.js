@@ -1069,6 +1069,14 @@ javascriptGenerator.forBlock["nxt_startstopprogram"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["nxt_get_battery_level"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").getBatteryLevel())`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
 
 
 

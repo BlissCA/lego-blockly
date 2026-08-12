@@ -306,10 +306,28 @@ export class LegoNxt {
   // ---------------- High-level commands ----------------
 
   // 0x0D KeepAlive (response required)
-  async keepAlive() {
-    const reply = await this._sendCommand(0x0D, [], true);
-    return !!reply;
-  }
+	async keepAlive() {
+		const reply = await this._sendCommand(0x0D, [], true);
+		if (!reply) return null;
+
+		// reply[0] = 0x02 (reply telegram)
+		// reply[1] = 0x0D (opcode)
+		const status = reply[2];
+
+		// Sleep timeout (ULONG, little-endian)
+		const sleepTimeoutMs =
+				reply[3] |
+				(reply[4] << 8) |
+				(reply[5] << 16) |
+				(reply[6] << 24);
+
+		return {
+			ok: status === 0,
+			status,
+			sleepTimeoutMs,
+			sleepTimeoutMinutes: sleepTimeoutMs / 60000
+		};
+	}
 
   // 0x00 StartProgram (no response)
   async startProgram(name) {
@@ -490,7 +508,7 @@ export class LegoNxt {
   }
 
   // 0x13 MessageRead (response required)
-  async messageRead(remoteInbox, localInbox, remove = false) {
+  async messageRead(remoteInbox, localInbox, remove = true) {
     const payload = [
       remoteInbox & 0xFF,
       localInbox & 0xFF,

@@ -1382,7 +1382,8 @@ const toolbox = {
                   }
                 }
               }            
-            }
+            },
+            {"kind": "block", "type": "nxt_get_battery_level" }
           ]
         }
       ]

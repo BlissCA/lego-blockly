@@ -3443,6 +3443,18 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": "#0040d6",
       "tooltip": "NXT Start a program"
+    },
+
+    {
+      "type": "nxt_get_battery_level",
+      "message0": "%1 Battery Level (mV)",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#0040d6",
+      "tooltip": "Returns the battery level of the NXT brick in mv"
     }
 
   ]);
