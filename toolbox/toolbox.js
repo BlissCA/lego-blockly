@@ -1321,7 +1321,20 @@ const toolbox = {
                 }
                 
               }
-            }        
+            },
+            {
+              "kind": "block",
+              "type": "nxt_get_ultrasonic_cm",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }
+                
+              }
+            }
 
           ]
         },

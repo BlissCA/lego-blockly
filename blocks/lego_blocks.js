@@ -3348,6 +3348,23 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "nxt_get_ultrasonic_cm",
+      "message0": "%1 Input %2 Ultrasonic (cm)",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#0040d6",
+      "tooltip": "Returns the Value of the Ultrasonic Sensor (cm)."
+    },
+
+    {
       "type": "nxt_playtone",
       "message0": "%1 TONE %2 Hz %3 ms",
       "args0": [

@@ -991,6 +991,16 @@ javascriptGenerator.forBlock["nxt_get_input_values"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["nxt_get_ultrasonic_cm"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").getUltrasonicCm(${port}))`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
 javascriptGenerator.forBlock["nxt_get_output_state"] = function (block) {
   const dev    = block.getFieldValue("DEVICE");
   const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
