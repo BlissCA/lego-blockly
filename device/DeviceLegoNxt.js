@@ -561,7 +561,7 @@ export class LegoNxt {
       let available = 0;
       let attempts = 0;
 
-      while (available < 1 && attempts < 30) {
+      while (available < 1 && attempts < 50) {
         await new Promise(r => setTimeout(r, 15));
 
         const status = await this._sendCommand(0x0E, [port], true);
