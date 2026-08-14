@@ -532,7 +532,8 @@ export class LegoNxt {
       // ---------------------------------------------------------
       // Direct command: SetInputMode
       // [type=0x00, opcode=0x05, port, mode=0x0B, raw=0x00]
-      await this._sendCommand(0x05, [port, 0x0B, 0x00], true);
+      
+      // await this._sendCommand(0x05, [port, 0x0B, 0x00], true);
 
       // ---------------------------------------------------------
       // 2. LSWRITE — request distance register 0x42
