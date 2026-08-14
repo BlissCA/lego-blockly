@@ -1001,6 +1001,18 @@ javascriptGenerator.forBlock["nxt_get_ultrasonic_cm"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["nxt_lstransaction"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const rxlength = javascriptGenerator.valueToCode(block, "RX_LENGTH", javascriptGenerator.ORDER_NONE) || "0";
+  const txbytes = javascriptGenerator.valueToCode(block, 'TX_BYTES', javascriptGenerator.ORDER_NONE);
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").lsTransaction(${port}, ${txbytes}, ${rxlength}))`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
 javascriptGenerator.forBlock["nxt_get_output_state"] = function (block) {
   const dev    = block.getFieldValue("DEVICE");
   const port   = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";

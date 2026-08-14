@@ -1334,6 +1334,55 @@ const toolbox = {
                 }
                 
               }
+            },
+            {
+              "kind": "block",
+              "type": "nxt_lstransaction",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "Nxt_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                },
+                "RX_LENGTH": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 16,
+                      "precision": 1
+                    },
+                    "fields": {"NUM": 1}
+                  }
+                  },
+                  "TX_BYTES": {
+                    "shadow": {
+                      "type": "lists_create_with",
+                      "extraState": {
+                      "itemCount": 2
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "shadow": {
+                          "type": "math_number",
+                          "fields": {
+                            "NUM": 2
+                          }
+                        }
+                      },
+                      "ADD1": {
+                        "shadow": {
+                          "type": "math_number",
+                          "fields": {
+                            "NUM": 66
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
 
           ]

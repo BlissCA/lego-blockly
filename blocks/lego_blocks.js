@@ -3365,6 +3365,33 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "nxt_lstransaction",
+      "message0": "%1 Input %2 I2C rx length %3 tx bytes %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "RX_LENGTH",
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "TX_BYTES",
+          "check": "Array"
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#0040d6",
+      "tooltip": "Returns the Value of the I2C (Low Speed Protocol) Transaction."
+    },
+
+    {
       "type": "nxt_playtone",
       "message0": "%1 TONE %2 Hz %3 ms",
       "args0": [
