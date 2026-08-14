@@ -15,6 +15,8 @@ export class LegoNxt {
     this.queueActive = true;
 
     this.isBluetooth = false;
+
+    this.lsPortInitialized = [false, false, false, false]; // index 0 = port 1, index 1 = port 2, etc.
   }
 
   log(msg) {
@@ -145,6 +147,10 @@ export class LegoNxt {
 
 		this.status = "Disconnected";
 	}
+
+  resetPortStates() {
+      this.lsPortInitialized = [false, false, false, false];
+  }
 
   // ---------------- Low-level packet I/O ----------------
 
@@ -525,6 +531,7 @@ export class LegoNxt {
     return { inbox, text };
   }
 
+/*
   async getUltrasonicCm(port) {
     try {
       // ---------------------------------------------------------
@@ -532,8 +539,8 @@ export class LegoNxt {
       // ---------------------------------------------------------
       // Direct command: SetInputMode
       // [type=0x00, opcode=0x05, port, mode=0x0B, raw=0x00]
-      
-      // await this._sendCommand(0x05, [port, 0x0B, 0x00], true);
+
+      await this._sendCommand(0x05, [port, 0x0B, 0x00], true);
 
       // ---------------------------------------------------------
       // 2. LSWRITE — request distance register 0x42
@@ -597,6 +604,78 @@ export class LegoNxt {
       console.error("Ultrasonic read failed:", err);
       return 255;
     }
+  }
+*/
+
+  async lsTransaction(port, txBytes, rxLength) {
+    try {
+      const idx = port - 1;
+
+      // ---------------------------------------------------------
+      // 1. Initialize LS mode only once per port
+      // ---------------------------------------------------------
+      if (!this.lsPortInitialized[idx]) {
+        await this._sendCommand(0x05, [port, 0x0B, 0x00], true);
+        this.lsPortInitialized[idx] = true;
+      }
+
+      // ---------------------------------------------------------
+      // 2. LSWRITE
+      // ---------------------------------------------------------
+      const txLen = txBytes.length;
+
+      await this._sendCommand(0x0F, [
+        port,
+        txLen,
+        rxLength,
+        ...txBytes
+      ], true);
+
+      // ---------------------------------------------------------
+      // 3. Poll LSGETSTATUS until rxLength bytes are available
+      // ---------------------------------------------------------
+      let available = 0;
+      let attempts = 0;
+
+      while (available < rxLength && attempts < 20) {
+        await new Promise(r => setTimeout(r, 15));
+
+        const status = await this._sendCommand(0x0E, [port], true);
+        if (!status) break;
+
+        if (status[2] === 0x00) {
+          available = status[3];
+        }
+
+        attempts++;
+      }
+
+      if (available < rxLength) {
+        return null; // timeout
+      }
+
+      // ---------------------------------------------------------
+      // 4. LSREAD
+      // ---------------------------------------------------------
+      const read = await this._sendCommand(0x10, [port], true);
+      if (!read || read[2] !== 0x00) {
+        return null;
+      }
+
+      // read[4..] contains the data bytes
+      const data = read.slice(4, 4 + rxLength);
+      return Array.from(data);
+
+    } catch (err) {
+      console.error("LS transaction failed:", err);
+      return null;
+    }
+  }
+
+  async getUltrasonicCm(port) {
+    const data = await this.lsTransaction(port, [0x02, 0x42], 1);
+    if (!data) return 255;
+    return data[0]; // 0–254 cm, 255 = nothing detected
   }
 
 }

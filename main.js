@@ -822,6 +822,14 @@ document.getElementById("runBtn").onclick = async () => {
     logStatus("Program already running...  Press stop then Run again...");
     return;
   }
+
+  for (const dev of window.deviceManager.devices) {
+    if (dev.setOutputState) {
+      // NXT: reset port states
+      await dev.resetPortStates();
+    }
+  }
+
   window.isProgramRunning = true;
 
   window.BlocklyButtonEvents = {};
