@@ -3388,7 +3388,7 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "output": "Array",
       "colour": "#0040d6",
-      "tooltip": "Returns the Value of the I2C (Low Speed Protocol) Transaction."
+      "tooltip": "Returns the Value (List) of the I2C (Low Speed Protocol) Transaction."
     },
 
     {
