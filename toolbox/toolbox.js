@@ -1272,6 +1272,7 @@ const toolbox = {
             { "kind": "block", "type": "Nxt_InpPort" },
             { "kind": "block", "type": "Nxt_SensorType" },
             { "kind": "block", "type": "Nxt_SensorMode" },
+            { "kind": "block", "type": "Nxt_SensorStdColor" },
             {
               "kind": "block",
               "type": "nxt_set_input_mode",

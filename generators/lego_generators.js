@@ -783,6 +783,13 @@ javascriptGenerator.forBlock["Nxt_SensorMode"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["Nxt_SensorStdColor"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('COLORCODE');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
   
   const dev  = block.getFieldValue("DEVICE");

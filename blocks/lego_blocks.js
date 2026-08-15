@@ -4238,12 +4238,25 @@ Blockly.Blocks['Nxt_SensorMode'] = {
   init: function() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([
-        ["Raw mode", "0"], ["Boolean mode", "32"], ["Transition-count mode", "64"], ["Period-counter mode", "96"], ["Raw-percent mode", "128"], ["Celcius mode", "160"], ["Fahrenheit mode", "192"], ["Angle step mode", "224"]
+        ["Raw", "0"], ["Boolean", "32"], ["Transition-count", "64"], ["Period-counter", "96"], ["Raw-percent", "128"], ["Celcius", "160"], ["Fahrenheit", "192"], ["Angle step", "224"]
       ]), "SENSORMODE");
 
     this.setOutput(true, "Number");
     this.setColour("#0040d6");
     this.setTooltip("Returns a predefined constant value for NXT Sensor Modes.");
+  }
+};
+
+Blockly.Blocks['Nxt_SensorStdColor'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["Black", "1"], ["Blue", "2"], ["Green", "3"], ["Yellow", "4"], ["Red", "5"], ["White", "6"]
+      ]), "COLORCODE");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT Color Sensor Standard Colors.");
   }
 };
 
