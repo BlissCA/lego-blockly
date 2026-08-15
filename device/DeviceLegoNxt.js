@@ -556,7 +556,14 @@ export class LegoNxt {
       ], true);
 
       // ---------------------------------------------------------
-      // 3. Poll LSGETSTATUS until rxLength bytes are available
+      // 3. If rxLength = 0 → write-only transaction
+      // ---------------------------------------------------------
+      if (rxLength === 0) {
+        return [];   // no data expected
+      }
+
+      // ---------------------------------------------------------
+      // 4. Poll LSGETSTATUS until rxLength bytes are available
       // ---------------------------------------------------------
       let available = 0;
       let attempts = 0;
@@ -579,14 +586,13 @@ export class LegoNxt {
       }
 
       // ---------------------------------------------------------
-      // 4. LSREAD
+      // 5. LSREAD
       // ---------------------------------------------------------
       const read = await this._sendCommand(0x10, [port], true);
       if (!read || read[2] !== 0x00) {
         return null;
       }
 
-      // read[4..] contains the data bytes
       const data = read.slice(4, 4 + rxLength);
       return Array.from(data);
 
@@ -594,12 +600,6 @@ export class LegoNxt {
       console.error("LS transaction failed:", err);
       return null;
     }
-  }
-
-  async getUltrasonicCm(port) {
-    const data = await this.lsTransaction(port, [0x02, 0x42], 1);
-    if (!data) return 255;
-    return data[0]; // 0–254 cm, 255 = nothing detected
   }
 
 }
