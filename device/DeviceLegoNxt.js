@@ -530,7 +530,7 @@ export class LegoNxt {
   // 0x13 MessageRead (response required)
   async messageRead(remoteInbox, localInbox = 0, remove = true, isNumber = false) {
     const payload = [
-      (remoteInbox + 10) & 0xFF,   // NXT-G mailbox → PC remote inbox
+      (remoteInbox + 10) & 0xFF,
       localInbox & 0xFF,
       remove ? 1 : 0
     ];
@@ -541,7 +541,8 @@ export class LegoNxt {
     const size = reply[4];
     if (size === 0) return null;
 
-    const data = reply.slice(5, 5 + size);
+    // Convert Uint8Array → normal array
+    let data = Array.from(reply.slice(5, 5 + size));
 
     // Remove trailing null
     if (data[data.length - 1] === 0) {
@@ -549,13 +550,12 @@ export class LegoNxt {
     }
 
     if (isNumber) {
-      if (data.length !== 4) return null; // invalid number format
+      if (data.length !== 4) return null;
       const buf = new Uint8Array(data).buffer;
       const view = new DataView(buf);
-      return view.getFloat32(0, true); // little-endian
+      return view.getFloat32(0, true);
     }
 
-    // TEXT
     const dec = new TextDecoder();
     return dec.decode(new Uint8Array(data));
   }
