@@ -3499,6 +3499,56 @@ window.addEventListener("load", () => {
       "output": "Number",
       "colour": "#0040d6",
       "tooltip": "Returns the battery level of the NXT brick in mv"
+    },
+
+    {
+      "type": "nxt_message_write",
+      "message0": "%1 WRITE mailbox %2 number? %3 value %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "MAILBOX",
+          "check": "Number"
+        },
+        {
+          "type": "field_checkbox",
+          "name": "IS_NUMBER",
+          "checked": false
+        },
+        {
+          "type": "input_value",
+          "name": "VALUE",
+          "check": ["Number", "String"]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "NXT Write a value to the NXT mailbox (Default is Text, check Number? if you want to write a number)."
+    },
+
+    {
+      "type": "nxt_message_read",
+      "message0": "%1 READ mailbox %2 number? %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "MAILBOX",
+          "check": "Number"
+        },
+        {
+          "type": "field_checkbox",
+          "name": "IS_NUMBER",
+          "checked": false
+        }
+      ],
+      "inputsInline": true,
+      "output": ["Number", "String"],
+      "colour": "#0040d6",
+      "tooltip": "Returns the Message Read value from the NXT mailbox (Default is Text, check Number? if you want to read a number)."
     }
 
   ]);
@@ -4272,6 +4322,20 @@ Blockly.Blocks['Nxt_SoundFiles'] = {
     this.setTooltip("Returns a predefined constant value for NXT built-insound files.");
   }
 };
+
+Blockly.Blocks['Nxt_Mailbox'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["1", "0"], ["2", "1"], ["3", "2"], ["4","3"], ["5", "4"], ["6", "5"], ["7", "6"], ["8","7"], ["9", "8"], ["10","9"]
+      ]), "NXTMAILBOX");
+
+    this.setOutput(true, "Number");
+    this.setColour("#0040d6");
+    this.setTooltip("Returns a predefined constant value for NXT mailbox (Nxt 1-10 = PC 0-9 ).");
+  }
+};
+
 
 
 Blockly.Blocks['wedo1_portinp'] = {

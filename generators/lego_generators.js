@@ -768,7 +768,7 @@ javascriptGenerator.forBlock["Nxt_InpPort"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
-// ---------------- Lego NXT Input Port 1, 2, 3, 4 = 0, 1, 2, 3 ----------------
+// ---------------- Lego NXT Sensor types ----------------
 javascriptGenerator.forBlock["Nxt_SensorType"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('SENSORTYPE');
@@ -789,6 +789,15 @@ javascriptGenerator.forBlock["Nxt_SensorStdColor"] = function (block) {
   // Order.ATOMIC ensures the value is treated as a single unit in math expressions
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
+
+// ---------------- Lego NXT Mailbox 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ----------------
+javascriptGenerator.forBlock["Nxt_Mailbox"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('NXTMAILBOX');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 
 javascriptGenerator.forBlock["nxt_mot_pow"] = function (block) {
   
@@ -1106,6 +1115,62 @@ javascriptGenerator.forBlock["nxt_get_battery_level"] = function (block) {
 
   return [code, javascriptGenerator.ORDER_NONE];
 };
+
+javascriptGenerator.forBlock["nxt_message_read"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const mailbox   = javascriptGenerator.valueToCode(block, "MAILBOX", javascriptGenerator.ORDER_NONE) || "0";
+  const isNumber = block.getFieldValue("IS_NUMBER") === "TRUE" ? "true" : "false";
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").messageRead(${mailbox}, localInbox = 0, remove = true, isNumber = ${isNumber}))`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
+javascriptGenerator.forBlock["nxt_message_write"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  // Mailbox expression (Number)
+  const mailbox =
+    javascriptGenerator.valueToCode(block, "MAILBOX", javascriptGenerator.ORDER_NONE) || "0";
+
+  // Checkbox: TRUE/FALSE → boolean literal
+  const isNumber = block.getFieldValue("IS_NUMBER") === "TRUE";
+
+  // Raw VALUE expression (could be Number or String)
+  let valueCode =
+    javascriptGenerator.valueToCode(block, "VALUE", javascriptGenerator.ORDER_NONE) || '""';
+
+  // ---------------------------------------------------------
+  // If user checked "Number?" but VALUE is a string literal,
+  // convert it to a number safely.
+  //
+  // Example:
+  //   VALUE = "123"  →  Number("123")
+  //   VALUE = "Hello" → Number("Hello") → NaN (user error)
+  //
+  // This matches your requirement.
+  // ---------------------------------------------------------
+  if (isNumber) {
+    // Detect string literal: "something"
+    const isStringLiteral =
+      /^".*"$/.test(valueCode) || /^'.*'$/.test(valueCode);
+
+    if (isStringLiteral) {
+      // Wrap string literal in Number("...")
+      valueCode = `Number(${valueCode})`;
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Generate final JS code
+  // ---------------------------------------------------------
+  const code =
+    `await deviceManager.getDeviceByName("${dev}").messageWrite(${mailbox}, ${valueCode}, ${isNumber});\n`;
+
+  return code;
+};
+
 
 
 

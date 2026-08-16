@@ -1448,7 +1448,43 @@ const toolbox = {
             },
             {"kind": "block", "type": "nxt_get_battery_level" }
           ]
-        }
+        },
+        { "kind": "category", "name": "Messages", "colour": "#0040d6", "contents": [
+            { "kind": "block", "type": "Nxt_Mailbox" },
+            {
+              "kind": "block",
+              "type": "nxt_message_write",
+              "inputs": {
+                "MAILBOX": {
+                  "shadow": {
+                    "type": "Nxt_Mailbox",
+                    "fields": { "NXTMAILBOX": "0" }
+                  }
+                },
+                "VALUE": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": { "TEXT": "Hello, NXT!" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "nxt_message_read",
+              "inputs": {
+                "MAILBOX": {
+                  "shadow": {
+                    "type": "Nxt_Mailbox",
+                    "fields": { "NXTMAILBOX": "0" }
+                  }
+                }
+                
+              }
+            }
+          ]
+        }        
       ]
     },
     {"kind": "category", "name": "WeDo 1.0", "colour": 40, "contents": [
