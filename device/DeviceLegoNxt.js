@@ -468,15 +468,29 @@ export class LegoNxt {
   }
 
   // 0x09 MessageWrite (no response)
-  async messageWrite(inbox, text) {
-    const enc = new TextEncoder();
-    const bytes = enc.encode(text + "\0");
+  async messageWrite(inbox, value, isNumber = false) {
+    let bytes;
+
+    if (isNumber) {
+      // Float32 LE + null terminator
+      const buf = new ArrayBuffer(4);
+      const view = new DataView(buf);
+      view.setFloat32(0, value, true); // little-endian
+      bytes = [...new Uint8Array(buf), 0x00];
+    } else {
+      // ASCII text + null terminator
+      const enc = new TextEncoder();
+      bytes = [...enc.encode(value), 0x00];
+    }
+
     const size = Math.min(bytes.length, 59);
+
     const payload = [
       inbox & 0xFF,
       size & 0xFF,
-      ...Array.from(bytes.slice(0, size))
+      ...bytes.slice(0, size)
     ];
+
     await this._sendCommand(0x09, payload, false);
   }
 
@@ -514,21 +528,36 @@ export class LegoNxt {
   }
 
   // 0x13 MessageRead (response required)
-  async messageRead(remoteInbox, localInbox, remove = true) {
+  async messageRead(remoteInbox, localInbox = 0, remove = true, isNumber = false) {
     const payload = [
-      remoteInbox & 0xFF,
+      (remoteInbox + 10) & 0xFF,   // NXT-G mailbox → PC remote inbox
       localInbox & 0xFF,
       remove ? 1 : 0
     ];
+
     const reply = await this._sendCommand(0x13, payload, true);
     if (!reply) return null;
 
-    const inbox = reply[3];
     const size = reply[4];
+    if (size === 0) return null;
+
     const data = reply.slice(5, 5 + size);
+
+    // Remove trailing null
+    if (data[data.length - 1] === 0) {
+      data.pop();
+    }
+
+    if (isNumber) {
+      if (data.length !== 4) return null; // invalid number format
+      const buf = new Uint8Array(data).buffer;
+      const view = new DataView(buf);
+      return view.getFloat32(0, true); // little-endian
+    }
+
+    // TEXT
     const dec = new TextDecoder();
-    const text = dec.decode(data).replace(/\0.*$/, "");
-    return { inbox, text };
+    return dec.decode(new Uint8Array(data));
   }
 
   async lsTransaction(port, txBytes, rxLength) {
