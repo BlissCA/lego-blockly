@@ -13,7 +13,7 @@ const SBRICK_REMOTE_CONTROL_SERVICE_UUID =
 
 // Remote Control Commands Characteristic
 const SBRICK_REMOTE_CONTROL_CHAR_UUID =
-  "2b8cbcc0-0e25-4bda-8790-a15f53e6010f";
+  "02b8cbcc-0e25-4bda-8790-a15f53e6010f";
 
 // Quick Drive Characteristic (notifications)
 const SBRICK_QUICK_DRIVE_CHAR_UUID =
