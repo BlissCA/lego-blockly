@@ -11,6 +11,7 @@ import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
 import { LegoToyPad } from './DeviceLegoToyPad.js';
+import { SBrick } from './DeviceSBrick.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -313,7 +314,6 @@ export class DeviceManager {
   // Connect LEGO WeDo 2.0
   // -------------------------
 
-
   async connectLegoWeDo2() {
     const dev = new LegoWeDo2(null, this);
 
@@ -389,6 +389,28 @@ export class DeviceManager {
       return null;
     }
   }
+
+
+  // -------------------------
+  // Connect SBrick
+  // -------------------------
+
+  async connectSBrick() {
+    const dev = new SBrick(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, SBrick logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("SBrick Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+  
 
   // -------------------------
   // Disconnect All
