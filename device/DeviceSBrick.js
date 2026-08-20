@@ -362,59 +362,70 @@ export class SBrick {
   // -------------------------------------------------------------------------
   // Quick Drive Notification Handler
   // -------------------------------------------------------------------------
-  _onQuickDriveNotification(event) {
-    const value = event.target.value;
-    const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+_onQuickDriveNotification(event) {
+  const value = event.target.value;
+  const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
-    // SBrick notifications contain multiple "records":
-    // [len][type][payload...] [len][type][payload...] ...
-    let offset = 0;
+  // SBrick notifications contain multiple "records":
+  // [len][type][payload...] [len][type][payload...] ...
+  let offset = 0;
 
-    while (offset < data.length) {
-      const len = data[offset];
-      if (len === 0 || offset + 1 + len > data.length) break;
+  while (offset < data.length) {
+    const len = data[offset];
 
-      const type = data[offset + 1];
-      const record = data.slice(offset + 1, offset + 1 + len);
+    // Length is number of bytes AFTER the length byte
+    if (len === 0 || offset + 1 + len > data.length) break;
 
-      switch (type) {
-        // ---------------------------------------------------------------
-        // 0x00 — Product Type (hardware + firmware + product ID)
-        // ---------------------------------------------------------------
-        case 0x00: {
-          // record = [0x00, productId, hwMajor, hwMinor, fwMajor, fwMinor]
-          if (record.length >= 6) {
-            this.productId = record[1]; // 00 = SBrick, 01 = SBrick Light
-            this.hwVersion = { major: record[2], minor: record[3] };
-            this.fwVersion = { major: record[4], minor: record[5] };
+    const type = data[offset + 1];
+    const payloadLength = len - 1; // subtract type byte
+    const payloadStart = offset + 2;
+    const payloadEnd = payloadStart + payloadLength;
 
-            this.isLight = (this.productId === 0x01);
+    if (payloadEnd > data.length) break;
 
-            this.log(
-              `Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
-              `(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
-              `FW ${this.fwVersion.major}.${this.fwVersion.minor})`
-            );
-          }
-          break;
+    const payload = data.slice(payloadStart, payloadEnd);
+
+    switch (type) {
+      // ---------------------------------------------------------------
+      // 0x00 — Product Type (hardware + firmware + product ID)
+      // ---------------------------------------------------------------
+      case 0x00: {
+        // payload = [productId, hwMajor, hwMinor, fwMajor, fwMinor]
+        if (payload.length >= 5) {
+          this.productId = payload[0]; // 00 = SBrick, 01 = SBrick Light
+          this.hwVersion = { major: payload[1], minor: payload[2] };
+          this.fwVersion = { major: payload[3], minor: payload[4] };
+
+          this.isLight = (this.productId === 0x01);
+
+          this.log(
+            `Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
+            `(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
+            `FW ${this.fwVersion.major}.${this.fwVersion.minor})`
+          );
         }
+        break;
+      }
 
-        // ---------------------------------------------------------------
-        // 0x02 — Device Identifier (6 bytes)
-        // ---------------------------------------------------------------
-        case 0x02: {
-          const idBytes = record.slice(1);
-          this.deviceId = hex(idBytes);
-          this.log(`Device ID → ${this.deviceId}`);
-          break;
-        }
+      // ---------------------------------------------------------------
+      // 0x02 — Device Identifier (6 bytes)
+      // ---------------------------------------------------------------
+      case 0x02: {
+        // payload = 6-byte ID
+        const idBytes = payload;
+        this.deviceId = hex(idBytes);
+        this.log(`Device ID → ${this.deviceId}`);
+        break;
+      }
 
-        // ---------------------------------------------------------------
-        // 0x04 — Command Response
-        // ---------------------------------------------------------------
-        case 0x04: {
-          const returnCode = record[1];
-          const returnValue = record.slice(2);
+      // ---------------------------------------------------------------
+      // 0x04 — Command Response
+      // ---------------------------------------------------------------
+      case 0x04: {
+        // payload = [returnCode, returnValue...]
+        if (payload.length >= 1) {
+          const returnCode = payload[0];
+          const returnValue = payload.slice(1);
 
           if (this.pendingResponse) {
             const { resolve, reject } = this.pendingResponse;
@@ -426,74 +437,75 @@ export class SBrick {
               reject(new Error(`SBrick error 0x${returnCode.toString(16)}`));
             }
           }
-          break;
         }
+        break;
+      }
 
-        // ---------------------------------------------------------------
-        // 0x05 — Thermal Protection Status
-        // ---------------------------------------------------------------
-        case 0x05: {
-          const status = record[1]; // 0 = OK, 1 = Over limit
+      // ---------------------------------------------------------------
+      // 0x05 — Thermal Protection Status
+      // ---------------------------------------------------------------
+      case 0x05: {
+        // payload = [status]
+        if (payload.length >= 1) {
+          const status = payload[0]; // 0 = OK, 1 = Over limit
           this.thermalProtectionActive = (status === 1);
           this.log(
             `Thermal Protection → ${this.thermalProtectionActive ? "ACTIVE" : "OK"}`
           );
-          break;
         }
-
-        // ---------------------------------------------------------------
-        // 0x06 — Voltage Measurement (ADC)
-        // ---------------------------------------------------------------
-        case 0x06: {
-          // record = [0x06, measurement bytes...]
-          const payload = record.slice(1);
-
-          // Each measurement is 2 bytes:
-          // upper 12 bits = ADC value
-          // lower 4 bits = channel number
-          const measurements = [];
-
-          for (let i = 0; i < payload.length; i += 2) {
-            const raw = (payload[i] << 8) | payload[i + 1];
-            const adc = raw >> 4;
-            const channel = raw & 0x0F;
-            measurements.push({ adc, channel });
-          }
-
-          this.lastVoltageMeasurements = measurements;
-
-          // Auto voltage + temperature extraction
-          for (const m of measurements) {
-            if (m.channel === 8) {
-              this.lastVoltage = this._convertVoltage(m.adc);
-            }
-            if (m.channel === 9) {
-              this.lastTemperature = this._convertTemperature(m.adc);
-            }
-          }
-
-          break;
-        }
-
-        // ---------------------------------------------------------------
-        // 0x07 — Signal Completed
-        // ---------------------------------------------------------------
-        case 0x07: {
-          this.log("Signal Completed");
-          if (this.onSignalCompleted) {
-            this.onSignalCompleted();
-          }
-          break;
-        }
-
-        default:
-          // Unknown or unused record type
-          break;
+        break;
       }
 
-      offset += 1 + len;
+      // ---------------------------------------------------------------
+      // 0x06 — Voltage Measurement (ADC)
+      // ---------------------------------------------------------------
+      case 0x06: {
+        // payload = measurement bytes...
+        const measurements = [];
+
+        for (let i = 0; i + 1 < payload.length; i += 2) {
+          const raw = (payload[i] << 8) | payload[i + 1];
+          const adc = raw >> 4;
+          const channel = raw & 0x0F;
+          measurements.push({ adc, channel });
+        }
+
+        this.lastVoltageMeasurements = measurements;
+
+        // Auto voltage + temperature extraction
+        for (const m of measurements) {
+          if (m.channel === 8) {
+            this.lastVoltage = this._convertVoltage(m.adc);
+          }
+          if (m.channel === 9) {
+            this.lastTemperature = this._convertTemperature(m.adc);
+          }
+        }
+
+        break;
+      }
+
+      // ---------------------------------------------------------------
+      // 0x07 — Signal Completed
+      // ---------------------------------------------------------------
+      case 0x07: {
+        this.log("Signal Completed");
+        if (this.onSignalCompleted) {
+          this.onSignalCompleted();
+        }
+        break;
+      }
+
+      default:
+        // Unknown or unused record type
+        break;
     }
+
+    // Advance to next record: length byte + len bytes (type + payload)
+    offset += 1 + len;
   }
+}
+
 
   // -------------------------------------------------------------------------
   // Voltage conversion (auto-detect SBrick vs SBrick Light)
