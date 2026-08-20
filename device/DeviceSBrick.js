@@ -106,7 +106,7 @@ export class SBrick {
 
     // Keepalive
     this.keepAliveTimer = null;
-    this.keepAliveIntervalMs = 5000;
+    this.keepAliveIntervalMs = 300; // Send keepalive every 300ms
 
     // Bind notification handlers
     this._onQuickDriveNotification =
@@ -335,6 +335,12 @@ export class SBrick {
 
     // Write command
     await this._writeRemote(bytes);
+		
+		// Reset keepalive timer
+		if (this.keepAliveTimer) {
+			clearInterval(this.keepAliveTimer);
+			this._startKeepAlive();
+		}
 
     // No response expected → done
     if (!expectResponse) return null;
