@@ -718,13 +718,13 @@ export class SBrick {
 
 
   // -------------------------------------------------------------------------
-  // Read raw ADC value from a specific channel (command 0x10)
+  // Read raw ADC value from a specific channel (command 0x0F)
   // Returns: { adc, channel }
   // -------------------------------------------------------------------------
   async readAdc(channel) {
     const ch = normalizeChannel(channel);
 
-    const resp = await this._sendCommand(0x10, [ch], true);
+    const resp = await this._sendCommand(0x0F, [ch], true);
 
     if (!resp || resp.length < 2) {
       this.log(`readAdc: invalid response for ch=${ch}`);
