@@ -3,6 +3,19 @@
 // High-level API + low-level protocol + OTA + notifications + queueing
 // Architecture identical to LegoWeDo2.js
 
+class AsyncQueue {
+  constructor() {
+    this._chain = Promise.resolve();
+  }
+
+  add(task) {
+    // Chain the task after the previous one
+    this._chain = this._chain.then(() => task());
+    return this._chain;
+  }
+}
+
+
 // ---------------------------------------------------------------------------
 // UUIDs (from SBrick BLE Protocol Revision 26)
 // ---------------------------------------------------------------------------
@@ -94,6 +107,8 @@ export class SBrick {
     // Command queue (same architecture as LegoWeDo2)
     this.queueActive = true;
     this.commandQueue = Promise.resolve();
+
+		this.queue = new AsyncQueue();
 
     // Hardware detection
     this.productId = null;     // 0x00 = SBrick, 0x01 = SBrick Light
@@ -331,8 +346,8 @@ export class SBrick {
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
 		const bytes = new Uint8Array([opcode, ...payload]);
 
-		// Write command
-		await this._writeRemote(bytes);
+		// Queue the write
+		await this.queue.add(() => this._writeRemote(bytes));
 
 		// Reset keepalive timer
 		if (this.keepAliveTimer) {
@@ -340,15 +355,13 @@ export class SBrick {
 			this._startKeepAlive();
 		}
 
-		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Mandatory delay — SBrick firmware requires this
-		await new Promise(resolve => setTimeout(resolve, 20));
-
-		// Read back from Remote Control characteristic
-		const value = await this.remoteChar.readValue();
-		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+		// Queue the read (separate task → natural delay)
+		const data = await this.queue.add(async () => {
+			const value = await this.remoteChar.readValue();
+			return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+		});
 
 		const returnCode = data[0];
 		if (returnCode !== 0x00) {
