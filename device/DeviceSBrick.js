@@ -340,13 +340,13 @@ export class SBrick {
 
 	// -------------------------------------------------------------------------
 	// Send a protocol command (opcode + payload)
-	// SBrick.js-style: write → read same characteristic for response
+	// SBrick.js-style: write → read using queued BLE operations
 	// Return only payload (strip returnCode) so existing functions work unchanged
 	// -------------------------------------------------------------------------
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
 		const bytes = new Uint8Array([opcode, ...payload]);
 
-		// Queue the write
+		// Queue the write (ensures natural spacing)
 		await this.queue.add(() => this._writeRemote(bytes));
 
 		// Reset keepalive timer
@@ -355,20 +355,27 @@ export class SBrick {
 			this._startKeepAlive();
 		}
 
+		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Queue the read (separate task → natural delay)
-		const data = await this.queue.add(async () => {
+		// Queue the read (separate queued task → spacing like SBrick.js)
+		const dv = await this.queue.add(async () => {
 			const value = await this.remoteChar.readValue();
-			return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+
+			// Chrome 50+ returns DataView; older versions return ArrayBuffer
+			return value.buffer ? value : new DataView(value);
 		});
 
+		// Convert DataView → Uint8Array for your existing command functions
+		const data = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+
+		// First byte = returnCode (SBrick command response format)
 		const returnCode = data[0];
 		if (returnCode !== 0x00) {
 			throw new Error(`SBrick command error 0x${returnCode.toString(16)}`);
 		}
 
-		// Return payload only
+		// Return ONLY the payload (your existing functions expect this)
 		return data.slice(1);
 	}
 
