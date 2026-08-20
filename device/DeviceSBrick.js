@@ -95,9 +95,6 @@ export class SBrick {
     this.queueActive = true;
     this.commandQueue = Promise.resolve();
 
-    // Pending response for command 0x04 notifications
-    this.pendingResponse = null;
-
     // Hardware detection
     this.productId = null;     // 0x00 = SBrick, 0x01 = SBrick Light
     this.hwVersion = { major: 0, minor: 0 };
@@ -326,15 +323,15 @@ export class SBrick {
     });
   }
 
-  // -------------------------------------------------------------------------
-  // Send a protocol command (opcode + payload)
-  // expectResponse = true → wait for 0x04 Command Response record
-  // -------------------------------------------------------------------------
-  async _sendCommand(opcode, payload = [], expectResponse = false) {
-    const bytes = new Uint8Array([opcode, ...payload]);
+	// -------------------------------------------------------------------------
+	// Send a protocol command (opcode + payload)
+	// SBrick.js-style: write → read same characteristic for response
+	// -------------------------------------------------------------------------
+	async _sendCommand(opcode, payload = [], expectResponse = false) {
+		const bytes = new Uint8Array([opcode, ...payload]);
 
-    // Write command
-    await this._writeRemote(bytes);
+		// Write command
+		await this._writeRemote(bytes);
 
 		// Reset keepalive timer
 		if (this.keepAliveTimer) {
@@ -342,22 +339,21 @@ export class SBrick {
 			this._startKeepAlive();
 		}
 
-    // No response expected → done
-    if (!expectResponse) return null;
+		// No response expected → done
+		if (!expectResponse) return null;
 
-    // Response expected → wait for Quick Drive notification
-    return new Promise((resolve, reject) => {
-      this.pendingResponse = { resolve, reject, opcode };
+		// Response expected → read back from Remote Control characteristic
+		if (!this.remoteChar) {
+			throw new Error("Remote control characteristic not available");
+		}
 
-      // Timeout protection
-      setTimeout(() => {
-        if (this.pendingResponse) {
-          this.pendingResponse = null;
-          reject(new Error(`SBrick command timeout (opcode 0x${opcode.toString(16)})`));
-        }
-      }, 1000);
-    });
-  }
+		const value = await this.remoteChar.readValue();
+		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+
+		// Return raw bytes to caller (caller interprets them)
+		return data;
+	}
+
  
   // -------------------------------------------------------------------------
   // Quick Drive Notification Handler
@@ -418,28 +414,23 @@ _onQuickDriveNotification(event) {
         break;
       }
 
-      // ---------------------------------------------------------------
-      // 0x04 — Command Response
-      // ---------------------------------------------------------------
-      case 0x04: {
-        // payload = [returnCode, returnValue...]
-        if (payload.length >= 1) {
-          const returnCode = payload[0];
-          const returnValue = payload.slice(1);
-
-          if (this.pendingResponse) {
-            const { resolve, reject } = this.pendingResponse;
-            this.pendingResponse = null;
-
-            if (returnCode === 0x00) {
-              resolve(returnValue);
-            } else {
-              reject(new Error(`SBrick error 0x${returnCode.toString(16)}`));
-            }
-          }
-        }
-        break;
-      }
+			// ---------------------------------------------------------------
+			// 0x04 — Command Response (optional notifications)
+			// ---------------------------------------------------------------
+			case 0x04: {
+				// payload = [returnCode, returnValue...]
+				// We no longer rely on this for command responses,
+				// but we can still log it for debugging.
+				if (payload.length >= 1) {
+					const returnCode = payload[0];
+					const returnValue = payload.slice(1);
+					this.log(
+						`Command Response notif: rc=0x${returnCode.toString(16)}, ` +
+						`len=${returnValue.length}`
+					);
+				}
+				break;
+			}
 
       // ---------------------------------------------------------------
       // 0x05 — Thermal Protection Status
@@ -1209,39 +1200,39 @@ _onQuickDriveNotification(event) {
   }
 
 
-  // -------------------------------------------------------------------------
-  // Start keepalive timer
-  // Reads uptime every 5 seconds using command 0x29
-  // If it fails → assume disconnect
-  // -------------------------------------------------------------------------
-  _startKeepAlive() {
-    if (this.keepAliveTimer) {
-      clearInterval(this.keepAliveTimer);
-    }
+	// -------------------------------------------------------------------------
+	// Start keepalive timer
+	// Uses readVoltage() (ADC 0x0F) as a ping
+	// -------------------------------------------------------------------------
+	_startKeepAlive() {
+		if (this.keepAliveTimer) {
+			clearInterval(this.keepAliveTimer);
+		}
 
-    this.keepAliveTimer = setInterval(async () => {
-      if (!this.isConnected || !this.queueActive) return;
+		this.keepAliveTimer = setInterval(async () => {
+			if (!this.isConnected || !this.queueActive) return;
 
-      try {
-        // Command 0x29 returns watchdog timeout, but also acts as a ping
-        await this._sendCommand(0x0F, [8], true); // Query ADC channel 8 (voltage)
-        this.log("keepalive: OK");
-      } catch (err) {
-        this.log("keepalive: FAILED → device lost");
-        clearInterval(this.keepAliveTimer);
-        this.keepAliveTimer = null;
+			try {
+				// ADC query uses write→read and acts as a ping
+				await this.readVoltage();
+				this.log("keepalive: OK");
+			} catch (err) {
+				this.log("keepalive: FAILED → device lost");
+				clearInterval(this.keepAliveTimer);
+				this.keepAliveTimer = null;
 
-        this.isConnected = false;
-        this.setStatus("disconnected", "Keepalive failed");
+				this.isConnected = false;
+				this.setStatus("disconnected", "Keepalive failed");
 
-        // Notify manager
-        this.manager?.handleDeviceLost?.(this);
+				// Notify manager
+				this.manager?.handleDeviceLost?.(this);
 
-        // Force disconnect
-        await this.forceDisconnect();
-      }
-    }, this.keepAliveIntervalMs);
-  }
+				// Force disconnect
+				await this.forceDisconnect();
+			}
+		}, this.keepAliveIntervalMs);
+	}
+
 
   // -------------------------------------------------------------------------
   // Stop keepalive timer
