@@ -326,6 +326,7 @@ export class SBrick {
 	// -------------------------------------------------------------------------
 	// Send a protocol command (opcode + payload)
 	// SBrick.js-style: write → read same characteristic for response
+	// Return only payload (strip returnCode) so existing functions work unchanged
 	// -------------------------------------------------------------------------
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
 		const bytes = new Uint8Array([opcode, ...payload]);
@@ -350,8 +351,15 @@ export class SBrick {
 		const value = await this.remoteChar.readValue();
 		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
-		// Return raw bytes to caller (caller interprets them)
-		return data;
+		// data[0] = returnCode
+		const returnCode = data[0];
+
+		if (returnCode !== 0x00) {
+			throw new Error(`SBrick command error 0x${returnCode.toString(16)}`);
+		}
+
+		// Return ONLY the payload (strip returnCode)
+		return data.slice(1);
 	}
 
  
