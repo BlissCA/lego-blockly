@@ -287,47 +287,79 @@ export class SBrick {
   // -------------------------------------------------------------------------
   // Disconnect — identical architecture to LegoWeDo2
   // -------------------------------------------------------------------------
-  async disconnect() {
-    try {
-      this.queueActive = false;
+	async disconnect() {
+		try {
+			// Stop keepalive first
+			this._stopKeepAlive();
 
-      if (this.quickDriveChar) {
-        this.quickDriveChar.removeEventListener(
-          "characteristicvaluechanged",
-          this._onQuickDriveNotification
-        );
-      }
+			// Stop queue
+			this.queueActive = false;
 
-      if (this.server && this.server.connected) {
-        await this.server.disconnect();
-      }
+			// Remove QuickDrive notifications
+			if (this.quickDriveChar) {
+				this.quickDriveChar.removeEventListener(
+					"characteristicvaluechanged",
+					this._onQuickDriveNotification
+				);
+			}
 
-      this.isConnected = false;
-      this.setStatus("disconnected", "Disconnected");
-      this.log("Disconnected cleanly.");
-    } catch (err) {
-      this.log("Disconnect error: " + (err?.message || err));
-    }
-  }
+			// Disconnect BLE server
+			if (this.server && this.server.connected) {
+				await this.server.disconnect();
+			}
+
+			// Base class cleanup (if any)
+			if (super.disconnect) {
+				await super.disconnect();
+			}
+
+			// Update state
+			this.isConnected = false;
+			this.setStatus("disconnected", "Disconnected");
+			this.log("Disconnected cleanly.");
+		} catch (err) {
+			this.log("Disconnect error: " + (err?.message || err));
+		}
+	}
+
 
   // -------------------------------------------------------------------------
   // Force Disconnect — identical architecture to LegoWeDo2
   // -------------------------------------------------------------------------
-  async forceDisconnect() {
-    try {
-      this.queueActive = false;
+	async forceDisconnect() {
+		try {
+			// Stop keepalive first
+			this._stopKeepAlive();
 
-      if (this.device && this.device.gatt.connected) {
-        this.device.gatt.disconnect();
-      }
+			// Stop queue
+			this.queueActive = false;
 
-      this.isConnected = false;
-      this.setStatus("disconnected", "Force disconnected");
-      this.log("Force disconnect executed.");
-    } catch (err) {
-      this.log("Force disconnect error: " + (err?.message || err));
-    }
-  }
+			// Remove QuickDrive notifications
+			if (this.quickDriveChar) {
+				this.quickDriveChar.removeEventListener(
+					"characteristicvaluechanged",
+					this._onQuickDriveNotification
+				);
+			}
+
+			// Force BLE disconnect
+			if (this.device && this.device.gatt.connected) {
+				this.device.gatt.disconnect();
+			}
+
+			// Base class cleanup (if any)
+			if (super.forceDisconnect) {
+				await super.forceDisconnect();
+			}
+
+			// Update state
+			this.isConnected = false;
+			this.setStatus("disconnected", "Force disconnected");
+			this.log("Force disconnect executed.");
+		} catch (err) {
+			this.log("Force disconnect error: " + (err?.message || err));
+		}
+	}
 
   // -------------------------------------------------------------------------
   // Queueing system — identical architecture to LegoWeDo2
@@ -776,11 +808,11 @@ export class SBrick {
       return { adc: 0, channel: ch };
     }
 
-    const raw = (resp[0] << 8) | resp[1];
+    const raw = (resp[1] << 8) | resp[0];
     const adc = raw >> 4;
     const chan = raw & 0x0F;
 
-    this.log(`readAdc: ch=${chan}, adc=${adc}`);
+    this.log(`readAdc: ch=${chan}, adc=${adc}, raw=0x${raw.toString(16)}, cmd response: ${hex(resp)}, length=${resp.length}`);
     return { adc, channel: chan };
   }
 
@@ -1279,23 +1311,5 @@ export class SBrick {
       this.keepAliveTimer = null;
     }
   }
-
-  // -------------------------------------------------------------------------
-  // Override disconnect to stop keepalive
-  // -------------------------------------------------------------------------
-  async disconnect() {
-    this._stopKeepAlive();
-    return await super.disconnect?.();
-  }
-
-  // -------------------------------------------------------------------------
-  // Override forceDisconnect to stop keepalive
-  // -------------------------------------------------------------------------
-  async forceDisconnect() {
-    this._stopKeepAlive();
-    return await super.forceDisconnect?.();
-  }
-
-
 
 }
