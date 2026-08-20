@@ -335,7 +335,7 @@ export class SBrick {
 
     // Write command
     await this._writeRemote(bytes);
-		
+
 		// Reset keepalive timer
 		if (this.keepAliveTimer) {
 			clearInterval(this.keepAliveTimer);
@@ -803,124 +803,7 @@ export class SBrick {
   }
 
 
-  // -------------------------------------------------------------------------
-  // Authenticate as OWNER (command 0x20)
-  // Password must be 4 bytes
-  // -------------------------------------------------------------------------
-  async authenticateOwner(password) {
-    const bytes = this._normalizePassword(password);
-    const resp = await this._sendCommand(0x20, bytes, true);
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`authenticateOwner: ${ok ? "OK" : "FAILED"}`);
-    return ok;
-  }
-
-  // -------------------------------------------------------------------------
-  // Authenticate as GUEST (command 0x21)
-  // Password must be 4 bytes
-  // -------------------------------------------------------------------------
-  async authenticateGuest(password) {
-    const bytes = this._normalizePassword(password);
-    const resp = await this._sendCommand(0x21, bytes, true);
-
-    const ok = resp && resp[0] === 0x00;
-    this.log(`authenticateGuest: ${ok ? "OK" : "FAILED"}`);
-    return ok;
-  }
-
-  // -------------------------------------------------------------------------
-  // Set password (command 0x22)
-  // Password must be 4 bytes
-  // -------------------------------------------------------------------------
-  async setPassword(password) {
-    const bytes = this._normalizePassword(password);
-    const resp = await this._sendCommand(0x22, bytes, true);
-
-    const ok = resp && resp[0] === 0x00;
-    this.log(`setPassword: ${ok ? "OK" : "FAILED"}`);
-    return ok;
-  }
-
-  // -------------------------------------------------------------------------
-  // Clear password (command 0x23)
-  // -------------------------------------------------------------------------
-  async clearPassword() {
-    const resp = await this._sendCommand(0x23, [], true);
-
-    const ok = resp && resp[0] === 0x00;
-    this.log(`clearPassword: ${ok ? "OK" : "FAILED"}`);
-    return ok;
-  }
-
-  // -------------------------------------------------------------------------
-  // Set authentication timeout (command 0x24)
-  // timeoutSec: 0–255 seconds
-  // -------------------------------------------------------------------------
-  async setAuthTimeout(timeoutSec = 30) {
-    const t = clamp(timeoutSec, 0, 255);
-    const resp = await this._sendCommand(0x24, [t], true);
-
-    const ok = resp && resp[0] === 0x00;
-    this.log(`setAuthTimeout: ${ok ? "OK" : "FAILED"} (${t}s)`);
-    return ok;
-  }
-
-  // -------------------------------------------------------------------------
-  // Get authentication timeout (command 0x25)
-  // Returns timeout in seconds
-  // -------------------------------------------------------------------------
-  async getAuthTimeout() {
-    const resp = await this._sendCommand(0x25, [], true);
-
-    if (!resp || resp.length < 1) {
-      this.log("getAuthTimeout: invalid response");
-      return 0;
-    }
-
-    const timeout = resp[0];
-    this.log(`getAuthTimeout: ${timeout}s`);
-    return timeout;
-  }
-
-  // -------------------------------------------------------------------------
-  // Query authentication state (command 0x26)
-  // Returns:
-  //   0 = no authentication required
-  //   1 = guest authenticated
-  //   2 = owner authenticated
-  // -------------------------------------------------------------------------
-  async getAuthState() {
-    const resp = await this._sendCommand(0x26, [], true);
-
-    if (!resp || resp.length < 1) {
-      this.log("getAuthState: invalid response");
-      return 0;
-    }
-
-    const state = resp[0];
-    this.log(`getAuthState: ${state}`);
-    return state;
-  }
-
-  // -------------------------------------------------------------------------
-  // Query password state (command 0x27)
-  // Returns:
-  //   0 = no password set
-  //   1 = password set
-  // -------------------------------------------------------------------------
-  async getPasswordState() {
-    const resp = await this._sendCommand(0x27, [], true);
-
-    if (!resp || resp.length < 1) {
-      this.log("getPasswordState: invalid response");
-      return 0;
-    }
-
-    const state = resp[0];
-    this.log(`getPasswordState: ${state}`);
-    return state;
-  }
 
   // -------------------------------------------------------------------------
   // Helper: normalize password to 4 bytes
@@ -944,284 +827,288 @@ export class SBrick {
     return [0, 0, 0, 0];
   }
 
+	// -------------------------------------------------------------------------
+	// Authenticate (command 0x05)
+	// userId: 0x00 = owner, 0x01 = guest
+	// password: 4 bytes
+	// -------------------------------------------------------------------------
+	async authenticate(userId, password) {
+		const bytes = this._normalizePassword(password);
+		const payload = [userId, ...bytes];
+		const resp = await this._sendCommand(0x05, payload, true);
 
-  // -------------------------------------------------------------------------
-  // Get Brick ID (6-byte unique identifier)
-  // Already parsed from notification type 0x02
-  // -------------------------------------------------------------------------
-  async getBrickId() {
-    // If already known, return immediately
-    if (this.deviceId) {
-      this.log(`getBrickId: ${this.deviceId}`);
-      return this.deviceId;
-    }
+		const ok = resp && resp[0] === 0x00;
+		this.log(`authenticate(${userId}): ${ok ? "OK" : "FAILED"}`);
+		return ok;
+	}
 
-    // Otherwise request it explicitly (command 0x02)
-    const resp = await this._sendCommand(0x02, [], true);
+	async authenticateOwner(password) {
+		return await this.authenticate(0x00, password);
+	}
 
-    if (!resp || resp.length < 6) {
-      this.log("getBrickId: invalid response");
-      return null;
-    }
+	async authenticateGuest(password) {
+		return await this.authenticate(0x01, password);
+	}
 
-    const idBytes = resp.slice(0, 6);
-    this.deviceId = hex(idBytes);
+	// -------------------------------------------------------------------------
+	// Clear password (command 0x06)
+	// type: 0 = clear owner+guest, 1 = clear guest only
+	// -------------------------------------------------------------------------
+	async clearPassword(type = 0) {
+		const resp = await this._sendCommand(0x06, [type], true);
 
-    this.log(`getBrickId: ${this.deviceId}`);
-    return this.deviceId;
-  }
+		const ok = resp && resp[0] === 0x00;
+		this.log(`clearPassword(${type}): ${ok ? "OK" : "FAILED"}`);
+		return ok;
+	}
 
-  // -------------------------------------------------------------------------
-  // Get firmware version (from Product Type record 0x00)
-  // Returns: { major, minor }
-  // -------------------------------------------------------------------------
-  async getFirmwareVersion() {
-    // If already detected from notifications
-    if (this.fwVersion.major || this.fwVersion.minor) {
-      this.log(
-        `getFirmwareVersion: ${this.fwVersion.major}.${this.fwVersion.minor}`
-      );
-      return this.fwVersion;
-    }
+	// -------------------------------------------------------------------------
+	// Set password (command 0x07)
+	// userId: 0x00 = owner, 0x01 = guest
+	// password: 4 bytes
+	// -------------------------------------------------------------------------
+	async setPassword(userId, password) {
+		const bytes = this._normalizePassword(password);
+		const payload = [userId, ...bytes];
+		const resp = await this._sendCommand(0x07, payload, true);
 
-    // Force a product type query (command 0x00)
-    const resp = await this._sendCommand(0x00, [], true);
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setPassword(${userId}): ${ok ? "OK" : "FAILED"}`);
+		return ok;
+	}
 
-    if (!resp || resp.length < 6) {
-      this.log("getFirmwareVersion: invalid response");
-      return { major: 0, minor: 0 };
-    }
+	// -------------------------------------------------------------------------
+	// Set authentication timeout (command 0x08)
+	// duration = N * 0.1 seconds
+	// -------------------------------------------------------------------------
+	async setAuthTimeout(ticks = 30) {
+		const t = clamp(ticks, 1, 255);
+		const resp = await this._sendCommand(0x08, [t], true);
 
-    this.productId = resp[1];
-    this.hwVersion = { major: resp[2], minor: resp[3] };
-    this.fwVersion = { major: resp[4], minor: resp[5] };
-    this.isLight = (this.productId === 0x01);
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setAuthTimeout: ${ok ? "OK" : "FAILED"} (${t * 0.1}s)`);
+		return ok;
+	}
 
-    this.log(
-      `getFirmwareVersion: ${this.fwVersion.major}.${this.fwVersion.minor}`
-    );
-    return this.fwVersion;
-  }
+	// -------------------------------------------------------------------------
+	// Get authentication timeout (command 0x09)
+	// returns ticks (0.1 sec units)
+	// -------------------------------------------------------------------------
+	async getAuthTimeout() {
+		const resp = await this._sendCommand(0x09, [], true);
 
-  // -------------------------------------------------------------------------
-  // Get hardware version (from Product Type record 0x00)
-  // Returns: { major, minor }
-  // -------------------------------------------------------------------------
-  async getHardwareVersion() {
-    // If already known
-    if (this.hwVersion.major || this.hwVersion.minor) {
-      this.log(
-        `getHardwareVersion: ${this.hwVersion.major}.${this.hwVersion.minor}`
-      );
-      return this.hwVersion;
-    }
+		if (!resp || resp.length < 1) {
+			this.log("getAuthTimeout: invalid response");
+			return 0;
+		}
 
-    // Force a product type query
-    const resp = await this._sendCommand(0x00, [], true);
+		const ticks = resp[0];
+		this.log(`getAuthTimeout: ${ticks * 0.1}s`);
+		return ticks;
+	}
 
-    if (!resp || resp.length < 6) {
-      this.log("getHardwareVersion: invalid response");
-      return { major: 0, minor: 0 };
-    }
+	// -------------------------------------------------------------------------
+	// Need authentication? (command 0x02)
+	// Returns 0 or 1
+	// -------------------------------------------------------------------------
+	async needAuthentication() {
+		const resp = await this._sendCommand(0x02, [], true);
 
-    this.productId = resp[1];
-    this.hwVersion = { major: resp[2], minor: resp[3] };
-    this.fwVersion = { major: resp[4], minor: resp[5] };
-    this.isLight = (this.productId === 0x01);
+		if (!resp || resp.length < 1) {
+			this.log("needAuthentication: invalid response");
+			return 0;
+		}
 
-    this.log(
-      `getHardwareVersion: ${this.hwVersion.major}.${this.hwVersion.minor}`
-    );
-    return this.hwVersion;
-  }
+		const state = resp[0];
+		this.log(`needAuthentication: ${state}`);
+		return state;
+	}
 
-  // -------------------------------------------------------------------------
-  // Get device name (command 0x31)
-  // Returns a string
-  // -------------------------------------------------------------------------
-  async getDeviceName() {
-    const resp = await this._sendCommand(0x31, [], true);
+	// -------------------------------------------------------------------------
+	// Is authenticated? (command 0x03)
+	// Returns 0 or 1
+	// -------------------------------------------------------------------------
+	async isAuthenticated() {
+		const resp = await this._sendCommand(0x03, [], true);
 
-    if (!resp || resp.length < 1) {
-      this.log("getDeviceName: invalid response");
-      return "";
-    }
+		if (!resp || resp.length < 1) {
+			this.log("isAuthenticated: invalid response");
+			return 0;
+		}
 
-    // Response is ASCII bytes
-    const name = String.fromCharCode(...resp);
-    this.log(`getDeviceName: "${name}"`);
-    return name;
-  }
+		const state = resp[0];
+		this.log(`isAuthenticated: ${state}`);
+		return state;
+	}
 
-  // -------------------------------------------------------------------------
-  // Set device name (command 0x30)
-  // Name must be ASCII, max 16 bytes
-  // -------------------------------------------------------------------------
-  async setDeviceName(name) {
-    const ascii = Array.from(name).map(c => c.charCodeAt(0));
-    const bytes = ascii.slice(0, 16); // max length 16
+	// -------------------------------------------------------------------------
+	// Get brick ID (command 0x0A)
+	// Returns 6-byte ID
+	// -------------------------------------------------------------------------
+	async getBrickId() {
+		const resp = await this._sendCommand(0x0A, [], true);
 
-    const resp = await this._sendCommand(0x30, bytes, true);
+		if (!resp || resp.length < 6) {
+			this.log("getBrickId: invalid response");
+			return null;
+		}
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`setDeviceName: ${ok ? "OK" : "FAILED"} ("${name}")`);
+		const idBytes = resp.slice(0, 6);
+		const id = hex(idBytes);
+		this.deviceId = id;
 
-    if (ok) {
-      this.name = name;
-      this.manager?.updateDeviceEntry?.(this);
-    }
+		this.log(`getBrickId: ${id}`);
+		return id;
+	}
 
-    return ok;
-  }
+	// -------------------------------------------------------------------------
+	// Set watchdog timeout (command 0x0D)
+	// ticks = N * 0.1 seconds
+	// -------------------------------------------------------------------------
+	async setWatchdogTimeout(ticks = 5) {
+		const t = clamp(ticks, 0, 255);
+		const resp = await this._sendCommand(0x0D, [t], true);
 
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setWatchdogTimeout: ${ok ? "OK" : "FAILED"} (${t * 0.1}s)`);
+		return ok;
+	}
 
-  // -------------------------------------------------------------------------
-  // Set watchdog timeout (command 0x28)
-  // timeoutSec: 0–255 seconds
-  // -------------------------------------------------------------------------
-  async setWatchdogTimeout(timeoutSec = 10) {
-    const t = clamp(timeoutSec, 0, 255);
-    const resp = await this._sendCommand(0x28, [t], true);
+	// -------------------------------------------------------------------------
+	// Get watchdog timeout (command 0x0E)
+	// returns ticks
+	// -------------------------------------------------------------------------
+	async getWatchdogTimeout() {
+		const resp = await this._sendCommand(0x0E, [], true);
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`setWatchdogTimeout: ${ok ? "OK" : "FAILED"} (${t}s)`);
-    return ok;
-  }
+		if (!resp || resp.length < 1) {
+			this.log("getWatchdogTimeout: invalid response");
+			return 0;
+		}
 
-  // -------------------------------------------------------------------------
-  // Get watchdog timeout (command 0x29)
-  // Returns timeout in seconds
-  // -------------------------------------------------------------------------
-  async getWatchdogTimeout() {
-    const resp = await this._sendCommand(0x29, [], true);
+		const ticks = resp[0];
+		this.log(`getWatchdogTimeout: ${ticks * 0.1}s`);
+		return ticks;
+	}
 
-    if (!resp || resp.length < 1) {
-      this.log("getWatchdogTimeout: invalid response");
-      return 0;
-    }
+	// -------------------------------------------------------------------------
+	// Set thermal limit (command 0x14)
+	// ADC value (16-bit)
+	// -------------------------------------------------------------------------
+	async setThermalLimit(adcValue) {
+		const hi = (adcValue >> 8) & 0xFF;
+		const lo = adcValue & 0xFF;
 
-    const timeout = resp[0];
-    this.log(`getWatchdogTimeout: ${timeout}s`);
-    return timeout;
-  }
+		const resp = await this._sendCommand(0x14, [hi, lo], true);
 
-  // -------------------------------------------------------------------------
-  // Set thermal limit (command 0x2A)
-  // limitCelsius: 0–255 °C
-  // -------------------------------------------------------------------------
-  async setThermalLimit(limitCelsius = 80) {
-    const t = clamp(limitCelsius, 0, 255);
-    const resp = await this._sendCommand(0x2A, [t], true);
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setThermalLimit: ${ok ? "OK" : "FAILED"} (ADC=${adcValue})`);
+		return ok;
+	}
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`setThermalLimit: ${ok ? "OK" : "FAILED"} (${t}°C)`);
-    return ok;
-  }
+	// -------------------------------------------------------------------------
+	// Get thermal limit (command 0x15)
+	// Returns ADC value
+	// -------------------------------------------------------------------------
+	async getThermalLimit() {
+		const resp = await this._sendCommand(0x15, [], true);
 
-  // -------------------------------------------------------------------------
-  // Get thermal limit (command 0x2B)
-  // Returns limit in °C
-  // -------------------------------------------------------------------------
-  async getThermalLimit() {
-    const resp = await this._sendCommand(0x2B, [], true);
+		if (!resp || resp.length < 2) {
+			this.log("getThermalLimit: invalid response");
+			return 0;
+		}
 
-    if (!resp || resp.length < 1) {
-      this.log("getThermalLimit: invalid response");
-      return 0;
-    }
+		const adc = (resp[0] << 8) | resp[1];
+		this.log(`getThermalLimit: ADC=${adc}`);
+		return adc;
+	}
 
-    const limit = resp[0];
-    this.log(`getThermalLimit: ${limit}°C`);
-    return limit;
-  }
+	// -------------------------------------------------------------------------
+	// Set device name (command 0x2A)
+	// -------------------------------------------------------------------------
+	async setDeviceName(name) {
+		const ascii = Array.from(name).map(c => c.charCodeAt(0));
+		const bytes = ascii.slice(0, 16);
 
-  // -------------------------------------------------------------------------
-  // Set connection parameters (command 0x2C)
-  // intervalMin, intervalMax, latency, timeout
-  // All values are 16-bit except latency (8-bit)
-  // -------------------------------------------------------------------------
-  async setConnectionParameters(intervalMin, intervalMax, latency, timeout) {
-    const iMin = clamp(intervalMin, 0, 65535);
-    const iMax = clamp(intervalMax, 0, 65535);
-    const lat = clamp(latency, 0, 255);
-    const to  = clamp(timeout, 0, 65535);
+		const resp = await this._sendCommand(0x2A, bytes, true);
 
-    const payload = [
-      iMin >> 8, iMin & 0xFF,
-      iMax >> 8, iMax & 0xFF,
-      lat,
-      to >> 8, to & 0xFF
-    ];
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setDeviceName: ${ok ? "OK" : "FAILED"} ("${name}")`);
 
-    const resp = await this._sendCommand(0x2C, payload, true);
+		if (ok) {
+			this.name = name;
+			this.manager?.updateDeviceEntry?.(this);
+		}
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(
-      `setConnectionParameters: ${ok ? "OK" : "FAILED"} ` +
-      `(min=${iMin}, max=${iMax}, latency=${lat}, timeout=${to})`
-    );
+		return ok;
+	}
 
-    return ok;
-  }
+	// -------------------------------------------------------------------------
+	// Get device name (command 0x2B)
+	// -------------------------------------------------------------------------
+	async getDeviceName() {
+		const resp = await this._sendCommand(0x2B, [], true);
 
-  // -------------------------------------------------------------------------
-  // Get connection parameters (command 0x2D)
-  // Returns: { intervalMin, intervalMax, latency, timeout }
-  // -------------------------------------------------------------------------
-  async getConnectionParameters() {
-    const resp = await this._sendCommand(0x2D, [], true);
+		if (!resp || resp.length < 1) {
+			this.log("getDeviceName: invalid response");
+			return "";
+		}
 
-    if (!resp || resp.length < 7) {
-      this.log("getConnectionParameters: invalid response");
-      return {
-        intervalMin: 0,
-        intervalMax: 0,
-        latency: 0,
-        timeout: 0
-      };
-    }
+		const name = String.fromCharCode(...resp);
+		this.log(`getDeviceName: "${name}"`);
+		return name;
+	}
 
-    const intervalMin = (resp[0] << 8) | resp[1];
-    const intervalMax = (resp[2] << 8) | resp[3];
-    const latency     = resp[4];
-    const timeout     = (resp[5] << 8) | resp[6];
+	// -------------------------------------------------------------------------
+	// Set connection parameters (command 0x24)
+	// -------------------------------------------------------------------------
+	async setConnectionParameters(intervalMin, intervalMax, latency, timeout) {
+		const payload = [
+			intervalMin >> 8, intervalMin & 0xFF,
+			intervalMax >> 8, intervalMax & 0xFF,
+			latency,
+			timeout >> 8, timeout & 0xFF
+		];
 
-    const result = { intervalMin, intervalMax, latency, timeout };
+		const resp = await this._sendCommand(0x24, payload, true);
 
-    this.log(`getConnectionParameters: ${JSON.stringify(result)}`);
-    return result;
-  }
+		const ok = resp && resp[0] === 0x00;
+		this.log(`setConnectionParameters: ${ok ? "OK" : "FAILED"}`);
+		return ok;
+	}
 
-  // -------------------------------------------------------------------------
-  // Send signal (command 0x2E)
-  // Notification handled in Part 5 (record type 0x07)
-  // -------------------------------------------------------------------------
-  async sendSignal() {
-    const resp = await this._sendCommand(0x2E, [], true);
+	// -------------------------------------------------------------------------
+	// Get connection parameters (command 0x25)
+	// -------------------------------------------------------------------------
+	async getConnectionParameters() {
+		const resp = await this._sendCommand(0x25, [], true);
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`sendSignal: ${ok ? "OK" : "FAILED"}`);
+		if (!resp || resp.length < 7) {
+			this.log("getConnectionParameters: invalid response");
+			return null;
+		}
 
-    return ok;
-  }
+		const intervalMin = (resp[0] << 8) | resp[1];
+		const intervalMax = (resp[2] << 8) | resp[3];
+		const latency     = resp[4];
+		const timeout     = (resp[5] << 8) | resp[6];
 
+		const result = { intervalMin, intervalMax, latency, timeout };
+		this.log(`getConnectionParameters: ${JSON.stringify(result)}`);
+		return result;
+	}
 
-  // -------------------------------------------------------------------------
-  // Enter DFU mode (command 0x40)
-  // Device will switch to OTA service
-  // -------------------------------------------------------------------------
-  async otaEnterDfu() {
-    const resp = await this._sendCommand(0x40, [], true);
+	// -------------------------------------------------------------------------
+	// Send signal (command 0x33)
+	// -------------------------------------------------------------------------
+	async sendSignal() {
+		const resp = await this._sendCommand(0x33, [], true);
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`otaEnterDfu: ${ok ? "OK" : "FAILED"}`);
+		const ok = resp && resp[0] === 0x00;
+		this.log(`sendSignal: ${ok ? "OK" : "FAILED"}`);
+		return ok;
+	}
 
-    if (!ok) return false;
-
-    // After entering DFU, the device disconnects and reconnects
-    this.log("Device entering DFU mode — waiting for reconnection...");
-    return true;
-  }
 
   // -------------------------------------------------------------------------
   // Write a firmware chunk (OTA Data characteristic)
@@ -1246,27 +1133,35 @@ export class SBrick {
   }
 
   // -------------------------------------------------------------------------
-  // Finalize DFU (command 0x41)
+  // Enter DFU mode via OTA control characteristic (0x00)
   // -------------------------------------------------------------------------
-  async otaFinalize() {
-    const resp = await this._sendCommand(0x41, [], true);
+  async otaEnterDfu() {
+    if (!this.otaControlChar) {
+      throw new Error("OTA Control characteristic not available");
+    }
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`otaFinalize: ${ok ? "OK" : "FAILED"}`);
+    await this.enqueueCommand(async () => {
+      await this.otaControlChar.writeValue(new Uint8Array([0x00]));
+    });
 
-    return ok;
+    this.log("otaEnterDfu: command 0x00 sent");
+    return true;
   }
 
   // -------------------------------------------------------------------------
-  // Reboot from DFU (command 0x42)
+  // Finalize DFU via OTA control characteristic (0x03)
   // -------------------------------------------------------------------------
-  async otaRebootFromDfu() {
-    const resp = await this._sendCommand(0x42, [], true);
+  async otaFinalize() {
+    if (!this.otaControlChar) {
+      throw new Error("OTA Control characteristic not available");
+    }
 
-    const ok = resp && resp[0] === 0x00;
-    this.log(`otaRebootFromDfu: ${ok ? "OK" : "FAILED"}`);
+    await this.enqueueCommand(async () => {
+      await this.otaControlChar.writeValue(new Uint8Array([0x03]));
+    });
 
-    return ok;
+    this.log("otaFinalize: command 0x03 sent");
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -1297,13 +1192,6 @@ export class SBrick {
       return false;
     }
 
-    // Reboot
-    const okReboot = await this.otaRebootFromDfu();
-    if (!okReboot) {
-      this.log("OTA aborted: reboot failed");
-      return false;
-    }
-
     this.log("OTA upload completed successfully.");
     return true;
   }
@@ -1324,7 +1212,7 @@ export class SBrick {
 
       try {
         // Command 0x29 returns watchdog timeout, but also acts as a ping
-        await this._sendCommand(0x29, [], true);
+        await this._sendCommand(0x0F, [8], true); // Query ADC channel 8 (voltage)
         this.log("keepalive: OK");
       } catch (err) {
         this.log("keepalive: FAILED → device lost");
