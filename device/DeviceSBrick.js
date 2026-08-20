@@ -343,22 +343,19 @@ export class SBrick {
 		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Response expected → read back from Remote Control characteristic
-		if (!this.remoteChar) {
-			throw new Error("Remote control characteristic not available");
-		}
+		// Mandatory delay — SBrick firmware requires this
+		await new Promise(resolve => setTimeout(resolve, 20));
 
+		// Read back from Remote Control characteristic
 		const value = await this.remoteChar.readValue();
 		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
-		// data[0] = returnCode
 		const returnCode = data[0];
-
 		if (returnCode !== 0x00) {
 			throw new Error(`SBrick command error 0x${returnCode.toString(16)}`);
 		}
 
-		// Return ONLY the payload (strip returnCode)
+		// Return payload only
 		return data.slice(1);
 	}
 
