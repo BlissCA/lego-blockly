@@ -205,27 +205,49 @@ export class SBrick {
       this.otaService = null;
     }
 
-    // -----------------------------------------------------------------------
-    // Discover characteristics
-    // -----------------------------------------------------------------------
-    this.remoteChar = await this.remoteService.getCharacteristic(
-      SBRICK_REMOTE_CONTROL_CHAR_UUID
-    );
+		// -----------------------------------------------------------------------
+		// Discover characteristics (Chrome‑safe version)
+		// -----------------------------------------------------------------------
+		const chars = await this.remoteService.getCharacteristics();
 
-		try {
-			this.quickDriveChar = await this.remoteService.getCharacteristic(
-				SBRICK_QUICK_DRIVE_CHAR_UUID
-			);
+		this.remoteChar = null;
+		this.quickDriveChar = null;
 
-			await this.quickDriveChar.startNotifications();
-			this.quickDriveChar.addEventListener(
-				"characteristicvaluechanged",
-				this._onQuickDriveNotification
-			);
-		} catch (e) {
-			this.quickDriveChar = null;
+		// Match UUIDs manually to avoid Chrome caching bug
+		for (const c of chars) {
+			const uuid = c.uuid.toLowerCase();
+
+			if (uuid === SBRICK_REMOTE_CONTROL_CHAR_UUID) {
+				this.remoteChar = c;
+			}
+
+			if (uuid === SBRICK_QUICK_DRIVE_CHAR_UUID) {
+				this.quickDriveChar = c;
+			}
+		}
+
+		// Safety: RemoteControl must exist
+		if (!this.remoteChar) {
+			throw new Error("RemoteControl characteristic not found — device may be in DFU mode.");
+		}
+
+		// QuickDrive is optional (older firmware)
+		if (this.quickDriveChar) {
+			try {
+				await this.quickDriveChar.startNotifications();
+				this.quickDriveChar.addEventListener(
+					"characteristicvaluechanged",
+					this._onQuickDriveNotification
+				);
+				this.log("QuickDrive characteristic found — notifications enabled.");
+			} catch (e) {
+				this.quickDriveChar = null;
+				this.log("QuickDrive characteristic present but notifications failed — disabled.");
+			}
+		} else {
 			this.log("QuickDrive characteristic not available (older firmware?) — notifications disabled.");
 		}
+
 
     if (this.otaService) {
       try {
@@ -340,14 +362,14 @@ export class SBrick {
 
 	// -------------------------------------------------------------------------
 	// Send a protocol command (opcode + payload)
-	// SBrick.js-style: write → read using queued BLE operations
-	// Return only payload (strip returnCode) so existing functions work unchanged
+	// RemoteControl read responses contain ONLY payload (no return code)
+	// QuickDrive notifications are separate and handled elsewhere
 	// -------------------------------------------------------------------------
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
 		const bytes = new Uint8Array([opcode, ...payload]);
 
-		// Queue the write (ensures natural spacing)
-		await this.queue.add(() => this._writeRemote(bytes));
+		// Write command to RemoteControl characteristic
+		await this._writeRemote(bytes);
 
 		// Reset keepalive timer
 		if (this.keepAliveTimer) {
@@ -358,169 +380,158 @@ export class SBrick {
 		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Queue the read (separate queued task → spacing like SBrick.js)
-		const dv = await this.queue.add(async () => {
-			const value = await this.remoteChar.readValue();
+		// Read response (payload only, no return code)
+		const value = await this.remoteChar.readValue();
 
-			// Chrome 50+ returns DataView; older versions return ArrayBuffer
-			return value.buffer ? value : new DataView(value);
-		});
+		// Chrome returns DataView; older versions return ArrayBuffer
+		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
-		// Convert DataView → Uint8Array for your existing command functions
-		const data = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
-
-		// First byte = returnCode (SBrick command response format)
-		const returnCode = data[0];
-		if (returnCode !== 0x00) {
-			throw new Error(`SBrick command error 0x${returnCode.toString(16)}`);
-		}
-
-		// Return ONLY the payload (your existing functions expect this)
-		return data.slice(1);
+		// Return raw payload (starting at byte 0)
+		return data;
 	}
 
  
   // -------------------------------------------------------------------------
   // Quick Drive Notification Handler
   // -------------------------------------------------------------------------
-_onQuickDriveNotification(event) {
-  const value = event.target.value;
-  const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+	_onQuickDriveNotification(event) {
+		const value = event.target.value;
+		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
-  // SBrick notifications contain multiple "records":
-  // [len][type][payload...] [len][type][payload...] ...
-  let offset = 0;
+		// SBrick notifications contain multiple "records":
+		// [len][type][payload...] [len][type][payload...] ...
+		let offset = 0;
 
-  while (offset < data.length) {
-    const len = data[offset];
+		while (offset < data.length) {
+			const len = data[offset];
 
-    // Length is number of bytes AFTER the length byte
-    if (len === 0 || offset + 1 + len > data.length) break;
+			// Length is number of bytes AFTER the length byte
+			if (len === 0 || offset + 1 + len > data.length) break;
 
-    const type = data[offset + 1];
-    const payloadLength = len - 1; // subtract type byte
-    const payloadStart = offset + 2;
-    const payloadEnd = payloadStart + payloadLength;
+			const type = data[offset + 1];
+			const payloadLength = len - 1; // subtract type byte
+			const payloadStart = offset + 2;
+			const payloadEnd = payloadStart + payloadLength;
 
-    if (payloadEnd > data.length) break;
+			if (payloadEnd > data.length) break;
 
-    const payload = data.slice(payloadStart, payloadEnd);
+			const payload = data.slice(payloadStart, payloadEnd);
 
-    switch (type) {
-      // ---------------------------------------------------------------
-      // 0x00 — Product Type (hardware + firmware + product ID)
-      // ---------------------------------------------------------------
-      case 0x00: {
-        // payload = [productId, hwMajor, hwMinor, fwMajor, fwMinor]
-        if (payload.length >= 5) {
-          this.productId = payload[0]; // 00 = SBrick, 01 = SBrick Light
-          this.hwVersion = { major: payload[1], minor: payload[2] };
-          this.fwVersion = { major: payload[3], minor: payload[4] };
+			switch (type) {
+				// ---------------------------------------------------------------
+				// 0x00 — Product Type (hardware + firmware + product ID)
+				// ---------------------------------------------------------------
+				case 0x00: {
+					// payload = [productId, hwMajor, hwMinor, fwMajor, fwMinor]
+					if (payload.length >= 5) {
+						this.productId = payload[0]; // 00 = SBrick, 01 = SBrick Light
+						this.hwVersion = { major: payload[1], minor: payload[2] };
+						this.fwVersion = { major: payload[3], minor: payload[4] };
 
-          this.isLight = (this.productId === 0x01);
+						this.isLight = (this.productId === 0x01);
 
-          this.log(
-            `Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
-            `(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
-            `FW ${this.fwVersion.major}.${this.fwVersion.minor})`
-          );
-        }
-        break;
-      }
-
-      // ---------------------------------------------------------------
-      // 0x02 — Device Identifier (6 bytes)
-      // ---------------------------------------------------------------
-      case 0x02: {
-        // payload = 6-byte ID
-        const idBytes = payload;
-        this.deviceId = hex(idBytes);
-        this.log(`Device ID → ${this.deviceId}`);
-        break;
-      }
-
-			// ---------------------------------------------------------------
-			// 0x04 — Command Response (optional notifications)
-			// ---------------------------------------------------------------
-			case 0x04: {
-				// payload = [returnCode, returnValue...]
-				// We no longer rely on this for command responses,
-				// but we can still log it for debugging.
-				if (payload.length >= 1) {
-					const returnCode = payload[0];
-					const returnValue = payload.slice(1);
-					this.log(
-						`Command Response notif: rc=0x${returnCode.toString(16)}, ` +
-						`len=${returnValue.length}`
-					);
+						this.log(
+							`Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
+							`(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
+							`FW ${this.fwVersion.major}.${this.fwVersion.minor})`
+						);
+					}
+					break;
 				}
-				break;
+
+				// ---------------------------------------------------------------
+				// 0x02 — Device Identifier (6 bytes)
+				// ---------------------------------------------------------------
+				case 0x02: {
+					// payload = 6-byte ID
+					const idBytes = payload;
+					this.deviceId = hex(idBytes);
+					this.log(`Device ID → ${this.deviceId}`);
+					break;
+				}
+
+				// ---------------------------------------------------------------
+				// 0x04 — Command Response (optional notifications)
+				// ---------------------------------------------------------------
+				case 0x04: {
+					// payload = [returnCode, returnValue...]
+					// We no longer rely on this for command responses,
+					// but we can still log it for debugging.
+					if (payload.length >= 1) {
+						const returnCode = payload[0];
+						const returnValue = payload.slice(1);
+						this.log(
+							`Command Response notif: rc=0x${returnCode.toString(16)}, ` +
+							`len=${returnValue.length}`
+						);
+					}
+					break;
+				}
+
+				// ---------------------------------------------------------------
+				// 0x05 — Thermal Protection Status
+				// ---------------------------------------------------------------
+				case 0x05: {
+					// payload = [status]
+					if (payload.length >= 1) {
+						const status = payload[0]; // 0 = OK, 1 = Over limit
+						this.thermalProtectionActive = (status === 1);
+						this.log(
+							`Thermal Protection → ${this.thermalProtectionActive ? "ACTIVE" : "OK"}`
+						);
+					}
+					break;
+				}
+
+				// ---------------------------------------------------------------
+				// 0x06 — Voltage Measurement (ADC)
+				// ---------------------------------------------------------------
+				case 0x06: {
+					// payload = measurement bytes...
+					const measurements = [];
+
+					for (let i = 0; i + 1 < payload.length; i += 2) {
+						const raw = (payload[i] << 8) | payload[i + 1];
+						const adc = raw >> 4;
+						const channel = raw & 0x0F;
+						measurements.push({ adc, channel });
+					}
+
+					this.lastVoltageMeasurements = measurements;
+
+					// Auto voltage + temperature extraction
+					for (const m of measurements) {
+						if (m.channel === 8) {
+							this.lastVoltage = this._convertVoltage(m.adc);
+						}
+						if (m.channel === 9) {
+							this.lastTemperature = this._convertTemperature(m.adc);
+						}
+					}
+
+					break;
+				}
+
+				// ---------------------------------------------------------------
+				// 0x07 — Signal Completed
+				// ---------------------------------------------------------------
+				case 0x07: {
+					this.log("Signal Completed");
+					if (this.onSignalCompleted) {
+						this.onSignalCompleted();
+					}
+					break;
+				}
+
+				default:
+					// Unknown or unused record type
+					break;
 			}
 
-      // ---------------------------------------------------------------
-      // 0x05 — Thermal Protection Status
-      // ---------------------------------------------------------------
-      case 0x05: {
-        // payload = [status]
-        if (payload.length >= 1) {
-          const status = payload[0]; // 0 = OK, 1 = Over limit
-          this.thermalProtectionActive = (status === 1);
-          this.log(
-            `Thermal Protection → ${this.thermalProtectionActive ? "ACTIVE" : "OK"}`
-          );
-        }
-        break;
-      }
-
-      // ---------------------------------------------------------------
-      // 0x06 — Voltage Measurement (ADC)
-      // ---------------------------------------------------------------
-      case 0x06: {
-        // payload = measurement bytes...
-        const measurements = [];
-
-        for (let i = 0; i + 1 < payload.length; i += 2) {
-          const raw = (payload[i] << 8) | payload[i + 1];
-          const adc = raw >> 4;
-          const channel = raw & 0x0F;
-          measurements.push({ adc, channel });
-        }
-
-        this.lastVoltageMeasurements = measurements;
-
-        // Auto voltage + temperature extraction
-        for (const m of measurements) {
-          if (m.channel === 8) {
-            this.lastVoltage = this._convertVoltage(m.adc);
-          }
-          if (m.channel === 9) {
-            this.lastTemperature = this._convertTemperature(m.adc);
-          }
-        }
-
-        break;
-      }
-
-      // ---------------------------------------------------------------
-      // 0x07 — Signal Completed
-      // ---------------------------------------------------------------
-      case 0x07: {
-        this.log("Signal Completed");
-        if (this.onSignalCompleted) {
-          this.onSignalCompleted();
-        }
-        break;
-      }
-
-      default:
-        // Unknown or unused record type
-        break;
-    }
-
-    // Advance to next record: length byte + len bytes (type + payload)
-    offset += 1 + len;
-  }
-}
+			// Advance to next record: length byte + len bytes (type + payload)
+			offset += 1 + len;
+		}
+	}
 
 
   // -------------------------------------------------------------------------
