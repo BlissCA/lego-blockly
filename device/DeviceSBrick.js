@@ -17,7 +17,7 @@ const SBRICK_REMOTE_CONTROL_CHAR_UUID =
 
 // Quick Drive Characteristic (notifications)
 const SBRICK_QUICK_DRIVE_CHAR_UUID =
-  "b8e3d8f2-2b8c-4bda-8790-a15f53e6010f";
+  "489a6ae0-c1ab-4c9c-bdb2-11d373c1b7fb";
 
 // OTA Service
 const SBRICK_OTA_SERVICE_UUID =
@@ -200,9 +200,20 @@ export class SBrick {
       SBRICK_REMOTE_CONTROL_CHAR_UUID
     );
 
-    this.quickDriveChar = await this.remoteService.getCharacteristic(
-      SBRICK_QUICK_DRIVE_CHAR_UUID
-    );
+		try {
+			this.quickDriveChar = await this.remoteService.getCharacteristic(
+				SBRICK_QUICK_DRIVE_CHAR_UUID
+			);
+
+			await this.quickDriveChar.startNotifications();
+			this.quickDriveChar.addEventListener(
+				"characteristicvaluechanged",
+				this._onQuickDriveNotification
+			);
+		} catch (e) {
+			this.quickDriveChar = null;
+			this.log("QuickDrive characteristic not available (older firmware?) — notifications disabled.");
+		}
 
     if (this.otaService) {
       try {
@@ -217,15 +228,6 @@ export class SBrick {
         this.otaDataChar = null;
       }
     }
-
-    // -----------------------------------------------------------------------
-    // Notifications
-    // -----------------------------------------------------------------------
-    await this.quickDriveChar.startNotifications();
-    this.quickDriveChar.addEventListener(
-      "characteristicvaluechanged",
-      this._onQuickDriveNotification
-    );
 
     // -----------------------------------------------------------------------
     // Auto-assign name
