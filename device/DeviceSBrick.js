@@ -799,7 +799,7 @@ export class SBrick {
   // Returns: { adc, channel }
   // -------------------------------------------------------------------------
   async readAdc(channel) {
-    const ch = normalizeChannel(channel);
+    const ch = Number(channel);   // accept 0–9 exactly
 
     const resp = await this._sendCommand(0x0F, [ch], true);
 
