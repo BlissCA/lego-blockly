@@ -845,6 +845,15 @@ function getTPadDropdown() {
     : [['No ToyPad', 'NONE']];
 }
 
+// Only SBrick devices
+function getSBrickDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "SBrick");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No SBrick', 'NONE']];
+}
 
 window.addEventListener("load", () => {
 
@@ -3553,6 +3562,40 @@ window.addEventListener("load", () => {
 
   ]);
 
+  // ---------------- LEGO SBrick/SBrick+/SBrick Light BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+
+    {
+      "type": "sbrick_mot_pow",
+      "message0": "%1 Motor %2 Pwr %3 mode %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "DIR",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: 0 to 255, 0 = Stop Free Wheel"
+    },
+
+  ]);
+
+
 
 
   // Bitwise Operators
@@ -4336,6 +4379,32 @@ Blockly.Blocks['Nxt_Mailbox'] = {
   }
 };
 
+
+Blockly.Blocks['SB_MotPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "0"], ["B", "2"], ["C", "1"], ["D", "3"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour("#d68700");
+    this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ output ports.");
+  }
+};
+
+Blockly.Blocks['SB_dir'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["Forward", "0"], ["Reverse", "1"]
+      ]), "NUM");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ output ports direction.");
+  }
+};
 
 
 Blockly.Blocks['wedo1_portinp'] = {

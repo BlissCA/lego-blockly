@@ -2238,7 +2238,38 @@ const toolbox = {
       "name": "SBrick",
       "colour": "#d68700",
       "contents": [
-        { "kind": "category", "name": "Motors", "colour": "#d68700", "contents": [				 		
+        { "kind": "category", "name": "Motors", "colour": "#d68700", "contents": [
+            { "kind": "block", "type": "SB_MotPort" },
+            {
+              "kind": "block",
+              "type": "sbrick_mot_pow",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "DIR": {
+                  "shadow": {
+                    "type": "SB_dir",
+                    "fields": { "NUM": "0" }
+                  }
+                }
+                
+              }
+            }
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#d68700", "contents": [

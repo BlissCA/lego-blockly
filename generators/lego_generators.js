@@ -2538,6 +2538,43 @@ javascriptGenerator.forBlock["tpad_fade_leds_sliders"] = function (block) {
 
 
 
+
+// ---------------- SBRICK DEVICE GENERATORS ----------------
+
+// ---------------- Lego SBrick/SBrick+ Output Port Letters A, B, C, D = 0, 2, 1, 3 ----------------
+javascriptGenerator.forBlock["SB_MotPort"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+// ---------------- Lego SBrick/SBrick+ Direction Numbers Forward, Reverse = 0, 1 ----------------
+javascriptGenerator.forBlock["SB_dir"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('NUM');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["sbrick_mot_pow"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+  const dir  = javascriptGenerator.valueToCode(block, "DIR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorDrive(${port}, ${dir},${pwr});
+}
+`;
+};
+
+
+
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {
   const branch = Blockly.JavaScript.statementToCode(block, 'DO');
   const id = block.id;
