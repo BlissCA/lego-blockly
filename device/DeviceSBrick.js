@@ -1283,7 +1283,7 @@ export class SBrick {
 			try {
 				// ADC query uses write→read and acts as a ping
 				await this.readVoltage();
-				this.log("keepalive: OK");
+				// this.log("keepalive: OK");
 			} catch (err) {
 				this.log("keepalive: FAILED → device lost");
 				clearInterval(this.keepAliveTimer);
