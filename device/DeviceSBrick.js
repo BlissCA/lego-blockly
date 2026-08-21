@@ -380,17 +380,6 @@ export class SBrick {
     return this.commandQueue;
   }
 
-  // -------------------------------------------------------------------------
-  // Low-level write to remote control characteristic
-  // -------------------------------------------------------------------------
-  async _writeRemote(bytes) {
-    return this.enqueueCommand(async () => {
-      if (!this.remoteChar) {
-        throw new Error("Remote control characteristic not available");
-      }
-      await this.remoteChar.writeValue(bytes);
-    });
-  }
 
 	// -------------------------------------------------------------------------
 	// Send a protocol command (opcode + payload)
@@ -400,8 +389,10 @@ export class SBrick {
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
 		const bytes = new Uint8Array([opcode, ...payload]);
 
-		// Write command to RemoteControl characteristic
-		await this._writeRemote(bytes);
+		// Queue the write
+		await this.queue.add(async () => {
+			await this.remoteChar.writeValue(bytes);
+		});
 
 		// Reset keepalive timer
 		if (this.keepAliveTimer) {
@@ -412,15 +403,15 @@ export class SBrick {
 		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Read response (payload only, no return code)
-		const value = await this.remoteChar.readValue();
+		// Queue the read
+		const resp = await this.queue.add(async () => {
+			const value = await this.remoteChar.readValue();
+			return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+		});
 
-		// Chrome returns DataView; older versions return ArrayBuffer
-		const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-
-		// Return raw payload (starting at byte 0)
-		return data;
+		return resp;
 	}
+
 
  
   // -------------------------------------------------------------------------
