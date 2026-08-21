@@ -53,16 +53,6 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-// Normalize channel: accept "A"–"D" or 0–3
-function normalizeChannel(ch) {
-  if (typeof ch === "string") {
-    const map = { A: 0, B: 1, C: 2, D: 3 };
-    const key = ch.trim().toUpperCase();
-    if (map[key] !== undefined) return map[key];
-  }
-  return clamp(Number(ch), 0, 3);
-}
-
 // Convert Uint8Array to hex string for logging
 function hex(bytes) {
   return Array.from(bytes)
@@ -583,7 +573,24 @@ export class SBrick {
   _convertTemperature(adc) {
     return adc / 0.13461 - 160.0;
   }
-  
+		
+	_clampMotorChannel(ch) {
+		ch = Number(ch);
+		if (isNaN(ch)) return 0;
+		return Math.min(3, Math.max(0, ch));
+	}
+
+	_clampLightChannel(ch) {
+		ch = Number(ch);
+		if (isNaN(ch)) return 0;
+		return Math.min(7, Math.max(0, ch));
+	}
+
+	_clampAdcChannel(ch) {
+		ch = Number(ch);
+		if (isNaN(ch)) return 0;
+		return Math.min(9, Math.max(0, ch));
+	}
 
   // -------------------------------------------------------------------------
   // Drive a single motor
@@ -591,7 +598,7 @@ export class SBrick {
   // power: 0–255
   // -------------------------------------------------------------------------
   async motorDrive(channel, direction = 1, power = 255) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampMotorChannel(channel);
     const dir = clamp(direction, 0, 1);
     const pwr = clamp(power, 0, 255);
 
@@ -607,7 +614,7 @@ export class SBrick {
   // Positive power → forward
   // -------------------------------------------------------------------------
   async motorPower(channel, power = 100) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampMotorChannel(channel);
     const p = clamp(power, -255, 255);
 
     const direction = p >= 0 ? 1 : 0;
@@ -623,7 +630,7 @@ export class SBrick {
   // Stop motor (freewheel)
   // -------------------------------------------------------------------------
   async motorStop(channel) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampMotorChannel(channel);
     const payload = [ch, 1, 0]; // direction=1, power=0
     await this._sendCommand(0x01, payload, false);
     // this.log(`motorStop: ch=${ch}`);
@@ -634,7 +641,7 @@ export class SBrick {
   // Uses command 0x00 Brake
   // -------------------------------------------------------------------------
   async motorBrake(channel) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampMotorChannel(channel);
     const payload = [ch];
     await this._sendCommand(0x00, payload, false);
     // this.log(`motorBrake: ch=${ch}`);
@@ -648,7 +655,7 @@ export class SBrick {
     const payload = [];
 
     for (const t of triples) {
-      const ch = normalizeChannel(t.channel);
+      const ch = this._clampMotorChannel(t.channel);
       const dir = clamp(t.direction, 0, 1);
       const pwr = clamp(t.power, 0, 255);
       payload.push(ch, dir, pwr);
@@ -663,7 +670,7 @@ export class SBrick {
   // channels = ["A", "B"] or [0, 1]
   // -------------------------------------------------------------------------
   async motorBrakeMulti(channels) {
-    const payload = channels.map(ch => normalizeChannel(ch));
+    const payload = channels.map(ch => this._clampMotorChannel(ch));
     await this._sendCommand(0x00, payload, false);
     this.log(`motorBrakeMulti: ${channels}`);
   }
@@ -676,7 +683,7 @@ export class SBrick {
     const payload = [];
 
     for (const p of pairs) {
-      const ch = normalizeChannel(p.channel);
+      const ch = this._clampMotorChannel(p.channel);
       const power = clamp(p.power, 0, 255);
       payload.push(ch, power);
     }
@@ -717,7 +724,7 @@ export class SBrick {
   //   r,g,b are true RGB values (0–255 each)
   // -------------------------------------------------------------------------
   async setLight(channel, r = 255, g = 255, b = 255) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampLightChannel(channel);
 
     const R = clamp(r, 0, 255);
     const G = clamp(g, 0, 255);
@@ -734,7 +741,7 @@ export class SBrick {
   // Returns [R, G, B]
   // -------------------------------------------------------------------------
   async getLight(channel) {
-    const ch = normalizeChannel(channel);
+    const ch = this._clampLightChannel(channel);
 
     const payload = [ch];
     const resp = await this._sendCommand(0x35, payload, true);
