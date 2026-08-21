@@ -400,13 +400,21 @@ export class SBrick {
 			this._startKeepAlive();
 		}
 
-		// No response expected → done
 		if (!expectResponse) return null;
 
-		// Queue the read
+		// Queue the read with timeout
 		const resp = await this.queue.add(async () => {
-			const value = await this.remoteChar.readValue();
-			return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+			const timeoutMs = 300; // SBrick.js uses ~200–300ms
+
+			return await Promise.race([
+				(async () => {
+					const value = await this.remoteChar.readValue();
+					return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+				})(),
+				new Promise((_, reject) =>
+					setTimeout(() => reject(new Error("SBrick readValue timeout")), timeoutMs)
+				)
+			]);
 		});
 
 		return resp;
