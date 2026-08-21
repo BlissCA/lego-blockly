@@ -3566,8 +3566,8 @@ window.addEventListener("load", () => {
   Blockly.defineBlocksWithJsonArray([
 
     {
-      "type": "sbrick_mot_pow",
-      "message0": "%1 Motor %2 Pwr %3 mode %4",
+      "type": "sbrick_mot_drive",
+      "message0": "%1 Motor %2 Pwr %3 Dir %4",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
         {

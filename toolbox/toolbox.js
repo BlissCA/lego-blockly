@@ -2242,7 +2242,7 @@ const toolbox = {
             { "kind": "block", "type": "SB_MotPort" },
             {
               "kind": "block",
-              "type": "sbrick_mot_pow",
+              "type": "sbrick_mot_drive",
               "inputs": {
                 "PORTS": {
                   "shadow": {

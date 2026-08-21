@@ -2557,7 +2557,7 @@ javascriptGenerator.forBlock["SB_dir"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
-javascriptGenerator.forBlock["sbrick_mot_pow"] = function (block) {
+javascriptGenerator.forBlock["sbrick_mot_drive"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
