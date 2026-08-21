@@ -2232,8 +2232,27 @@ const toolbox = {
           ]
         }
       ]
-    }
+    },
+    {
+      "kind": "category",
+      "name": "SBrick",
+      "colour": "#d68700",
+      "contents": [
+        { "kind": "category", "name": "Motors", "colour": "#d68700", "contents": [				 		
+          ]
+        },
+        { "kind": "category", "name": "Sensors", "colour": "#d68700", "contents": [
+          ]
+        },
+        { "kind": "category", "name": "Lights", "colour": "#d68700", "contents": [
+					]
+				},
+        { "kind": "category", "name": "Misc", "colour": "#d68700", "contents": [
 
+          ]
+        }        
+      ]
+    }
     /*
     {
       "kind": "category",
