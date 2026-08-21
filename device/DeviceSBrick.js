@@ -598,7 +598,7 @@ export class SBrick {
     const payload = [ch, dir, pwr];
 
     await this._sendCommand(0x01, payload, false);
-    this.log(`motorDrive: ch=${ch}, dir=${dir}, power=${pwr}`);
+    // this.log(`motorDrive: ch=${ch}, dir=${dir}, power=${pwr}`);
   }
 
   // -------------------------------------------------------------------------
@@ -616,7 +616,7 @@ export class SBrick {
     const payload = [ch, direction, magnitude];
 
     await this._sendCommand(0x01, payload, false);
-    this.log(`motorPower: ch=${ch}, power=${p}`);
+    // this.log(`motorPower: ch=${ch}, power=${p}`);
   }
 
   // -------------------------------------------------------------------------
@@ -626,7 +626,7 @@ export class SBrick {
     const ch = normalizeChannel(channel);
     const payload = [ch, 1, 0]; // direction=1, power=0
     await this._sendCommand(0x01, payload, false);
-    this.log(`motorStop: ch=${ch}`);
+    // this.log(`motorStop: ch=${ch}`);
   }
 
   // -------------------------------------------------------------------------
@@ -637,7 +637,7 @@ export class SBrick {
     const ch = normalizeChannel(channel);
     const payload = [ch];
     await this._sendCommand(0x00, payload, false);
-    this.log(`motorBrake: ch=${ch}`);
+    // this.log(`motorBrake: ch=${ch}`);
   }
 
   // -------------------------------------------------------------------------
@@ -655,7 +655,7 @@ export class SBrick {
     }
 
     await this._sendCommand(0x01, payload, false);
-    this.log(`motorDriveMulti: ${JSON.stringify(triples)}`);
+    // this.log(`motorDriveMulti: ${JSON.stringify(triples)}`);
   }
 
   // -------------------------------------------------------------------------
@@ -682,7 +682,7 @@ export class SBrick {
     }
 
     await this._sendCommand(0x13, payload, false);
-    this.log(`motorBrakePwm: ${JSON.stringify(pairs)}`);
+    // this.log(`motorBrakePwm: ${JSON.stringify(pairs)}`);
   }
 
 	// ---------------------------------------------------------------------------
@@ -702,7 +702,7 @@ export class SBrick {
 	// Turn off all lights
 	await this._sendCommand(0x36, [0, 0, 0], false);
 
-	this.log("motorStopAll: all motors and lights OFF");
+	// this.log("motorStopAll: all motors and lights OFF");
 	}
 
 
@@ -726,7 +726,7 @@ export class SBrick {
     const payload = [ch, R, G, B];
 
     await this._sendCommand(0x34, payload, false);
-    this.log(`setLight: ch=${ch}, rgb=(${R},${G},${B})`);
+    // this.log(`setLight: ch=${ch}, rgb=(${R},${G},${B})`);
   }
 
   // -------------------------------------------------------------------------
@@ -748,7 +748,7 @@ export class SBrick {
     const g = resp[1];
     const b = resp[2];
 
-    this.log(`getLight: ch=${ch}, rgb=(${r},${g},${b})`);
+    // this.log(`getLight: ch=${ch}, rgb=(${r},${g},${b})`);
     return { r, g, b };
   }
 
@@ -765,7 +765,7 @@ export class SBrick {
     const payload = [R, G, B];
 
     await this._sendCommand(0x36, payload, false);
-    this.log(`setAllLights: rgb=(${R},${G},${B})`);
+    // this.log(`setAllLights: rgb=(${R},${G},${B})`);
   }
 
   // -------------------------------------------------------------------------
@@ -789,7 +789,7 @@ export class SBrick {
       results.push({ channel: ch, r, g, b });
     }
 
-    this.log(`getAllLights: ${JSON.stringify(results)}`);
+    // this.log(`getAllLights: ${JSON.stringify(results)}`);
     return results;
   }
 
@@ -812,7 +812,7 @@ export class SBrick {
     const adc = raw >> 4;
     const chan = raw & 0x0F;
 
-    this.log(`readAdc: ch=${chan}, adc=${adc}, raw=0x${raw.toString(16)}, cmd response: ${hex(resp)}, length=${resp.length}`);
+    // this.log(`readAdc: ch=${chan}, adc=${adc}, raw=0x${raw.toString(16)}, cmd response: ${hex(resp)}, length=${resp.length}`);
     return { adc, channel: chan };
   }
 
@@ -825,7 +825,7 @@ export class SBrick {
     const voltage = this._convertVoltage(adc);
 
     this.lastVoltage = voltage;
-    this.log(`readVoltage: ${voltage.toFixed(2)} V`);
+    // this.log(`readVoltage: ${voltage.toFixed(2)} V`);
 
     return voltage;
   }
@@ -838,7 +838,7 @@ export class SBrick {
     const temp = this._convertTemperature(adc);
 
     this.lastTemperature = temp;
-    this.log(`readTemperature: ${temp.toFixed(1)} °C`);
+    // this.log(`readTemperature: ${temp.toFixed(1)} °C`);
 
     return temp;
   }
@@ -859,7 +859,7 @@ export class SBrick {
       }
     }
 
-    this.log(`readAllAdc: ${JSON.stringify(results)}`);
+    // this.log(`readAllAdc: ${JSON.stringify(results)}`);
     return results;
   }
 
@@ -1028,7 +1028,7 @@ export class SBrick {
 		const id = hex(idBytes);
 		this.deviceId = id;
 
-		this.log(`getBrickId: ${id}`);
+		// this.log(`getBrickId: ${id}`);
 		return id;
 	}
 
@@ -1041,7 +1041,7 @@ export class SBrick {
 		const resp = await this._sendCommand(0x0D, [t], true);
 
 		const ok = resp && resp[0] === 0x00;
-		this.log(`setWatchdogTimeout: ${ok ? "OK" : "FAILED"} (${t * 0.1}s)`);
+		// this.log(`setWatchdogTimeout: ${ok ? "OK" : "FAILED"} (${t * 0.1}s)`);
 		return ok;
 	}
 
@@ -1053,7 +1053,7 @@ export class SBrick {
 		const resp = await this._sendCommand(0x0E, [], true);
 
 		if (!resp || resp.length < 1) {
-			this.log("getWatchdogTimeout: invalid response");
+			// this.log("getWatchdogTimeout: invalid response");
 			return 0;
 		}
 
@@ -1073,7 +1073,7 @@ export class SBrick {
 		const resp = await this._sendCommand(0x14, [hi, lo], true);
 
 		const ok = resp && resp[0] === 0x00;
-		this.log(`setThermalLimit: ${ok ? "OK" : "FAILED"} (ADC=${adcValue})`);
+		// this.log(`setThermalLimit: ${ok ? "OK" : "FAILED"} (ADC=${adcValue})`);
 		return ok;
 	}
 
@@ -1090,7 +1090,7 @@ export class SBrick {
 		}
 
 		const adc = (resp[0] << 8) | resp[1];
-		this.log(`getThermalLimit: ADC=${adc}`);
+		// this.log(`getThermalLimit: ADC=${adc}`);
 		return adc;
 	}
 
@@ -1144,7 +1144,7 @@ export class SBrick {
 		const resp = await this._sendCommand(0x24, payload, true);
 
 		const ok = resp && resp[0] === 0x00;
-		this.log(`setConnectionParameters: ${ok ? "OK" : "FAILED"}`);
+		// this.log(`setConnectionParameters: ${ok ? "OK" : "FAILED"}`);
 		return ok;
 	}
 
