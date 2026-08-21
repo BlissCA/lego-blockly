@@ -2293,6 +2293,38 @@ const toolbox = {
                 }
                 
               }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_mot_stop",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_mot_brake",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_stop_all",
+              "inputs": {
+              }
             }
           ]
         },

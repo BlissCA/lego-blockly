@@ -2588,6 +2588,49 @@ javascriptGenerator.forBlock["sbrick_mot_power"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["sbrick_mot_stop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStop(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["sbrick_mot_brake"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorBrake(${port});
+}
+`;
+};
+
+javascriptGenerator.forBlock["sbrick_stop_all"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStopAll();
+}
+`;
+};
+
+
+
 
 
 

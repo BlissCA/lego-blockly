@@ -3589,8 +3589,8 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": "#0040d6",
-      "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: 0 to 255, 0 = Stop Free Wheel"
+      "colour": "#d68700",
+      "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: 0 to 255 (0 = Stop Free Wheel), Dir: 0=Reverse, 1=Forward"
     },
 
     {
@@ -3612,8 +3612,57 @@ window.addEventListener("load", () => {
       "inputsInline": true,
       "previousStatement": null,
       "nextStatement": null,
-      "colour": "#0040d6",
+      "colour": "#d68700",
       "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: -255 to 255, 0 = Stop Free Wheel"
+    },
+
+    {
+      "type": "sbrick_mot_stop",
+      "message0": "%1 Motor %2 stop",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "SBrick Motor Stop free wheel, Port A=0, B=2, C=1, D=3"
+    },
+
+    {
+      "type": "sbrick_mot_brake",
+      "message0": "%1 Motor %2 brake",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "SBrick Motor Brake, Port A=0, B=2, C=1, D=3"
+    },
+
+    {
+      "type": "sbrick_stop_all",
+      "message0": "%1 Stop All Motors/Lights",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "SBrick Stop All Motors/Lights"
     },
 
 

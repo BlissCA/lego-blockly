@@ -667,7 +667,6 @@ export class SBrick {
 
   // -------------------------------------------------------------------------
   // Multi-channel brake
-  // channels = ["A", "B"] or [0, 1]
   // -------------------------------------------------------------------------
   async motorBrakeMulti(channels) {
     const payload = channels.map(ch => this._clampMotorChannel(ch));
