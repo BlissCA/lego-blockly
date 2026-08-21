@@ -2573,6 +2573,22 @@ javascriptGenerator.forBlock["sbrick_mot_drive"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["sbrick_mot_power"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorPower(${port}, ${pwr});
+}
+`;
+};
+
+
 
 
 javascriptGenerator.forBlock['lego_button_event'] = function(block) {

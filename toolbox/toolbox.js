@@ -2264,7 +2264,31 @@ const toolbox = {
                 "DIR": {
                   "shadow": {
                     "type": "SB_dir",
-                    "fields": { "NUM": "0" }
+                    "fields": { "NUM": "1" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_mot_power",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": -255,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 255 }
                   }
                 }
                 

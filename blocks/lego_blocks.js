@@ -3593,6 +3593,30 @@ window.addEventListener("load", () => {
       "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: 0 to 255, 0 = Stop Free Wheel"
     },
 
+    {
+      "type": "sbrick_mot_power",
+      "message0": "%1 Motor %2 Pwr %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#0040d6",
+      "tooltip": "SBrick Motor, Port A=0, B=2, C=1, D=3, Power: -255 to 255, 0 = Stop Free Wheel"
+    },
+
+
   ]);
 
 
@@ -4397,7 +4421,7 @@ Blockly.Blocks['SB_dir'] = {
   init: function() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown([
-        ["Forward", "0"], ["Reverse", "1"]
+        ["Fwd", "1"], ["Rev", "0"]
       ]), "NUM");
 
     this.setOutput(true, "Number");
