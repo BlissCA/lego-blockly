@@ -583,7 +583,7 @@ export class SBrick {
 	_clampLightChannel(ch) {
 		ch = Number(ch);
 		if (isNaN(ch)) return 0;
-		return Math.min(7, Math.max(0, ch));
+		return Math.min(23, Math.max(0, ch));
 	}
 
 	_clampAdcChannel(ch) {
@@ -690,7 +690,7 @@ export class SBrick {
     await this._sendCommand(0x13, payload, false);
     // this.log(`motorBrakePwm: ${JSON.stringify(pairs)}`);
   }
-	
+
 	// ---------------------------------------------------------------------------
 	// Stop ALL motors and ALL lights (emergency stop)
 	// Optimized: use multi-drive and multi-brake payloads
@@ -707,66 +707,74 @@ export class SBrick {
 		await this._sendCommand(0x01, drivePayload, false);
 
 		// Multi-PWM brake clear for channels 0–3
-		const brakePayload = [
-			0, 0,
-			1, 0,
-			2, 0,
-			3, 0
-		];
-		await this._sendCommand(0x13, brakePayload, false);
+		// const brakePayload = [
+		// 	0, 0,
+		// 	1, 0,
+		// 	2, 0,
+		// 	3, 0
+		// ];
+		// await this._sendCommand(0x13, brakePayload, false);
 
 		// Turn off all lights
-		await this._sendCommand(0x36, [0, 0, 0], false);
+		// await this._sendCommand(0x36, [0, 0, 0], false);
 
-		// this.log("motorStopAll: all motors and lights OFF");
 	}
 
 
 
   // -------------------------------------------------------------------------
-  // Set lights on a single channel (command 0x34)
+  // Set lights on one or more channels (command 0x34)
   // SBrick Light supports RGB, SBrick supports PWM brightness
-  //
-  // For SBrick:
-  //   r,g,b are treated as a single brightness value (0–255)
-  //
-  // For SBrick Light:
-  //   r,g,b are true RGB values (0–255 each)
   // -------------------------------------------------------------------------
-  async setLight(channel, r = 255, g = 255, b = 255) {
-    const ch = this._clampLightChannel(channel);
+	async setLightRGB(port, r = 255, g = 255, b = 255) {
+		const p = Math.min(7, Math.max(0, Number(port)));
 
-    const R = clamp(r, 0, 255);
-    const G = clamp(g, 0, 255);
-    const B = clamp(b, 0, 255);
+		const chR = p * 3;
+		const chG = p * 3 + 1;
+		const chB = p * 3 + 2;
 
-    const payload = [ch, R, G, B];
+		const R = Math.min(255, Math.max(0, r));
+		const G = Math.min(255, Math.max(0, g));
+		const B = Math.min(255, Math.max(0, b));
 
-    await this._sendCommand(0x34, payload, false);
-    // this.log(`setLight: ch=${ch}, rgb=(${R},${G},${B})`);
-  }
+		const payload = [
+			chR, R,
+			chG, G,
+			chB, B
+		];
+
+		await this._sendCommand(0x34, payload, false);
+	}
+
+	async setLightBrightness(channel, brightness = 255) {
+		const ch = Math.min(23, Math.max(0, Number(channel)));
+		const val = Math.min(255, Math.max(0, brightness));
+
+		const payload = [ch, val];
+
+		await this._sendCommand(0x34, payload, false);
+	}
+
 
   // -------------------------------------------------------------------------
   // Read light state on a single channel (command 0x35)
-  // Returns [R, G, B]
+  // Returns Brightness
   // -------------------------------------------------------------------------
-  async getLight(channel) {
-    const ch = this._clampLightChannel(channel);
+  async getLightBrightness(channel) {
+    const ch = Math.min(23, Math.max(0, Number(channel)));
 
     const payload = [ch];
     const resp = await this._sendCommand(0x35, payload, true);
 
-    if (!resp || resp.length < 3) {
+    if (!resp || resp.length < 1) {
       this.log(`getLight: invalid response for ch=${ch}`);
-      return { r: 0, g: 0, b: 0 };
+      return 0;
     }
 
-    const r = resp[0];
-    const g = resp[1];
-    const b = resp[2];
+    const brightness = resp[0];
 
-    // this.log(`getLight: ch=${ch}, rgb=(${r},${g},${b})`);
-    return { r, g, b };
+    // this.log(`getLightBrightness: ch=${ch}, brightness=${brightness}`);
+    return brightness;
   }
 
   // -------------------------------------------------------------------------
