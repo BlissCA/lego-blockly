@@ -462,11 +462,11 @@ export class SBrick {
 
 						this.isLight = (this.productId === 0x01);
 
-						this.log(
-							`Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
-							`(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
-							`FW ${this.fwVersion.major}.${this.fwVersion.minor})`
-						);
+						// this.log(
+						// 	`Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
+						// 	`(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
+						// 	`FW ${this.fwVersion.major}.${this.fwVersion.minor})`
+						// );
 					}
 					break;
 				}
@@ -478,7 +478,7 @@ export class SBrick {
 					// payload = 6-byte ID
 					const idBytes = payload;
 					this.deviceId = hex(idBytes);
-					this.log(`Device ID → ${this.deviceId}`);
+					// this.log(`Device ID → ${this.deviceId}`);
 					break;
 				}
 
@@ -492,10 +492,11 @@ export class SBrick {
 					if (payload.length >= 1) {
 						const returnCode = payload[0];
 						const returnValue = payload.slice(1);
-						this.log(
-							`Command Response notif: rc=0x${returnCode.toString(16)}, ` +
-							`len=${returnValue.length}`
-						);
+						// this.log(
+						// 	`Command Response notif: rc=0x${returnCode.toString(16)}, ` +
+						// 	`len=${returnValue.length}` + 
+						// 	(returnValue.length > 0 ? `, value=${hex(returnValue)}` : "")
+						// );
 					}
 					break;
 				}
@@ -508,9 +509,9 @@ export class SBrick {
 					if (payload.length >= 1) {
 						const status = payload[0]; // 0 = OK, 1 = Over limit
 						this.thermalProtectionActive = (status === 1);
-						this.log(
-							`Thermal Protection → ${this.thermalProtectionActive ? "ACTIVE" : "OK"}`
-						);
+						// this.log(
+						// 	`Thermal Protection → ${this.thermalProtectionActive ? "ACTIVE" : "OK"}`
+						// );
 					}
 					break;
 				}
@@ -548,7 +549,7 @@ export class SBrick {
 				// 0x07 — Signal Completed
 				// ---------------------------------------------------------------
 				case 0x07: {
-					this.log("Signal Completed");
+					// this.log("Signal Completed");
 					if (this.onSignalCompleted) {
 						this.onSignalCompleted();
 					}
