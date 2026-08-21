@@ -3665,6 +3665,22 @@ window.addEventListener("load", () => {
       "tooltip": "SBrick Stop All Motors/Lights"
     },
 
+    {
+      "type": "sbrick_read_adc",
+      "message0": "%1 Read Channel %2 Raw value",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#d68700",
+      "tooltip": "Returns the Raw value of the Sensor"
+    },
 
   ]);
 
@@ -4463,6 +4479,19 @@ Blockly.Blocks['SB_MotPort'] = {
     this.setOutput(true, "Number");
     this.setColour("#d68700");
     this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ output ports.");
+  }
+};
+
+Blockly.Blocks['SB_AdcChannel'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A-C1", "0"], ["A-C2", "1"], ["B-C1", "4"], ["B-C2", "5"], ["C-C1", "2"], ["C-C2", "3"], ["D-C1", "6"], ["D-C2", "7"], ["Volt", "8"], ["Temp.", "9"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour("#d68700");
+    this.setTooltip("Returns a predefined constant value for SBrick/SBrick+/SBrick Light Sensor ADC channels.");
   }
 };
 

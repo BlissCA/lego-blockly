@@ -2549,6 +2549,14 @@ javascriptGenerator.forBlock["SB_MotPort"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+// ---------------- Lego SBrick/SBrick+/SBrick Light ADC Channels Letters ----------------
+javascriptGenerator.forBlock["SB_AdcChannel"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 // ---------------- Lego SBrick/SBrick+ Direction Numbers Forward, Reverse = 0, 1 ----------------
 javascriptGenerator.forBlock["SB_dir"] = function (block) {
   // Get the numerical value mapped to the selected letter
@@ -2629,6 +2637,13 @@ javascriptGenerator.forBlock["sbrick_stop_all"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["sbrick_read_adc"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+
+  const code = `(await deviceManager.getDeviceByName("${dev}").readAdc(${channel}))`;
+  return [code, javascriptGenerator.ORDER_NONE];
+};
 
 
 

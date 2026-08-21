@@ -2329,6 +2329,20 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#d68700", "contents": [
+            { "kind": "block", "type": "SB_AdcChannel" },
+            {
+              "kind": "block",
+              "type": "sbrick_read_adc",
+              "inputs": {
+                "CHANNEL": {
+                   "shadow": {
+                    "type": "SB_AdcChannel",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            }
           ]
         },
         { "kind": "category", "name": "Lights", "colour": "#d68700", "contents": [
