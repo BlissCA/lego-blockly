@@ -690,26 +690,37 @@ export class SBrick {
     await this._sendCommand(0x13, payload, false);
     // this.log(`motorBrakePwm: ${JSON.stringify(pairs)}`);
   }
-
+	
 	// ---------------------------------------------------------------------------
 	// Stop ALL motors and ALL lights (emergency stop)
+	// Optimized: use multi-drive and multi-brake payloads
 	// ---------------------------------------------------------------------------
 	async motorStopAll() {
-	// Stop motors on channels 0–3
-	for (let ch = 0; ch < 4; ch++) {
-			await this._sendCommand(0x01, [ch, 1, 0], false); // direction=1, power=0
+
+		// Multi-drive STOP for channels 0–3
+		const drivePayload = [
+			0, 1, 0,
+			1, 1, 0,
+			2, 1, 0,
+			3, 1, 0
+		];
+		await this._sendCommand(0x01, drivePayload, false);
+
+		// Multi-PWM brake clear for channels 0–3
+		const brakePayload = [
+			0, 0,
+			1, 0,
+			2, 0,
+			3, 0
+		];
+		await this._sendCommand(0x13, brakePayload, false);
+
+		// Turn off all lights
+		await this._sendCommand(0x36, [0, 0, 0], false);
+
+		// this.log("motorStopAll: all motors and lights OFF");
 	}
 
-	// Clear PWM brake on all channels
-	for (let ch = 0; ch < 4; ch++) {
-			await this._sendCommand(0x13, [ch, 0], false);
-	}
-
-	// Turn off all lights
-	await this._sendCommand(0x36, [0, 0, 0], false);
-
-	// this.log("motorStopAll: all motors and lights OFF");
-	}
 
 
   // -------------------------------------------------------------------------
