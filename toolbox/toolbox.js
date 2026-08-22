@@ -2346,6 +2346,106 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Lights", "colour": "#d68700", "contents": [
+            { "kind": "block", "type": "SB_LightPort" },
+            {
+              "kind": "block",
+              "type": "sbrick_set_light_rgb",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_LightPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                },
+                "R": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 0 }
+                  }
+                },
+                "G": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 0 }
+                  }
+                },
+                "B": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 0 }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_set_light_rgb_cp",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_LightPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_set_light_rgb_sliders",
+              "inputs": {
+                "PORTS": {
+                  "shadow": {
+                    "type": "SB_LightPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_set_light_brightness",
+              "inputs": {
+                "CHANNEL": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 23,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 255 }
+                  }
+                },
+                "BRIGHTNESS": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 0 }
+                  }
+                }
+                
+              }
+            }
 					]
 				},
         { "kind": "category", "name": "Misc", "colour": "#d68700", "contents": [

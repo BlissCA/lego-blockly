@@ -2565,6 +2565,14 @@ javascriptGenerator.forBlock["SB_dir"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+// ---------------- Lego SBrickLight Port Letters A-H = 0-7 ----------------
+javascriptGenerator.forBlock["SB_LightPort"] = function (block) {
+  // Get the numerical value mapped to the selected letter
+  var code = block.getFieldValue('LETTER');
+  // Order.ATOMIC ensures the value is treated as a single unit in math expressions
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["sbrick_mot_drive"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
@@ -2645,6 +2653,86 @@ javascriptGenerator.forBlock["sbrick_read_adc"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["sbrick_set_light_rgb"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  const r  = javascriptGenerator.valueToCode(block, "R",  javascriptGenerator.ORDER_NONE) || "0";
+  const g  = javascriptGenerator.valueToCode(block, "G",  javascriptGenerator.ORDER_NONE) || "0";
+  const b  = javascriptGenerator.valueToCode(block, "B",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLightRGB(${port}, ${r}, ${g}, ${b});
+}
+`;
+};
+
+javascriptGenerator.forBlock["sbrick_set_light_rgb_cp"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+  // Get the hex string from the color field (e.g. "#ff0000")
+  const hexColor = block.getFieldValue("COLOR");
+
+  // Helper to convert hex to RGB
+  const r = parseInt(hexColor.substring(1, 3), 16);
+  const g = parseInt(hexColor.substring(3, 5), 16);
+  const b = parseInt(hexColor.substring(5, 7), 16);
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLightRGB(${port}, ${r}, ${g}, ${b});
+}
+`;
+};
+
+javascriptGenerator.forBlock["sbrick_set_light_rgb_sliders"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
+
+  const val = block.getFieldValue("RGB_VALUE");
+  
+  let r, g, b;
+  if (typeof val === 'string') {
+    // Standard case: "255,255,255"
+    const parts = val.split(',');
+    r = parts[0]; g = parts[1]; b = parts[2];
+  } else if (val && typeof val === 'object') {
+    // Blockly v12 State object case: {r: 255, g: 255, b: 255}
+    r = val.r; g = val.g; b = val.b;
+  } else {
+    r = 255; g = 255; b = 255;
+  }
+  
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLightRGB(${port}, ${r}, ${g}, ${b});
+}
+`;
+};
+
+javascriptGenerator.forBlock["sbrick_set_light_brightness"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const brightness = javascriptGenerator.valueToCode(block, "BRIGHTNESS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLightBrightness(${channel}, ${brightness});
+}
+`;
+};
 
 
 

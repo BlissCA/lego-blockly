@@ -716,7 +716,8 @@ export class SBrick {
 		// await this._sendCommand(0x13, brakePayload, false);
 
 		// Turn off all lights
-		// await this._sendCommand(0x36, [0, 0, 0], false);
+		await this._sendCommand(0x36, [0x00,0,0,0,0,0,0,0,0,0,0,0,0], false);
+		await this._sendCommand(0x36, [0x80,0,0,0,0,0,0,0,0], false);
 
 	}
 

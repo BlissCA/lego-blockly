@@ -3682,6 +3682,98 @@ window.addEventListener("load", () => {
       "tooltip": "Returns the Raw value of the Sensor"
     },
 
+    {
+      "type": "sbrick_set_light_rgb",
+      "message0": "%1 Light %2 R %3 G %4 B %5",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "R",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "G",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "B",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "Set Light Color, Port A-H=0-7, RGB: 0 to 255"
+    },
+    {
+      "type": "sbrick_set_light_rgb_cp",
+      "message0": "%1 Light %2 set color %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Number",
+        },
+        {
+          "type": "field_colour",
+          "name": "COLOR",
+          "default": "#ffffff"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "Set Light Color, Port A-H=0-7, using Color Picker"
+    },
+    {
+      "type": "sbrick_set_light_rgb_sliders",
+      "message0": "%1 Light %2 set color %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        { "type": "input_value", "name": "PORTS", "check": "Number" },
+        { "type": "field_rgb_slider", "name": "RGB_VALUE", "r": 255, "g": 255, "b": 255 }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "Set Light Color, Port A-H=0-7, using RGB Sliders"
+    },
+
+    {
+      "type": "sbrick_set_light_brightness",
+      "message0": "%1 Light %2 Brightness %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "BRIGHTNESS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "SBrick Light, Channel 0-23, RGB: 0 to 255"
+    },
+
   ]);
 
 
@@ -4479,6 +4571,19 @@ Blockly.Blocks['SB_MotPort'] = {
     this.setOutput(true, "Number");
     this.setColour("#d68700");
     this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ output ports.");
+  }
+};
+
+Blockly.Blocks['SB_LightPort'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["A", "0"], ["B", "2"], ["C", "1"], ["D", "3"], ["E", "4"], ["F", "5"], ["G", "6"], ["H", "7"]
+      ]), "LETTER");
+
+    this.setOutput(true, "Number");
+    this.setColour("#d68700");
+    this.setTooltip("Returns a predefined constant value for SBrick Light ports. (A-H = 0-7)");
   }
 };
 
