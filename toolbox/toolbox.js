@@ -2429,7 +2429,7 @@ const toolbox = {
                       "max": 23,
                       "precision": 1
                     },
-                    "fields": { "NUM": 255 }
+                    "fields": { "NUM": 0 }
                   }
                 },
                 "BRIGHTNESS": {
@@ -2440,7 +2440,7 @@ const toolbox = {
                       "max": 255,
                       "precision": 1
                     },
-                    "fields": { "NUM": 0 }
+                    "fields": { "NUM": 255 }
                   }
                 }
                 

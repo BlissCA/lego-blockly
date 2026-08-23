@@ -2575,7 +2575,7 @@ javascriptGenerator.forBlock["SB_LightPort"] = function (block) {
 
 javascriptGenerator.forBlock["sbrick_mot_drive"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
   const dir  = javascriptGenerator.valueToCode(block, "DIR",  javascriptGenerator.ORDER_NONE) || "0";
 
@@ -2591,7 +2591,7 @@ javascriptGenerator.forBlock["sbrick_mot_drive"] = function (block) {
 
 javascriptGenerator.forBlock["sbrick_mot_power"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
   const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
 
   return `
@@ -2606,7 +2606,7 @@ javascriptGenerator.forBlock["sbrick_mot_power"] = function (block) {
 
 javascriptGenerator.forBlock["sbrick_mot_stop"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
 {
@@ -2620,7 +2620,7 @@ javascriptGenerator.forBlock["sbrick_mot_stop"] = function (block) {
 
 javascriptGenerator.forBlock["sbrick_mot_brake"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
-  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";
 
   return `
 {
