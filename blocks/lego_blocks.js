@@ -4570,7 +4570,7 @@ Blockly.Blocks['SB_MotPort'] = {
 
     this.setOutput(true, "Number");
     this.setColour("#d68700");
-    this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ output ports.");
+    this.setTooltip("Returns a predefined constant value for SBrick/SBrick+ ports (A=0, B=2, C=1, D=3).");
   }
 };
 
