@@ -1125,19 +1125,10 @@ export class SBrick {
 	// -------------------------------------------------------------------------
 	async setDeviceName(name) {
 		const ascii = Array.from(name).map(c => c.charCodeAt(0));
-		const bytes = ascii.slice(0, 16);
+		const bytes = ascii.slice(0, 14);
 
-		const resp = await this._sendCommand(0x2A, bytes, true);
+		await this._sendCommand(0x2A, bytes, false);
 
-		const ok = resp && resp[0] === 0x00;
-		this.log(`setDeviceName: ${ok ? "OK" : "FAILED"} ("${name}")`);
-
-		if (ok) {
-			this.name = name;
-			this.manager?.updateDeviceEntry?.(this);
-		}
-
-		return ok;
 	}
 
 	// -------------------------------------------------------------------------
