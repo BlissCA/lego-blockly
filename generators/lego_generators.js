@@ -2734,6 +2734,30 @@ javascriptGenerator.forBlock["sbrick_set_light_brightness"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["sbrick_get_name"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getDeviceName())`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["sbrick_set_name"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const name = javascriptGenerator.valueToCode(block, "SBRICKNAME", javascriptGenerator.ORDER_NONE) || "''";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setDeviceName(${name});
+}
+`;
+};
+
+
 
 
 

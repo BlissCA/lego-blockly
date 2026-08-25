@@ -2449,7 +2449,19 @@ const toolbox = {
 					]
 				},
         { "kind": "category", "name": "Misc", "colour": "#d68700", "contents": [
-
+            { "kind": "block", "type": "sbrick_get_name" },
+            {
+              "kind": "block",
+              "type": "sbrick_set_name",
+              "inputs": {
+                "SBRICKNAME": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": { "TEXT": "SBrick" }
+                  }
+                }
+              }            
+            }
           ]
         }        
       ]

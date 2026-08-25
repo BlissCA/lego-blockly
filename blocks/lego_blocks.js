@@ -3773,6 +3773,35 @@ window.addEventListener("load", () => {
       "colour": "#d68700",
       "tooltip": "SBrick Light, Channel 0-23, RGB: 0 to 255"
     },
+    {
+      "type": "sbrick_get_name",
+      "message0": "%1 Get SBrick Name",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": "#d68700",
+      "tooltip": "Returns SBrick Name."
+    },
+
+    {
+      "type": "sbrick_set_name",
+      "message0": "%1 Set SBrick Name to %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "SBRICKNAME",
+          "check": "String"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "Set SBrick Name"
+    },
 
   ]);
 
