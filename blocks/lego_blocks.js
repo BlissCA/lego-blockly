@@ -3803,6 +3803,18 @@ window.addEventListener("load", () => {
       "tooltip": "Set SBrick Name"
     },
 
+    {
+      "type": "sbrick_get_voltage",
+      "message0": "%1 Get SBrick Voltage",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#d68700",
+      "tooltip": "Returns SBrick Voltage."
+    },
+
   ]);
 
 

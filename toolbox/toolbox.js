@@ -2342,7 +2342,9 @@ const toolbox = {
                 }
                 
               }
-            }
+            },
+            { "kind": "block", "type": "sbrick_get_voltage" }
+            
           ]
         },
         { "kind": "category", "name": "Lights", "colour": "#d68700", "contents": [

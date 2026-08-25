@@ -2757,6 +2757,13 @@ javascriptGenerator.forBlock["sbrick_set_name"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["sbrick_get_voltage"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+
+  const code = `(await deviceManager.getDeviceByName("${dev}").readVoltage())`;
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
 
 
 
