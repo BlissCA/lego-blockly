@@ -2649,7 +2649,7 @@ javascriptGenerator.forBlock["sbrick_read_adc"] = function (block) {
   const dev    = block.getFieldValue("DEVICE");
   const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
 
-  const code = `(await deviceManager.getDeviceByName("${dev}").readAdc(${channel}).adc)`;
+  const code = `(await deviceManager.getDeviceByName("${dev}").readAdc(${channel})).adc`;
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
