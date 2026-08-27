@@ -108,7 +108,7 @@ export class SBrick {
 
     // Keepalive
     this.keepAliveTimer = null;
-    this.keepAliveIntervalMs = 300; // Send keepalive every 300ms
+    this.keepAliveIntervalMs = 500; // Send keepalive every 500ms
 
     // Bind notification handlers
     this._onQuickDriveNotification =
@@ -381,7 +381,11 @@ export class SBrick {
 
 		// Queue the write
 		await this.queue.add(async () => {
-			await this.remoteChar.writeValue(bytes);
+			if (this.remoteChar.writeValueWithoutResponse) {
+					await this.remoteChar.writeValueWithoutResponse(bytes);
+			} else {
+					await this.remoteChar.writeValue(bytes); // Safari fallback
+			}
 		});
 
 		// Reset keepalive timer
@@ -513,7 +517,7 @@ export class SBrick {
 					const measurements = [];
 
 					for (let i = 0; i + 1 < payload.length; i += 2) {
-						const raw = (payload[i] << 8) | payload[i + 1];
+						const raw = (payload[i+1] << 8) | payload[i];
 						const adc = raw >> 4;
 						const channel = raw & 0x0F;
 						measurements.push({ adc, channel });
@@ -838,7 +842,7 @@ export class SBrick {
     const resp = await this._sendCommand(0x0F, [ch], true);
 
     if (!resp || resp.length < 2) {
-      this.log(`readAdc: invalid response for ch=${ch}`);
+      this.log(`readAdc: invalid response for ch=${ch}, response length=${resp.length}`);
       return { adc: 0, channel: ch };
     }
 
@@ -895,7 +899,7 @@ export class SBrick {
 		const resp = await this._sendCommand(0x0F, [adcCh0, adcCh1], true);
 
 		if (!resp || resp.length < 4) {
-			this.log(`readWedoDistSensor: invalid response for port=${ch}`);
+			this.log(`readWedoDistSensor: invalid response for port=${ch}, response length=${resp.length}`);
 			return 0;
 		}
 
@@ -1253,7 +1257,11 @@ export class SBrick {
     }
 
     await this.enqueueCommand(async () => {
-      await this.otaDataChar.writeValue(bytes);
+			if (this.otaDataChar.writeValueWithoutResponse) {
+					await this.otaDataChar.writeValueWithoutResponse(bytes);
+			} else {
+					await this.otaDataChar.writeValue(bytes); // Safari fallback
+			}
     });
 
     this.log(`otaWriteChunk: ${bytes.length} bytes`);
@@ -1268,7 +1276,11 @@ export class SBrick {
     }
 
     await this.enqueueCommand(async () => {
-      await this.otaControlChar.writeValue(new Uint8Array([0x00]));
+			if (this.otaDataChar.writeValueWithoutResponse) {
+					await this.otaDataChar.writeValueWithoutResponse(bytes);
+			} else {
+					await this.otaDataChar.writeValue(bytes); // Safari fallback
+			}
     });
 
     this.log("otaEnterDfu: command 0x00 sent");
@@ -1284,7 +1296,11 @@ export class SBrick {
     }
 
     await this.enqueueCommand(async () => {
-      await this.otaControlChar.writeValue(new Uint8Array([0x03]));
+			if (this.otaDataChar.writeValueWithoutResponse) {
+					await this.otaDataChar.writeValueWithoutResponse(bytes);
+			} else {
+					await this.otaDataChar.writeValue(bytes); // Safari fallback
+			}
     });
 
     this.log("otaFinalize: command 0x03 sent");
