@@ -820,6 +820,14 @@ export class SBrick {
   }
 
 
+	async setupAdcChannels(channels = []) {
+		// Enable periodic ADC sampling
+		await this._sendCommand(0x2C, channels, false);
+
+		// Allow ADC sampler to start producing valid values
+		await new Promise(resolve => setTimeout(resolve, 500));
+	}
+
   // -------------------------------------------------------------------------
   // Read raw ADC value from a specific channel (command 0x0F)
   // Returns: { adc, channel }
@@ -869,7 +877,38 @@ export class SBrick {
     return temp;
   }
 
-  // -------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------
+	// Read WeDo 1 Distance Sensor on SBrick Plus
+	// channel = 0–3  (A=0, C=1, B=2, D=3)
+	// Reads ADC channels (ch*2) and (ch*2+1)
+	// Returns ch1Raw (actual sensor value)
+	// ---------------------------------------------------------------------------
+	async readWedoDistSensor(channel) {
+		// Clamp to valid WeDo port range
+		const ch = Math.min(3, Math.max(0, Number(channel)));
+
+		// Compute ADC channels for this port
+		const adcCh0 = ch * 2;
+		const adcCh1 = adcCh0 + 1;
+
+		// Query both ADC channels at once
+		const resp = await this._sendCommand(0x0F, [adcCh0, adcCh1], true);
+
+		if (!resp || resp.length < 4) {
+			this.log(`readWedoDistSensor: invalid response for port=${ch}`);
+			return 0;
+		}
+
+		// Decode nibble-packed ADC values
+		const raw0 = ((resp[1] << 8) | resp[0]) >> 4;
+		const raw1 = ((resp[3] << 8) | resp[2]) >> 4;
+
+		// For distance sensor, ch1Raw is the meaningful value
+		return raw1;
+	}
+
+
+	// -------------------------------------------------------------------------
   // Read all ADC channels (0–9)
   // Returns array of { channel, adc }
   // -------------------------------------------------------------------------

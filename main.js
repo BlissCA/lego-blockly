@@ -968,6 +968,7 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.motorStopAll) {
         // SBrick: stop all motors / Lights
         await dev.motorStopAll();
+        await dev._sendCommand(0x2C, [], false); // Stop Periodic adc readings
       }
 
     } catch (err) {

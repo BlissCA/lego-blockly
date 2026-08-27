@@ -3667,7 +3667,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "sbrick_read_adc",
-      "message0": "%1 Read Channel %2 Raw value",
+      "message0": "%1 Channel %2 Raw value?",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
         {
@@ -3680,6 +3680,24 @@ window.addEventListener("load", () => {
       "output": "Number",
       "colour": "#d68700",
       "tooltip": "Returns the Raw value of the Sensor"
+    },
+
+    {
+      "type": "sbrick_setup_adc_channels",
+      "message0": "%1 Setup ports for Sensors %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNELS",
+          "check": "Array"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#d68700",
+      "tooltip": "Set SBrick+ port for Sensor (periodic adc reading)"
     },
 
     {

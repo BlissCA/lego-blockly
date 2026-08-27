@@ -2653,6 +2653,42 @@ javascriptGenerator.forBlock["sbrick_read_adc"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
+  const devName = block.getFieldValue("DEVICE");
+
+  // This returns JS code for the list, e.g. [0,2] or []
+  const portsCode = javascriptGenerator.valueToCode(
+    block,
+    "CHANNELS",
+    javascriptGenerator.ORDER_NONE
+  ) || "[]";
+
+  // Build JS code that expands ports → adc channels
+  const adcChannelsCode = `
+(() => {
+  const ports = ${portsCode};
+  const adc = [];
+  for (const p of ports) {
+    const ch = Number(p);
+    if (!isNaN(ch) && ch >= 0 && ch <= 3) {
+      adc.push(ch * 2, ch * 2 + 1);
+    }
+  }
+  return adc;
+})()
+`;
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${devName}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setupAdcChannels(${adcChannelsCode});
+}
+`;
+};
+
+
 javascriptGenerator.forBlock["sbrick_set_light_rgb"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORTS", javascriptGenerator.ORDER_NONE) || "0";

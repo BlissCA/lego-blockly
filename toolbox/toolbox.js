@@ -2329,7 +2329,29 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#d68700", "contents": [
-            { "kind": "block", "type": "SB_AdcChannel" },
+//            { "kind": "block", "type": "SB_AdcChannel" },
+            {
+              "kind": "block",
+              "type": "sbrick_setup_adc_channels",
+              "inputs": {
+                  "CHANNELS": {
+                    "shadow": {
+                      "type": "lists_create_with",
+                      "extraState": {
+                      "itemCount": 1
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "shadow": {
+                          "type": "SB_MotPort",
+                          "fields": { "LETTER": "0" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
             {
               "kind": "block",
               "type": "sbrick_read_adc",
