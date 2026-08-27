@@ -2334,20 +2334,20 @@ const toolbox = {
               "kind": "block",
               "type": "sbrick_setup_adc_channels",
               "inputs": {
-                  "CHANNELS": {
-                    "block": {
-                      "type": "lists_create_with",
-                      "extraState": {
-                      "itemCount": 1
-                    },
-                    "inputs": {
-                      "ADD0": {
-                        "block": {
-                          "type": "SB_MotPort",
-                          "fields": { "LETTER": "0" }
-                          }
+                "CHANNELS": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "extraState": {
+                    "itemCount": 1
+                  },
+                  "inputs": {
+                    "ADD0": {
+                      "block": {
+                        "type": "SB_MotPort",
+                        "fields": { "LETTER": "0" }
                         }
-                      }     
+                      }
+                    }     
                   }
                 }
               }
