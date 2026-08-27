@@ -2664,16 +2664,14 @@ javascriptGenerator.forBlock["sbrick_read_wedo_dist_sensor"] = function (block) 
 javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
   const devName = block.getFieldValue("DEVICE");
 
-  // This returns JS code for the list, e.g. [0,2] or []
   const portsCode = javascriptGenerator.valueToCode(
     block,
     "CHANNELS",
     javascriptGenerator.ORDER_NONE
   ) || "[]";
 
-  // Build JS code that expands ports → adc channels
   const adcChannelsCode = `
-(async () => {
+await (async () => {
   const ports = ${portsCode};
   const adc = [];
   for (const p of ports) {
@@ -2695,6 +2693,7 @@ javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
 }
 `;
 };
+
 
 
 javascriptGenerator.forBlock["sbrick_set_light_rgb"] = function (block) {
