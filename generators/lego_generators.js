@@ -2664,20 +2664,33 @@ javascriptGenerator.forBlock["sbrick_read_wedo_dist_sensor"] = function (block) 
 javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
   const devName = block.getFieldValue("DEVICE");
 
-  // Extract the list items directly from the block inputs
-  const ports = javascriptGenerator.getAdjustedInput(block, "CHANNELS");
+  // Get the CHANNELS input block (lists_create_with)
+  const listBlock = block.getInputTargetBlock("CHANNELS");
 
-  // ports is an array of code strings like ["0", "2"]
-  const adc = [];
+  const ports = [];
 
-  for (const p of ports) {
-    const ch = Number(p);
-    if (!isNaN(ch) && ch >= 0 && ch <= 3) {
-      adc.push(ch * 2, ch * 2 + 1);
+  if (listBlock && listBlock.type === "lists_create_with") {
+    // Iterate through ADD0, ADD1, ADD2, ...
+    for (let i = 0; i < listBlock.itemCount_; i++) {
+      const itemBlock = listBlock.getInputTargetBlock("ADD" + i);
+      if (itemBlock) {
+        const code = javascriptGenerator.blockToCode(itemBlock);
+        if (code) {
+          ports.push(Number(code));
+        }
+      }
     }
   }
 
-  // Build a literal JS array string: "[0,1,4,5]"
+  // Convert ports → ADC channels
+  const adc = [];
+  for (const p of ports) {
+    if (!isNaN(p) && p >= 0 && p <= 3) {
+      adc.push(p * 2, p * 2 + 1);
+    }
+  }
+
+  // Build literal JS array: "[0,1,4,5]"
   const adcLiteral = `[${adc.join(",")}]`;
 
   return `
