@@ -2338,8 +2338,17 @@ const toolbox = {
                     "block": {
                       "type": "lists_create_with",
                       "extraState": {
-                      "itemCount": 0
-                    }
+                      "itemCount": 1
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "block": {
+                          "type": "SB_MotPort",
+                          "fields": { "LETTER": "0" }
+                          }
+                        }
+                      }
+                    }                    
                   }
                 }
               }
