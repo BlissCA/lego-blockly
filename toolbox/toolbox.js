@@ -2335,18 +2335,10 @@ const toolbox = {
               "type": "sbrick_setup_adc_channels",
               "inputs": {
                   "CHANNELS": {
-                    "shadow": {
+                    "block": {
                       "type": "lists_create_with",
                       "extraState": {
-                      "itemCount": 1
-                    },
-                    "inputs": {
-                      "ADD0": {
-                        "shadow": {
-                          "type": "SB_MotPort",
-                          "fields": { "LETTER": "0" }
-                        }
-                      }
+                      "itemCount": 0
                     }
                   }
                 }
@@ -2359,6 +2351,19 @@ const toolbox = {
                 "CHANNEL": {
                    "shadow": {
                     "type": "SB_AdcChannel",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            },
+            {
+              "kind": "block",
+              "type": "sbrick_read_wedo_dist_sensor",
+              "inputs": {
+                "CHANNEL": {
+                   "shadow": {
+                    "type": "SB_MotPort",
                     "fields": { "LETTER": "0" }
                   }
                 }

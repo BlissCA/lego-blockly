@@ -2653,6 +2653,14 @@ javascriptGenerator.forBlock["sbrick_read_adc"] = function (block) {
   return [code, javascriptGenerator.ORDER_NONE];
 };
 
+javascriptGenerator.forBlock["sbrick_read_wedo_dist_sensor"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+
+  const code = `(await deviceManager.getDeviceByName("${dev}").readWedoDistSensor(${channel}))`;
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
 javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
   const devName = block.getFieldValue("DEVICE");
 

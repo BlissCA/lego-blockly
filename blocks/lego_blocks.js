@@ -3701,6 +3701,23 @@ window.addEventListener("load", () => {
     },
 
     {
+      "type": "sbrick_read_wedo_dist_sensor",
+      "message0": "%1 Read port %2 Distance?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSBrickDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number"
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#d68700",
+      "tooltip": "Returns the Wedo 1.0 Distance Sensor value"
+    },
+
+    {
       "type": "sbrick_set_light_rgb",
       "message0": "%1 Light %2 R %3 G %4 B %5",
       "args0": [
