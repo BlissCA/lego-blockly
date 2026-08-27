@@ -32,7 +32,7 @@ const ASSETS = [
   "./device/DeviceLegoVLL.js",
   "./device/DeviceLegoLPF2.js",
   "./device/DeviceLegoToyPad.js",
-  "./device/DeviceSbrick.js",
+  "./device/DeviceSBrick.js",
 
   // Icons
   "./icons/icon-192.png",
