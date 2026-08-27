@@ -2347,8 +2347,7 @@ const toolbox = {
                           "fields": { "LETTER": "0" }
                           }
                         }
-                      }
-                    }                    
+                      }     
                   }
                 }
               }
