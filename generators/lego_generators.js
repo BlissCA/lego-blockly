@@ -2664,35 +2664,32 @@ javascriptGenerator.forBlock["sbrick_read_wedo_dist_sensor"] = function (block) 
 javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
   const devName = block.getFieldValue("DEVICE");
 
-  const portsCode = javascriptGenerator.valueToCode(
-    block,
-    "CHANNELS",
-    javascriptGenerator.ORDER_NONE
-  ) || "[]";
+  // Extract the list items directly from the block inputs
+  const ports = javascriptGenerator.getAdjustedInput(block, "CHANNELS");
 
-  const adcChannelsCode = `
-await (async () => {
-  const ports = ${portsCode};
+  // ports is an array of code strings like ["0", "2"]
   const adc = [];
+
   for (const p of ports) {
     const ch = Number(p);
     if (!isNaN(ch) && ch >= 0 && ch <= 3) {
       adc.push(ch * 2, ch * 2 + 1);
     }
   }
-  return adc;
-})()
-`;
+
+  // Build a literal JS array string: "[0,1,4,5]"
+  const adcLiteral = `[${adc.join(",")}]`;
 
   return `
 {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${devName}");
   if (!dev) throw new Error("Device lost");
-  await dev.setupAdcChannels(${adcChannelsCode});
+  await dev.setupAdcChannels(${adcLiteral});
 }
 `;
 };
+
 
 
 
