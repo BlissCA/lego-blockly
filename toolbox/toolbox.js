@@ -1365,7 +1365,7 @@ const toolbox = {
                     },
                     "inputs": {
                       "ADD0": {
-                        "shadow": {
+                        "block": {
                           "type": "math_number",
                           "fields": {
                             "NUM": 2
@@ -1373,7 +1373,7 @@ const toolbox = {
                         }
                       },
                       "ADD1": {
-                        "shadow": {
+                        "block": {
                           "type": "math_number",
                           "fields": {
                             "NUM": 66
