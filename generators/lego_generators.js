@@ -2673,7 +2673,7 @@ javascriptGenerator.forBlock["sbrick_setup_adc_channels"] = function (block) {
 
   // Build JS code that expands ports → adc channels
   const adcChannelsCode = `
-(() => {
+(async () => {
   const ports = ${portsCode};
   const adc = [];
   for (const p of ports) {
