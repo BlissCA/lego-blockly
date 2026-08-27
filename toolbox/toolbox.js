@@ -1358,7 +1358,7 @@ const toolbox = {
                   }
                   },
                   "TX_BYTES": {
-                    "shadow": {
+                    "block": {
                       "type": "lists_create_with",
                       "extraState": {
                       "itemCount": 2
