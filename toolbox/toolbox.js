@@ -2329,7 +2329,8 @@ const toolbox = {
           ]
         },
         { "kind": "category", "name": "Sensors", "colour": "#d68700", "contents": [
-//            { "kind": "block", "type": "SB_AdcChannel" },
+            { "kind": "block", "type": "SB_MotPort" },
+            { "kind": "block", "type": "SB_AdcChannel" },
             {
               "kind": "block",
               "type": "sbrick_setup_adc_channels",
