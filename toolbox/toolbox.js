@@ -2379,6 +2379,19 @@ const toolbox = {
                 
               }
             },
+            {
+              "kind": "block",
+              "type": "sbrick_read_wedo_dist_sensor_v2",
+              "inputs": {
+                "CHANNEL": {
+                   "shadow": {
+                    "type": "SB_MotPort",
+                    "fields": { "LETTER": "0" }
+                  }
+                }
+                
+              }
+            },
             { "kind": "block", "type": "sbrick_get_voltage" }
             
           ]

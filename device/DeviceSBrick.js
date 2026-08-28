@@ -589,29 +589,28 @@ export class SBrick {
 				// 0x06 — Voltage Measurement (ADC)
 				// ---------------------------------------------------------------
 				case 0x06: {
-					// payload = measurement bytes...
-					const measurements = [];
+						// payload = measurement bytes...
+						const adcArray = this.lastVoltageMeasurements || new Array(16).fill(null);
 
-					for (let i = 0; i + 1 < payload.length; i += 2) {
-						const raw = (payload[i+1] << 8) | payload[i];
-						const adc = raw >> 4;
-						const channel = raw & 0x0F;
-						measurements.push({ adc, channel });
-					}
+						for (let i = 0; i + 1 < payload.length; i += 2) {
+								const raw = (payload[i+1] << 8) | payload[i];
+								const adc = raw >> 4;
+								const channel = raw & 0x0F;
 
-					this.lastVoltageMeasurements = measurements;
-
-					// Auto voltage + temperature extraction
-					for (const m of measurements) {
-						if (m.channel === 8) {
-							this.lastVoltage = this._convertVoltage(m.adc);
+								adcArray[channel] = adc;
 						}
-						if (m.channel === 9) {
-							this.lastTemperature = this._convertTemperature(m.adc);
-						}
-					}
 
-					break;
+						this.lastVoltageMeasurements = adcArray;
+
+						// Auto voltage + temperature extraction
+						if (adcArray[8] != null) {
+								this.lastVoltage = this._convertVoltage(adcArray[8]);
+						}
+						if (adcArray[9] != null) {
+								this.lastTemperature = this._convertTemperature(adcArray[9]);
+						}
+
+						break;
 				}
 
 				// ---------------------------------------------------------------
@@ -901,9 +900,17 @@ export class SBrick {
 
 
 	async setupAdcChannels(channels = []) {
-		// Enable periodic ADC sampling
+		// 1. Enable periodic ADC sampling
 		await this._sendCommand(0x2C, channels, false);
-		await this._sendCommand(0x32, [0x00,0x01,0x01,0x01,0x02,0x01,0x03,0x01,0x04,0x01,0x05,0x01,0x06,0x01,0x07,0x01], false);  // Set ADC correction profile to scale between 0-1000
+
+		// 2. Set ADC correction profile per channel (0x32, Channel, ProfileID)
+    for (let channel of channels) {
+        await this._sendCommand(0x32, [channel, 0x01], false);
+    }
+
+    // 3. Enable periodic notifications
+    const notifyChannels = [...channels, 0x08];
+    await this._sendCommand(0x2E, notifyChannels, false);
 
 		// Allow ADC sampler to start producing valid values
 		await new Promise(resolve => setTimeout(resolve, 500));
@@ -973,9 +980,9 @@ export class SBrick {
 		const adcCh1 = adcCh0 + 1;
 
 		// Query both ADC channels at once
-		const resp = await this._sendCommand(0x0F, [adcCh0, adcCh1], true);
+		const resp = await this._sendCommand(0x0F, [adcCh0, adcCh1, 0x08], true);
 
-		if (!resp || resp.length < 4) {
+		if (!resp || resp.length < 6) {
 			this.log(`readWedoDistSensor: invalid response for port=${ch}, response length=${resp.length}`);
 			return 0;
 		}
@@ -983,9 +990,34 @@ export class SBrick {
 		// Decode nibble-packed ADC values
 		const raw0 = ((resp[1] << 8) | resp[0]) >> 4;
 		const raw1 = ((resp[3] << 8) | resp[2]) >> 4;
+		const rawV = ((resp[5] << 8) | resp[4]) >> 4;
 
 		// For distance sensor, ch1Raw is the meaningful value
 		return raw1;
+	}
+
+	async readWedoDistSensorV2(channel) {
+			const ch = Math.min(3, Math.max(0, Number(channel)));
+
+			const adcCh0 = ch * 2;
+			const adcCh1 = adcCh0 + 1;
+
+			const adc = this.lastVoltageMeasurements;
+			if (!adc) {
+					this.log("readWedoDistSensor: no ADC data yet");
+					return 0;
+			}
+
+			const raw0 = adc[adcCh0];
+			const raw1 = adc[adcCh1];
+			const rawV = adc[8];   // voltage reference
+
+			if (raw0 == null || raw1 == null || rawV == null) {
+					this.log(`readWedoDistSensor: missing ADC channels for port ${ch}`);
+					return 0;
+			}
+
+			return raw1;
 	}
 
 
