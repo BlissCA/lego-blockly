@@ -272,8 +272,8 @@ export class SBrick {
     this.log(`Connected as ${this.name}`);
     this.setStatus("connected", "Connected");
 
-    // Start keepalive  2026-08-27 (The keep Alive only starts with first motor drive command (0x01) )
-    // this._startKeepAlive();
+	  // Start Connection Watchdog
+    this._startConnWatchdog();
 
     // Notify UI
     window.logStatus?.(`Connected: ${this.name}`);
