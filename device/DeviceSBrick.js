@@ -107,9 +107,15 @@ export class SBrick {
     this.isLight = false;      // Auto-detected
 
     // Keepalive
+		this.driveStarted = false;
     this.keepAliveTimer = null;
-    this.keepAliveIntervalMs = 500; // Send keepalive every 500ms
+    this.keepAliveIntervalMs = 400; // Send keepalive every 400ms
 
+		// Connection Watchdog
+		this.lastUptime = null;
+		this.connFailCount = 0;
+		this.connWatchdogTimer = null;
+	
     // Bind notification handlers
     this._onQuickDriveNotification =
       this._onQuickDriveNotification.bind(this);
@@ -266,8 +272,8 @@ export class SBrick {
     this.log(`Connected as ${this.name}`);
     this.setStatus("connected", "Connected");
 
-    // Start keepalive
-    this._startKeepAlive();
+    // Start keepalive  2026-08-27 (The keep Alive only starts with first motor drive command (0x01) )
+    // this._startKeepAlive();
 
     // Notify UI
     window.logStatus?.(`Connected: ${this.name}`);
@@ -281,6 +287,9 @@ export class SBrick {
 		try {
 			// Stop keepalive first
 			this._stopKeepAlive();
+
+			// Stop connection watchdod
+			this._stopConnWatchdog();
 
 			// Stop queue
 			this.queueActive = false;
@@ -320,6 +329,9 @@ export class SBrick {
 		try {
 			// Stop keepalive first
 			this._stopKeepAlive();
+
+			// Stop connection watchdod
+			this._stopConnWatchdog();
 
 			// Stop queue
 			this.queueActive = false;
@@ -377,6 +389,13 @@ export class SBrick {
 	// QuickDrive notifications are separate and handled elsewhere
 	// -------------------------------------------------------------------------
 	async _sendCommand(opcode, payload = [], expectResponse = false) {
+
+		// Detect first DRIVE command (0x01)
+		if (opcode === 0x01 && !this.driveStarted) {
+				this.driveStarted = true;
+				this._resumeKeepAlive();   // start watchdog keepAlive now
+		}
+
 		const bytes = new Uint8Array([opcode, ...payload]);
 
 		// Queue the write
@@ -388,10 +407,15 @@ export class SBrick {
 			}
 		});
 
-		// Reset keepalive timer
-		if (this.keepAliveTimer) {
-			clearInterval(this.keepAliveTimer);
-			this._startKeepAlive();
+		// Reset keepAlive only if watchdog is active
+		if (this.driveStarted && this.keepAliveTimer) {
+				clearInterval(this.keepAliveTimer);
+				this._startKeepAlive();
+		}
+
+		// Start keepAlive only after first DRIVE
+		if (this.driveStarted && !this.keepAliveTimer) {
+				this._startKeepAlive();
 		}
 
 		if (!expectResponse) return null;
@@ -455,11 +479,11 @@ export class SBrick {
 
 						this.isLight = (this.productId === 0x01);
 
-						// this.log(
-						// 	`Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
-						// 	`(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
-						// 	`FW ${this.fwVersion.major}.${this.fwVersion.minor})`
-						// );
+						this.log(
+							`Product Type → ${this.isLight ? "SBrick Light" : "SBrick"} ` +
+							`(HW ${this.hwVersion.major}.${this.hwVersion.minor}, ` +
+							`FW ${this.fwVersion.major}.${this.fwVersion.minor})`
+						);
 					}
 					break;
 				}
@@ -827,6 +851,7 @@ export class SBrick {
 	async setupAdcChannels(channels = []) {
 		// Enable periodic ADC sampling
 		await this._sendCommand(0x2C, channels, false);
+		await this._sendCommand(0x32, [0x00,0x01,0x01,0x01,0x02,0x01,0x03,0x01,0x04,0x01,0x05,0x01,0x06,0x01,0x07,0x01], false);  // Set ADC correction profile to scale between 0-1000
 
 		// Allow ADC sampler to start producing valid values
 		await new Promise(resolve => setTimeout(resolve, 500));
@@ -1345,32 +1370,22 @@ export class SBrick {
 	// Uses readVoltage() (ADC 0x0F) as a ping
 	// -------------------------------------------------------------------------
 	_startKeepAlive() {
-		if (this.keepAliveTimer) {
-			clearInterval(this.keepAliveTimer);
-		}
-
-		this.keepAliveTimer = setInterval(async () => {
-			if (!this.isConnected || !this.queueActive) return;
-
-			try {
-				// ADC query uses write→read and acts as a ping
-				await this.readVoltage();
-				// this.log("keepalive: OK");
-			} catch (err) {
-				this.log("keepalive: FAILED → device lost");
-				clearInterval(this.keepAliveTimer);
-				this.keepAliveTimer = null;
-
-				this.isConnected = false;
-				this.setStatus("disconnected", "Keepalive failed");
-
-				// Notify manager
-				this.manager?.handleDeviceLost?.(this);
-
-				// Force disconnect
-				await this.forceDisconnect();
+			if (this.keepAliveTimer) {
+					clearInterval(this.keepAliveTimer);
 			}
-		}, this.keepAliveIntervalMs);
+
+			this.keepAliveTimer = setInterval(async () => {
+					if (!this.isConnected || !this.queueActive) return;
+
+					try {
+							// Minimal watchdog reset: DRIVE command with zero power
+							// or uptime read (0x29) — both reset the watchdog.
+							await this._sendCommand(0x29, [], false);
+					} catch (err) {
+							// Do NOTHING here.
+							// Connection monitoring is handled separately.
+					}
+			}, this.keepAliveIntervalMs);
 	}
 
 
@@ -1383,5 +1398,79 @@ export class SBrick {
       this.keepAliveTimer = null;
     }
   }
+
+	_startConnWatchdog() {
+			if (this.connWatchdogTimer) {
+					clearInterval(this.connWatchdogTimer);
+			}
+
+			this.lastUptime = null;
+			this.connFailCount = 0;
+
+			this.connWatchdogTimer = setInterval(async () => {
+					if (!this.isConnected || !this.queueActive) return;
+
+					try {
+							const resp = await this._sendCommand(0x29, [], true);
+							const uptime = this._decodeUptime(resp);
+
+							if (this.lastUptime !== null) {
+									if (uptime === this.lastUptime) {
+											// Freeze: uptime did not change
+											this.connFailCount++;
+									} else {
+											// Uptime moved → device alive
+											this.connFailCount = 0;
+									}
+							}
+
+							this.lastUptime = uptime;
+
+							if (this.connFailCount >= 3) {
+									this._handleConnectionLost("Uptime freeze");
+							}
+
+					} catch (err) {
+							// Read failed → BLE glitch or disconnect
+							this.connFailCount++;
+
+							if (this.connFailCount >= 3) {
+									this._handleConnectionLost("0x29 failed");
+							}
+					}
+			}, 1000);
+	}
+
+  _stopConnWatchdog() {
+    if (this.connWatchdogTimer) {
+      clearInterval(this.connWatchdogTimer);
+      this.connWatchdogTimer = null;
+    }
+  }	
+	
+	_decodeUptime(resp) {
+			if (!resp || resp.length < 4) return 0;
+
+			return (
+					(resp[0] << 24) |
+					(resp[1] << 16) |
+					(resp[2] << 8)  |
+					(resp[3])
+			) >>> 0; // force uint32
+	}
+
+	_handleConnectionLost(reason) {
+			this.log(`Connection lost: ${reason}`);
+
+			clearInterval(this.connWatchdogTimer);
+			this.connWatchdogTimer = null;
+
+			this.isConnected = false;
+			this.setStatus("disconnected, watchdog ", reason);
+
+			this.manager?.handleDeviceLost?.(this);
+
+	}
+
 
 }
