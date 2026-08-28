@@ -967,6 +967,8 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.setOutputState(0xFF, 0, 0x01, 0, 0, 0x20);
       } else if (dev.motorStopAll) {
         // SBrick: stop all motors / Lights
+        dev.queueActive = false;
+        await dev.commandQueue;
         await dev.motorStopAll();
         await dev._sendCommand(0x2C, [], false); // Stop Periodic adc readings
       }

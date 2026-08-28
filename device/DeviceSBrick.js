@@ -97,6 +97,8 @@ export class SBrick {
     // Command queue (same architecture as LegoWeDo2)
     this.queueActive = true;
     this.commandQueue = Promise.resolve();
+		this.queuePending = 0;
+		this.queueEmpty = true;
 
 		this.queue = new AsyncQueue();
 
@@ -407,21 +409,30 @@ export class SBrick {
   // -------------------------------------------------------------------------
   // Queueing system — identical architecture to LegoWeDo2
   // -------------------------------------------------------------------------
-  enqueueCommand(fn) {
-    if (!this.queueActive) {
-      return Promise.resolve();
-    }
+	enqueueCommand(fn) {
+		if (!this.queueActive) {
+			return Promise.resolve();
+		}
 
-    this.commandQueue = this.commandQueue
-      .then(async () => {
-        await fn();
-      })
-      .catch(err => {
-        this.log("Queue command error: " + (err?.message || err));
-      });
+		this.queuePending++;
+		this.queueEmpty = false;
 
-    return this.commandQueue;
-  }
+		this.commandQueue = this.commandQueue
+			.then(async () => {
+				await fn();
+			})
+			.catch(err => {
+				this.log("Queue command error: " + (err?.message || err));
+			})
+			.finally(() => {
+				this.queuePending--;
+				if (this.queuePending === 0) {
+					this.queueEmpty = true;
+				}
+			});
+
+		return this.commandQueue;
+	}
 
 
 	// -------------------------------------------------------------------------
