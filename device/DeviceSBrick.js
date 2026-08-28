@@ -1414,21 +1414,21 @@ export class SBrick {
 							const resp = await this._sendCommand(0x29, [], true);
 							const uptime = this._decodeUptime(resp);
 
-							if (this.lastUptime !== null) {
-									if (uptime === this.lastUptime) {
-											// Freeze: uptime did not change
-											this.connFailCount++;
-									} else {
-											// Uptime moved → device alive
-											this.connFailCount = 0;
-									}
-							}
+							// if (this.lastUptime !== null) {
+							// 		if (uptime === this.lastUptime) {
+							// 				// Freeze: uptime did not change
+							// 				this.connFailCount++;
+							// 		} else {
+							// 				// Uptime moved → device alive
+							// 				this.connFailCount = 0;
+							// 		}
+							// }
 
 							this.lastUptime = uptime;
 
-							if (this.connFailCount >= 3) {
-									this._handleConnectionLost("Uptime freeze");
-							}
+							// if (this.connFailCount >= 3) {
+							// 		this._handleConnectionLost("Uptime freeze");
+							// }
 
 					} catch (err) {
 							// Read failed → BLE glitch or disconnect
