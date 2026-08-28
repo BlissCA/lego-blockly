@@ -112,9 +112,9 @@ export class SBrick {
     this.keepAliveIntervalMs = 400; // Send keepalive every 400ms
 
 		// Connection Watchdog
-		this.lastUptime = null;
-		this.connFailCount = 0;
-		this.connWatchdogTimer = null;
+		// this.lastUptime = null;
+		// this.connFailCount = 0;
+		// this.connWatchdogTimer = null;
 	
     // Bind notification handlers
     this._onQuickDriveNotification =
@@ -273,7 +273,7 @@ export class SBrick {
     this.setStatus("connected", "Connected");
 
 	  // Start Connection Watchdog
-    this._startConnWatchdog();
+    // this._startConnWatchdog();
 
     // Notify UI
     window.logStatus?.(`Connected: ${this.name}`);
@@ -289,7 +289,7 @@ export class SBrick {
 			this._stopKeepAlive();
 
 			// Stop connection watchdod
-			this._stopConnWatchdog();
+			// this._stopConnWatchdog();
 
 			// Stop queue
 			this.queueActive = false;
@@ -331,7 +331,7 @@ export class SBrick {
 			this._stopKeepAlive();
 
 			// Stop connection watchdod
-			this._stopConnWatchdog();
+			// this._stopConnWatchdog();
 
 			// Stop queue
 			this.queueActive = false;
@@ -1399,78 +1399,78 @@ export class SBrick {
     }
   }
 
-	_startConnWatchdog() {
-			if (this.connWatchdogTimer) {
-					clearInterval(this.connWatchdogTimer);
-			}
+	// _startConnWatchdog() {
+	// 		if (this.connWatchdogTimer) {
+	// 				clearInterval(this.connWatchdogTimer);
+	// 		}
 
-			this.lastUptime = null;
-			this.connFailCount = 0;
+	// 		this.lastUptime = null;
+	// 		this.connFailCount = 0;
 
-			this.connWatchdogTimer = setInterval(async () => {
-					if (!this.isConnected || !this.queueActive) return;
+	// 		this.connWatchdogTimer = setInterval(async () => {
+	// 				if (!this.isConnected || !this.queueActive) return;
 
-					try {
-							const resp = await this._sendCommand(0x29, [], true);
-							const uptime = this._decodeUptime(resp);
+	// 				try {
+	// 						const resp = await this._sendCommand(0x29, [], true);
+	// 						const uptime = this._decodeUptime(resp);
 
-							// if (this.lastUptime !== null) {
-							// 		if (uptime === this.lastUptime) {
-							// 				// Freeze: uptime did not change
-							// 				this.connFailCount++;
-							// 		} else {
-							// 				// Uptime moved → device alive
-							// 				this.connFailCount = 0;
-							// 		}
-							// }
+	// 						// if (this.lastUptime !== null) {
+	// 						// 		if (uptime === this.lastUptime) {
+	// 						// 				// Freeze: uptime did not change
+	// 						// 				this.connFailCount++;
+	// 						// 		} else {
+	// 						// 				// Uptime moved → device alive
+	// 						// 				this.connFailCount = 0;
+	// 						// 		}
+	// 						// }
 
-							this.lastUptime = uptime;
+	// 						this.lastUptime = uptime;
 
-							// if (this.connFailCount >= 3) {
-							// 		this._handleConnectionLost("Uptime freeze");
-							// }
+	// 						// if (this.connFailCount >= 3) {
+	// 						// 		this._handleConnectionLost("Uptime freeze");
+	// 						// }
 
-					} catch (err) {
-							// Read failed → BLE glitch or disconnect
-							this.connFailCount++;
+	// 				} catch (err) {
+	// 						// Read failed → BLE glitch or disconnect
+	// 						this.connFailCount++;
 
-							if (this.connFailCount >= 3) {
-									this._handleConnectionLost("0x29 failed");
-							}
-					}
-			}, 1000);
-	}
+	// 						if (this.connFailCount >= 3) {
+	// 								this._handleConnectionLost("0x29 failed");
+	// 						}
+	// 				}
+	// 		}, 1000);
+	// }
 
-  _stopConnWatchdog() {
-    if (this.connWatchdogTimer) {
-      clearInterval(this.connWatchdogTimer);
-      this.connWatchdogTimer = null;
-    }
-  }	
+  // _stopConnWatchdog() {
+  //   if (this.connWatchdogTimer) {
+  //     clearInterval(this.connWatchdogTimer);
+  //     this.connWatchdogTimer = null;
+  //   }
+  // }	
 	
-	_decodeUptime(resp) {
-			if (!resp || resp.length < 4) return 0;
+	// _decodeUptime(resp) {
+	// 		if (!resp || resp.length < 4) return 0;
 
-			return (
-					(resp[0] << 24) |
-					(resp[1] << 16) |
-					(resp[2] << 8)  |
-					(resp[3])
-			) >>> 0; // force uint32
-	}
+	// 		return (
+	// 				(resp[0] << 24) |
+	// 				(resp[1] << 16) |
+	// 				(resp[2] << 8)  |
+	// 				(resp[3])
+	// 		) >>> 0; // force uint32
+	// }
 
-	_handleConnectionLost(reason) {
-			this.log(`Connection lost: ${reason}`);
+	// _handleConnectionLost(reason) {
+	// 		this.log(`Connection lost: ${reason}`);
 
-			clearInterval(this.connWatchdogTimer);
-			this.connWatchdogTimer = null;
+	// 		clearInterval(this.connWatchdogTimer);
+	// 		this.connWatchdogTimer = null;
 
-			this.isConnected = false;
-			this.setStatus("disconnected, watchdog ", reason);
+	// 		this.isConnected = false;
+	// 		this.setStatus("disconnected, watchdog ", reason);
 
-			this.manager?.handleDeviceLost?.(this);
+	// 		this.manager?.handleDeviceLost?.(this);
 
-	}
+	// }
 
 
 }
