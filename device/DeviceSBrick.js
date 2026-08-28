@@ -156,7 +156,8 @@ export class SBrick {
         ],
         optionalServices: [
           SBRICK_REMOTE_CONTROL_SERVICE_UUID,
-          SBRICK_OTA_SERVICE_UUID
+          SBRICK_OTA_SERVICE_UUID,
+					'device_information'   // <-- REQUIRED for 180A
         ]
       });
     } catch (err) {
@@ -179,6 +180,60 @@ export class SBrick {
 
     // Connect to GATT
     this.server = await device.gatt.connect();
+
+    // -----------------------------------------------------------------------
+    // Read Device Information Service (PDF 4.3)
+    // -----------------------------------------------------------------------
+    try {
+        const infoService = await this.server.getPrimaryService('device_information');
+
+        // Model Number String (SBrick / SBrick Plus / SBrick Light)
+        try {
+            const modelChar = await infoService.getCharacteristic('model_number_string');
+            const modelValue = await modelChar.readValue();
+            this.modelNumber = new TextDecoder().decode(modelValue);
+            this.log(`Model Number: ${this.modelNumber}`);
+        } catch (e) {
+            this.modelNumber = null;
+        }
+
+        // Firmware Revision String
+        try {
+            const fwChar = await infoService.getCharacteristic('firmware_revision_string');
+            const fwValue = await fwChar.readValue();
+            this.firmwareRevision = new TextDecoder().decode(fwValue);
+            this.log(`Firmware Revision: ${this.firmwareRevision}`);
+        } catch (e) {
+            this.firmwareRevision = null;
+        }
+
+        // Hardware Revision String
+        try {
+            const hwChar = await infoService.getCharacteristic('hardware_revision_string');
+            const hwValue = await hwChar.readValue();
+            this.hardwareRevision = new TextDecoder().decode(hwValue);
+            this.log(`Hardware Revision: ${this.hardwareRevision}`);
+        } catch (e) {
+            this.hardwareRevision = null;
+        }
+
+        // Manufacturer Name String
+        try {
+            const mfgChar = await infoService.getCharacteristic('manufacturer_name_string');
+            const mfgValue = await mfgChar.readValue();
+            this.manufacturerName = new TextDecoder().decode(mfgValue);
+            this.log(`Manufacturer: ${this.manufacturerName}`);
+        } catch (e) {
+            this.manufacturerName = null;
+        }
+
+    } catch (e) {
+        this.log("Device Information Service (180A) not available.");
+        this.modelNumber = null;
+        this.hardwareRevision = null;
+        this.firmwareRevision = null;
+        this.manufacturerName = null;
+    }
 
     // -----------------------------------------------------------------------
     // Discover services
