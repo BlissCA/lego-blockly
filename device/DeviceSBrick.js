@@ -119,6 +119,10 @@ export class SBrick {
 
     // Logging prefix
     this.namePrefix = "Sbr";
+
+		this.lastWedoDistValue = [null, null, null, null];
+		this.lastWedoDistValueV2 = [null, null, null, null];
+
   }
 
   // -------------------------------------------------------------------------
@@ -984,7 +988,7 @@ export class SBrick {
 
 		if (!resp || resp.length < 6) {
 			this.log(`readWedoDistSensor: invalid response for port=${ch}, response length=${resp.length}`);
-			return 0;
+			return this.lastWedoDistValue[ch] ?? 0;
 		}
 
 		// Decode nibble-packed ADC values
@@ -992,32 +996,50 @@ export class SBrick {
 		const raw1 = ((resp[3] << 8) | resp[2]) >> 4;
 		const rawV = ((resp[5] << 8) | resp[4]) >> 4;
 
-		// For distance sensor, ch1Raw is the meaningful value
-		return raw1;
+    // SAFETY: invalid ADC → return last known good value
+    if (!raw1 || !rawV) {
+        return this.lastWedoDistValue[ch] ?? 0;
+    }
+
+    //const value = (raw1 / rawV) * 1000;
+		const value = raw1
+
+    // SAFETY: store only valid values
+    if (!Number.isNaN(value)) {
+        this.lastWedoDistValue[ch] = value;
+    }
+
+    return this.lastWedoDistValue[ch];
 	}
 
 	async readWedoDistSensorV2(channel) {
-			const ch = Math.min(3, Math.max(0, Number(channel)));
+		const ch = Math.min(3, Math.max(0, Number(channel)));
 
-			const adcCh0 = ch * 2;
-			const adcCh1 = adcCh0 + 1;
+		const adcCh0 = ch * 2;
+		const adcCh1 = adcCh0 + 1;
 
-			const adc = this.lastVoltageMeasurements;
-			if (!adc) {
-					this.log("readWedoDistSensor: no ADC data yet");
-					return 0;
-			}
+		const adc = this.lastVoltageMeasurements;
+		if (!adc) {
+				this.log("readWedoDistSensor: no ADC data yet");
+				return this.lastWedoDistValueV2[ch] ?? 0;
+		}
 
-			const raw0 = adc[adcCh0];
-			const raw1 = adc[adcCh1];
-			const rawV = adc[8];   // voltage reference
+		const raw0 = adc[adcCh0];
+		const raw1 = adc[adcCh1];
+		const rawV = adc[8];   // voltage reference
 
-			if (raw0 == null || raw1 == null || rawV == null) {
-					this.log(`readWedoDistSensor: missing ADC channels for port ${ch}`);
-					return 0;
-			}
+		if (raw0 == null || raw1 == null || rawV == null) {
+				this.log(`readWedoDistSensor: missing ADC channels for port ${ch}`);
+				return this.lastWedoDistValueV2[ch] ?? 0;
+		}
 
-			return raw1;
+		const value = raw1
+		// SAFETY: store only valid values
+		if (!Number.isNaN(value)) {
+				this.lastWedoDistValueV2[ch] = value;
+		}
+
+		return this.lastWedoDistValueV2[ch];
 	}
 
 
