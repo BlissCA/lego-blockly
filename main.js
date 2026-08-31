@@ -741,33 +741,6 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-// Ensure this runs AFTER your workspace is initialized and your custom blocks are registered.
-
-// 1. Fetch the official Blockly procedure category builder function
-const originalProcedureCallback = Blockly.utils.toolbox.getCategoryCallback('PROCEDURE');
-
-if (originalProcedureCallback) {
-  // 2. Re-register 'PROCEDURE' with a custom wrapper function
-  Blockly.utils.toolbox.registerCategoryCallback('PROCEDURE', function(workspace) {
-    // Call the original engine to get the dynamic array of definitions and callers
-    const xmlList = originalProcedureCallback(workspace);
-
-    // 3. Construct the standard XML node for the unconditional return value block
-    const returnValBlock = Blockly.utils.xml.createElement('block');
-    returnValBlock.setAttribute('type', 'procedures_return');
-
-    // 4. Construct the standard XML node for the clean void return block
-    const returnVoidBlock = Blockly.utils.xml.createElement('block');
-    returnVoidBlock.setAttribute('type', 'procedures_return_void');
-
-    // 5. Inject them right after the default definition blocks inside the list
-    // Usually, the first 3 items are defnoreturn, defreturn, and ifreturn
-    xmlList.splice(3, 0, returnValBlock, returnVoidBlock);
-
-    return xmlList;
-  });
-}
-
 
 // ---------- Override Blockly blocking dialogs ----------
 Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
