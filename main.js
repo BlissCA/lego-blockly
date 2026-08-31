@@ -718,11 +718,11 @@ Blockly.Css.register(`
   }
 `);
 
-const origProcFlyout = Blockly.Procedures.flyoutCategory;
+const origBuildFlyout = Blockly.Procedures.buildFlyoutCategory;
 
-Blockly.Procedures.flyoutCategory = function(workspace) {
+Blockly.Procedures.buildFlyoutCategory = function(workspace) {
     // Get Blockly’s default procedure blocks
-    const xmlList = origProcFlyout(workspace);
+    const xmlList = origBuildFlyout(workspace);
 
     // Add your custom blocks
     const retVal = Blockly.utils.xml.createElement('block');
