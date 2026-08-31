@@ -718,22 +718,19 @@ Blockly.Css.register(`
   }
 `);
 
-const origBuildFlyout = Blockly.Procedures.buildFlyoutCategory;
+const origProcFlyout = Blockly.Procedures.flyoutCategory;
 
-Blockly.Procedures.buildFlyoutCategory = function(workspace) {
-    // Get Blockly’s default procedure blocks
-    const xmlList = origBuildFlyout(workspace);
+Blockly.Procedures.flyoutCategory = function(workspace) {
+  const xmlList = origProcFlyout.call(this, workspace);
 
-    // Add your custom blocks
-    const retVal = Blockly.utils.xml.createElement('block');
-    retVal.setAttribute('type', 'procedures_return_value');
+  const retVal = Blockly.utils.xml.createElement('block');
+  retVal.setAttribute('type', 'procedures_return_value');
 
-    const retVoid = Blockly.utils.xml.createElement('block');
-    retVoid.setAttribute('type', 'procedures_return_void');
+  const retVoid = Blockly.utils.xml.createElement('block');
+  retVoid.setAttribute('type', 'procedures_return_void');
 
-    xmlList.push(retVal, retVoid);
-
-    return xmlList;
+  xmlList.push(retVal, retVoid);
+  return xmlList;
 };
 
 
