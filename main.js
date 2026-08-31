@@ -748,7 +748,7 @@ window.workspace.registerToolboxCategoryCallback('CUSTOM_FUNCTIONS', function(wo
   const blockList = [];
 
   // 1. Add your new custom unconditional return blocks to the top of the menu
-  blockList.push({ kind: 'block', type: 'procedures_return' });
+  blockList.push({ kind: 'block', type: 'procedures_return_value' });
   blockList.push({ kind: 'block', type: 'procedures_return_void' });
 
   // 2. Add the standard, out-of-the-box function template blocks
