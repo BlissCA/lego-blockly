@@ -1195,6 +1195,15 @@ javascriptGenerator.forBlock['logic_is_between'] = function(block, generator) {
   return [code, javascriptGenerator.ORDER_LOGICAL_OR];
 };
 
+javascriptGenerator.forBlock['procedures_return_value'] = function(block, generator) {
+  var value = generator.valueToCode(block, 'VALUE', javascriptGenerator.ORDER_NONE) || '';
+  return 'return ' + value + ';\n';
+};
+
+javascriptGenerator.forBlock['procedures_return_void'] = function(block, generator) {
+  return 'return;\n';
+};
+
 // ---------------- LOOP WHILE/UNTIL WITH YIELD GENERATORS ----------------
 javascriptGenerator.forBlock['loop_forever'] = function(block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";

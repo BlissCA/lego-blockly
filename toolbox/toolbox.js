@@ -116,11 +116,33 @@ const toolbox = {
       "custom": "VARIABLE",
       "colour": 330
     },
+
     {
       "kind": "category",
       "name": "Functions",
-      "custom": "PROCEDURE",
-      "colour": 290
+      "colour": 290,
+      "contents": [
+        {
+          "kind": "block",
+          "type": "procedures_defnoreturn"
+        },
+        {
+          "kind": "block",
+          "type": "procedures_defreturn"
+        },
+        {
+          "kind": "block",
+          "type": "procedures_ifreturn"
+        },
+        {
+          "kind": "block",
+          "type": "procedures_return_value"
+        },
+        {
+          "kind": "block",
+          "type": "procedures_return_void"
+        }
+      ]
     },
 
     {
