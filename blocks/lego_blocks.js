@@ -5439,29 +5439,31 @@ Blockly.defineBlocksWithJsonArray([{
   "colour": 200
 }]);
 
-Blockly.Blocks['procedures_return_value'] = {
-  init: function() {
-    this.appendValueInput('VALUE')
-        .appendField('return');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(false, null); // Usually ends execution in that path
-    this.setColour(290); // Match your functions category color
-    this.setTooltip('Returns a value from a function without a condition.');
-    this.setHelpUrl('');
+Blockly.defineBlocksWithJsonArray([
+  {
+    "type": "procedures_return_value",
+    "message0": "return %1",
+    "args0": [
+      {
+        "type": "input_value",
+        "name": "VALUE"
+      }
+    ],
+    "previousStatement": null, // Can attach below other blocks
+    // Omit nextStatement completely so no blocks can snap underneath an unconditional return
+    "colour": 290,
+    "tooltip": "Returns a value from a function without a condition.",
+    "helpUrl": ""
+  },
+  {
+    "type": "procedures_return_void",
+    "message0": "return",
+    "previousStatement": null,
+    "colour": 290,
+    "tooltip": "Returns immediately out of the current function.",
+    "helpUrl": ""
   }
-};
-
-Blockly.Blocks['procedures_return_void'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField("return");
-    this.setPreviousStatement(true, null); // Can attach below other blocks
-    this.setNextStatement(false, null);    // Stops execution path (no block attaches underneath)
-    this.setColour(290);                   // Standard Blockly functions/procedures category colour
-    this.setTooltip("Returns immediately out of the current function.");
-    this.setHelpUrl("");
-  }
-};
+]);
 
 
 Blockly.Blocks['math_number_constrained'] = {
