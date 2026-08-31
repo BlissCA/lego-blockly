@@ -729,8 +729,8 @@ function addCustomFunctionBlocks(workspace) {
 
     // Create your blocks
     const blockList = [
-        { kind: "block", type: "my_return" },
-        { kind: "block", type: "my_return_value" }
+        { kind: "block", type: "procedures_return_value" },
+        { kind: "block", type: "procedures_return_void" }
     ];
 
     // Append them to the category
