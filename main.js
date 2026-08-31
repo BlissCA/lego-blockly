@@ -742,7 +742,7 @@ window.workspace = Blockly.inject("blocklyDiv", {
 });
 
 // ---------- Add two blocks (return and return value) to the Functions category in the toolbox
-myWorkspace.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
+window.workspace.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
   // 1. Let Blockly build the dynamic list of custom functions and callers first
   const xmlList = Blockly.Procedures.categoryCallback(workspace);
 
