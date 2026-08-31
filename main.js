@@ -718,6 +718,24 @@ Blockly.Css.register(`
   }
 `);
 
+function addCustomFunctionBlocks(workspace) {
+    const toolbox = workspace.getToolbox();
+    const funcCategory = toolbox.getToolboxItemById('Functions');
+
+    if (!funcCategory) {
+        console.warn("Functions category not found");
+        return;
+    }
+
+    // Create your blocks
+    const blockList = [
+        { kind: "block", type: "my_return" },
+        { kind: "block", type: "my_return_value" }
+    ];
+
+    // Append them to the category
+    funcCategory.addItems(blockList);
+}
 
 
 // ---------------- BLOCKLY WORKSPACE ----------------
@@ -741,34 +759,7 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-// Fetch the native core function that handles dynamic procedure lists
-const nativeProceduresCallback = Blockly.Procedures.categoryCallback;
-
-if (nativeProceduresCallback) {
-  // 3. Register a wrapper callback over the 'PROCEDURE' key
-  window.workspace.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
-    // Let Blockly's native engine auto-generate definitions and calling blocks first
-    const blockList = nativeProceduresCallback(workspace);
-
-    // Create your custom unconditional return blocks
-    const returnValBlock = {
-      'kind': 'block',
-      'type': 'procedures_return_value'
-    };
-
-    const returnVoidBlock = {
-      'kind': 'block',
-      'type': 'procedures_return_void'
-    };
-
-    // Safely insert your new return blocks right at the top of the category array
-    blockList.unshift(returnVoidBlock);
-    blockList.unshift(returnValBlock);
-
-    return blockList;
-  });
-}
-
+addCustomFunctionBlocks(window.workspace);
 
 // ---------- Override Blockly blocking dialogs ----------
 Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
