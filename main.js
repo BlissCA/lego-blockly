@@ -741,25 +741,6 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-// ---------- Add two blocks (return and return value) to the Functions category in the toolbox
-window.workspace.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
-  // 1. Let Blockly build the dynamic list of custom functions and callers first
-  const xmlList = Blockly.Procedures.categoryCallback(workspace);
-
-  // 2. Define your two custom return blocks using modern JSON-style structures
-  const returnValBlock = Blockly.utils.xml.createElement('block');
-  returnValBlock.setAttribute('type', 'procedures_return');
-
-  const returnVoidBlock = Blockly.utils.xml.createElement('block');
-  returnVoidBlock.setAttribute('type', 'procedures_return_void');
-
-  // 3. Inject them safely into the beginning of the dynamic toolbox menu
-  xmlList.unshift(returnVoidBlock);
-  xmlList.unshift(returnValBlock);
-
-  // 4. Return the complete, updated list back to the UI
-  return xmlList;
-});
 
 // ---------- Override Blockly blocking dialogs ----------
 Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
