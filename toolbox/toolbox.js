@@ -119,7 +119,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Functions",
-      "custom": "PROCEDURE",
+      "custom": "CUSTOM_FUNCTIONS",
       "colour": 290
     },
 
