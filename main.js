@@ -718,24 +718,24 @@ Blockly.Css.register(`
   }
 `);
 
-const origProcFlyout = Blockly.Procedures?.flyoutCategory;
+const origGetFlyoutItems = Blockly.procedures.ProcedurePlugin.prototype.getFlyoutItems;
 
-if (typeof origProcFlyout !== "function") {
-  console.error("Blockly.Procedures.flyoutCategory not found in this Blockly build.");
-} else {
-  Blockly.Procedures.flyoutCategory = function(workspace) {
-    const xmlList = origProcFlyout.call(this, workspace);
+Blockly.procedures.ProcedurePlugin.prototype.getFlyoutItems = function() {
+    // Get Blockly’s default procedure blocks
+    const xmlList = origGetFlyoutItems.call(this);
 
-    const retVal = Blockly.utils.xml.createElement("block");
-    retVal.setAttribute("type", "procedures_return_value");
+    // Add your custom blocks
+    const retVal = Blockly.utils.xml.createElement('block');
+    retVal.setAttribute('type', 'procedures_return_value');
 
-    const retVoid = Blockly.utils.xml.createElement("block");
-    retVoid.setAttribute("type", "procedures_return_void");
+    const retVoid = Blockly.utils.xml.createElement('block');
+    retVoid.setAttribute('type', 'procedures_return_void');
 
     xmlList.push(retVal, retVoid);
+
     return xmlList;
-  };
-}
+};
+
 
 // ---------------- BLOCKLY WORKSPACE ----------------
 
