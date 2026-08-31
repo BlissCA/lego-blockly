@@ -718,22 +718,6 @@ Blockly.Css.register(`
   }
 `);
 
-Blockly.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
-    // Get Blockly’s default procedure blocks
-    const xmlList = Blockly.Procedures.flyoutCategory(workspace);
-
-    // Add your custom blocks
-    const customBlocks = [
-        Blockly.utils.xml.createElement('block'),
-        Blockly.utils.xml.createElement('block')
-    ];
-
-    customBlocks[0].setAttribute('type', 'procedures_return_value');
-    customBlocks[1].setAttribute('type', 'procedures_return_void');
-
-    // Append them
-    return xmlList.concat(customBlocks);
-});
 
 
 // ---------------- BLOCKLY WORKSPACE ----------------
