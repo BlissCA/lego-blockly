@@ -718,24 +718,22 @@ Blockly.Css.register(`
   }
 `);
 
-function addCustomFunctionBlocks(workspace) {
-    const toolbox = workspace.getToolbox();
-    const funcCategory = toolbox.getToolboxItemById('Functions');
+Blockly.registerToolboxCategoryCallback('PROCEDURE', function(workspace) {
+    // Get Blockly’s default procedure blocks
+    const xmlList = Blockly.Procedures.flyoutCategory(workspace);
 
-    if (!funcCategory) {
-        console.warn("Functions category not found");
-        return;
-    }
-
-    // Create your blocks
-    const blockList = [
-        { kind: "block", type: "procedures_return_value" },
-        { kind: "block", type: "procedures_return_void" }
+    // Add your custom blocks
+    const customBlocks = [
+        Blockly.utils.xml.createElement('block'),
+        Blockly.utils.xml.createElement('block')
     ];
 
-    // Append them to the category
-    funcCategory.addItems(blockList);
-}
+    customBlocks[0].setAttribute('type', 'procedures_return_value');
+    customBlocks[1].setAttribute('type', 'procedures_return_void');
+
+    // Append them
+    return xmlList.concat(customBlocks);
+});
 
 
 // ---------------- BLOCKLY WORKSPACE ----------------
@@ -759,7 +757,6 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-addCustomFunctionBlocks(window.workspace);
 
 // ---------- Override Blockly blocking dialogs ----------
 Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
