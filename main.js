@@ -719,7 +719,6 @@ Blockly.Css.register(`
 `);
 
 
-
 // ---------------- BLOCKLY WORKSPACE ----------------
 
 window.workspace = Blockly.inject("blocklyDiv", {
@@ -740,6 +739,31 @@ window.workspace = Blockly.inject("blocklyDiv", {
     wheel: true // Enables vertical mouse wheel scrolling
   }
 });
+
+// ---------------- PATCH PROCEDURE PLUGIN ----------------
+
+// Get the plugin instance
+const procPlugin = window.workspace.getComponentManager().getComponent("procedure");
+
+if (!procPlugin) {
+  console.error("Procedure plugin not found!");
+} else {
+  const origGetFlyoutItems = procPlugin.getFlyoutItems.bind(procPlugin);
+
+  procPlugin.getFlyoutItems = function() {
+    const xmlList = origGetFlyoutItems();
+
+    const retVal = Blockly.utils.xml.createElement('block');
+    retVal.setAttribute('type', 'procedures_return_value');
+
+    const retVoid = Blockly.utils.xml.createElement('block');
+    retVoid.setAttribute('type', 'procedures_return_void');
+
+    xmlList.push(retVal, retVoid);
+
+    return xmlList;
+  };
+}
 
 
 // ---------- Override Blockly blocking dialogs ----------
