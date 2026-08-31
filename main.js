@@ -741,42 +741,6 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
-// Ensure this runs AFTER you call 'Blockly.inject' and have your workspace instance
-// Example: const myWorkspace = Blockly.inject('blocklyDiv', options);
-
-window.workspace.registerToolboxCategoryCallback('CUSTOM_FUNCTIONS', function(workspace) {
-  const blockList = [];
-
-  // 1. Add your new custom unconditional return blocks to the top of the menu
-  blockList.push({ kind: 'block', type: 'procedures_return_value' });
-  blockList.push({ kind: 'block', type: 'procedures_return_void' });
-
-  // 2. Add the standard, out-of-the-box function template blocks
-  blockList.push({ kind: 'block', type: 'procedures_defnoreturn' });
-  blockList.push({ kind: 'block', type: 'procedures_defreturn' });
-  blockList.push({ kind: 'block', type: 'procedures_ifreturn' });
-
-  // 3. Dynamically read existing user functions and generate their "call" blocks
-  if (workspace.getProcedureMap) {
-    const procedures = workspace.getProcedureMap().getProcedures();
-    
-    for (const proc of procedures) {
-      // Determine if this function returns a value to choose the right block type
-      const hasReturn = !!proc.getReturnTypes(); 
-      
-      blockList.push({
-        kind: 'block',
-        type: hasReturn ? 'procedures_callreturn' : 'procedures_callnoreturn',
-        extraState: {
-          procedureId: proc.getId()
-        }
-      });
-    }
-  }
-
-  return blockList;
-});
-
 
 // ---------- Override Blockly blocking dialogs ----------
 Blockly.dialog.setPrompt(async (message, defaultValue, callback) => {
