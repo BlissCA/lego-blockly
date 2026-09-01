@@ -742,23 +742,21 @@ window.workspace = Blockly.inject("blocklyDiv", {
 
 // ---------------- CATEGORY CALLBACKS ----------------
 
-// Register Callback returning pure JSON FlyoutItems
+// Register Callback converting JSON/XML for flyout insertion
 window.workspace.registerToolboxCategoryCallback('PROCEDURE', (ws) => {
-  // Use flyoutCategoryBlocks to get the modern JSON array of blocks
-  const blockList = Blockly.Procedures.flyoutCategoryBlocks(ws) || [];
+  // 1. Get default procedure blocks (returns array of XML elements in v12)
+  const xmlList = Blockly.Procedures.flyoutCategory(ws) || [];
 
-  // Append your static JSON block definitions
-  blockList.push({
-    'kind': 'block',
-    'type': 'procedures_return_value'
-  });
+  // 2. Helper to convert JSON block definitions to XML nodes
+  const createBlockXml = (type) => {
+    return Blockly.utils.xml.textToDom(`<block type="${type}"></block>`);
+  };
 
-  blockList.push({
-    'kind': 'block',
-    'type': 'procedures_return_void'
-  });
+  // 3. Push your static return blocks as XML nodes
+  xmlList.push(createBlockXml('procedures_return_value'));
+  xmlList.push(createBlockXml('procedures_return_void'));
 
-  return blockList;
+  return xmlList;
 });
 
 
