@@ -744,22 +744,35 @@ window.workspace = Blockly.inject("blocklyDiv", {
 
 // Register Dynamic Procedure Callback
 window.workspace.registerToolboxCategoryCallback('PROCEDURE', (ws) => {
-  // 1. Get default procedure blocks (XML list)
-  const xmlList = Blockly.Procedures.flyoutCategory(ws) || [];
+  // Get default procedure blocks (returns XML nodes in v12 script-tag setup)
+  const rawList = Blockly.Procedures.flyoutCategory(ws) || [];
 
-  // 2. Convert XML list to JSON flyout items
-  const jsonList = xmlList.map(xml => ({
-    kind: "block",
-    type: xml.getAttribute("type")
-  }));
+  // Map each XML element to a pure JSON FlyoutItemInfo object
+  const jsonList = rawList.map((item) => {
+    if (item instanceof Element || item instanceof Node) {
+      return {
+        'kind': item.tagName ? item.tagName.toLowerCase() : 'block',
+        'type': item.getAttribute('type'),
+        'gap': item.getAttribute('gap') ? parseInt(item.getAttribute('gap'), 10) : undefined
+      };
+    }
+    return item;
+  });
 
-  // 3. Add your custom blocks in JSON format
-  jsonList.push({ kind: "block", type: "procedures_return_value" });
-  jsonList.push({ kind: "block", type: "procedures_return_void" });
+  // Append your static return blocks in pure JSON format
+  jsonList.push({
+    'kind': 'block',
+    'type': 'procedures_return_value'
+  });
 
+  jsonList.push({
+    'kind': 'block',
+    'type': 'procedures_return_void'
+  });
+
+  // Returning a clean JSON array silences the deprecation warning
   return jsonList;
 });
-
 
 
 // ---------- Override Blockly blocking dialogs ----------
