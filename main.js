@@ -742,22 +742,20 @@ window.workspace = Blockly.inject("blocklyDiv", {
 
 // ---------------- CATEGORY CALLBACKS ----------------
 
-// Dynamic Procedure Callback using FlyoutItemInfo[] JSON
+// Register Dynamic Procedure Callback
 window.workspace.registerToolboxCategoryCallback('PROCEDURE', (ws) => {
-  // Get raw items from the built-in generator
+  // Get default procedure blocks (returns legacy XML elements in v12)
   const rawList = Blockly.Procedures.flyoutCategory(ws) || [];
 
-  // Convert any legacy XML nodes to FlyoutItemInfo JSON objects
+  // Convert each XML element into a modern FlyoutItemInfo (JSON) object
   const jsonList = rawList.map((item) => {
-    // If it's a DOM/XML node, convert it to JSON
     if (item instanceof Element || item instanceof Node) {
-      return Blockly.utils.xml.domToBlockInfo(item);
+      return Blockly.utils.toolbox.elementToFlyoutInfo(item);
     }
-    // Already a FlyoutItemInfo JSON object
     return item;
   });
 
-  // Append static items in FlyoutItemInfo (JSON) format
+  // Push your static blocks as JSON FlyoutItemInfo objects
   jsonList.push({
     'kind': 'block',
     'type': 'procedures_return_value'
@@ -768,7 +766,7 @@ window.workspace.registerToolboxCategoryCallback('PROCEDURE', (ws) => {
     'type': 'procedures_return_void'
   });
 
-  // Return the pure FlyoutItemInfo[] array
+  // Returning a pure JSON array suppresses the deprecation warning
   return jsonList;
 });
 
