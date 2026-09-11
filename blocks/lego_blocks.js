@@ -3647,7 +3647,7 @@ window.addEventListener("load", () => {
         }
       ],
       "inputsInline": true,
-      "output": "Boolean",
+      "output": "Number",
       "colour": "#00c4d6",
       "tooltip": "Simple PF Handset: Returns true 0=Float, 1=Fwd, 2=Rev, 3=Brake then float"
     }
