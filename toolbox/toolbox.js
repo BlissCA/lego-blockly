@@ -2235,7 +2235,7 @@ const toolbox = {
     },
     {
       "kind": "category",
-      "name": "SBrick",
+      "name": "PF IR",
       "colour": "#00cfd6b8",
       "contents": [
       ]
