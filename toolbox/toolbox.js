@@ -2232,8 +2232,14 @@ const toolbox = {
           ]
         }
       ]
+    },
+    {
+      "kind": "category",
+      "name": "SBrick",
+      "colour": "#00cfd6b8",
+      "contents": [
+      ]
     }
-    
     /*
     ,
     {
