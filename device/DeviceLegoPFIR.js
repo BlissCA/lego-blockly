@@ -193,38 +193,38 @@ export class LegoPFIR {
   // ------------------------------------------------------------
 
   // Single Output PWM mode
-  motor_Single(channel, output, pwm) {
+    motor_Single(channel, output, pwmNibble) {
     const nibble1 = channel & 0x03;
-    const nibble2 = (output === "B") ? 0x5 : 0x4;
-
-    let nibble3;
-    if (pwm === 0) nibble3 = 0x8;
-    else if (pwm > 0) nibble3 = pwm;
-    else nibble3 = 0x10 + pwm;
-
+    const nibble2 = (output === 1) ? 0x5 : 0x4;   // 0=A(0x4), 1=B(0x5)
+    const nibble3 = pwmNibble & 0x0F;             // 0–15 from Blockly
     const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
 
-    const frame = (nibble1 << 12) | (nibble2 << 8) | (nibble3 << 4) | nibble4;
+    const frame =
+        (nibble1 << 12) |
+        (nibble2 << 8)  |
+        (nibble3 << 4)  |
+        nibble4;
 
     this.sendFrame(frame);
-  }
+    }
+
 
   // Combo PWM mode (Blue + Red)
-  motor_Combo(channel, pwmBlue, pwmRed) {
-    const nibble1 = channel & 0x03;
-    const nibble2 = 0x0; // Combo PWM mode
+    motor_Combo(channel, pwmBlue, pwmRed) {
+    const ESCAPE = 0x4;
 
-    const encode = pwm => {
-      if (pwm === 0) return 0x8;
-      if (pwm > 0) return pwm;
-      return 0x10 + pwm;
-    };
+    const nibble1 = (ESCAPE | (channel & 0x03));  // ESCAPE + channel
+    const nibble2 = pwmBlue & 0x0F;               // 0–15 from Blockly
+    const nibble3 = pwmRed  & 0x0F;               // 0–15 from Blockly
+    const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
 
-    const nibble3 = encode(pwmBlue);
-    const nibble4 = encode(pwmRed);
-
-    const frame = (nibble1 << 12) | (nibble2 << 8) | (nibble3 << 4) | nibble4;
+    const frame =
+        (nibble1 << 12) |
+        (nibble2 << 8)  |
+        (nibble3 << 4)  |
+        nibble4;
 
     this.sendFrame(frame);
-  }
+    }
+
 }
