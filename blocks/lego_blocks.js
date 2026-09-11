@@ -3632,7 +3632,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "legopfir_readhandsetrc",
-      "message0": "%1 Read PF %2 Port %3",
+      "message0": "%1 Read Basic %2 Port %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
         {
