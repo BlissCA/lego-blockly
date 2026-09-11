@@ -12,6 +12,7 @@ import { LegoVLL } from './DeviceLegoVLL.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
 import { LegoToyPad } from './DeviceLegoToyPad.js';
 import { SBrick } from './DeviceSBrick.js';
+import { LegoPFIR } from './DeviceLegoPFIR.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -411,6 +412,25 @@ export class DeviceManager {
     }
   }
   
+  // -------------------------
+  // Connect PF IR
+  // -------------------------
+
+  async connectLegoPFIR() {
+    const dev = new LegoPFIR(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, PF IR logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego PF IR Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
 
   // -------------------------
   // Disconnect All
