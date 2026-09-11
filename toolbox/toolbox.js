@@ -2236,7 +2236,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "PF IR",
-      "colour": "#00cfd6b8",
+      "colour": "#00c4d6",
       "contents": [
       ]
     }
