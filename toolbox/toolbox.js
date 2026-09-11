@@ -2232,7 +2232,10 @@ const toolbox = {
           ]
         }
       ]
-    },
+    }
+    
+    /*
+    ,
     {
       "kind": "category",
       "name": "SBrick",
@@ -2517,6 +2520,8 @@ const toolbox = {
         }        
       ]
     }
+    */
+
     /*
     {
       "kind": "category",
