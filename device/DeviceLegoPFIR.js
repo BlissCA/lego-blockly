@@ -64,14 +64,14 @@ export class LegoPFIR {
 
       this.device = await navigator.bluetooth.requestDevice({
         filters: [{ namePrefix: "PF-IR-Gateway" }],
-        optionalServices: ["6E400001-B5A3-F393-E0A9-E50E24DCCA9E"]
+        optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
       });
 
       this.server = await this.device.gatt.connect();
-      this.service = await this.server.getPrimaryService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
+      this.service = await this.server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
 
-      this.txChar = await this.service.getCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
-      this.rxChar = await this.service.getCharacteristic("6E400003-B5A3-F393-E0A9-E50E24DCCA9E");
+      this.txChar = await this.service.getCharacteristic("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
+      this.rxChar = await this.service.getCharacteristic("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
       await this.rxChar.startNotifications();
       this.rxChar.addEventListener("characteristicvaluechanged", evt => {
