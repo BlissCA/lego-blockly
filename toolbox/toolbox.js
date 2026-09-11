@@ -2288,7 +2288,25 @@ const toolbox = {
               }
             }
           }
-        }        
+        },
+        {
+          "kind": "block",
+          "type": "legopfir_readhandsetrc",
+          "inputs": {
+            "CHANNEL": {
+              "shadow": {
+                "type": "Legopf_channel",
+                "fields": { "CHANNEL": "0" }
+              }
+            },
+            "OUTPUT": {
+              "shadow": {
+                "type": "Legopf_output",
+                "fields": { "OUTPUT": "0" }
+              }
+            }
+          }
+        }     
       ]
     }
     /*

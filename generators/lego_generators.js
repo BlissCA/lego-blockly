@@ -1776,6 +1776,19 @@ javascriptGenerator.forBlock["legopfir_combo"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["legopfir_readhandsetrc"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const output = javascriptGenerator.valueToCode(block, "OUTPUT", javascriptGenerator.ORDER_NONE) || "0";
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").readHandsetRC(${channel}, ${output})`, 
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+
+
 
 // ---------------- LEGO WeDo 1.0 GENERATORS ----------------
 

@@ -3630,7 +3630,28 @@ window.addEventListener("load", () => {
       "colour": "#00c4d6",
       "tooltip": "PF IR Single Output Command to 7"
     },
-	
+    {
+      "type": "legopfir_readhandsetrc",
+      "message0": "%1 Read PF %2 Port %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "OUTPUT",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": "#00c4d6",
+      "tooltip": "Simple PF Handset: Returns true 0=Float, 1=Fwd, 2=Rev, 3=Brake then float"
+    }
+
   ]);
   
   
