@@ -167,64 +167,71 @@ export class LegoPFIR {
   // ------------------------------------------------------------
   // Handset RC reader
   // ------------------------------------------------------------
-  readHandsetRC(channel, port) {
-    const frame = this.rxTable[channel];
-    if (frame === null) return 0;
+	readHandsetRC(channel, port) {
+	const frame = this.rxTable[channel];
+	if (frame === null) return 0;
 
-    const mode = (frame >> 8) & 0x0F;
-    const pwm  = (frame >> 4) & 0x0F;
+	const nibble1 = (frame >> 12) & 0x0F;  // channel
+	const nibble2 = (frame >> 8)  & 0x0F;  // always 1
+	const nibble3 = (frame >> 4)  & 0x0F;  // port states
 
-    // Single Output mode: 0x4 = A, 0x5 = B
-    if (mode !== 0x4 && mode !== 0x5) return 0;
+	// Must be Combo Direct Mode → nibble2 must be 1
+	if (nibble2 !== 0x1) return 0;
 
-    const isPortA = (mode === 0x4);
-    if ((port === 0 && !isPortA) || (port === 1 && isPortA)) return 0;
+	let ctrl;
 
-    if (pwm === 0x8) return 3;     // Brake
-    if (pwm === 0x0) return 0;     // Float
-    if (pwm >= 1 && pwm <= 7) return 1; // Forward
-    if (pwm >= 9 && pwm <= 15) return 2; // Backward
+	if (port === 0) {
+			// Port A → low 2 bits
+			ctrl = nibble3 & 0x03;
+	} else {
+			// Port B → high 2 bits
+			ctrl = (nibble3 >> 2) & 0x03;
+	}
 
-    return 0;
-  }
+	// 0 Float
+	// 1 Forward
+	// 2 Backward
+	// 3 Brake
+	return ctrl;
+	}
 
   // ------------------------------------------------------------
   // PF IR Output Methods
   // ------------------------------------------------------------
 
   // Single Output PWM mode
-    motor_Single(channel, output, pwmNibble) {
-    const nibble1 = channel & 0x03;
-    const nibble2 = (output === 1) ? 0x5 : 0x4;   // 0=A(0x4), 1=B(0x5)
-    const nibble3 = pwmNibble & 0x0F;             // 0–15 from Blockly
-    const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
+	motor_Single(channel, output, pwmNibble) {
+	const nibble1 = channel & 0x03;
+	const nibble2 = (output === 1) ? 0x5 : 0x4;   // 0=A(0x4), 1=B(0x5)
+	const nibble3 = pwmNibble & 0x0F;             // 0–15 from Blockly
+	const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
 
-    const frame =
-        (nibble1 << 12) |
-        (nibble2 << 8)  |
-        (nibble3 << 4)  |
-        nibble4;
+	const frame =
+			(nibble1 << 12) |
+			(nibble2 << 8)  |
+			(nibble3 << 4)  |
+			nibble4;
 
-    this.sendFrame(frame);
-    }
+	this.sendFrame(frame);
+	}
 
 
   // Combo PWM mode (Blue + Red)
-    motor_Combo(channel, pwmBlue, pwmRed) {
-    const ESCAPE = 0x4;
+	motor_Combo(channel, pwmBlue, pwmRed) {
+	const ESCAPE = 0x4;
 
-    const nibble1 = (ESCAPE | (channel & 0x03));  // ESCAPE + channel
-    const nibble2 = pwmBlue & 0x0F;               // 0–15 from Blockly
-    const nibble3 = pwmRed  & 0x0F;               // 0–15 from Blockly
-    const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
+	const nibble1 = (ESCAPE | (channel & 0x03));  // ESCAPE + channel
+	const nibble2 = pwmBlue & 0x0F;               // 0–15 from Blockly
+	const nibble3 = pwmRed  & 0x0F;               // 0–15 from Blockly
+	const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
 
-    const frame =
-        (nibble1 << 12) |
-        (nibble2 << 8)  |
-        (nibble3 << 4)  |
-        nibble4;
+	const frame =
+			(nibble1 << 12) |
+			(nibble2 << 8)  |
+			(nibble3 << 4)  |
+			nibble4;
 
-    this.sendFrame(frame);
-    }
+	this.sendFrame(frame);
+	}
 
 }
