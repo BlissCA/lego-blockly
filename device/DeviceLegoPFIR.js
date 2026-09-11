@@ -155,13 +155,13 @@ export class LegoPFIR {
 
     this.rxTable[channel] = frame;
 
-    this.log(`Remote CH${channel}: 0x${frame.toString(16).padStart(4, "0")}`);
+    // this.log(`Remote CH${channel}: 0x${frame.toString(16).padStart(4, "0")}`);
 
-    this.manager?.onDeviceEvent?.(this.name, {
-      type: "pfir-remote",
-      channel,
-      frame
-    });
+    // this.manager?.onDeviceEvent?.(this.name, {
+    //   type: "pfir-remote",
+    //   channel,
+    //   frame
+    // });
   }
 
   // ------------------------------------------------------------
