@@ -1742,6 +1742,41 @@ javascriptGenerator.forBlock["legopf_combo"] = function (block) {
 `;
 };
 
+
+
+javascriptGenerator.forBlock["legopfir_single"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const output = javascriptGenerator.valueToCode(block, "OUTPUT", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm = javascriptGenerator.valueToCode(block, "PWM", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motor_Single(${channel},${output}, ${pwm});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legopfir_combo"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm_b = javascriptGenerator.valueToCode(block, "PWM_B", javascriptGenerator.ORDER_NONE) || "0";
+  const pwm_r = javascriptGenerator.valueToCode(block, "PWM_R", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motor_Combo(${channel},${pwm_b}, ${pwm_r});
+}
+`;
+};
+
+
 // ---------------- LEGO WeDo 1.0 GENERATORS ----------------
 
 javascriptGenerator.forBlock["wedo1_portinp"] = function (block) {

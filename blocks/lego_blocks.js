@@ -855,6 +855,17 @@ function getSBrickDropdown() {
     : [['No SBrick', 'NONE']];
 }
 
+// Only LEGO Interface A devices
+function getLegoPFIRDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("PFIR"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No Lego PF IR', 'NONE']];
+}
+
+
 window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
@@ -3562,6 +3573,67 @@ window.addEventListener("load", () => {
 
   ]);
 
+
+  // ---------------- PF IR BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "legopfir_single",
+      "message0": "%1 PF %2 out %3 pwr %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "OUTPUT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM",
+          "check": "Number",
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#00c4d6",
+      "tooltip": "PF IR Single Output Command to 7"
+    },    
+    {
+      "type": "legopfir_combo",
+      "message0": "%1 PF %2 Blue %3 Red %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
+        {
+          "type": "input_value",
+          "name": "CHANNEL",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM_B",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "PWM_R",
+          "check": "Number",
+        },
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#00c4d6",
+      "tooltip": "PF IR Single Output Command to 7"
+    },
+	
+  ]);
+  
+  
   // ---------------- LEGO SBrick/SBrick+/SBrick Light BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
 
