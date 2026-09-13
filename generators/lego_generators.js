@@ -1776,6 +1776,11 @@ javascriptGenerator.forBlock["legopfir_combo"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["Legopf_handsetvalue"] = function (block) {
+  var code = block.getFieldValue('HANDSETVALUE');
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["legopfir_readhandset"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const channel = javascriptGenerator.valueToCode(block, "CHANNEL", javascriptGenerator.ORDER_NONE) || "0";

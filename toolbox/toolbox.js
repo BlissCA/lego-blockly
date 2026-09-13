@@ -2289,6 +2289,7 @@ const toolbox = {
             }
           }
         },
+        { "kind": "block", "type": "Legopf_handsetvalue" },
         {
           "kind": "block",
           "type": "legopfir_readhandset",

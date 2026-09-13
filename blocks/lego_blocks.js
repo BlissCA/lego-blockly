@@ -4613,6 +4613,19 @@ Blockly.Blocks['Legopf_output'] = {
   }
 };
 
+Blockly.Blocks['Legopf_handsetvalue'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown([
+        ["none", "none"], ["fwd", "fwd"], ["rev", "rev"], ["stop", "stop"], ["inc", "inc"], ["dec", "dec"]
+      ]), "HANDSETVALUE");
+
+    this.setOutput(true, "String");
+    this.setColour("#00c4d6");
+    this.setTooltip("Returns a predefined constant string value to be used with comparison logic to Lego PF IR Hanset value");
+  }
+};
+
 Blockly.Blocks['Legob_outportalpha'] = {
   init: function() {
     this.appendDummyInput()
