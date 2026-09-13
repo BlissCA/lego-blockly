@@ -985,6 +985,9 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.setOutputState) {
         // NXT: stop all motors
         await dev.setOutputState(0xFF, 0, 0x01, 0, 0, 0x20);
+      } else if (dev.motor_StopAll) {
+        // PF IR: stop all motors of all channels
+        await dev.motor_StopAll();
       } else if (dev.motorStopAll) {
         // SBrick: stop all motors / Lights
         dev.queueActive = false;

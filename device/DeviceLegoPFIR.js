@@ -29,7 +29,7 @@ export class LegoPFIR {
             };
         }
     }
-		
+
   }
 
   // ------------------------------------------------------------
@@ -274,6 +274,24 @@ export class LegoPFIR {
 			nibble4;
 
 	this.sendFrame(frame);
+	}
+
+	motor_StopAll() {
+			for (let ch = 0; ch < 4; ch++) {
+
+					const nibble1 = ch & 0x03;   // toggle=0, channel=ch
+					const nibble2 = 0x1;         // Combo Direct Mode
+					const nibble3 = 0x0;         // STOP/FLOAT both ports
+					const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
+
+					const frame =
+							(nibble1 << 12) |
+							(nibble2 << 8)  |
+							(nibble3 << 4)  |
+							nibble4;
+
+					this.sendFrame(frame);
+			}
 	}
 
 }
