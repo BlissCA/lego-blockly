@@ -15,7 +15,7 @@ export class LegoPFIR {
 
     this.status = "disconnected";
 
-		pfirEvents[channel][port] = {
+		this.pfirEvents[channel][port] = {
 				event: "none" | "inc" | "dec" | "fwd" | "rev" | "stop",
 				eventPrev: number,     // for basic handset
 				toggle: number,        // for train handset
