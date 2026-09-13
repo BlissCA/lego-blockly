@@ -1777,7 +1777,8 @@ javascriptGenerator.forBlock["legopfir_combo"] = function (block) {
 };
 
 javascriptGenerator.forBlock["Legopf_handsetvalue"] = function (block) {
-  var code = block.getFieldValue('HANDSETVALUE');
+  const val = block.getFieldValue('HANDSETVALUE');
+  const code = `"${val}"`;   // <-- wrap in quotes
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
