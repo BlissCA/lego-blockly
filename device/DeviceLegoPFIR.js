@@ -15,13 +15,21 @@ export class LegoPFIR {
 
     this.status = "disconnected";
 
-		this.pfirEvents[channel][port] = {
-				event: "none" | "inc" | "dec" | "fwd" | "rev" | "stop",
-				eventPrev: number,     // for basic handset
-				toggle: number,        // for train handset
-				newEvent: false        // unified flag
-		};
+    // Unified PF IR event table: 4 channels × 2 ports
+    this.pfirEvents = [];
 
+    for (let ch = 0; ch < 4; ch++) {
+        this.pfirEvents[ch] = [];
+        for (let port = 0; port < 2; port++) {
+            this.pfirEvents[ch][port] = {
+                event: "none",     // "none", "inc", "dec", "fwd", "rev", "stop"
+                eventPrev: 0,      // for basic handset (Combo Direct Mode)
+                toggle: 0,         // for train handset (Single Output Mode)
+                newEvent: false    // unified event flag
+            };
+        }
+    }
+		
   }
 
   // ------------------------------------------------------------
