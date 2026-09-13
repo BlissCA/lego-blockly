@@ -2291,7 +2291,7 @@ const toolbox = {
         },
         {
           "kind": "block",
-          "type": "legopfir_readhandsetrc",
+          "type": "legopfir_readhandset",
           "inputs": {
             "CHANNEL": {
               "shadow": {

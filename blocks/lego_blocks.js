@@ -3578,7 +3578,7 @@ window.addEventListener("load", () => {
   Blockly.defineBlocksWithJsonArray([
     {
       "type": "legopfir_single",
-      "message0": "%1 PF %2 out %3 pwr %4",
+      "message0": "%1 mot %2 port %3 pwr %4",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
         {
@@ -3601,11 +3601,11 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": "#00c4d6",
-      "tooltip": "PF IR Single Output Command to 7"
+      "tooltip": "PF IR Single Output Command"
     },    
     {
       "type": "legopfir_combo",
-      "message0": "%1 PF %2 Blue %3 Red %4",
+      "message0": "%1 mot %2 Blue %3 Red %4",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
         {
@@ -3628,11 +3628,11 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": "#00c4d6",
-      "tooltip": "PF IR Single Output Command to 7"
+      "tooltip": "PF IR Combo Output Command to Both ports.  This command has timeout so you need to send it repeatedly to keep the motors running."
     },
     {
-      "type": "legopfir_readhandsetrc",
-      "message0": "%1 Read Basic %2 Port %3",
+      "type": "legopfir_readhandset",
+      "message0": "%1 Read Handset %2 Port %3",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown },
         {
@@ -3647,9 +3647,9 @@ window.addEventListener("load", () => {
         }
       ],
       "inputsInline": true,
-      "output": "Number",
+      "output": "String",
       "colour": "#00c4d6",
-      "tooltip": "Simple PF Handset: Returns true 0=Float, 1=Fwd, 2=Rev, 3=Brake then float"
+      "tooltip": "PF IR Handset: Returns \"none\", \"fwd\", \"rev\", \"inc\" (train), \"dec\" (train), \"stop\""
     }
 
   ]);

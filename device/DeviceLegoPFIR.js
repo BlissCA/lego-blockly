@@ -15,8 +15,13 @@ export class LegoPFIR {
 
     this.status = "disconnected";
 
-    // RX memory: last PF frame per channel (0–3)
-    this.rxTable = [null, null, null, null];
+		pfirEvents[channel][port] = {
+				event: "none" | "inc" | "dec" | "fwd" | "rev" | "stop",
+				eventPrev: number,     // for basic handset
+				toggle: number,        // for train handset
+				newEvent: false        // unified flag
+		};
+
   }
 
   // ------------------------------------------------------------
@@ -146,53 +151,82 @@ export class LegoPFIR {
   // ------------------------------------------------------------
   // RX Notify handler
   // ------------------------------------------------------------
-  _handleRemoteEvent(dataView) {
-    const high = dataView.getUint8(0);
-    const low  = dataView.getUint8(1);
-    const frame = (high << 8) | low;
+	_handleRemoteEvent(dataView) {
+			const high = dataView.getUint8(0);
+			const low  = dataView.getUint8(1);
+			const frame = (high << 8) | low;
 
-    const channel = (frame >> 12) & 0x03;
+			const nibble1 = (frame >> 12) & 0x0F;
+			const nibble2 = (frame >> 8)  & 0x0F;
+			const nibble3 = (frame >> 4)  & 0x0F;
 
-    this.rxTable[channel] = frame;
+			const channel = nibble1 & 0x03;
+			const toggle  = (nibble1 >> 3) & 0x01;
 
-    // this.log(`Remote CH${channel}: 0x${frame.toString(16).padStart(4, "0")}`);
+			// TRAIN HANDSET?
+			const isTrain =
+					((nibble2 & 0b0110) === 0b0110) ||   // Clear/Set/Toggle/Inc/Dec
+					((nibble2 & 0b0100) === 0b0100);     // PWM Stop
 
-    // this.manager?.onDeviceEvent?.(this.name, {
-    //   type: "pfir-remote",
-    //   channel,
-    //   frame
-    // });
-  }
+			if (isTrain) {
+					const port = nibble2 & 0x1;
 
-  // ------------------------------------------------------------
-  // Handset RC reader
-  // ------------------------------------------------------------
-	readHandsetRC(channel, port) {
-	const frame = this.rxTable[channel];
-	if (frame === null) return 0;
+					let event = "none";
+					if (nibble3 === 4) event = "inc";
+					else if (nibble3 === 5) event = "dec";
+					else if (nibble3 === 8) event = "stop";
 
-	const nibble1 = (frame >> 12) & 0x0F;  // channel
-	const nibble2 = (frame >> 8)  & 0x0F;  // always 1
-	const nibble3 = (frame >> 4)  & 0x0F;  // port states
+					const entry = this.pfirEvents[channel][port];
 
-	// Must be Combo Direct Mode → nibble2 must be 1
-	if (nibble2 !== 0x1) return 0;
+					if (toggle !== entry.toggle) {
+							entry.toggle = toggle;
+							entry.event = event;
+							entry.newEvent = true;
+					}
 
-	let ctrl;
+					return;
+			}
 
-	if (port === 0) {
-			// Port A → low 2 bits
-			ctrl = nibble3 & 0x03;
-	} else {
-			// Port B → high 2 bits
-			ctrl = (nibble3 >> 2) & 0x03;
+			// BASIC HANDSET (Combo Direct Mode)
+			if (nibble2 === 0x1) {
+					const portA = nibble3 & 0x03;
+					const portB = (nibble3 >> 2) & 0x03;
+
+					const ports = [portA, portB];
+
+					for (let port = 0; port < 2; port++) {
+							const val = ports[port];
+							let event = "none";
+
+							if (val === 0) event = "stop";
+							else if (val === 1) event = "fwd";
+							else if (val === 2) event = "rev";
+
+							const entry = this.pfirEvents[channel][port];
+
+							if (entry.eventPrev !== val) {
+									entry.eventPrev = val;
+									entry.event = event;
+									entry.newEvent = true;
+							}
+					}
+			}
 	}
 
-	// 0 Float
-	// 1 Forward
-	// 2 Backward
-	// 3 Brake
-	return ctrl;
+  // ------------------------------------------------------------
+  // PF IR Handset reader
+  // ------------------------------------------------------------
+	readHandset(channel, port) {
+			const entry = this.pfirEvents[channel][port];
+
+			if (!entry.newEvent) return "none";
+
+			entry.newEvent = false;
+
+			const ev = entry.event;
+			entry.event = "none";
+
+			return ev;
 	}
 
   // ------------------------------------------------------------
