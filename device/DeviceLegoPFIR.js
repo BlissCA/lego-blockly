@@ -13,6 +13,13 @@ export class LegoPFIR {
     this.commandQueue = [];
     this.commandRunning = false;
 
+    // Coalescing path: for continuous controls (sliders/joysticks) that can
+    // fire faster than BLE can drain, we only keep the latest frame per key
+    // instead of queueing every intermediate value. This is what keeps lag
+    // from growing the longer you hold a control.
+    this.pendingFrames = new Map();
+    this.pumpingPending = false;
+
     this.status = "disconnected";
 
     // Unified PF IR event table: 4 channels × 2 ports
@@ -152,8 +159,32 @@ export class LegoPFIR {
     await this.txChar.writeValueWithoutResponse(data);
   }
 
-  sendFrame(frame) {
+  // Pass a `key` for continuous/repeatable commands (e.g. one per motor
+  // output) so a burst of calls only ever sends the latest value instead
+  // of backlogging. Omit `key` for commands where every write matters and
+  // must go out in order (e.g. stop commands) - those keep using the FIFO.
+  sendFrame(frame, key = null) {
+    if (key !== null) {
+      this.pendingFrames.set(key, frame);
+      this._pumpPending();
+      return;
+    }
     this.enqueueCommand(() => this._writeFrame(frame));
+  }
+
+  async _pumpPending() {
+    if (this.pumpingPending) return;
+    this.pumpingPending = true;
+    while (this.pendingFrames.size > 0) {
+      const [key, frame] = this.pendingFrames.entries().next().value;
+      this.pendingFrames.delete(key);
+      try {
+        await this._writeFrame(frame);
+      } catch (err) {
+        this.log(`Write error: ${err}`);
+      }
+    }
+    this.pumpingPending = false;
   }
 
   // ------------------------------------------------------------
@@ -254,7 +285,7 @@ export class LegoPFIR {
 			(nibble3 << 4)  |
 			nibble4;
 
-	this.sendFrame(frame);
+	this.sendFrame(frame, `single_${channel}_${output}`);
 	}
 
 
@@ -273,7 +304,7 @@ export class LegoPFIR {
 			(nibble3 << 4)  |
 			nibble4;
 
-	this.sendFrame(frame);
+	this.sendFrame(frame, `combo_${channel}`);
 	}
 
 	motor_StopAll() {
