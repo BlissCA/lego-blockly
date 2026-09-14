@@ -13,12 +13,16 @@ export class LegoPFIR {
     this.commandQueue = [];
     this.commandRunning = false;
 
-    // Coalescing path: for continuous controls (sliders/joysticks) that can
-    // fire faster than BLE can drain, we only keep the latest frame per key
-    // instead of queueing every intermediate value. This is what keeps lag
-    // from growing the longer you hold a control.
+    // Batching path: any sendFrame() calls made within the same tick
+    // (e.g. two consecutive Blockly motor blocks) are collected here and
+    // flushed as a SINGLE BLE write on the next microtask. This is what
+    // removes the double connection-event round-trip you'd otherwise pay
+    // for two separate writeValueWithoutResponse() calls. A `key` still
+    // lets repeated updates to the same output coalesce to the latest
+    // value instead of queueing every one (useful if this is ever driven
+    // by a slider/joystick instead of discrete blocks).
     this.pendingFrames = new Map();
-    this.pumpingPending = false;
+    this.flushScheduled = false;
 
     this.status = "disconnected";
 
@@ -129,9 +133,12 @@ export class LegoPFIR {
         0x340B, 0x350A
       ];
 
-      for (const frame of stopFrames) {
-        await this._writeFrame(frame);
-      }
+      const payload = new Uint8Array(stopFrames.length * 2);
+      stopFrames.forEach((frame, i) => {
+        payload[i * 2] = (frame >> 8) & 0xFF;
+        payload[i * 2 + 1] = frame & 0xFF;
+      });
+      await this._writeRaw(payload);
 
       if (this.device?.gatt.connected) {
         this.device.gatt.disconnect();
@@ -159,32 +166,45 @@ export class LegoPFIR {
     await this.txChar.writeValueWithoutResponse(data);
   }
 
-  // Pass a `key` for continuous/repeatable commands (e.g. one per motor
-  // output) so a burst of calls only ever sends the latest value instead
-  // of backlogging. Omit `key` for commands where every write matters and
-  // must go out in order (e.g. stop commands) - those keep using the FIFO.
+  // Pass a `key` so repeated updates to the same output (e.g. from a
+  // slider) coalesce to the latest value instead of queueing every one.
+  // Omit `key` (or pass a unique one) when every call must be delivered,
+  // e.g. two different motor outputs turning on together - both will
+  // still be batched into the same BLE write if issued in the same tick.
   sendFrame(frame, key = null) {
-    if (key !== null) {
-      this.pendingFrames.set(key, frame);
-      this._pumpPending();
-      return;
-    }
-    this.enqueueCommand(() => this._writeFrame(frame));
+    this.pendingFrames.set(key ?? Symbol("frame"), frame);
+    this._scheduleFlush();
   }
 
-  async _pumpPending() {
-    if (this.pumpingPending) return;
-    this.pumpingPending = true;
-    while (this.pendingFrames.size > 0) {
-      const [key, frame] = this.pendingFrames.entries().next().value;
-      this.pendingFrames.delete(key);
-      try {
-        await this._writeFrame(frame);
-      } catch (err) {
-        this.log(`Write error: ${err}`);
-      }
-    }
-    this.pumpingPending = false;
+  _scheduleFlush() {
+    if (this.flushScheduled) return;
+    this.flushScheduled = true;
+    queueMicrotask(() => this._flush());
+  }
+
+  _flush() {
+    this.flushScheduled = false;
+    if (this.pendingFrames.size === 0) return;
+
+    const frames = Array.from(this.pendingFrames.values());
+    this.pendingFrames.clear();
+
+    // Pack every pending frame into ONE BLE write (2 bytes each,
+    // concatenated). The ESP32 unpacks them and fires each one off as a
+    // separate IR transmission with no BLE round-trip in between - this
+    // is what lets two commands issued together turn on together.
+    const payload = new Uint8Array(frames.length * 2);
+    frames.forEach((frame, i) => {
+      payload[i * 2] = (frame >> 8) & 0xFF;
+      payload[i * 2 + 1] = frame & 0xFF;
+    });
+
+    this.enqueueCommand(() => this._writeRaw(payload));
+  }
+
+  async _writeRaw(payload) {
+    if (!this.txChar) return;
+    await this.txChar.writeValueWithoutResponse(payload);
   }
 
   // ------------------------------------------------------------
