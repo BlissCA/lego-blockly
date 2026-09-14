@@ -10,6 +10,9 @@ export class LegoPFIR {
     this.txChar = null;
     this.rxChar = null;
 
+    this.irGenericChar = null;
+    this.genericEvents = [];
+
     this.commandQueue = [];
     this.commandRunning = false;
 
@@ -100,6 +103,12 @@ export class LegoPFIR {
       await this.rxChar.startNotifications();
       this.rxChar.addEventListener("characteristicvaluechanged", evt => {
         this._handleRemoteEvent(evt.target.value);
+      });
+
+      this.irGenericChar = await this.service.getCharacteristic("6e400004-b5a3-f393-e0a9-e50e24dcca9e");
+      await this.irGenericChar.startNotifications();
+      this.irGenericChar.addEventListener("characteristicvaluechanged", evt => {
+        this._handleGenericIR(evt.target.value);
       });
 
       if (!this.name) {
@@ -274,6 +283,34 @@ export class LegoPFIR {
 			}
 	}
 
+  _handleGenericIR(dataView) {
+    const proto = dataView.getUint8(0);
+    const bits  = dataView.getUint8(1);
+
+    const byteCount = Math.ceil(bits / 8);
+
+    let value = 0n;
+    for (let i = 0; i < byteCount; i++) {
+        value = (value << 8n) | BigInt(dataView.getUint8(2 + i));
+    }
+
+    // NEC repeat frame filter
+    if (proto === 1 && value === 0xFFFFFFFFn) {
+        return;
+    }
+
+    const evt = {
+        proto,
+        bits,
+        value,
+        timestamp: performance.now()
+    };
+
+    this.genericEvents.push(evt);
+
+    console.log(`[PFIR ${this.name}] Generic IR: proto=${proto} bits=${bits} value=0x${value.toString(16)}`);
+  }
+
   // ------------------------------------------------------------
   // PF IR Handset reader
   // ------------------------------------------------------------
@@ -348,4 +385,9 @@ export class LegoPFIR {
 			}
 	}
 
+  readGeneric() {
+    if (this.genericEvents.length === 0) return null;
+    return this.genericEvents.shift();
+  }
+  
 }
