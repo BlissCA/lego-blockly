@@ -204,9 +204,9 @@ export class LegoPFIR {
 
   async _writeRaw(payload) {
     if (!this.txChar) return;
-    console.log(`[PFIR timing] BLE write issued at ${performance.now().toFixed(1)}ms (${payload.length} bytes)`);
+  //  console.log(`[PFIR timing] BLE write issued at ${performance.now().toFixed(1)}ms (${payload.length} bytes)`);
     await this.txChar.writeValueWithoutResponse(payload);
-    console.log(`[PFIR timing] BLE write resolved at ${performance.now().toFixed(1)}ms`);
+  //  console.log(`[PFIR timing] BLE write resolved at ${performance.now().toFixed(1)}ms`);
   }
 
   // ------------------------------------------------------------
@@ -296,7 +296,7 @@ export class LegoPFIR {
 
   // Single Output PWM mode
 	motor_Single(channel, output, pwmNibble) {
-	console.log(`[PFIR timing] motor_Single(ch=${channel}, out=${output}) called at ${performance.now().toFixed(1)}ms`);
+	// console.log(`[PFIR timing] motor_Single(ch=${channel}, out=${output}) called at ${performance.now().toFixed(1)}ms`);
 	const nibble1 = channel & 0x03;
 	const nibble2 = (output === 1) ? 0x5 : 0x4;   // 0=A(0x4), 1=B(0x5)
 	const nibble3 = pwmNibble & 0x0F;             // 0–15 from Blockly

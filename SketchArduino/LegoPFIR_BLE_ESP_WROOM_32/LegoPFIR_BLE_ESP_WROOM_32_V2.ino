@@ -54,7 +54,7 @@ class TxCallbacks : public BLECharacteristicCallbacks {
     size_t frameCount = value.size() / 2;
     if (frameCount == 0 || (value.size() % 2) != 0) return; // malformed, ignore
 
-    Serial.printf("[BLE RX] %u frame(s) received at %lu ms\n", (unsigned)frameCount, millis());
+//    Serial.printf("[BLE RX] %u frame(s) received at %lu ms\n", (unsigned)frameCount, millis());
 
     for (size_t i = 0; i < frameCount; i++) {
       uint16_t frame = (static_cast<uint8_t>(value[i * 2]) << 8) |
@@ -137,7 +137,7 @@ void notifyPfFrame(uint16_t frame) {
   rxChar->setValue(payload, 2);
   rxChar->notify();
 
-  Serial.printf("[BLE RX] Notified PF frame: 0x%04X\n", frame);
+//  Serial.printf("[BLE RX] Notified PF frame: 0x%04X\n", frame);
 }
 
 // ------------------------------------------------------
