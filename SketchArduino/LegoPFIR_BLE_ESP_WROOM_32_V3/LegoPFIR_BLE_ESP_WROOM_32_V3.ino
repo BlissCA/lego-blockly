@@ -138,8 +138,8 @@ void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
   irGenericChar->setValue(payload, 2 + byteCount);
   irGenericChar->notify();
 
-  Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
-                proto, bits, value);
+  // Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
+  //               proto, bits, value);
 }
 
 // ------------------------------------------------------
