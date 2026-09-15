@@ -20,48 +20,39 @@ decode_results results;
 // BLE UUIDs (Service + TX + RX)
 // ------------------------------------------------------
 static const char *BLE_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-static const char *BLE_TX_UUID      = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"; // Client → ESP32
-static const char *BLE_RX_UUID      = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; // ESP32 → Client
+static const char *BLE_TX_UUID      = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"; // PF IR TX
+static const char *BLE_RX_UUID      = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; // PF IR RX
+
+// *** NEW *** Generic IR RX characteristic
+static const char *BLE_IR_GENERIC_UUID = "6E400004-B5A3-F393-E0A9-E50E24DCCA9E";
 
 BLEServer         *bleServer   = nullptr;
 BLEService        *bleService  = nullptr;
-BLECharacteristic *txChar      = nullptr; // WriteWithoutResponse
-BLECharacteristic *rxChar      = nullptr; // Notify
+BLECharacteristic *txChar      = nullptr; // PF IR TX
+BLECharacteristic *rxChar      = nullptr; // PF IR RX
+BLECharacteristic *irGenericChar = nullptr; // *** NEW ***
 
 bool bleClientConnected = false;
-esp_bd_addr_t connectedBda; // peer address, needed for conn-param update
+esp_bd_addr_t connectedBda;
 
 // ------------------------------------------------------
-// Outgoing IR queue: a real FIFO (not overwrite-single-slot).
-// Decouples the BLE stack task from the blocking IR send.
-// Depth of 8 is plenty for bursts of discrete commands
-// (e.g. two motor blocks fired back-to-back) without ever
-// dropping a frame.
+// Outgoing IR queue
 // ------------------------------------------------------
 static QueueHandle_t irQueue = nullptr;
 
 // ------------------------------------------------------
-// BLE TX handler: receive 16-bit PF frame, hand off to loop()
+// BLE TX handler (PF IR only)
 // ------------------------------------------------------
 class TxCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *characteristic) override {
     std::string value = characteristic->getValue();
-
-    // Payload is now N concatenated 2-byte PF frames (N >= 1), not just one.
-    // This lets the JS side batch commands issued in the same tick (e.g.
-    // two motor blocks fired back-to-back) into a single BLE write, so
-    // they only pay for one connection event instead of two.
     size_t frameCount = value.size() / 2;
-    if (frameCount == 0 || (value.size() % 2) != 0) return; // malformed, ignore
-
-//    Serial.printf("[BLE RX] %u frame(s) received at %lu ms\n", (unsigned)frameCount, millis());
+    if (frameCount == 0 || (value.size() % 2) != 0) return;
 
     for (size_t i = 0; i < frameCount; i++) {
       uint16_t frame = (static_cast<uint8_t>(value[i * 2]) << 8) |
                         static_cast<uint8_t>(value[i * 2 + 1]);
 
-      // Do NOT call irsend here: sendLegoPf() blocks for a few ms and
-      // would stall the Bluedroid task, delaying the *next* BLE event.
       if (irQueue != nullptr) {
         if (xQueueSend(irQueue, &frame, 0) != pdTRUE) {
           Serial.println("[BLE TX] IR queue full, frame dropped");
@@ -72,35 +63,27 @@ class TxCallbacks : public BLECharacteristicCallbacks {
 };
 
 // ------------------------------------------------------
-// BLE connection-interval optimizer (Bluedroid only)
+// BLE connection-interval optimizer
 // ------------------------------------------------------
 class MyServerCallbacks : public BLEServerCallbacks {
-  // NOTE: the (BLEServer*, esp_ble_gatts_cb_param_t*) overload is the one
-  // that actually fires on arduino-esp32 2.0.17's Bluedroid BLE stack, and
-  // it's the only one that gives us the peer's address.
   void onConnect(BLEServer *server, esp_ble_gatts_cb_param_t *param) override {
     bleClientConnected = true;
     memcpy(connectedBda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
 
     Serial.println("[BLE] Client connected");
 
-    // Request FAST connection interval (7.5 ms, the BLE spec minimum)
     esp_ble_conn_update_params_t connParams;
-    memcpy(connParams.bda, connectedBda, sizeof(esp_bd_addr_t)); // <-- was missing entirely, update silently did nothing
+    memcpy(connParams.bda, connectedBda, sizeof(esp_bd_addr_t));
     connParams.latency = 0;
-    connParams.max_int = 6;   // 6 * 1.25 ms = 7.5 ms
-    connParams.min_int = 6;   // 6 * 1.25 ms = 7.5 ms
-    connParams.timeout = 400; // 4 second supervision timeout
+    connParams.max_int = 6;
+    connParams.min_int = 6;
+    connParams.timeout = 400;
 
     esp_ble_gap_update_conn_params(&connParams);
-
     Serial.println("[BLE] Requested fast connection interval");
   }
 
-  // Keep this so the class still satisfies the base interface; the real
-  // work happens in the param overload above, which is the one that fires.
   void onConnect(BLEServer *server) override {}
-
   void onDisconnect(BLEServer *server) override {
     bleClientConnected = false;
     Serial.println("[BLE] Client disconnected");
@@ -109,22 +92,18 @@ class MyServerCallbacks : public BLEServerCallbacks {
 };
 
 // ------------------------------------------------------
-// GAP callback: confirms what interval was actually negotiated.
-// Central (Chrome/OS) has final say, but this tells you if your
-// request was even accepted.
+// NOTE: a custom esp_ble_gap_register_callback() was used earlier purely
+// to log the negotiated connection interval for diagnostics. It has been
+// removed permanently: it silently replaces the Arduino BLEDevice
+// library's own internal GAP callback (there's only one global slot),
+// which broke the library's own security/bonding bookkeeping and was the
+// real cause of the Windows pairing/connection issues seen previously.
+// The 7.5ms interval negotiation was already confirmed working before
+// this was removed, so it isn't needed for normal operation.
 // ------------------------------------------------------
-static void gapEventHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-  if (event == ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT) {
-    Serial.printf("[BLE] Conn params updated: interval=%.2fms latency=%d timeout=%dms status=%d\n",
-                  param->update_conn_params.conn_int * 1.25,
-                  param->update_conn_params.latency,
-                  param->update_conn_params.timeout * 10,
-                  param->update_conn_params.status);
-  }
-}
 
 // ------------------------------------------------------
-// Notify PF IR events to BLE client (full 16-bit frame)
+// PF IR notify
 // ------------------------------------------------------
 void notifyPfFrame(uint16_t frame) {
   if (!bleClientConnected || rxChar == nullptr) return;
@@ -136,8 +115,29 @@ void notifyPfFrame(uint16_t frame) {
 
   rxChar->setValue(payload, 2);
   rxChar->notify();
+}
 
-//  Serial.printf("[BLE RX] Notified PF frame: 0x%04X\n", frame);
+// ------------------------------------------------------
+// *** NEW *** Generic IR notify
+// ------------------------------------------------------
+void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
+  if (!bleClientConnected || irGenericChar == nullptr) return;
+
+  uint8_t byteCount = (bits + 7) / 8;
+  uint8_t payload[2 + 8]; // proto + bits + up to 8 bytes
+
+  payload[0] = proto;
+  payload[1] = bits;
+
+  for (uint8_t i = 0; i < byteCount; i++) {
+    payload[2 + i] = (value >> ((byteCount - 1 - i) * 8)) & 0xFF;
+  }
+
+  irGenericChar->setValue(payload, 2 + byteCount);
+  irGenericChar->notify();
+
+  // Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
+  //               proto, bits, value);
 }
 
 // ------------------------------------------------------
@@ -147,35 +147,40 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  Serial.println("=== ESP32 LEGO PF IR Gateway + BLE (Optimized Version) ===");
+  Serial.println("=== ESP32 LEGO PF IR Gateway + BLE + Generic IR ===");
 
   irsend.begin();
   irrecv.enableIRIn();
 
   irQueue = xQueueCreate(8, sizeof(uint16_t));
 
-  // BLE init
   BLEDevice::init("PF-IR-Gateway");
-  esp_ble_gap_register_callback(gapEventHandler);
 
   bleServer = BLEDevice::createServer();
-  bleServer->setCallbacks(new MyServerCallbacks());   // <-- NEW CALLBACK INSTALLED HERE
+  bleServer->setCallbacks(new MyServerCallbacks());
 
   bleService = bleServer->createService(BLE_SERVICE_UUID);
 
-  // TX characteristic: client writes PF frame (2 bytes)
+  // PF IR TX
   txChar = bleService->createCharacteristic(
     BLE_TX_UUID,
     BLECharacteristic::PROPERTY_WRITE_NR
   );
   txChar->setCallbacks(new TxCallbacks());
 
-  // RX characteristic: ESP32 notifies PF frame (2 bytes)
+  // PF IR RX
   rxChar = bleService->createCharacteristic(
     BLE_RX_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
   rxChar->addDescriptor(new BLE2902());
+
+  // *** NEW *** Generic IR RX characteristic
+  irGenericChar = bleService->createCharacteristic(
+    BLE_IR_GENERIC_UUID,
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+  irGenericChar->addDescriptor(new BLE2902());
 
   bleService->start();
   BLEDevice::startAdvertising();
@@ -187,21 +192,23 @@ void setup() {
 // Loop
 // ------------------------------------------------------
 void loop() {
-  // Drain the outgoing IR queue (fed by TxCallbacks::onWrite)
   uint16_t outFrame;
   if (irQueue != nullptr && xQueueReceive(irQueue, &outFrame, 0) == pdTRUE) {
-//    unsigned long t0 = millis();
-//    Serial.printf("[IR TX] dequeued 0x%04X at %lu ms\n", outFrame, t0);
-    irsend.sendLegoPf(outFrame, 16, 0); // repeat=0: single message, not the 5x "held remote" repeat mode
-//    unsigned long t1 = millis();
-//    Serial.printf("[IR TX] sendLegoPf() returned at %lu ms (took %lu ms)\n", t1, t1 - t0);
+    irsend.sendLegoPf(outFrame, 16, 0);
   }
 
   if (irrecv.decode(&results)) {
+
     if (results.decode_type == LEGOPF) {
-      uint16_t frame = static_cast<uint16_t>(results.value);
-      notifyPfFrame(frame);
+      notifyPfFrame((uint16_t)results.value);
+    } else {
+      notifyGenericIR(
+        results.decode_type,
+        results.bits,
+        results.value
+      );
     }
+
     irrecv.resume();
   }
 }
