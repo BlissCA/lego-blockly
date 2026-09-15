@@ -1797,7 +1797,7 @@ javascriptGenerator.forBlock["legopfir_readgeneric"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
 
   return [
-    `await deviceManager.getDeviceByName("${dev}").readGeneric()`, 
+    `await deviceManager.getDeviceByName("${dev}").readGeneric().value`, 
     javascriptGenerator.ORDER_NONE
   ];
 };
