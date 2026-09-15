@@ -123,6 +123,8 @@ void notifyPfFrame(uint16_t frame) {
 void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
   if (!bleClientConnected || irGenericChar == nullptr) return;
 
+  if (value==0xFFFFFFFFFFFFFFFF) bits = 64;
+
   uint8_t byteCount = (bits + 7) / 8;
   uint8_t payload[2 + 8]; // proto + bits + up to 8 bytes
 
@@ -136,8 +138,8 @@ void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
   irGenericChar->setValue(payload, 2 + byteCount);
   irGenericChar->notify();
 
-  // Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
-  //               proto, bits, value);
+  Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
+                proto, bits, value);
 }
 
 // ------------------------------------------------------
