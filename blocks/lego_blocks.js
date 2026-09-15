@@ -3650,6 +3650,17 @@ window.addEventListener("load", () => {
       "output": "String",
       "colour": "#00c4d6",
       "tooltip": "PF IR Handset: Returns \"none\", \"fwd\", \"rev\", \"inc\" (train), \"dec\" (train), \"stop\""
+    },
+    {
+      "type": "legopfir_readgeneric",
+      "message0": "%1 Read Generic IR",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoPFIRDropdown }
+       ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#00c4d6",
+      "tooltip": "Generic IR Remote.  Returns a Code Number"
     }
 
   ]);

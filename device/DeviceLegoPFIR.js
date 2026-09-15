@@ -294,8 +294,8 @@ export class LegoPFIR {
         value = (value << 8n) | BigInt(dataView.getUint8(2 + i));
     }
 
-    // NEC repeat frame filter
-    if (proto === 1 && value === 0xFFFFFFFFn) {
+    // Filter noise
+    if (proto === 255) {
         return;
     }
 

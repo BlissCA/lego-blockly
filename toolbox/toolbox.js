@@ -2307,7 +2307,8 @@ const toolbox = {
               }
             }
           }
-        }     
+        },
+        { "kind": "block", "type": "legopfir_readgeneric" }
       ]
     }
     /*
