@@ -1794,13 +1794,17 @@ javascriptGenerator.forBlock["legopfir_readhandset"] = function (block) {
 };
 
 javascriptGenerator.forBlock["legopfir_readgeneric"] = function (block) {
-  const dev  = block.getFieldValue("DEVICE");
+  const dev = block.getFieldValue("DEVICE");
 
   return [
-    `await deviceManager.getDeviceByName("${dev}").readGeneric().value`, 
+    `(async () => {
+        const evt = await deviceManager.getDeviceByName("${dev}").readGeneric();
+        return evt?.value ?? null;
+     })()`,
     javascriptGenerator.ORDER_NONE
   ];
 };
+
 
 
 
