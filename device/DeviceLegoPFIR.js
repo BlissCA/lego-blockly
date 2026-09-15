@@ -308,7 +308,7 @@ export class LegoPFIR {
 
     this.genericEvents.push(evt);
 
-    console.log(`[PFIR ${this.name}] Generic IR: proto=${proto} bits=${bits} value=0x${value.toString(16)}`);
+    //console.log(`[PFIR ${this.name}] Generic IR: proto=${proto} bits=${bits} value=0x${value.toString(16)}`);
   }
 
   // ------------------------------------------------------------
