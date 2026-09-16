@@ -1,0 +1,341 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "loop_forever",
+        "id": "#}=cdsz`g$I.E2*Sb,,N",
+        "x": 284,
+        "y": -51,
+        "fields": {
+          "MODE": "WHILE"
+        },
+        "inputs": {
+          "COND": {
+            "shadow": {
+              "type": "logic_boolean",
+              "id": "8CnBb5r.o,=Bz[)^AI:}",
+              "fields": {
+                "BOOL": "TRUE"
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "legoa2_out_pwm",
+              "id": "/])yU_:O~{l=jSPvXSDW",
+              "fields": {
+                "DEVICE": "LegoA1"
+              },
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legoa_outportnum",
+                    "id": "YVtbufjPKP+%s;k0Wb0w",
+                    "fields": {
+                      "NUM": "0"
+                    }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "id": "Ll]2$iX3HZ}@v*w:4qjR",
+                    "fields": {
+                      "NUM": 255
+                    }
+                  },
+                  "block": {
+                    "type": "interactive_slider",
+                    "id": "$efq__i~s+X{FO~s4=D;",
+                    "extraState": {
+                      "min": 0,
+                      "max": 255,
+                      "step": 10,
+                      "value": 210
+                    },
+                    "fields": {
+                      "SLIDER": 210
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "legoa2_out_pwm",
+                  "id": "SSx09!8Vj.1{C+Dea/T#",
+                  "fields": {
+                    "DEVICE": "LegoA1"
+                  },
+                  "inputs": {
+                    "PORT": {
+                      "shadow": {
+                        "type": "Legoa_outportnum",
+                        "id": "cv^}qO5;l;KL!0z(9$q9",
+                        "fields": {
+                          "NUM": "1"
+                        }
+                      }
+                    },
+                    "PWR": {
+                      "shadow": {
+                        "type": "math_number",
+                        "id": "dIgP-Kut5T7tG^@h8eHe",
+                        "fields": {
+                          "NUM": 255
+                        }
+                      },
+                      "block": {
+                        "type": "interactive_slider",
+                        "id": "nJ-w7DEpk{7w_N).)[hl",
+                        "extraState": {
+                          "min": 0,
+                          "max": 255,
+                          "step": 10,
+                          "value": 100
+                        },
+                        "fields": {
+                          "SLIDER": 100
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "legoa2_out_pwm",
+                      "id": "RUG#@)CVzb7EBnct,jD7",
+                      "fields": {
+                        "DEVICE": "LegoA1"
+                      },
+                      "inputs": {
+                        "PORT": {
+                          "shadow": {
+                            "type": "Legoa_outportnum",
+                            "id": "4xVV:tughBD%DT=[~n#%",
+                            "fields": {
+                              "NUM": "2"
+                            }
+                          }
+                        },
+                        "PWR": {
+                          "shadow": {
+                            "type": "math_number",
+                            "id": "*(*,Jn[lNT^(VEaJq8FJ",
+                            "fields": {
+                              "NUM": 255
+                            }
+                          },
+                          "block": {
+                            "type": "interactive_slider",
+                            "id": "*01uf.M@_bT8Ch#)eYWf",
+                            "extraState": {
+                              "min": 0,
+                              "max": 255,
+                              "step": 10,
+                              "value": 10
+                            },
+                            "fields": {
+                              "SLIDER": 10
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "legoa2_out_pwm",
+                          "id": "3l^Qq#Sql3z=`Iub5g(X",
+                          "fields": {
+                            "DEVICE": "LegoA1"
+                          },
+                          "inputs": {
+                            "PORT": {
+                              "shadow": {
+                                "type": "Legoa_outportnum",
+                                "id": "FL/cys}aMk/x}!Wq8k{(",
+                                "fields": {
+                                  "NUM": "3"
+                                }
+                              }
+                            },
+                            "PWR": {
+                              "shadow": {
+                                "type": "math_number",
+                                "id": "6`NSSt02d3zgW=^2uc!)",
+                                "fields": {
+                                  "NUM": 255
+                                }
+                              },
+                              "block": {
+                                "type": "interactive_slider",
+                                "id": "hN`)vO_Rq)y(mrZl_!Ob",
+                                "extraState": {
+                                  "min": 0,
+                                  "max": 255,
+                                  "step": 10,
+                                  "value": 90
+                                },
+                                "fields": {
+                                  "SLIDER": 90
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "legoa2_out_pwm",
+                              "id": "(eMp|P#`pV?:/0?BdaG@",
+                              "fields": {
+                                "DEVICE": "LegoA1"
+                              },
+                              "inputs": {
+                                "PORT": {
+                                  "shadow": {
+                                    "type": "Legoa_outportnum",
+                                    "id": "y[#9g~[,rY-Z/mmCu`X!",
+                                    "fields": {
+                                      "NUM": "4"
+                                    }
+                                  }
+                                },
+                                "PWR": {
+                                  "shadow": {
+                                    "type": "math_number",
+                                    "id": "-bl9t1_,vz_cNZvMxE2^",
+                                    "fields": {
+                                      "NUM": 255
+                                    }
+                                  },
+                                  "block": {
+                                    "type": "interactive_slider",
+                                    "id": "(xtvV5,SeGmWoMW6UV|k",
+                                    "extraState": {
+                                      "min": 0,
+                                      "max": 255,
+                                      "step": 10,
+                                      "value": 250
+                                    },
+                                    "fields": {
+                                      "SLIDER": 250
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "legoa2_out_pwm",
+                                  "id": "vnX/4TIH6C4^t^dbh*J}",
+                                  "fields": {
+                                    "DEVICE": "LegoA1"
+                                  },
+                                  "inputs": {
+                                    "PORT": {
+                                      "shadow": {
+                                        "type": "Legoa_outportnum",
+                                        "id": "K!`El_WHLCNvz=*n.5oV",
+                                        "fields": {
+                                          "NUM": "5"
+                                        }
+                                      }
+                                    },
+                                    "PWR": {
+                                      "shadow": {
+                                        "type": "math_number",
+                                        "id": "g9Z`]W)axG=-Yh^`w#H|",
+                                        "fields": {
+                                          "NUM": 255
+                                        }
+                                      },
+                                      "block": {
+                                        "type": "interactive_slider",
+                                        "id": "z-C;G=s#BhZ{a{s9QO~g",
+                                        "extraState": {
+                                          "min": 0,
+                                          "max": 255,
+                                          "step": 10,
+                                          "value": 250
+                                        },
+                                        "fields": {
+                                          "SLIDER": 250
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "next": {
+                                    "block": {
+                                      "type": "display_value",
+                                      "id": "tX+4_b%.Ckt={3}Ch:tm",
+                                      "inputs": {
+                                        "VALUE": {
+                                          "block": {
+                                            "type": "legoa2_inp_on",
+                                            "id": "gpM)xirfs(jsbr;,`,)r",
+                                            "fields": {
+                                              "DEVICE": "LegoA1"
+                                            },
+                                            "inputs": {
+                                              "PORT": {
+                                                "shadow": {
+                                                  "type": "Legoa_inputnum",
+                                                  "id": "7_C;Wf18(Y2UoNNqwgCK",
+                                                  "fields": {
+                                                    "NUM": "6"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "next": {
+                                        "block": {
+                                          "type": "display_value",
+                                          "id": "Y=Yrr:0nc9ABfNc0=H+%",
+                                          "inputs": {
+                                            "VALUE": {
+                                              "block": {
+                                                "type": "legoa2_inp_on",
+                                                "id": "u[W?Ru_v`2JVK_^7K?x?",
+                                                "fields": {
+                                                  "DEVICE": "LegoA1"
+                                                },
+                                                "inputs": {
+                                                  "PORT": {
+                                                    "shadow": {
+                                                      "type": "Legoa_inputnum",
+                                                      "id": "Rv9(2DL^GX0TB%,uouI-",
+                                                      "fields": {
+                                                        "NUM": "7"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "pwr",
+      "id": "V}1|{iI#AkUN:H1-^XJJ"
+    }
+  ]
+}

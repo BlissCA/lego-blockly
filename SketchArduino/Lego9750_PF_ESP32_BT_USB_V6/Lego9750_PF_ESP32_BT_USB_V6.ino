@@ -1,0 +1,710 @@
+/*
+ * ======================================================================================
+ * ESP32 LEGO Interface A – Dual Mode Gateway (Blockly + Legacy Bit-Bang)
+ * UPDATED FOR ESP32 ARDUINO CORE 3.x (Tested on Core 3.0.0 – 3.3.11 / ESP-IDF 5.x)
+ * 
+ * Target Board: ESP-WROOM-32 / ESP32 Dev Module
+ * Communication: Bluetooth SPP (SerialBT) + USB Serial fallback
+ * Compatible with Chrome Web Serial on Windows 10/11
+ * 
+ * FIX FOR WINDOWS PAIRING "PIN / NIP DOES NOT MATCH" ERROR:
+ * When Windows shows "Does the PIN on your device match 123456?", ESP32 must confirm
+ * the numerical confirmation request via esp_bt_gap_ssp_confirm_reply(..., true).
+ * Otherwise, Windows waits a few seconds and shows "Failed to connect".
+ * ======================================================================================
+ */
+
+#include <Arduino.h>
+#include "BluetoothSerial.h"
+#include "esp_bt_main.h"
+#include "esp_gap_bt_api.h"
+#include "driver/rmt.h"
+
+Stream* activeSerial = nullptr;
+BluetoothSerial SerialBT;
+
+// ---------------- Pin mapping ----------------
+const uint8_t OUT_PINS[6] = {13, 12, 14, 27, 26, 25};  // Outputs 0-5
+const uint8_t IN_PINS[2]  = {33, 32};                  // Inputs 6-7
+
+// ---------------- Protocol constants ----------------
+const uint8_t HEADER0 = 0xA1;
+const uint8_t HEADER1 = 0xAF;
+
+const unsigned long PACKET_INTERVAL_US   = 5000; // 5 ms
+const unsigned long KEEPALIVE_TIMEOUT_MS = 3000; // 3 seconds
+
+// ---------------- Input state / counters ----------------
+uint8_t inputState[2]     = {0, 0};
+uint8_t lastInputState[2] = {0, 0};
+uint8_t edgeCount[2]      = {0, 0};
+
+// ---------------- Output tracking ----------------
+uint8_t pwmValues[6] = {0,0,0,0,0,0};
+
+// ---------------- Timing ----------------
+unsigned long lastPacketTime  = 0;
+unsigned long lastCommandTime = 0;
+
+// ---------------- Handshake strings ----------------
+const char *HANDSHAKE_JS  = "###Do you byte, when I knock?$$$";
+const char *HANDSHAKE_ARD = "###Just a bit off the block!$$$";
+
+// ---------------- State ----------------
+bool connected = false;
+
+// =========================================================
+// MODE SELECTION
+// =========================================================
+enum InterfaceMode {
+  MODE_NONE,
+  MODE_LEGACY,
+  MODE_BLOCKLY
+};
+
+InterfaceMode currentMode = MODE_NONE;
+
+// Forward declarations
+void resetOutputs();
+void forceDisconnect(Stream &port);
+void waitForHandshakePartial(Stream &port, uint8_t startIdx);
+void handleCommands(Stream &port);
+void pollInputs();
+void sendStatusPacket(Stream &port);
+void loopLegacy(Stream &port);
+
+// =========================================================
+// PF IR variables (ESP32 RMT)
+// =========================================================
+const uint8_t PF_IR_PIN = 4;   // GPIO4 for IR LED
+
+#define PF_COMBO_DIRECT_MODE     0x01
+#define PF_SINGLE_PIN_CONTINUOUS 0x2
+#define PF_SINGLE_PIN_TIMEOUT    0x3
+#define PF_SINGLE_OUTPUT         0x4
+#define PF_ESCAPE                0x4
+
+struct PfCmd {
+  uint8_t code1;
+  uint8_t code2;
+  uint8_t channel;
+};
+
+PfCmd pf_queue[8];
+volatile uint8_t pf_q_head = 0;
+volatile uint8_t pf_q_tail = 0;
+volatile bool pf_busy = false;
+
+volatile uint8_t pf_toggle[4] = {0,0,0,0};
+
+// RMT config
+const rmt_channel_t PF_RMT_CHANNEL = RMT_CHANNEL_0;
+
+// PF timing (µs)
+const uint16_t PF_T_START_HIGH   = 156;
+const uint16_t PF_T_START_LOW    = 1014;
+const uint16_t PF_T_BIT_HIGH     = 156;
+const uint16_t PF_T_BIT_LOW_0    = 260;
+const uint16_t PF_T_BIT_LOW_1    = 546;
+const uint16_t PF_T_STOP_HIGH    = 156;
+const uint16_t PF_T_STOP_LOW     = 1014;
+const uint8_t  PF_FRAME_REPEATS  = 6;
+
+// =========================================================
+// MESSAGE PAUSE (non-blocking)
+// =========================================================
+uint16_t pf_compute_message_pause_us(uint8_t channel, uint8_t count) {
+  uint8_t a = 0;
+  if (count == 0)
+    a = 4 - channel + 1;
+  else if (count == 1 || count == 2)
+    a = 5;
+  else if (count == 3 || count == 4)
+    a = 5 + (channel + 1) * 2;
+
+  return (uint16_t)a * 77;
+}
+
+// =========================================================
+// RMT INIT
+// =========================================================
+void pf_initRmt() {
+  rmt_config_t config = {};
+  config.channel = PF_RMT_CHANNEL;
+  config.gpio_num = (gpio_num_t)PF_IR_PIN;
+  config.mem_block_num = 1;
+  config.clk_div = 80; // 1 MHz tick (80 MHz / 80)
+  config.tx_config.loop_en = false;
+  config.tx_config.carrier_en = true;
+  config.tx_config.idle_output_en = true;
+  config.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
+  config.tx_config.carrier_freq_hz = 38000;
+  config.tx_config.carrier_duty_percent = 50;
+  config.tx_config.carrier_level = RMT_CARRIER_LEVEL_HIGH;
+  config.rmt_mode = RMT_MODE_TX;
+
+  rmt_config(&config);
+  rmt_driver_install(PF_RMT_CHANNEL, 0, 0);
+}
+
+// =========================================================
+// BUILD ONE PF FRAME INTO RMT ITEMS
+// =========================================================
+void pf_buildFrameItems(uint8_t code1, uint8_t code2, rmt_item32_t *items, int &itemCount) {
+  itemCount = 0;
+
+  // START bit: 156µs high, 1014µs low
+  items[itemCount].duration0 = PF_T_START_HIGH;
+  items[itemCount].level0    = 1;
+  items[itemCount].duration1 = PF_T_START_LOW;
+  items[itemCount].level1    = 0;
+  itemCount++;
+
+  // DATA bits: 16 bits (code1 then code2), MSB first
+  for (int byteIndex = 0; byteIndex < 2; byteIndex++) {
+    uint8_t b = (byteIndex == 0) ? code1 : code2;
+    for (int bitIndex = 0; bitIndex < 8; bitIndex++) {
+      uint8_t mask = 0x80 >> bitIndex;
+      bool bit = (b & mask) != 0;
+
+      items[itemCount].duration0 = PF_T_BIT_HIGH;
+      items[itemCount].level0    = 1;
+      items[itemCount].duration1 = bit ? PF_T_BIT_LOW_1 : PF_T_BIT_LOW_0;
+      items[itemCount].level1    = 0;
+      itemCount++;
+    }
+  }
+
+  // STOP bit: 156µs high, 1014µs low
+  items[itemCount].duration0 = PF_T_STOP_HIGH;
+  items[itemCount].level0    = 1;
+  items[itemCount].duration1 = PF_T_STOP_LOW;
+  items[itemCount].level1    = 0;
+  itemCount++;
+}
+
+// =========================================================
+// SEND ONE PF FRAME (blocking RMT send)
+// =========================================================
+void pf_sendFrame(uint8_t code1, uint8_t code2, uint8_t channel) {
+  rmt_item32_t items[32];
+  int itemCount = 0;
+  pf_buildFrameItems(code1, code2, items, itemCount);
+
+  uint8_t message_count = 0;
+  for (uint8_t rep = 0; rep < PF_FRAME_REPEATS; rep++) {
+    uint16_t pause_us = pf_compute_message_pause_us(channel, message_count);
+    message_count++;
+
+    uint32_t start = micros();
+    while ((micros() - start) < pause_us) {
+      // wait
+    }
+
+    rmt_write_items(PF_RMT_CHANNEL, items, itemCount, true);
+    rmt_wait_tx_done(PF_RMT_CHANNEL, portMAX_DELAY);
+  }
+}
+
+// =========================================================
+// QUEUE + START FRAME (non-blocking API)
+// =========================================================
+void pf_startFrame(uint8_t code1, uint8_t code2, uint8_t channel) {
+  if (pf_busy) {
+    uint8_t next = (pf_q_head + 1) & 7;
+    if (next == pf_q_tail) {
+      return; // queue full
+    }
+    pf_queue[pf_q_head].code1 = code1;
+    pf_queue[pf_q_head].code2 = code2;
+    pf_queue[pf_q_head].channel = channel;
+    pf_q_head = next;
+    return;
+  }
+
+  pf_busy = true;
+  pf_sendFrame(code1, code2, channel);
+  pf_busy = false;
+
+  if (pf_q_tail != pf_q_head) {
+    PfCmd cmd = pf_queue[pf_q_tail];
+    pf_q_tail = (pf_q_tail + 1) & 7;
+    pf_startFrame(cmd.code1, cmd.code2, cmd.channel);
+  }
+}
+
+// =========================================================
+// HIGH-LEVEL PF COMMANDS
+// =========================================================
+void pf_singleOutput(uint8_t pwm, uint8_t output, uint8_t channel) {
+  uint8_t nib1 = pf_toggle[channel] | channel;
+  uint8_t nib2 = PF_SINGLE_OUTPUT | output;
+  uint8_t nib3 = pwm;
+  uint8_t nib4 = 0xF ^ nib1 ^ nib2 ^ nib3;
+
+  uint8_t code1 = (nib1 << 4) | nib2;
+  uint8_t code2 = (nib3 << 4) | nib4;
+
+  pf_startFrame(code1, code2, channel);
+
+  pf_toggle[channel] = (pf_toggle[channel] == 0) ? 8 : 0;
+}
+
+void pf_comboPWM(uint8_t blue_pwm, uint8_t red_pwm, uint8_t channel) {
+  uint8_t nib1 = PF_ESCAPE | channel;
+  uint8_t nib2 = blue_pwm;
+  uint8_t nib3 = red_pwm;
+  uint8_t nib4 = 0xF ^ nib1 ^ nib2 ^ nib3;
+
+  uint8_t code1 = (nib1 << 4) | nib2;
+  uint8_t code2 = (nib3 << 4) | nib4;
+
+  pf_startFrame(code1, code2, channel);
+}
+
+// =========================================================
+// PWM CONSTANTS & WRITE HELPER (CORE 3.x / 3.3.11)
+// =========================================================
+const uint32_t LEDC_FREQ = 1000; // 1 kHz
+const uint8_t  LEDC_RES  = 8;    // 0-255 (8 bits)
+
+// In Core 3.x, ledcWrite requires the GPIO PIN number, not a channel index
+static inline void writePWM(uint8_t pinIndex, uint8_t val) {
+  if (pinIndex < 6) {
+    pwmValues[pinIndex] = val;
+    ledcWrite(OUT_PINS[pinIndex], val);
+  }
+}
+
+// =========================================================
+// GAP CALLBACK: AUTO-CONFIRM WINDOWS NIP/PIN CONFIRMATION
+// =========================================================
+// When Windows displays "Does the PIN/NIP match 123456?", it triggers
+// ESP_BT_GAP_CFM_REQ_EVT. Replying 'true' confirms the pairing instantly.
+static void gapCallback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
+  switch (event) {
+    case ESP_BT_GAP_CFM_REQ_EVT:
+      Serial.printf("[BT-GAP] Windows PIN/NIP confirmation requested (%06lu). Auto-confirming!\n",
+                    (unsigned long)param->cfm_req.num_val);
+      // Automatically confirm the pairing to Windows
+      esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
+      break;
+
+    case ESP_BT_GAP_AUTH_CMPL_EVT:
+      if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
+        Serial.printf("[BT-GAP] Pairing Successful with device: %s!\n", param->auth_cmpl.device_name);
+      } else {
+        Serial.printf("[BT-GAP] Pairing Failed, status: %d\n", param->auth_cmpl.stat);
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+
+// =========================================================
+// HANDSHAKE (Blockly) - PARTIAL MATCH FROM BYTE 7
+// =========================================================
+void waitForHandshakePartial(Stream &port, uint8_t startIdx) {
+  size_t targetLen = strlen(HANDSHAKE_JS);
+  size_t idx = startIdx;
+
+  unsigned long start = millis();
+  while (millis() - start < 2000) { // 2s timeout guard prevents hanging
+    if (port.available()) {
+      char c = (char)port.read();
+      if (c == HANDSHAKE_JS[idx]) {
+        idx++;
+        if (idx >= targetLen) {
+          port.print(HANDSHAKE_ARD);
+          port.flush();
+          delay(50);
+          return;
+        }
+      } else {
+        idx = 0;  // restart matching
+      }
+    }
+    vTaskDelay(1);
+  }
+}
+
+// =========================================================
+// COMMAND HANDLING (Blockly)
+// =========================================================
+void handleCommands(Stream &port) {
+  while (port.available()) {
+
+    uint8_t cmd = (uint8_t)port.read();
+    lastCommandTime = millis();
+
+    if (cmd == 0x02) {
+      return;
+    }
+
+    if (cmd == 0x70) {
+      forceDisconnect(port);
+      return;
+    }
+
+    if ((cmd & 0xF0) == 0x90) {
+      unsigned long t0 = millis();
+      while (!port.available() && (millis() - t0 < 50));
+      if (!port.available()) return;
+      uint8_t val = (uint8_t)port.read();
+
+      uint8_t outIdx = cmd & 0x0F;
+      if (outIdx < 6) {
+        writePWM(outIdx, val);
+      }
+      return;
+    }
+
+    if ((cmd & 0xF0) == 0xA0) {
+      unsigned long t0 = millis();
+      while (!port.available() && (millis() - t0 < 50));
+      if (!port.available()) return;
+      uint8_t val = (uint8_t)port.read();
+
+      uint8_t ch     = cmd & 0x0F;
+      uint8_t pf_out = (val & 0xF0) >> 4;
+      uint8_t pf_pwm = val & 0x0F;
+      if (ch < 4) {
+        pf_singleOutput(pf_pwm, pf_out, ch);
+      }
+      return;
+    }
+
+    if ((cmd & 0xF0) == 0xB0) {
+      unsigned long t0 = millis();
+      while (!port.available() && (millis() - t0 < 50));
+      if (!port.available()) return;
+      uint8_t val = (uint8_t)port.read();
+
+      uint8_t ch       = cmd & 0x0F;
+      uint8_t pf_pwm_b = (val & 0xF0) >> 4;
+      uint8_t pf_pwm_r = val & 0x0F;
+      if (ch < 4) {
+        pf_comboPWM(pf_pwm_b, pf_pwm_r, ch);
+      }
+      return;
+    }
+  }
+}
+
+// =========================================================
+// INPUT POLLING (Blockly)
+// =========================================================
+void pollInputs() {
+  for (uint8_t i = 0; i < 2; i++) {
+    uint8_t current = digitalRead(IN_PINS[i]) ? 1 : 0;
+
+    if (current != lastInputState[i]) {
+      lastInputState[i] = current;
+      inputState[i]     = current;
+
+      if (edgeCount[i] < 255) edgeCount[i]++;
+    }
+  }
+}
+
+// =========================================================
+// STATUS PACKET (Blockly)
+// =========================================================
+void sendStatusPacket(Stream &port) {
+  uint8_t buf[11];
+
+  buf[0] = HEADER0;
+  buf[1] = HEADER1;
+
+  for (uint8_t i = 0; i < 6; i++) {
+    buf[2 + i] = pwmValues[i];
+  }
+
+  for (uint8_t i = 0; i < 2; i++) {
+    uint8_t state = inputState[i] & 0x01;
+
+    uint8_t rate;
+    if (edgeCount[i] == 0)      rate = 0;
+    else if (edgeCount[i] == 1) rate = 1;
+    else if (edgeCount[i] == 2) rate = 2;
+    else                        rate = 3;
+
+    buf[8 + i] = (state) | (rate << 1);
+    edgeCount[i] = 0;
+  }
+
+  uint16_t sum = 0;
+  for (uint8_t i = 0; i < 10; i++) sum += buf[i];
+  buf[10] = (uint8_t)(sum & 0xFF);
+
+  port.write(buf, 11);
+}
+
+// =========================================================
+// FORCE DISCONNECT (Blockly)
+// =========================================================
+void forceDisconnect(Stream &port) {
+  resetOutputs();
+  while (port.available()) port.read();
+}
+
+// =========================================================
+// LEGACY BIT-BANG MODE (WITH 7-BYTE PARTIAL HANDSHAKE CHECK)
+// =========================================================
+uint8_t legacyOutputByte   = 0x00;
+uint8_t legacyLastInputs   = 0x00;
+unsigned long legacyLastTxTime = 0;
+const unsigned long LEGACY_HEARTBEAT_INTERVAL = 3000; // ms
+static uint32_t lastApplyUs = 0;
+static uint8_t hs_idx = 0;  // handshake index
+const char *HS = HANDSHAKE_JS;   // "###Do you byte, when I knock?$$$"
+
+// SoftPWM accumulation (TCLOGO 8-sample duty cycle)
+uint8_t  softOnCount[6]      = {0,0,0,0,0,0};
+uint8_t  softSampleCount     = 0;
+uint32_t softCycleStartTime  = 0;
+bool     softPwmActive       = false;
+const uint32_t SOFTPWM_MAX_CYCLE_US = 80000;  // 80 ms window
+
+void loopLegacy(Stream &port) {
+  uint8_t currentInputs = 0x00;
+  if (digitalRead(IN_PINS[0]) == HIGH) currentInputs |= 0x40;
+  if (digitalRead(IN_PINS[1]) == HIGH) currentInputs |= 0x80;
+
+  bool forceUpdate = false;
+
+  // -------------------------------
+  // SOFTPWM + LEGACY BIT-BANG LOGIC
+  // -------------------------------
+  if (port.available() > 0) {
+
+    uint32_t now = micros();
+    uint8_t inboundByte = (uint8_t)port.read();
+    legacyOutputByte = inboundByte & 0x3F;
+
+    // Handshake detection
+    if (inboundByte == HS[hs_idx]) {
+      hs_idx++;
+
+      if (hs_idx == 7) {
+        // Matched first 7 bytes of handshake -> Switch to Blockly mode
+        currentMode = MODE_BLOCKLY;
+        for (uint8_t i = 0; i < 6; i++) {
+          writePWM(i, 0);
+        }
+        // Continue handshake from byte 7 onward
+        waitForHandshakePartial(port, 7);
+        lastPacketTime  = micros();
+        lastCommandTime = millis();
+
+        // Reset index
+        hs_idx = 0;
+        return;
+      }
+    } else {
+      // Mismatch -> reset handshake index
+      hs_idx = 0;
+    }
+
+    // Start a new SoftPWM cycle if needed
+    if (softSampleCount == 0) {
+      softCycleStartTime = now;
+      for (int i = 0; i < 6; i++) softOnCount[i] = 0;
+    }
+
+    // If the window expired -> NOT TCLOGO
+    if ((now - softCycleStartTime) >= SOFTPWM_MAX_CYCLE_US) {
+
+      // Reset SoftPWM
+      softSampleCount = 0;
+      softPwmActive   = false;
+
+      // Immediate ON/OFF fallback
+      for (int i = 0; i < 6; i++) {
+        uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+        writePWM(i, val);
+      }
+
+      forceUpdate = true;
+      lastApplyUs = now;
+    }
+    else {
+      // Accumulate SoftPWM samples
+      for (int i = 0; i < 6; i++) {
+        if (legacyOutputByte & (1 << i)) {
+          softOnCount[i]++;
+        }
+      }
+      softSampleCount++;
+
+      // If we have 8 samples within the window -> TCLOGO SoftPWM
+      if (softSampleCount == 8) {
+
+        for (int i = 0; i < 6; i++) {
+          float duty = (float)softOnCount[i] / 8.0f;
+          uint8_t pwm = (uint8_t)(duty * 255.0f);
+          writePWM(i, pwm);
+        }
+
+        softSampleCount = 0;
+        softPwmActive   = true;
+        forceUpdate     = true;
+        lastApplyUs     = now;
+      }
+      else if (!softPwmActive) {
+        // Not enough samples yet -> fallback ON/OFF
+        for (int i = 0; i < 6; i++) {
+          uint8_t val = (legacyOutputByte & (1 << i)) ? 255 : 0;
+          writePWM(i, val);
+        }
+
+        forceUpdate = true;
+        lastApplyUs = now;
+      }
+    }
+  }
+
+  // Input change + heartbeat
+  if (currentInputs != legacyLastInputs) forceUpdate = true;
+  if (millis() - legacyLastTxTime >= LEGACY_HEARTBEAT_INTERVAL) forceUpdate = true;
+
+  // Return byte
+  if (forceUpdate) {
+    uint8_t returnByte = (legacyOutputByte & 0x3F) | currentInputs;
+    port.write(returnByte);
+
+    legacyLastInputs = currentInputs;
+    legacyLastTxTime = millis();
+  }
+}
+
+bool usbConnected() {
+  return Serial && Serial.availableForWrite();
+}
+
+bool btConnected() {
+  return SerialBT.hasClient();
+}
+
+void selectTransport() {
+  if (btConnected()) {
+    activeSerial = &SerialBT;
+  } else if (usbConnected()) {
+    activeSerial = &Serial;
+  } else {
+    activeSerial = nullptr;
+  }
+}
+
+void resetOutputs() {
+  for (uint8_t i = 0; i < 6; i++) {
+    pwmValues[i] = 0;
+    writePWM(i, 0);
+  }
+  connected   = false;
+  currentMode = MODE_NONE;
+}
+
+// =========================================================
+// SETUP
+// =========================================================
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println("ESP32 LEGO Interface A – Dual Mode (Core 3.x / 3.3.11 Compatible)");
+
+  // 1. PWM outputs: In Core 3.x, use ledcAttach(pin, freq, resolution)
+  for (uint8_t i = 0; i < 6; i++) {
+    ledcAttach(OUT_PINS[i], LEDC_FREQ, LEDC_RES);
+    writePWM(i, 0);
+  }
+
+  // 2. Inputs
+  for (uint8_t i = 0; i < 2; i++) {
+    pinMode(IN_PINS[i], INPUT_PULLUP);
+    lastInputState[i] = digitalRead(IN_PINS[i]) ? 1 : 0;
+    inputState[i]     = lastInputState[i];
+    edgeCount[i]      = 0;
+  }
+
+  // 3. PF IR (RMT)
+  pf_initRmt();
+
+  // 4. Bluetooth SPP Setup:
+  // Start BluetoothSerial first so Bluedroid stack is initialized
+  if (!SerialBT.begin("LEGO_InterfaceA_BT_Blockly")) {
+    Serial.println("[ERROR] Failed to start BluetoothSerial!");
+  } else {
+    Serial.println("Bluetooth SPP active, ready for Blockly or Legacy on Core 3.x.");
+  }
+
+  // 5. Register GAP callback for Auto-Confirming Windows 10/11 PIN/NIP verification dialog!
+  // This tells Windows "Yes, the PIN matches!" whenever you click Connect in Windows.
+  esp_bt_gap_register_callback(gapCallback);
+
+  // Set SPP security parameters for Just Works / Numeric Comparison auto-confirm
+  esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+  esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE; // No display, no input -> Pure Just Works
+  esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+}
+
+// =========================================================
+// MAIN LOOP
+// =========================================================
+void loop() {
+
+  // 1. Select transport
+  selectTransport();
+
+  // 2. If no transport -> reset outputs and idle
+  if (activeSerial == nullptr) {
+    if (connected) {
+      resetOutputs();
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS); // FreeRTOS yield
+    return;
+  }
+
+  // 3. If transport just became active -> send READY
+  if (!connected) {
+    activeSerial->println("READY");
+    activeSerial->flush();
+    delay(50);
+
+    connected   = true;
+    currentMode = MODE_LEGACY;   // default
+    lastPacketTime  = micros();
+    lastCommandTime = millis();
+  }
+
+  // 4. Handle modes
+  if (currentMode == MODE_BLOCKLY) {
+
+    handleCommands(*activeSerial);
+
+    if ((millis() - lastCommandTime) > KEEPALIVE_TIMEOUT_MS) {
+      resetOutputs();
+      return;
+    }
+
+    pollInputs();
+
+    unsigned long now = micros();
+    if ((now - lastPacketTime) >= PACKET_INTERVAL_US) {
+      lastPacketTime = now;
+      sendStatusPacket(*activeSerial);
+    }
+
+  } else if (currentMode == MODE_LEGACY) {
+
+    loopLegacy(*activeSerial);
+
+  } else {
+    currentMode = MODE_LEGACY;
+  }
+
+  // FreeRTOS yield to allow Bluedroid background tasks to run smoothly
+  vTaskDelay(1);
+}
