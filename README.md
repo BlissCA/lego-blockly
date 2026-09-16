@@ -94,7 +94,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 			- Connector pin 5 (or 7, 9, 11, 13, 15, 17, 19) goes to ESP32 GND
 			- Connector pins 6, 8, 10, 12, 14, 16 goes to ESP32 13, 12, 14, 27, 26, 25 (Int.A Outputs 0 to 5)
 			- Connector Pins 18, 20 goes to ESP32 33, 32. (Int.A Inputs 6 and 7)
-		- See very small footprint setup by @Toastie on Eurobrick forum: [Lego Interface A ESP32 setup](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/25/#findComment-3838950)
+		- See very small footprint setup by @Toastie on Eurobricks forum: [Lego Interface A ESP32 setup](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/25/#findComment-3838950)
 		
 		
 
