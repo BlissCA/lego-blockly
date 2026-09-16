@@ -16,7 +16,7 @@ Lego Blockly supports for now:
 
 - Lego Interface B
 - Lego Interface A with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
-- Lego Power Function with the IR 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
+- Lego Power Function with the IR Receiver 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
 - Lego NXT (BT or USB)
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
@@ -24,6 +24,7 @@ Lego Blockly supports for now:
 - WeDo 2.0 (BLE)
 - LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
 - Lego Dimensions Toypad USB.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
+- Lego Power Function IR TX (To the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).
 
 You need access to serial ports:
 - Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
@@ -78,7 +79,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
 		The newer ESP32-S3, C3, C6 only have BLE...
 		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V5 provided in the [folder SketchArduino](SketchArduino).
-		- IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!
+		- ~~IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!~~  Can now use latest esp32 package 3.3.11.
 		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
 		Apparently, The Interface A tolerates 3.3V level out of the box, so no need for a logic level converter...
 		- Interface A Outputs 0 to 5 should be wired to ESP32 pins 13, 12, 14, 27, 26, 25.
