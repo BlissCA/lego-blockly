@@ -23,14 +23,14 @@ static const char *BLE_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 static const char *BLE_TX_UUID      = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"; // PF IR TX
 static const char *BLE_RX_UUID      = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; // PF IR RX
 
-// *** NEW *** Generic IR RX characteristic
+// Generic IR RX characteristic
 static const char *BLE_IR_GENERIC_UUID = "6E400004-B5A3-F393-E0A9-E50E24DCCA9E";
 
-BLEServer         *bleServer   = nullptr;
-BLEService        *bleService  = nullptr;
-BLECharacteristic *txChar      = nullptr; // PF IR TX
-BLECharacteristic *rxChar      = nullptr; // PF IR RX
-BLECharacteristic *irGenericChar = nullptr; // *** NEW ***
+BLEServer         *bleServer     = nullptr;
+BLEService        *bleService    = nullptr;
+BLECharacteristic *txChar        = nullptr; // PF IR TX
+BLECharacteristic *rxChar        = nullptr; // PF IR RX
+BLECharacteristic *irGenericChar = nullptr;
 
 bool bleClientConnected = false;
 esp_bd_addr_t connectedBda;
@@ -41,17 +41,20 @@ esp_bd_addr_t connectedBda;
 static QueueHandle_t irQueue = nullptr;
 
 // ------------------------------------------------------
-// BLE TX handler (PF IR only)
+// BLE TX handler (PF IR only) - UPDATED FOR CORE 3.3.11
 // ------------------------------------------------------
 class TxCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *characteristic) override {
-    std::string value = characteristic->getValue();
-    size_t frameCount = value.size() / 2;
-    if (frameCount == 0 || (value.size() % 2) != 0) return;
+    // In Core 3.x, getData() returns uint8_t* and getLength() returns byte count
+    size_t len = characteristic->getLength();
+    const uint8_t *data = characteristic->getData();
+
+    size_t frameCount = len / 2;
+    if (frameCount == 0 || (len % 2) != 0 || data == nullptr) return;
 
     for (size_t i = 0; i < frameCount; i++) {
-      uint16_t frame = (static_cast<uint8_t>(value[i * 2]) << 8) |
-                        static_cast<uint8_t>(value[i * 2 + 1]);
+      uint16_t frame = (static_cast<uint16_t>(data[i * 2]) << 8) |
+                        static_cast<uint16_t>(data[i * 2 + 1]);
 
       if (irQueue != nullptr) {
         if (xQueueSend(irQueue, &frame, 0) != pdTRUE) {
@@ -92,17 +95,6 @@ class MyServerCallbacks : public BLEServerCallbacks {
 };
 
 // ------------------------------------------------------
-// NOTE: a custom esp_ble_gap_register_callback() was used earlier purely
-// to log the negotiated connection interval for diagnostics. It has been
-// removed permanently: it silently replaces the Arduino BLEDevice
-// library's own internal GAP callback (there's only one global slot),
-// which broke the library's own security/bonding bookkeeping and was the
-// real cause of the Windows pairing/connection issues seen previously.
-// The 7.5ms interval negotiation was already confirmed working before
-// this was removed, so it isn't needed for normal operation.
-// ------------------------------------------------------
-
-// ------------------------------------------------------
 // PF IR notify
 // ------------------------------------------------------
 void notifyPfFrame(uint16_t frame) {
@@ -118,12 +110,12 @@ void notifyPfFrame(uint16_t frame) {
 }
 
 // ------------------------------------------------------
-// *** NEW *** Generic IR notify
+// Generic IR notify
 // ------------------------------------------------------
 void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
   if (!bleClientConnected || irGenericChar == nullptr) return;
 
-  if (value==0xFFFFFFFFFFFFFFFF) bits = 64;
+  if (value == 0xFFFFFFFFFFFFFFFF) bits = 64;
 
   uint8_t byteCount = (bits + 7) / 8;
   uint8_t payload[2 + 8]; // proto + bits + up to 8 bytes
@@ -137,9 +129,6 @@ void notifyGenericIR(uint8_t proto, uint16_t bits, uint64_t value) {
 
   irGenericChar->setValue(payload, 2 + byteCount);
   irGenericChar->notify();
-
-  // Serial.printf("[IR GEN] proto=%d bits=%d value=0x%llX\n",
-  //               proto, bits, value);
 }
 
 // ------------------------------------------------------
@@ -177,7 +166,7 @@ void setup() {
   );
   rxChar->addDescriptor(new BLE2902());
 
-  // *** NEW *** Generic IR RX characteristic
+  // Generic IR RX characteristic
   irGenericChar = bleService->createCharacteristic(
     BLE_IR_GENERIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
@@ -200,7 +189,6 @@ void loop() {
   }
 
   if (irrecv.decode(&results)) {
-
     if (results.decode_type == LEGOPF) {
       notifyPfFrame((uint16_t)results.value);
     } else {
