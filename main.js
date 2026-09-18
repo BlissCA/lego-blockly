@@ -27,6 +27,7 @@ import "./device/DeviceLegoLPF2.js";
 import "./device/DeviceLegoToyPad.js";
 import "./device/DeviceSBrick.js";
 import "./device/DeviceLegoPFIR.js";
+import "./device/DeviceLegoPFIRrcx.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
@@ -1094,6 +1095,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "PF_IR":
       dev = await window.deviceManager.connectLegoPFIR();   // your unified PF IR class
+      break;
+
+    case "PF_IR_RCX":
+      dev = await window.deviceManager.connectLegoPFIRrcx();   // your unified PF IR RCX class
       break;
 
     default:

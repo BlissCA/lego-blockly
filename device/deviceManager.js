@@ -13,6 +13,7 @@ import { LegoLPF2 } from './DeviceLegoLPF2.js';
 import { LegoToyPad } from './DeviceLegoToyPad.js';
 import { SBrick } from './DeviceSBrick.js';
 import { LegoPFIR } from './DeviceLegoPFIR.js';
+import { LegoPFIRrcx } from './DeviceLegoPFIRrcx.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -413,7 +414,7 @@ export class DeviceManager {
   }
   
   // -------------------------
-  // Connect PF IR
+  // Connect PF IR (ESP32 BLE gateway)
   // -------------------------
 
   async connectLegoPFIR() {
@@ -425,7 +426,27 @@ export class DeviceManager {
       return dev;
 
     } catch (err) {
-      console.warn("Lego PF IR Connection failed:", err);
+      console.warn("Lego PF IR ESP32 Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+  
+  // -------------------------
+  // Connect PF IR (RCX Serial IR Tower)
+  // -------------------------
+
+  async connectLegoPFIRrcx() {
+    const dev = new LegoPFIRrcx(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, PF IR logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego PF IR RCXConnection failed:", err);
       await dev.disconnect();
       this._freeName(dev.name);
       return null;

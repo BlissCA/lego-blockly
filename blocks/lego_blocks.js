@@ -855,7 +855,7 @@ function getSBrickDropdown() {
     : [['No SBrick', 'NONE']];
 }
 
-// Only LEGO Interface A devices
+// Only LEGO PF IR devices
 function getLegoPFIRDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("PFIR"));
