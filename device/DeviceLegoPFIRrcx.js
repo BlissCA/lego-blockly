@@ -1,59 +1,49 @@
-/**
- * Corrected LegoPFIRrcx Class
- * Fixes:
- * 1. Proper 38 kHz timings (Mark: 158µs, Bit 0: 263µs pause, Bit 1: 553µs pause, Start/Stop: 1026µs pause)
- * 2. Removed erroneous 16T preamble to prevent AGC desensitization
- * 3. Asserts DTR & RTS to supply power to the RCX Serial Tower
- * 4. Corrected repeat intervals (Tm = 16 ms)
- * 5. Synthesizes 8N1 UART frames accounting for physical Start/Stop bit transitions
- */
-export class LegoPFIRrcx {
-  constructor(name = "PFIRrcx") {
-    this.name = name;
+import { LegoPFIR } from "./DeviceLegoPFIR.js";
+
+export class LegoPFIRrcx extends LegoPFIR {
+  constructor(name, manager) {
+    super(name, manager);
+
     this.port = null;
     this.writer = null;
+
+    // RCX-specific timing (1 cycle of 38 kHz = 26.32 µs; 6 cycles mark = 158 µs)
+    this.T_US = 158;
+    this.BYTE_US = 86.8;
+    this.FRAME_REPEAT = 5;
+
     this.status = "disconnected";
-
-    // Official LEGO PF 38 kHz timings (1 cycle = ~26.32 µs)
-    this.T_MARK_US = 158;              // 6 cycles Mark (IR ON)
-    this.T_BIT0_PAUSE_US = 263;        // 10 cycles Pause (IR OFF) -> Total 421 µs
-    this.T_BIT1_PAUSE_US = 553;        // 21 cycles Pause (IR OFF) -> Total 711 µs
-    this.T_START_STOP_PAUSE_US = 1026; // 39 cycles Pause (IR OFF) -> Total 1184 µs
-    this.TM_US = 16000;                // 16 ms base repeat unit
-
-    this.toggleState = false;
   }
 
-  async connect(baudRate = 115200) {
-    if (!('serial' in navigator)) {
-      throw new Error("Web Serial API is not supported in this browser. Please use Chrome or Edge.");
-    }
-
+  // ------------------------------------------------------------
+  // Override: connect() using Web Serial (No RTS/CTS/DTR flow control)
+  // ------------------------------------------------------------
+  async connect() {
     try {
-      this.port = await navigator.serial.requestPort();
-      await this.port.open({ 
-        baudRate: baudRate,
-        dataBits: 8,
-        stopBits: 1,
-        parity: "none"
-      });
+      this.log("Requesting RCX Serial IR Tower...");
 
-      // CRITICAL: The RCX 9713 Serial Tower requires DTR and RTS high
-      // to supply operating power to its 38kHz oscillator and IR LED
-      // await this.port.setSignals({
-      //   dataTerminalReady: true,
-      //   requestToSend: true
-      // });
+      this.port = await navigator.serial.requestPort();
+      // Standard 3-wire serial (TX/RX/GND) at 115200 baud
+      await this.port.open({ baudRate: 115200 });
 
       this.writer = this.port.writable.getWriter();
-      this.status = "connected";
-      return true;
+
+      if (!this.name) {
+        this.name = this.manager?._allocateName?.("PFIRrcx") || "PFIRrcx";
+      }
+
+      this.log(`Connected as ${this.name}`);
+      this.setStatus("connected", "Connected");
+
     } catch (err) {
-      this.status = "error";
-      throw err;
+      this.log(`Connect error: ${err}`);
+      this.setStatus("error", "Connection failed");
     }
   }
 
+  // ------------------------------------------------------------
+  // Override: disconnect()
+  // ------------------------------------------------------------
   async disconnect() {
     try {
       if (this.writer) {
@@ -61,107 +51,147 @@ export class LegoPFIRrcx {
         this.writer = null;
       }
       if (this.port) {
-        try {
-          await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
-        } catch (_) {}
         await this.port.close();
         this.port = null;
       }
-      this.status = "disconnected";
+
+      this.log("Disconnected");
+      this.setStatus("disconnected", "Disconnected");
+
     } catch (err) {
-      console.error("Disconnect error", err);
+      this.log(`Disconnect error: ${err}`);
     }
   }
 
-  /**
-   * Send Combo Direct command:
-   * channel: 0 to 3 (Channels 1 to 4)
-   * redCmd / blueCmd: 0=FLOAT, 1=FORWARD, 2=BACKWARD, 3=BRAKE
-   */
-  async sendComboDirect(channel, redCmd, blueCmd) {
-    this.toggleState = !this.toggleState;
-    const toggleBit = this.toggleState ? 1 : 0;
-    const escapeBit = 0;
-    const nibble1 = (toggleBit << 3) | (escapeBit << 2) | (channel & 0x03);
-
-    const addressBit = 0;
-    const mode = 1; // Combo Direct
-    const nibble2 = (addressBit << 3) | (mode & 0x07);
-
-    const nibble3 = ((blueCmd & 0x03) << 2) | (redCmd & 0x03);
-    const lrc = 0x0F ^ nibble1 ^ nibble2 ^ nibble3;
-    const frame = (nibble1 << 12) | (nibble2 << 8) | (nibble3 << 4) | lrc;
-
-    await this.sendFrame(frame, channel);
+  // ------------------------------------------------------------
+  // Override: raw write → RCX bit-bang
+  // ------------------------------------------------------------
+  async _writeRaw(payload) {
+    // payload = Uint8Array of PF IR frames (2 bytes each)
+    for (let i = 0; i < payload.length; i += 2) {
+      const frame = (payload[i] << 8) | payload[i + 1];
+      await this._sendPFIR(frame);
+    }
   }
 
-  async sendFrame(frame, channel, repeatCount = 5) {
-    if (!this.writer) throw new Error("Port not connected");
+  // ------------------------------------------------------------
+  // RCX PF IR bit-bang encoder (Framing-aligned 115200 Baud)
+  // ------------------------------------------------------------
+  async _sendPFIR(frame) {
+    if (!this.writer) return;
 
-    const pulses = [];
-    const sendHigh = (us) => pulses.push({ high: true, duration: us });
-    const sendLow = (us) => pulses.push({ high: false, duration: us });
-
-    for (let rep = 0; rep < repeatCount; rep++) {
-      // 1. Start bit: 6 cycles Mark (158 µs) + 39 cycles Pause (1026 µs)
-      sendHigh(this.T_MARK_US);
-      sendLow(this.T_START_STOP_PAUSE_US);
-
-      // 2. 16 Data bits MSB-first
-      for (let i = 15; i >= 0; i--) {
-        const bit = (frame >> i) & 1;
-        sendHigh(this.T_MARK_US);
-        sendLow(bit === 1 ? this.T_BIT1_PAUSE_US : this.T_BIT0_PAUSE_US);
-      }
-
-      // 3. Stop bit: 6 cycles Mark (158 µs) + 39 cycles Pause (1026 µs)
-      sendHigh(this.T_MARK_US);
-      sendLow(this.T_START_STOP_PAUSE_US);
-
-      // 4. Inter-frame repeat interval (Official PF Spec formula)
-      if (rep < repeatCount - 1) {
-        let pauseMult = 0;
-        if (rep === 0) pauseMult = 4 - channel;
-        else if (rep === 1 || rep === 2) pauseMult = 5;
-        else pauseMult = 6 + 2 * channel;
-
-        sendLow(pauseMult * this.TM_US);
+    const items = this._buildPFIR(frame);
+    
+    // 1 Serial Bit at 115,200 baud = 8.68055 microseconds
+    const BIT_US = 8.68055;
+    
+    // Step 1: Build continuous array of raw serial wire states (0 or 1)
+    const wireBits = [];
+    
+    for (const item of items) {
+      const bitCount = Math.max(1, Math.round(item.duration / BIT_US));
+      // Inverted Logic for RCX Tower: item.high (IR ON) = 0, item.high == false (IR OFF) = 1
+      const wireState = item.high ? 0 : 1;
+      
+      for (let i = 0; i < bitCount; i++) {
+        wireBits.push(wireState);
       }
     }
 
-    // Convert pulse durations to UART byte stream at 115200 baud
-    const BIT_US = 8.680555; // 1 / 115200
-    const bytes = [];
-    let currentByte = 0;
-    let bitInByte = 0;
+    // Step 2: Pack into 8N1 serial frames with 10-bit physical alignment
+    // Physical wire frame: [Start=0] [D0] [D1] [D2] [D3] [D4] [D5] [D6] [D7] [Stop=1]
+    const finalBytes = [];
+    let bitIndex = 0;
 
-    const pushBit = (val) => {
-      if (val === 1) currentByte |= (1 << bitInByte);
-      bitInByte++;
-      if (bitInByte === 8) {
-        bytes.push(currentByte);
-        currentByte = 0;
-        bitInByte = 0;
+    while (bitIndex < wireBits.length) {
+      let dataByte = 0;
+
+      // Data bits D0..D7 correspond to wire slots 1..8
+      for (let lsb = 0; lsb < 8; lsb++) {
+        const physicalIdx = bitIndex + 1 + lsb;
+        const bitValue = (physicalIdx < wireBits.length) ? wireBits[physicalIdx] : 1;
+        if (bitValue === 1) {
+          dataByte |= (1 << lsb);
+        }
+      }
+
+      finalBytes.push(dataByte);
+      // Advance by 10 wire bits because the UART sends 10 physical bits per byte!
+      bitIndex += 10;
+    }
+
+    await this.writer.write(new Uint8Array(finalBytes));
+  }
+
+  // ------------------------------------------------------------
+  // PF IR timing builder (Official LEGO PF 38 kHz Specification)
+  // ------------------------------------------------------------
+  _buildPFIR(frame) {
+    const items = [];
+
+    const sendHigh = (us) => items.push({ high: true, duration: us });
+    const sendLow  = (us) => items.push({ high: false, duration: us });
+
+    // Bit 0: 6 cycles Mark (158 µs) + 10 cycles Pause (263 µs)
+    const sendBit0 = () => {
+      sendHigh(this.T_US);
+      sendLow(263);
+    };
+
+    // Bit 1: 6 cycles Mark (158 µs) + 21 cycles Pause (553 µs)
+    const sendBit1 = () => {
+      sendHigh(this.T_US);
+      sendLow(553);
+    };
+
+    // Start & Stop bit: 6 cycles Mark (158 µs) + 39 cycles Pause (1026 µs)
+    const sendStartStop = () => {
+      sendHigh(this.T_US);
+      sendLow(1026);
+    };
+
+    // Extract PF IR channel from nibble1
+    const nibble1 = (frame >> 12) & 0x0F;
+    const channel = nibble1 & 0x03;
+
+    // Official repeat pause formula: Tm = 16 ms = 16,000 µs
+    const computePause = (count) => {
+      let a = 0;
+      if (count === 0)
+        a = 4 - channel;
+      else if (count === 1 || count === 2)
+        a = 5;
+      else if (count === 3 || count === 4)
+        a = 6 + 2 * channel;
+      else
+        a = 5;
+
+      return a * 16000;
+    };
+
+    const sendFrameOnce = (count) => {
+      // 1. Start bit
+      sendStartStop();
+
+      // 2. 16 bits MSB-first
+      for (let i = 0; i < 16; i++) {
+        const bit = (frame >> (15 - i)) & 1;
+        bit ? sendBit1() : sendBit0();
+      }
+
+      // 3. Stop bit
+      sendStartStop();
+
+      // 4. Inter-frame repeat pause
+      if (count < this.FRAME_REPEAT - 1) {
+        sendLow(computePause(count));
       }
     };
 
-    for (const pulse of pulses) {
-      const bitCount = Math.max(1, Math.round(pulse.duration / BIT_US));
-      // In RS-232 with the RCX tower: 0 = IR ON, 1 = IR OFF
-      const bitVal = pulse.high ? 0 : 1;
-      for (let i = 0; i < bitCount; i++) {
-        pushBit(bitVal);
-      }
+    for (let rep = 0; rep < this.FRAME_REPEAT; rep++) {
+      sendFrameOnce(rep);
     }
 
-    if (bitInByte > 0) {
-      while (bitInByte < 8) {
-        currentByte |= (1 << bitInByte);
-        bitInByte++;
-      }
-      bytes.push(currentByte);
-    }
-
-    await this.writer.write(new Uint8Array(bytes));
+    return items;
   }
 }
