@@ -40,10 +40,10 @@ export class LegoPFIRrcx {
 
       // CRITICAL: The RCX 9713 Serial Tower requires DTR and RTS high
       // to supply operating power to its 38kHz oscillator and IR LED
-      await this.port.setSignals({
-        dataTerminalReady: true,
-        requestToSend: true
-      });
+      // await this.port.setSignals({
+      //   dataTerminalReady: true,
+      //   requestToSend: true
+      // });
 
       this.writer = this.port.writable.getWriter();
       this.status = "connected";
