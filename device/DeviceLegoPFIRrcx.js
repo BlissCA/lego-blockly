@@ -76,21 +76,57 @@ export class LegoPFIRrcx extends LegoPFIR {
   // ------------------------------------------------------------
   // RCX PF IR bit-bang encoder
   // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // Universal 115200 Baud Bit-Masking Encoder
+  // ------------------------------------------------------------
   async _sendPFIR(frame) {
     if (!this.writer) return;
 
     const items = this._buildPFIR(frame);
-    const bytes = [];
-
+    
+    // 1 Serial Bit at 115,200 baud = 8.68 microseconds
+    const BIT_US = 8.68;
+    
+    // Step 1: Build a continuous array of raw serial wire states (0 or 1)
+    const wireBits = [];
+    
     for (const item of items) {
-      const count = Math.max(1, Math.round(item.duration / this.BYTE_US));
-      const value = item.high ? 0x00 : 0xFF;
-      for (let i = 0; i < count; i++) {
-        bytes.push(value);
+      // Calculate exactly how many raw serial bits are needed for this duration
+      const bitCount = Math.max(1, Math.round(item.duration / BIT_US));
+      
+      // Inverted Logic: item.high (IR ON) = 0, item.high == false (IR OFF) = 1
+      const wireState = item.high ? 0 : 1;
+      
+      for (let i = 0; i < bitCount; i++) {
+        wireBits.push(wireState);
       }
     }
 
-    await this.writer.write(new Uint8Array(bytes));
+    // Step 2: Pack the raw wire states into standard 8N1 serial frames
+    const finalBytes = [];
+    let bitIndex = 0;
+
+    while (bitIndex < wireBits.length) {
+      let dataByte = 0;
+
+      // Every 8N1 frame consumes 8 data bits from our stream.
+      // We skip the Start (0) and Stop (1) bits here because the computer's
+      // internal hardware UART controller automatically inserts them for us!
+      for (let lsb = 0; lsb < 8; lsb++) {
+        const bitValue = (bitIndex < wireBits.length) ? wireBits[bitIndex] : 1; // Pad idle (1) if stream ends
+        
+        // Populate bits LSB-first (Data Bit 0 to Data Bit 7)
+        if (bitValue === 1) {
+          dataByte |= (1 << lsb);
+        }
+        bitIndex++;
+      }
+
+      finalBytes.push(dataByte);
+    }
+
+    // Flush the perfectly formatted array down the Web Serial stream
+    await this.writer.write(new Uint8Array(finalBytes));
   }
 
   // ------------------------------------------------------------
