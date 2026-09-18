@@ -84,7 +84,7 @@ export class LegoPFIRrcx extends LegoPFIR {
 
     for (const item of items) {
       const count = Math.max(1, Math.round(item.duration / this.BYTE_US));
-      const value = item.high ? 0xFF : 0x00;
+      const value = item.high ? 0x00 : 0xFF;
       for (let i = 0; i < count; i++) {
         bytes.push(value);
       }
