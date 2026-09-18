@@ -10,14 +10,25 @@ export class LegoPFIRrcx extends LegoPFIR {
     // RCX-specific timing
     this.T_US = 158;
     this.BYTE_US = 86.8;
-    // 3 repeats is the official PF sweet spot: fast response & high optical reliability
-    this.FRAME_REPEAT = 3;
+    // 2 repeats with interleaving gives ~27ms startup and clean optical reception
+    this.FRAME_REPEAT = 2;
 
     this.status = "disconnected";
   }
 
   // ------------------------------------------------------------
-  // Override: connect() using Web Serial (No RTS/CTS/DTR)
+  // Override: _scheduleFlush()
+  // Wait a 15ms window so consecutive 'await dev.motor_Single()'
+  // calls in Blockly are coalesced into this.pendingFrames before flushing.
+  // ------------------------------------------------------------
+  _scheduleFlush() {
+    if (this.flushScheduled) return;
+    this.flushScheduled = true;
+    setTimeout(() => this._flush(), 15);
+  }
+
+  // ------------------------------------------------------------
+  // Override: connect() using Web Serial (No RTS/CTS/DTR flow control)
   // ------------------------------------------------------------
   async connect() {
     try {
@@ -67,7 +78,7 @@ export class LegoPFIRrcx extends LegoPFIR {
   // Override: raw write → RCX bit-bang with Frame Interleaving
   // ------------------------------------------------------------
   async _writeRaw(payload) {
-    // Unpack all frames in this batched payload (e.g. 2 consecutive motor_Single calls)
+    // Unpack all frames in this batched payload
     const frames = [];
     for (let i = 0; i < payload.length; i += 2) {
       frames.push((payload[i] << 8) | payload[i + 1]);
@@ -134,6 +145,7 @@ export class LegoPFIRrcx extends LegoPFIR {
     const sendHigh = (us) => items.push({ high: true, duration: us });
     const sendLow  = (us) => items.push({ high: false, duration: us });
 
+    // Official LEGO PF Specification Timings (38 kHz):
     const sendBit0 = () => {
       sendHigh(this.T_US);
       sendLow(263);
@@ -183,9 +195,9 @@ export class LegoPFIRrcx extends LegoPFIR {
       for (let fIdx = 0; fIdx < frameList.length; fIdx++) {
         sendSingleFrame(frameList[fIdx]);
 
-        // Inter-frame gap within the same pass
+        // Between frames in the same pass, pause 16 ms
         if (fIdx < frameList.length - 1) {
-          sendLow(16000); // 16 ms gap
+          sendLow(16000);
         }
       }
 
