@@ -40,6 +40,7 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.lastMarkTime = 0;
     this.currentBits = 0;
     this.bitCount = 0;
+    this.rxFrameTimer = null;
 
     // Optional event listener hook for UI/diagnostics
     this.onHandsetEvent = null;
@@ -47,6 +48,18 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.onRxActivity = null;
 
     this.status = "disconnected";
+  }
+
+  // Arm 30ms watchdog timer so rxState can never remain stuck in IN_FRAME
+  _armFrameTimeout() {
+    if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+    this.rxFrameTimer = setTimeout(() => {
+      if (this.rxState === "IN_FRAME") {
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+      }
+    }, 30);
   }
 
   // ------------------------------------------------------------
@@ -110,17 +123,28 @@ export class LegoPFIRrcx extends LegoPFIR {
 
   async _sendKeepAlivePulse() {
     if (!this.writer || this.isTransmitting) return;
+    // Set isTransmitting = true to suppress optical echo in the RX reader loop
+    this.isTransmitting = true;
     try {
       // The RCX 9713 power detector requires sufficient pulse width / energy to charge
       // the capacitive envelope detector on TXD. Sending [0x00, 0x00] in 8N1 provides
       // consecutive active low periods (~86.8µs each, ~190µs total) which reliably
       // triggers the tower's mono-stable switch and illuminates the green LED,
-      // while being completely ignored by LEGO PF receivers (which require a 158µs Mark + 1026µs Pause Start Bit).
+      // while being completely ignored by LEGO PF receivers.
       await this.writer.write(new Uint8Array([0x00, 0x00]));
       this.lastKeepAliveTime = performance.now();
       this.onKeepAlivePulse?.();
     } catch (e) {
       // Ignore transient serial write collisions
+    } finally {
+      // Hold isTransmitting = true for 40ms to absorb optical reflections and TSOP AGC recovery time
+      setTimeout(() => {
+        this.isTransmitting = false;
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        this.lastMarkTime = performance.now();
+      }, 40);
     }
   }
 
@@ -214,66 +238,72 @@ export class LegoPFIRrcx extends LegoPFIR {
   // TSOP 1138 Pulse Demodulator
   // ------------------------------------------------------------
   _processRxChunk(chunk) {
-    for (let i = 0; i < chunk.length; i++) {
-      const now = performance.now();
-      const elapsed = now - this.lastMarkTime;
+    const now = performance.now();
+    const elapsed = now - this.lastMarkTime;
 
-      // Timeout: If more than 16ms elapsed between marks, reset parser
-      if (elapsed > 16) {
-        if (this.rxState !== "IDLE") {
-          console.debug(`[RCX RX] Timeout (${elapsed.toFixed(2)}ms), resetting parser.`);
-        }
+    // Timeout: If more than 25ms elapsed between marks, reset parser to IDLE
+    if (elapsed > 25) {
+      this.rxState = "IDLE";
+      this.bitCount = 0;
+      this.currentBits = 0;
+    }
+
+    // Ignore secondary byte arrivals within < 0.20ms (belonging to the same 158µs Mark burst)
+    if (elapsed < 0.20) {
+      return;
+    }
+
+    const delta = elapsed;
+    this.lastMarkTime = now;
+
+    // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
+    // Accept delta between 0.80ms and 2.50ms
+    if (this.rxState === "IDLE") {
+      if (delta >= 0.80 && delta <= 2.50) {
+        this.rxState = "IN_FRAME";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        this._armFrameTimeout();
+        console.log(`[RCX RX] Start bit detected! Delta: ${delta.toFixed(2)}ms. Listening for 16 bits...`);
+      }
+      return;
+    }
+
+    // State 2: IN_FRAME - Process 16 Data Bits
+    if (this.rxState === "IN_FRAME") {
+      this._armFrameTimeout();
+
+      // Bit 0: Pause ~263µs (period ~421µs) -> Window 0.20ms - 0.54ms
+      // Bit 1: Pause ~553µs (period ~711µs) -> Window 0.55ms - 1.05ms
+      if (delta >= 0.20 && delta <= 0.54) {
+        this.currentBits = (this.currentBits << 1) | 0;
+        this.bitCount++;
+      } else if (delta > 0.54 && delta <= 1.05) {
+        this.currentBits = (this.currentBits << 1) | 1;
+        this.bitCount++;
+      } else if (delta > 1.05 && delta <= 2.50 && this.bitCount === 0) {
+        // Consecutive start bit / re-synchronization
+        this.bitCount = 0;
+        this.currentBits = 0;
+        return;
+      } else {
+        // Glitch or noise burst
+        console.warn(`[RCX RX] Bit ${this.bitCount} glitch with delta ${delta.toFixed(2)}ms, resetting to IDLE.`);
         this.rxState = "IDLE";
         this.bitCount = 0;
         this.currentBits = 0;
+        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+        return;
       }
 
-      // Ignore secondary byte arrivals within < 0.20ms (belonging to the same 158µs Mark burst)
-      if (elapsed < 0.20) {
-        continue;
-      }
-
-      const delta = elapsed;
-      this.lastMarkTime = now;
-
-      // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
-      if (this.rxState === "IDLE") {
-        if (delta >= 0.85 && delta <= 2.20) {
-          this.rxState = "IN_FRAME";
-          this.bitCount = 0;
-          this.currentBits = 0;
-          console.log(`[RCX RX] Start bit detected! Delta: ${delta.toFixed(2)}ms. Listening for 16 bits...`);
-        }
-        continue;
-      }
-
-      // State 2: IN_FRAME - Process 16 Data Bits
-      if (this.rxState === "IN_FRAME") {
-        if (delta >= 0.25 && delta <= 0.54) {
-          // Bit 0: Pause ~263µs (period ~421µs)
-          this.currentBits = (this.currentBits << 1) | 0;
-          this.bitCount++;
-        } else if (delta > 0.54 && delta <= 0.95) {
-          // Bit 1: Pause ~553µs (period ~711µs)
-          this.currentBits = (this.currentBits << 1) | 1;
-          this.bitCount++;
-        } else {
-          // Glitch or noise
-          console.warn(`[RCX RX] Bit ${this.bitCount} glitch with delta ${delta.toFixed(2)}ms, resetting to IDLE.`);
-          this.rxState = "IDLE";
-          this.bitCount = 0;
-          this.currentBits = 0;
-          continue;
-        }
-
-        // If all 16 bits have been captured, validate & dispatch
-        if (this.bitCount === 16) {
-          console.log(`[RCX RX] 16 bits captured: 0x${this.currentBits.toString(16).padStart(4, '0').toUpperCase()}`);
-          this._finalizeIncomingFrame(this.currentBits);
-          this.rxState = "IDLE";
-          this.bitCount = 0;
-          this.currentBits = 0;
-        }
+      // If all 16 bits have been captured, validate & dispatch
+      if (this.bitCount === 16) {
+        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+        console.log(`[RCX RX] 16 bits captured: 0x${this.currentBits.toString(16).padStart(4, '0').toUpperCase()}`);
+        this._finalizeIncomingFrame(this.currentBits);
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
       }
     }
   }
@@ -290,10 +320,14 @@ export class LegoPFIRrcx extends LegoPFIR {
     // Verify PF LRC Checksum: 0xF ^ nibble1 ^ nibble2 ^ nibble3 ^ nibble4 === 0
     if ((nibble1 ^ nibble2 ^ nibble3 ^ nibble4) !== 0x0F) {
       console.warn(`[RCX RX] Discarding frame 0x${frame.toString(16).padStart(4, '0')} due to invalid LRC checksum.`);
-      return; // Discard invalid/corrupted frame
+      return;
     }
 
-    // Pass valid frame into base class _handleRemoteEvent so readHandset() works
+    const channel = nibble1 & 0x03;
+    const toggle = (nibble1 >> 3) & 0x01;
+    const now = Date.now();
+
+    // Pass valid frame into base class _handleRemoteEvent
     const dataView = new DataView(new Uint8Array([
       (frame >> 8) & 0xFF,
       frame & 0xFF
@@ -301,50 +335,134 @@ export class LegoPFIRrcx extends LegoPFIR {
 
     this._handleRemoteEvent(dataView);
 
-    // Also support Single Output mode (0x4 / 0x5) in case handset uses single output mode
-    const channel = nibble1 & 0x03;
-    const toggle = (nibble1 >> 3) & 0x01;
-    const isTrain = ((nibble2 & 0b0110) === 0b0110) || ((nibble2 & 0b0100) === 0b0100);
+    // Update pfirEvents explicitly for all remote models & modes:
+    if (nibble2 === 0x1) {
+      // Combo Direct mode (8885 remote: Red=Port A, Blue=Port B)
+      const portACmd = nibble3 & 0x03;
+      const portBCmd = (nibble3 >> 2) & 0x03;
+      const mapCmd = (c) => (c === 0 ? "stop" : c === 1 ? "fwd" : c === 2 ? "rev" : "brake");
 
-    let mode = isTrain ? "train" : "combo";
-    let port = 0;
-    let eventName = "unknown";
+      const evA = mapCmd(portACmd);
+      const evB = mapCmd(portBCmd);
 
-    if (isTrain) {
-      port = nibble2 & 0x01;
-      if (nibble3 === 4) eventName = "inc";
+      // Port A (Red)
+      const entryA = this.pfirEvents[channel][0];
+      entryA.event = evA;
+      entryA.eventPrev = portACmd;
+      entryA.newEvent = true;
+      entryA.lastEventTime = now;
+
+      // Port B (Blue)
+      const entryB = this.pfirEvents[channel][1];
+      entryB.event = evB;
+      entryB.eventPrev = portBCmd;
+      entryB.newEvent = true;
+      entryB.lastEventTime = now;
+
+      console.log(`[RCX RX] Handset Ch ${channel + 1}: Port A (Red) = ${evA.toUpperCase()}, Port B (Blue) = ${evB.toUpperCase()} [Frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}]`);
+
+      this.onHandsetEvent?.({
+        channel,
+        port: 0,
+        mode: "combo",
+        event: evA,
+        toggle,
+        rawFrame: frame,
+        timestamp: now
+      });
+
+      if (evB !== "stop") {
+        this.onHandsetEvent?.({
+          channel,
+          port: 1,
+          mode: "combo",
+          event: evB,
+          toggle,
+          rawFrame: frame,
+          timestamp: now
+        });
+      }
+    } else if ((nibble2 & 0b1100) === 0b0100) {
+      // Single output PWM mode (Mode 0x4=Port A, Mode 0x5=Port B)
+      const port = nibble2 & 0x01;
+      const pwm = nibble3;
+      const evName = pwm === 0 ? "stop" : (pwm >= 1 && pwm <= 7) ? "fwd" : (pwm === 8) ? "brake" : "rev";
+
+      const entry = this.pfirEvents[channel][port];
+      entry.event = evName;
+      entry.eventPrev = pwm;
+      entry.newEvent = true;
+      entry.lastEventTime = now;
+
+      console.log(`[RCX RX] Handset Single PWM Ch ${channel + 1}: Port ${port === 0 ? 'A' : 'B'} = ${evName.toUpperCase()} (PWM ${pwm}) [Frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}]`);
+
+      this.onHandsetEvent?.({
+        channel,
+        port,
+        mode: "combo",
+        event: evName,
+        toggle,
+        rawFrame: frame,
+        timestamp: now
+      });
+    } else if ((nibble2 & 0b1110) === 0b0110) {
+      // Train remote (8879: inc/dec/stop)
+      const port = nibble2 & 0x01;
+      let evName = "none";
+      if (nibble3 === 4) evName = "inc";
       else if (nibble3 === 5) eventName = "dec";
       else if (nibble3 === 8) eventName = "stop";
-    } else if (nibble2 === 0x1) {
-      // Combo Direct mode
-      const portA = nibble3 & 0x03;
-      const portB = (nibble3 >> 2) & 0x03;
-      const val = port === 0 ? portA : portB;
-      eventName = val === 0 ? "stop" : val === 1 ? "fwd" : val === 2 ? "rev" : "none";
-    } else if ((nibble2 & 0b1100) === 0b0100) {
-      // Single output mode (Mode 0x4 or 0x5)
-      port = nibble2 & 0x01;
-      const val = nibble3;
-      eventName = val === 0 ? "stop" : (val >= 1 && val <= 7) ? "fwd" : "rev";
+
       const entry = this.pfirEvents[channel][port];
-      if (entry && entry.eventPrev !== val) {
-        entry.eventPrev = val;
-        entry.event = eventName;
-        entry.newEvent = true;
+      entry.event = evName;
+      entry.newEvent = true;
+      entry.lastEventTime = now;
+
+      console.log(`[RCX RX] Handset Train Remote Ch ${channel + 1}: Port ${port === 0 ? 'A' : 'B'} = ${evName.toUpperCase()} [Frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}]`);
+
+      this.onHandsetEvent?.({
+        channel,
+        port,
+        mode: "train",
+        event: evName,
+        toggle,
+        rawFrame: frame,
+        timestamp: now
+      });
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Public API: readHandset(channel, port)
+  // channel: 0..3 (Channels 1..4)
+  // port: 0 (Red / Port A) or 1 (Blue / Port B)
+  // Returns: "fwd", "rev", "stop", "inc", "dec", or "none"
+  // Supports both leading-edge event dispatch and continuous held state.
+  // ------------------------------------------------------------
+  readHandset(channel, port) {
+    if (!this.pfirEvents[channel] || !this.pfirEvents[channel][port]) return "none";
+    const entry = this.pfirEvents[channel][port];
+
+    if (entry.newEvent) {
+      entry.newEvent = false;
+      return entry.event;
+    }
+
+    const now = Date.now();
+    if (entry.lastEventTime && (now - entry.lastEventTime < 450)) {
+      if (entry.event && entry.event !== "none") {
+        return entry.event;
       }
     }
 
-    this.onHandsetEvent?.({
-      channel,
-      port,
-      mode,
-      event: eventName,
-      toggle,
-      rawFrame: frame,
-      timestamp: Date.now()
-    });
+    return "none";
+  }
 
-    this.log(`Received Handset Frame: 0x${frame.toString(16).padStart(4, '0').toUpperCase()} (Ch ${channel + 1}, Port ${port === 0 ? 'A' : 'B'}: ${eventName})`);
+  // Diagnostic helper to test frame decoding directly from console:
+  // e.g. dev.injectTestFrame(0x411E) -> Ch 1 Port A=FWD, Port B=STOP
+  injectTestFrame(frame) {
+    console.log(`[RCX RX TEST] Injecting synthetic 16-bit frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}`);
+    this._finalizeIncomingFrame(frame);
   }
 
   // ------------------------------------------------------------
