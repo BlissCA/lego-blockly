@@ -24,7 +24,11 @@ export class LegoPFIRrcx extends LegoPFIR {
     // RCX-specific timing parameters
     this.T_US = 158;
     this.BYTE_US = 86.8;
-    this.FRAME_REPEAT = 2; // 2 repeats with interleaving is fast (~38ms) and optically reliable
+    this.PAUSE_BIT_0 = 263;
+    this.PAUSE_BIT_1 = 553;
+    this.PAUSE_START_STOP = 1030; // 39 cycles (~1026 µs) + optical margin
+    this.FRAME_REPEAT = 4; // LEGO remotes transmit 5x; 4-5 repeats eliminates transient packet drops
+    this.USE_WAKE_LEADER = true; // Wakes 9V tower amplifier from sleep before Frame 0
 
     this.isTransmitting = false;
     this.lastTxTime = 0;
@@ -33,6 +37,24 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.onTxActivity = null;
 
     this.status = "disconnected";
+  }
+
+  // ------------------------------------------------------------
+  // Configuration Methods for Tuning
+  // ------------------------------------------------------------
+  setFrameRepeat(count) {
+    this.FRAME_REPEAT = Math.max(1, Math.min(10, count));
+  }
+
+  setWakeLeader(enabled) {
+    this.USE_WAKE_LEADER = enabled;
+  }
+
+  setTiming(tUs, pause0, pause1, pauseSS) {
+    if (tUs !== undefined) this.T_US = tUs;
+    if (pause0 !== undefined) this.PAUSE_BIT_0 = pause0;
+    if (pause1 !== undefined) this.PAUSE_BIT_1 = pause1;
+    if (pauseSS !== undefined) this.PAUSE_START_STOP = pauseSS;
   }
 
   // ------------------------------------------------------------
@@ -167,20 +189,26 @@ export class LegoPFIRrcx extends LegoPFIR {
     const sendHigh = (us) => items.push({ high: true, duration: us });
     const sendLow  = (us) => items.push({ high: false, duration: us });
 
+    // Step 0: Pre-burst Wake Leader (Wakes 9V tower amplifier before Frame 0)
+    if (this.USE_WAKE_LEADER) {
+      sendHigh(250);
+      sendLow(2500);
+    }
+
     // Official LEGO PF Specification Timings (38 kHz carrier, 1 cycle = ~26.32 µs):
     const sendBit0 = () => {
-      sendHigh(this.T_US); // 158 µs (6 cycles of 38 kHz)
-      sendLow(263);        // 263 µs pause (10 cycles)
+      sendHigh(this.T_US);
+      sendLow(this.PAUSE_BIT_0);
     };
 
     const sendBit1 = () => {
-      sendHigh(this.T_US); // 158 µs (6 cycles of 38 kHz)
-      sendLow(553);        // 553 µs pause (21 cycles)
+      sendHigh(this.T_US);
+      sendLow(this.PAUSE_BIT_1);
     };
 
     const sendStartStop = () => {
-      sendHigh(this.T_US); // 158 µs (6 cycles of 38 kHz)
-      sendLow(1026);       // 1026 µs pause (39 cycles)
+      sendHigh(this.T_US);
+      sendLow(this.PAUSE_START_STOP);
     };
 
     const sendSingleFrame = (frame) => {
