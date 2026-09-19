@@ -237,89 +237,76 @@ export class LegoPFIRrcx extends LegoPFIR {
   // ------------------------------------------------------------
   // TSOP 1138 Pulse Demodulator
   // ------------------------------------------------------------
-	_processRxChunk(chunk) {
-		// chunk is a Uint8Array from the serial reader
-		// Timestamp the read once and treat each byte as a separate mark.
-		const baseTs = performance.now();
+  _processRxChunk(chunk) {
+    const now = performance.now();
+    const elapsed = now - this.lastMarkTime;
 
-		// If multiple bytes arrive, add a tiny offset so they don't collapse
-		// into the <0.20ms ignore window. 0.02ms (20µs) is small enough.
-		const perByteOffsetMs = (chunk.length > 1) ? 0.02 : 0;
+    // Timeout: If more than 25ms elapsed between marks, reset parser to IDLE
+    if (elapsed > 25) {
+      this.rxState = "IDLE";
+      this.bitCount = 0;
+      this.currentBits = 0;
+    }
 
-		for (let i = 0; i < chunk.length; i++) {
-			const ts = baseTs + (i * perByteOffsetMs);
-			this._processRxMark(ts);
-		}
-	}
+    // Ignore secondary byte arrivals within < 0.20ms (belonging to the same 158µs Mark burst)
+    if (elapsed < 0.20) {
+      return;
+    }
 
-	_processRxMark(now) {
-		const elapsed = now - (this.lastMarkTime || now);
-		this.lastMarkTime = now;
+    const delta = elapsed;
+    this.lastMarkTime = now;
 
-		// If too long since last mark, reset parser
-		if (elapsed > 25) { // ms
-			this.rxState = "IDLE";
-			this.bitCount = 0;
-			this.currentBits = 0;
-		}
+    // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
+    // Accept delta between 0.80ms and 2.50ms
+    if (this.rxState === "IDLE") {
+      if (delta >= 0.80 && delta <= 2.50) {
+        this.rxState = "IN_FRAME";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        this._armFrameTimeout();
+        console.log(`[RCX RX] Start bit detected! Delta: ${delta.toFixed(2)}ms. Listening for 16 bits...`);
+      }
+      return;
+    }
 
-		// Ignore very close arrivals (debounce same physical mark)
-		if (elapsed < 0.20) { // 0.20 ms = 200 µs
-			return;
-		}
+    // State 2: IN_FRAME - Process 16 Data Bits
+    if (this.rxState === "IN_FRAME") {
+      this._armFrameTimeout();
 
-		// IDLE -> look for start bit (approx 1.026 ms pause)
-		if (this.rxState === "IDLE") {
-			if (elapsed >= 0.80 && elapsed <= 2.50) {
-				this.rxState = "IN_FRAME";
-				this.bitCount = 0;
-				this.currentBits = 0;
-				this._armFrameTimeout();
-				// optional debug:
-				// console.log(`[RCX RX] Start bit detected delta=${elapsed.toFixed(2)}ms`);
-			}
-			return;
-		}
+      // Bit 0: Pause ~263µs (period ~421µs) -> Window 0.20ms - 0.54ms
+      // Bit 1: Pause ~553µs (period ~711µs) -> Window 0.55ms - 1.05ms
+      if (delta >= 0.20 && delta <= 0.54) {
+        this.currentBits = (this.currentBits << 1) | 0;
+        this.bitCount++;
+      } else if (delta > 0.54 && delta <= 1.05) {
+        this.currentBits = (this.currentBits << 1) | 1;
+        this.bitCount++;
+      } else if (delta > 1.05 && delta <= 2.50 && this.bitCount === 0) {
+        // Consecutive start bit / re-synchronization
+        this.bitCount = 0;
+        this.currentBits = 0;
+        return;
+      } else {
+        // Glitch or noise burst
+        console.warn(`[RCX RX] Bit ${this.bitCount} glitch with delta ${delta.toFixed(2)}ms, resetting to IDLE.`);
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+        return;
+      }
 
-		// IN_FRAME -> decode bits
-		if (this.rxState === "IN_FRAME") {
-			this._armFrameTimeout();
-
-			// windows (ms): 0-bit ~0.20–0.54, 1-bit ~0.55–1.05
-			if (elapsed >= 0.20 && elapsed <= 0.54) {
-				this.currentBits = (this.currentBits << 1) | 0;
-				this.bitCount++;
-			} else if (elapsed > 0.54 && elapsed <= 1.05) {
-				this.currentBits = (this.currentBits << 1) | 1;
-				this.bitCount++;
-			} else if (elapsed > 1.05 && elapsed <= 2.50 && this.bitCount === 0) {
-				// re-sync: likely repeated start or jitter; stay in IN_FRAME but reset counters
-				this.bitCount = 0;
-				this.currentBits = 0;
-				return;
-			} else {
-				// glitch/noise — reset
-				// console.warn(`[RCX RX] Bit ${this.bitCount} glitch delta=${elapsed.toFixed(2)}ms`);
-				this.rxState = "IDLE";
-				this.bitCount = 0;
-				this.currentBits = 0;
-				if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
-				return;
-			}
-
-			// Completed 16 bits
-			if (this.bitCount === 16) {
-				if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
-				const frame = this.currentBits & 0xFFFF;
-				// optional debug:
-				// console.log(`[RCX RX] Frame captured 0x${frame.toString(16).padStart(4,'0')}`);
-				this._finalizeIncomingFrame(frame);
-				this.rxState = "IDLE";
-				this.bitCount = 0;
-				this.currentBits = 0;
-			}
-		}
-	}
+      // If all 16 bits have been captured, validate & dispatch
+      if (this.bitCount === 16) {
+        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+        console.log(`[RCX RX] 16 bits captured: 0x${this.currentBits.toString(16).padStart(4, '0').toUpperCase()}`);
+        this._finalizeIncomingFrame(this.currentBits);
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+      }
+    }
+  }
 
   // ------------------------------------------------------------
   // Checksum Validation & Base LegoPFIR Event Dispatch
@@ -472,8 +459,17 @@ export class LegoPFIRrcx extends LegoPFIR {
   }
 
   // Diagnostic helper to test frame decoding directly from console:
-  // e.g. dev.injectTestFrame(0x411E) -> Ch 1 Port A=FWD, Port B=STOP
+  // e.g. dev.injectTestFrame(0x411B) -> Ch 1 Port A=FWD, Port B=STOP
   injectTestFrame(frame) {
+    let n1 = (frame >> 12) & 0x0f;
+    let n2 = (frame >> 8) & 0x0f;
+    let n3 = (frame >> 4) & 0x0f;
+    let n4 = frame & 0x0f;
+    const expectedLrc = 0x0f ^ n1 ^ n2 ^ n3;
+    if (n4 !== expectedLrc) {
+      console.log(`[RCX RX TEST] Notice: Frame 0x${frame.toString(16).padStart(4, '0')} has checksum 0x${n4.toString(16).toUpperCase()}, expected 0x${expectedLrc.toString(16).toUpperCase()}. Auto-correcting to 0x${((n1<<12)|(n2<<8)|(n3<<4)|expectedLrc).toString(16).padStart(4, '0').toUpperCase()}`);
+      frame = (n1 << 12) | (n2 << 8) | (n3 << 4) | expectedLrc;
+    }
     console.log(`[RCX RX TEST] Injecting synthetic 16-bit frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}`);
     this._finalizeIncomingFrame(frame);
   }
