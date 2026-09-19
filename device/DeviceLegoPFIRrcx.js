@@ -1,30 +1,122 @@
 import { LegoPFIR } from "./DeviceLegoPFIR.js";
 
+/**
+ * LegoPFIRrcx
+ * Extends LegoPFIR to transmit and receive LEGO Power Functions IR commands
+ * via an RCX Serial IR Tower (LEGO 9713) using Web Serial at 115200 baud.
+ * 
+ * Features:
+ *  - 115200 baud bit-banging with dual-motor frame interleaving (~27ms startup).
+ *  - TSOP1138 receiver monitoring via monitorRcxRead(state).
+ *  - 9V battery VCC Keep-Alive pulses (0xFF) sent every 2.5s only if no TX in last 2.0s.
+ *  - In-flight frame protection (waits for incoming handset frame before transmitting).
+ *  - Optical self-echo suppression with 35ms blanking tail during motor transmissions.
+ *  - High-precision PF IR frame demodulator with LRC checksum validation.
+ *  - Seamless compatibility with readHandset(channel, port).
+ */
 export class LegoPFIRrcx extends LegoPFIR {
   constructor(name, manager) {
     super(name, manager);
 
     this.port = null;
     this.writer = null;
+    this.reader = null;
 
     // RCX-specific timing
     this.T_US = 158;
     this.BYTE_US = 86.8;
-    // 2 repeats with interleaving gives ~27ms startup and clean optical reception
     this.FRAME_REPEAT = 2;
+
+    // Rx & Keep-Alive Monitoring State
+    this.isMonitoring = false;
+    this.isTransmitting = false;
+    this.lastTxTime = 0;
+    this.lastKeepAliveTime = 0;
+    this.keepAliveTimer = null;
+    this.readLoopActive = false;
+
+    // Pulse Demodulator State
+    this.rxState = "IDLE"; // "IDLE" | "IN_FRAME"
+    this.lastMarkTime = 0;
+    this.currentBits = 0;
+    this.bitCount = 0;
+
+    // Optional event listener hook for UI/diagnostics
+    this.onHandsetEvent = null;
+    this.onKeepAlivePulse = null;
+    this.onRxActivity = null;
 
     this.status = "disconnected";
   }
 
   // ------------------------------------------------------------
   // Override: _scheduleFlush()
-  // Wait a 15ms window so consecutive 'await dev.motor_Single()'
+  // Wait a short 15ms window so that consecutive 'await dev.motor_Single()'
   // calls in Blockly are coalesced into this.pendingFrames before flushing.
   // ------------------------------------------------------------
   _scheduleFlush() {
     if (this.flushScheduled) return;
     this.flushScheduled = true;
     setTimeout(() => this._flush(), 15);
+  }
+
+  // ------------------------------------------------------------
+  // Public API: Enable / Disable TSOP1138 Monitoring & VCC Keep-Alive
+  // ------------------------------------------------------------
+  monitorRcxRead(enabled = true) {
+    this.isMonitoring = enabled;
+    this.log(`Monitor RCX Read: ${enabled ? "ENABLED" : "DISABLED"}`);
+
+    if (enabled) {
+      this._startKeepAlive();
+      if (this.port?.readable && !this.readLoopActive) {
+        this._startReadLoop();
+      }
+    } else {
+      this._stopKeepAlive();
+      this._stopReadLoop();
+    }
+  }
+
+  // Case-insensitive alias
+  MonitorRcxRead(enabled = true) {
+    this.monitorRcxRead(enabled);
+  }
+
+  // ------------------------------------------------------------
+  // Keep-Alive: Sends a dummy 0xFF byte every 2.5s if no TX within 2.0s
+  // Wakes the RCX 9V battery VCC circuit without triggering PF receivers.
+  // ------------------------------------------------------------
+  _startKeepAlive() {
+    this._stopKeepAlive();
+
+    this.keepAliveTimer = setInterval(async () => {
+      if (!this.writer || !this.isMonitoring || this.isTransmitting) return;
+
+      const now = performance.now();
+      // Only send if no real motor command was transmitted in the last 2 seconds
+      if (now - this.lastTxTime >= 2000) {
+        // In-flight protection: never disrupt an incoming handset frame
+        if (this.rxState === "IN_FRAME") return;
+
+        try {
+          // 0xFF in 8N1 has only an 8.68µs Start bit (less than 1 cycle of 38 kHz).
+          // Recharges the tower's activity detection capacitor without triggering any PF IR receiver.
+          await this.writer.write(new Uint8Array([0xFF]));
+          this.lastKeepAliveTime = performance.now();
+          this.onKeepAlivePulse?.();
+        } catch (e) {
+          // Ignore transient serial write collisions
+        }
+      }
+    }, 1000); // Check once per second
+  }
+
+  _stopKeepAlive() {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
   }
 
   // ------------------------------------------------------------
@@ -35,6 +127,7 @@ export class LegoPFIRrcx extends LegoPFIR {
       this.log("Requesting RCX Serial IR Tower...");
 
       this.port = await navigator.serial.requestPort();
+      // Standard 3-wire serial (TX/RX/GND) at 115200 baud
       await this.port.open({ baudRate: 115200 });
 
       this.writer = this.port.writable.getWriter();
@@ -46,46 +139,219 @@ export class LegoPFIRrcx extends LegoPFIR {
       this.log(`Connected as ${this.name}`);
       this.setStatus("connected", "Connected");
 
+      // If monitoring was enabled before connecting, boot background reader
+      if (this.isMonitoring) {
+        this._startKeepAlive();
+        this._startReadLoop();
+      }
     } catch (err) {
       this.log(`Connect error: ${err}`);
       this.setStatus("error", "Connection failed");
+      throw err;
     }
   }
 
   // ------------------------------------------------------------
-  // Override: disconnect()
+  // Background Serial Reader Loop
   // ------------------------------------------------------------
-  async disconnect() {
+  async _startReadLoop() {
+    if (this.readLoopActive || !this.port?.readable) return;
+    this.readLoopActive = true;
+
     try {
-      if (this.writer) {
-        this.writer.releaseLock();
-        this.writer = null;
-      }
-      if (this.port) {
-        await this.port.close();
-        this.port = null;
-      }
+      while (this.isMonitoring && this.port?.readable) {
+        this.reader = this.port.readable.getReader();
+        try {
+          while (this.isMonitoring) {
+            const { value, done } = await this.reader.read();
+            if (done) break;
 
-      this.log("Disconnected");
-      this.setStatus("disconnected", "Disconnected");
+            // Optical Echo Suppression: Ignore bytes echoed by TX LEDs
+            if (this.isTransmitting) {
+              continue;
+            }
 
+            if (value && value.length > 0) {
+              this.onRxActivity?.();
+              this._processRxChunk(value);
+            }
+          }
+        } finally {
+          this.reader.releaseLock();
+          this.reader = null;
+        }
+      }
     } catch (err) {
-      this.log(`Disconnect error: ${err}`);
+      if (this.status === "connected") {
+        this.log(`Serial read loop error: ${err?.message || err}`);
+      }
+    } finally {
+      this.readLoopActive = false;
+    }
+  }
+
+  async _stopReadLoop() {
+    if (this.reader) {
+      try {
+        await this.reader.cancel();
+      } catch (e) {}
     }
   }
 
   // ------------------------------------------------------------
-  // Override: raw write → RCX bit-bang with Frame Interleaving
+  // TSOP 1138 Pulse Demodulator
+  // ------------------------------------------------------------
+  _processRxChunk(chunk) {
+    const now = performance.now();
+    const elapsed = now - this.lastMarkTime;
+
+    // Timeout: If more than 15ms elapsed between marks, reset parser
+    if (elapsed > 15) {
+      this.rxState = "IDLE";
+      this.bitCount = 0;
+      this.currentBits = 0;
+    }
+
+    // Ignore secondary bytes arriving within < 0.22ms (belonging to the same 158µs Mark burst)
+    if (elapsed < 0.22) {
+      return;
+    }
+
+    const delta = elapsed;
+    this.lastMarkTime = now;
+
+    // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
+    if (this.rxState === "IDLE") {
+      if (delta >= 0.90 && delta <= 1.80) {
+        this.rxState = "IN_FRAME";
+        this.bitCount = 0;
+        this.currentBits = 0;
+      }
+      return;
+    }
+
+    // State 2: IN_FRAME - Process 16 Data Bits
+    if (this.rxState === "IN_FRAME") {
+      if (delta >= 0.28 && delta <= 0.54) {
+        // Bit 0: Pause ~263µs (period ~421µs)
+        this.currentBits = (this.currentBits << 1) | 0;
+        this.bitCount++;
+      } else if (delta > 0.54 && delta <= 0.90) {
+        // Bit 1: Pause ~553µs (period ~711µs)
+        this.currentBits = (this.currentBits << 1) | 1;
+        this.bitCount++;
+      } else {
+        // Glitch or noise
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        return;
+      }
+
+      // If all 16 bits have been captured, validate & dispatch
+      if (this.bitCount === 16) {
+        this._finalizeIncomingFrame(this.currentBits);
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Checksum Validation & Base LegoPFIR Event Dispatch
+  // ------------------------------------------------------------
+  _finalizeIncomingFrame(frame) {
+    const nibble1 = (frame >> 12) & 0x0F;
+    const nibble2 = (frame >> 8) & 0x0F;
+    const nibble3 = (frame >> 4) & 0x0F;
+    const nibble4 = frame & 0x0F;
+
+    // Verify PF LRC Checksum: 0xF ^ nibble1 ^ nibble2 ^ nibble3 ^ nibble4 === 0
+    if ((nibble1 ^ nibble2 ^ nibble3 ^ nibble4) !== 0x0F) {
+      return; // Discard invalid/corrupted frame
+    }
+
+    // Pass valid frame into base class _handleRemoteEvent so readHandset() works
+    const dataView = new DataView(new Uint8Array([
+      (frame >> 8) & 0xFF,
+      frame & 0xFF
+    ]).buffer);
+
+    this._handleRemoteEvent(dataView);
+
+    // Also notify UI / diagnostic listeners if attached
+    const channel = nibble1 & 0x03;
+    const toggle = (nibble1 >> 3) & 0x01;
+    const isTrain = ((nibble2 & 0b0110) === 0b0110) || ((nibble2 & 0b0100) === 0b0100);
+
+    let mode = isTrain ? "train" : "combo";
+    let port = 0;
+    let eventName = "unknown";
+
+    if (isTrain) {
+      port = nibble2 & 0x01;
+      if (nibble3 === 4) eventName = "inc";
+      else if (nibble3 === 5) eventName = "dec";
+      else if (nibble3 === 8) eventName = "stop";
+    } else if (nibble2 === 0x1) {
+      const portA = nibble3 & 0x03;
+      const portB = (nibble3 >> 2) & 0x03;
+      const val = port === 0 ? portA : portB;
+      eventName = val === 0 ? "stop" : val === 1 ? "fwd" : val === 2 ? "rev" : "none";
+    }
+
+    this.onHandsetEvent?.({
+      channel,
+      port,
+      mode,
+      event: eventName,
+      toggle,
+      rawFrame: frame,
+      timestamp: Date.now()
+    });
+
+    this.log(`Received Handset Frame: 0x${frame.toString(16).padStart(4, '0').toUpperCase()} (Ch ${channel + 1}, Port ${port === 0 ? 'A' : 'B'}: ${eventName})`);
+  }
+
+  // ------------------------------------------------------------
+  // Override: raw write with Optical Echo Blanking & In-Flight Protection
   // ------------------------------------------------------------
   async _writeRaw(payload) {
-    // Unpack all frames in this batched payload
-    const frames = [];
-    for (let i = 0; i < payload.length; i += 2) {
-      frames.push((payload[i] << 8) | payload[i + 1]);
+    // In-Flight Protection: If currently in the middle of receiving a handset frame,
+    // wait up to 30ms for it to finish so we do not corrupt it.
+    if (this.rxState === "IN_FRAME") {
+      const waitStart = performance.now();
+      while (this.rxState === "IN_FRAME" && performance.now() - waitStart < 30) {
+        await new Promise(r => setTimeout(r, 4));
+      }
     }
 
-    if (frames.length > 0) {
-      await this._sendPFIR(frames);
+    // Activate Optical Echo Blanking
+    this.isTransmitting = true;
+    this.lastTxTime = performance.now();
+    // Reset RX parser so self-transmitted bursts are ignored
+    this.rxState = "IDLE";
+    this.bitCount = 0;
+    this.currentBits = 0;
+
+    try {
+      const frames = [];
+      for (let i = 0; i < payload.length; i += 2) {
+        frames.push((payload[i] << 8) | payload[i + 1]);
+      }
+
+      if (frames.length > 0) {
+        await this._sendPFIR(frames);
+      }
+    } finally {
+      this.lastTxTime = performance.now();
+      // Echo Blanking Tail: The high-intensity TX LEDs reflect into the TSOP1138.
+      // Wait 35ms after transmission for the sensor AGC to settle before reenabling RX.
+      setTimeout(() => {
+        this.isTransmitting = false;
+        this.rxState = "IDLE";
+      }, 35);
     }
   }
 
@@ -190,23 +456,44 @@ export class LegoPFIRrcx extends LegoPFIR {
     // Interleave transmission across repeats:
     // Pass 0: [Frame A] -> 16ms pause -> [Frame B] -> Channel Pause
     // Pass 1: [Frame A] -> 16ms pause -> [Frame B] -> Channel Pause
-    // RESULT: Both Motor A and Motor B start within ~27ms of each other!
     for (let rep = 0; rep < this.FRAME_REPEAT; rep++) {
       for (let fIdx = 0; fIdx < frameList.length; fIdx++) {
         sendSingleFrame(frameList[fIdx]);
 
-        // Between frames in the same pass, pause 16 ms
         if (fIdx < frameList.length - 1) {
           sendLow(16000);
         }
       }
 
-      // Inter-pass repeat pause
       if (rep < this.FRAME_REPEAT - 1) {
         sendLow(computePause(rep));
       }
     }
 
     return items;
+  }
+
+  // ------------------------------------------------------------
+  // Clean Disconnect
+  // ------------------------------------------------------------
+  async disconnect() {
+    this.monitorRcxRead(false);
+    await this._stopReadLoop();
+
+    try {
+      if (this.writer) {
+        this.writer.releaseLock();
+        this.writer = null;
+      }
+      if (this.port) {
+        await this.port.close();
+        this.port = null;
+      }
+
+      this.log("Disconnected");
+      this.setStatus("disconnected", "Disconnected");
+    } catch (err) {
+      this.log(`Disconnect error: ${err?.message || err}`);
+    }
   }
 }
