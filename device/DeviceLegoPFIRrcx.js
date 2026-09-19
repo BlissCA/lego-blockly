@@ -84,32 +84,44 @@ export class LegoPFIRrcx extends LegoPFIR {
   }
 
   // ------------------------------------------------------------
-  // Keep-Alive: Sends a dummy 0xFF byte every 2.5s if no TX within 2.0s
-  // Wakes the RCX 9V battery VCC circuit without triggering PF receivers.
+  // Keep-Alive: Sends pulses to wake/recharge the RCX 9V battery VCC circuit.
+  // The RCX 9713 Serial Tower turns on its internal VCC and green power LED
+  // when activity is detected on the TX line and keeps it on for ~4-5 seconds.
   // ------------------------------------------------------------
   _startKeepAlive() {
     this._stopKeepAlive();
+
+    // Send an immediate wake pulse right when monitoring is enabled
+    this._sendKeepAlivePulse();
 
     this.keepAliveTimer = setInterval(async () => {
       if (!this.writer || !this.isMonitoring || this.isTransmitting) return;
 
       const now = performance.now();
-      // Only send if no real motor command was transmitted in the last 2 seconds
-      if (now - this.lastTxTime >= 2000) {
+      // Send keep-alive pulse every ~2.0s if no real motor command was transmitted in last 1.8s
+      if (now - this.lastTxTime >= 1800) {
         // In-flight protection: never disrupt an incoming handset frame
         if (this.rxState === "IN_FRAME") return;
 
-        try {
-          // 0xFF in 8N1 has only an 8.68µs Start bit (less than 1 cycle of 38 kHz).
-          // Recharges the tower's activity detection capacitor without triggering any PF IR receiver.
-          await this.writer.write(new Uint8Array([0xFF]));
-          this.lastKeepAliveTime = performance.now();
-          this.onKeepAlivePulse?.();
-        } catch (e) {
-          // Ignore transient serial write collisions
-        }
+        await this._sendKeepAlivePulse();
       }
-    }, 1000); // Check once per second
+    }, 1000); // Check every second
+  }
+
+  async _sendKeepAlivePulse() {
+    if (!this.writer || this.isTransmitting) return;
+    try {
+      // The RCX 9713 power detector requires sufficient pulse width / energy to charge
+      // the capacitive envelope detector on TXD. Sending [0x00, 0x00] in 8N1 provides
+      // consecutive active low periods (~86.8µs each, ~190µs total) which reliably
+      // triggers the tower's mono-stable switch and illuminates the green LED,
+      // while being completely ignored by LEGO PF receivers (which require a 158µs Mark + 1026µs Pause Start Bit).
+      await this.writer.write(new Uint8Array([0x00, 0x00]));
+      this.lastKeepAliveTime = performance.now();
+      this.onKeepAlivePulse?.();
+    } catch (e) {
+      // Ignore transient serial write collisions
+    }
   }
 
   _stopKeepAlive() {

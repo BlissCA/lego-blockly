@@ -34,6 +34,7 @@ const ASSETS = [
   "./device/DeviceLegoToyPad.js",
   "./device/DeviceSBrick.js",
   "./device/DeviceLegoPFIR.js",
+  "./device/DeviceLegoPFIRrcx.js",
   
   // Icons
   "./icons/icon-192.png",
