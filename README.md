@@ -24,9 +24,9 @@ Lego Blockly supports for now:
 - WeDo 2.0 (BLE)
 - LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
 - Lego Dimensions Toypad USB.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
-- Lego Power Function IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...
+- Lego Power Function IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png)
 
-You need access to serial ports:
+For some devices, you need access to serial ports:
 - Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
 - Through the use of Bluetooth to Serial adapter like [HC-05](https://www.amazon.ca/hiBCTR-HC-05-Dual-Mode-Serial-Component/dp/B0FX2B4KMP).  Works with Interface A with the Arduino. Works with Interface B with the use of a [RS232 to TTL adapter](https://www.amazon.ca/HiLetgo-MAX3232-Converter-Module-Serial/dp/B00LPK0Z9A) using Max3232.
 
