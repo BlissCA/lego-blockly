@@ -32,6 +32,14 @@ export class LegoPFIR {
     // Unified PF IR event table: 4 channels × 2 ports
     this.pfirEvents = [];
 
+    this.toggleStates = [
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0]
+    ];
+  
+
     for (let ch = 0; ch < 4; ch++) {
         this.pfirEvents[ch] = [];
         for (let port = 0; port < 2; port++) {
@@ -333,22 +341,26 @@ export class LegoPFIR {
   // ------------------------------------------------------------
 
   // Single Output PWM mode
-	motor_Single(channel, output, pwmNibble) {
-	// console.log(`[PFIR timing] motor_Single(ch=${channel}, out=${output}) called at ${performance.now().toFixed(1)}ms`);
-	const nibble1 = channel & 0x03;
-	const nibble2 = (output === 1) ? 0x5 : 0x4;   // 0=A(0x4), 1=B(0x5)
-	const nibble3 = pwmNibble & 0x0F;             // 0–15 from Blockly
-	const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
+  motor_Single(channel, output, pwmNibble) {
+    const ch = channel & 0x03;
+    const port = (output === 1) ? 1 : 0;
+    // Invert toggle bit for each new single-output command (LEGO PF RC Protocol Section 2.3)
+    this.toggleStates[ch][port] ^= 1;
+    const toggle = this.toggleStates[ch][port];
 
-	const frame =
-			(nibble1 << 12) |
-			(nibble2 << 8)  |
-			(nibble3 << 4)  |
-			nibble4;
+    const nibble1 = (toggle << 3) | ch;
+    const nibble2 = (port === 1) ? 0x5 : 0x4;
+    const nibble3 = pwmNibble & 0x0F;
+    const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
 
-	this.sendFrame(frame, `single_${channel}_${output}`);
-	}
+    const frame =
+      (nibble1 << 12) |
+      (nibble2 << 8)  |
+      (nibble3 << 4)  |
+      nibble4;
 
+    this.sendFrame(frame, `single_${ch}_${port}`);
+  }
 
   // Combo PWM mode (Blue + Red)
 	motor_Combo(channel, pwmBlue, pwmRed) {
