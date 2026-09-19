@@ -44,6 +44,8 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.bitCount = 0;
     this.frameIntervals = [];
     this.rxFrameTimer = null;
+    this.burstPulseCount = 0;
+    this.burstStartTime = 0;
 
     // Optional event listener hook for UI/diagnostics
     this.onHandsetEvent = null;
@@ -367,14 +369,27 @@ export class LegoPFIRrcx extends LegoPFIR {
       .join(' ');
     console.log(`[RCX RX RAW] ${chunk.length} byte(s) [${hex}] | delta: ${elapsed.toFixed(2)}ms | State: ${this.rxState}`);
 
-    // If USB serial driver buffered entire frame (18 marks) in one or two chunks:
+    // If more than 20ms elapsed from previous pulse, this marks the start of a new burst
+    if (elapsed > 20) {
+      this.burstPulseCount = 0;
+      this.burstStartTime = now;
+    }
+    this.burstPulseCount += chunk.length;
+
+    // Detect complete Power Functions packet (16-18 carrier marks within ~15ms burst)
+    if (this.burstPulseCount >= 16 && this.burstPulseCount <= 22) {
+      const burstDuration = (now - this.burstStartTime).toFixed(1);
+      console.log(`[RCX RX HANDSET DETECTED] LEGO Power Functions Handset packet received! (${this.burstPulseCount} carrier marks, burst span: ${burstDuration}ms | silence: ${elapsed.toFixed(1)}ms)`);
+    }
+
+    // If USB serial driver buffered full frame (16+ marks) in one chunk:
     if (chunk.length >= 16) {
       console.log(`[RCX RX BATCH] Full frame buffer received (${chunk.length} bytes)!`);
     }
 
     // Debounce secondary bytes from the same 158µs IR pulse:
     // (At 115200 baud, one 158µs carrier burst can generate 1-2 UART bytes within ~0.15ms)
-    if (elapsed < 0.15) {
+    if (chunk.length === 1 && elapsed < 0.15) {
       return;
     }
 
