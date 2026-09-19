@@ -127,6 +127,7 @@ export class LegoPFIR {
     } catch (err) {
       this.log(`Connect error: ${err}`);
       this.setStatus("error", "Connection failed");
+      throw err;
     }
   }
 
