@@ -214,58 +214,66 @@ export class LegoPFIRrcx extends LegoPFIR {
   // TSOP 1138 Pulse Demodulator
   // ------------------------------------------------------------
   _processRxChunk(chunk) {
-    const now = performance.now();
-    const elapsed = now - this.lastMarkTime;
+    for (let i = 0; i < chunk.length; i++) {
+      const now = performance.now();
+      const elapsed = now - this.lastMarkTime;
 
-    // Timeout: If more than 15ms elapsed between marks, reset parser
-    if (elapsed > 15) {
-      this.rxState = "IDLE";
-      this.bitCount = 0;
-      this.currentBits = 0;
-    }
-
-    // Ignore secondary bytes arriving within < 0.22ms (belonging to the same 158µs Mark burst)
-    if (elapsed < 0.22) {
-      return;
-    }
-
-    const delta = elapsed;
-    this.lastMarkTime = now;
-
-    // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
-    if (this.rxState === "IDLE") {
-      if (delta >= 0.90 && delta <= 1.80) {
-        this.rxState = "IN_FRAME";
-        this.bitCount = 0;
-        this.currentBits = 0;
-      }
-      return;
-    }
-
-    // State 2: IN_FRAME - Process 16 Data Bits
-    if (this.rxState === "IN_FRAME") {
-      if (delta >= 0.28 && delta <= 0.54) {
-        // Bit 0: Pause ~263µs (period ~421µs)
-        this.currentBits = (this.currentBits << 1) | 0;
-        this.bitCount++;
-      } else if (delta > 0.54 && delta <= 0.90) {
-        // Bit 1: Pause ~553µs (period ~711µs)
-        this.currentBits = (this.currentBits << 1) | 1;
-        this.bitCount++;
-      } else {
-        // Glitch or noise
+      // Timeout: If more than 16ms elapsed between marks, reset parser
+      if (elapsed > 16) {
+        if (this.rxState !== "IDLE") {
+          console.debug(`[RCX RX] Timeout (${elapsed.toFixed(2)}ms), resetting parser.`);
+        }
         this.rxState = "IDLE";
         this.bitCount = 0;
         this.currentBits = 0;
-        return;
       }
 
-      // If all 16 bits have been captured, validate & dispatch
-      if (this.bitCount === 16) {
-        this._finalizeIncomingFrame(this.currentBits);
-        this.rxState = "IDLE";
-        this.bitCount = 0;
-        this.currentBits = 0;
+      // Ignore secondary byte arrivals within < 0.20ms (belonging to the same 158µs Mark burst)
+      if (elapsed < 0.20) {
+        continue;
+      }
+
+      const delta = elapsed;
+      this.lastMarkTime = now;
+
+      // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
+      if (this.rxState === "IDLE") {
+        if (delta >= 0.85 && delta <= 2.20) {
+          this.rxState = "IN_FRAME";
+          this.bitCount = 0;
+          this.currentBits = 0;
+          console.log(`[RCX RX] Start bit detected! Delta: ${delta.toFixed(2)}ms. Listening for 16 bits...`);
+        }
+        continue;
+      }
+
+      // State 2: IN_FRAME - Process 16 Data Bits
+      if (this.rxState === "IN_FRAME") {
+        if (delta >= 0.25 && delta <= 0.54) {
+          // Bit 0: Pause ~263µs (period ~421µs)
+          this.currentBits = (this.currentBits << 1) | 0;
+          this.bitCount++;
+        } else if (delta > 0.54 && delta <= 0.95) {
+          // Bit 1: Pause ~553µs (period ~711µs)
+          this.currentBits = (this.currentBits << 1) | 1;
+          this.bitCount++;
+        } else {
+          // Glitch or noise
+          console.warn(`[RCX RX] Bit ${this.bitCount} glitch with delta ${delta.toFixed(2)}ms, resetting to IDLE.`);
+          this.rxState = "IDLE";
+          this.bitCount = 0;
+          this.currentBits = 0;
+          continue;
+        }
+
+        // If all 16 bits have been captured, validate & dispatch
+        if (this.bitCount === 16) {
+          console.log(`[RCX RX] 16 bits captured: 0x${this.currentBits.toString(16).padStart(4, '0').toUpperCase()}`);
+          this._finalizeIncomingFrame(this.currentBits);
+          this.rxState = "IDLE";
+          this.bitCount = 0;
+          this.currentBits = 0;
+        }
       }
     }
   }
@@ -281,6 +289,7 @@ export class LegoPFIRrcx extends LegoPFIR {
 
     // Verify PF LRC Checksum: 0xF ^ nibble1 ^ nibble2 ^ nibble3 ^ nibble4 === 0
     if ((nibble1 ^ nibble2 ^ nibble3 ^ nibble4) !== 0x0F) {
+      console.warn(`[RCX RX] Discarding frame 0x${frame.toString(16).padStart(4, '0')} due to invalid LRC checksum.`);
       return; // Discard invalid/corrupted frame
     }
 
@@ -292,7 +301,7 @@ export class LegoPFIRrcx extends LegoPFIR {
 
     this._handleRemoteEvent(dataView);
 
-    // Also notify UI / diagnostic listeners if attached
+    // Also support Single Output mode (0x4 / 0x5) in case handset uses single output mode
     const channel = nibble1 & 0x03;
     const toggle = (nibble1 >> 3) & 0x01;
     const isTrain = ((nibble2 & 0b0110) === 0b0110) || ((nibble2 & 0b0100) === 0b0100);
@@ -307,10 +316,22 @@ export class LegoPFIRrcx extends LegoPFIR {
       else if (nibble3 === 5) eventName = "dec";
       else if (nibble3 === 8) eventName = "stop";
     } else if (nibble2 === 0x1) {
+      // Combo Direct mode
       const portA = nibble3 & 0x03;
       const portB = (nibble3 >> 2) & 0x03;
       const val = port === 0 ? portA : portB;
       eventName = val === 0 ? "stop" : val === 1 ? "fwd" : val === 2 ? "rev" : "none";
+    } else if ((nibble2 & 0b1100) === 0b0100) {
+      // Single output mode (Mode 0x4 or 0x5)
+      port = nibble2 & 0x01;
+      const val = nibble3;
+      eventName = val === 0 ? "stop" : (val >= 1 && val <= 7) ? "fwd" : "rev";
+      const entry = this.pfirEvents[channel][port];
+      if (entry && entry.eventPrev !== val) {
+        entry.eventPrev = val;
+        entry.event = eventName;
+        entry.newEvent = true;
+      }
     }
 
     this.onHandsetEvent?.({
