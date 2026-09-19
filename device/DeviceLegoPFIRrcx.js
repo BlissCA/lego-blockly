@@ -2,15 +2,16 @@ import { LegoPFIR } from "./DeviceLegoPFIR.js";
 
 /**
  * LegoPFIRrcx
- * Optimized, high-precision transmitter for LEGO Power Functions IR
+ * Optimized, battery-saving transmitter for LEGO Power Functions IR
  * via an RCX Serial IR Tower (LEGO 9713) using Web Serial at 115200 baud.
  * 
- * Features:
+ * Battery-Saving Design:
+ *  - NO background keep-alive pulses or timers: the 9713 tower stays completely asleep
+ *    when idle to strictly preserve 9V battery life.
+ *  - On-Demand Power: Every motor command transmission automatically powers the tower's
+ *    TX amplifier and lights the green LED during the command.
  *  - 115200 baud bit-banging with dual-motor frame interleaving (~27ms dual-motor startup).
  *  - Physical 10-bit serial framing alignment eliminating bit-drift across long packets.
- *  - RCX 9V Tower VCC Wake/Energizer: sends an active wake pulse ([0x00, 0x00]) to light
- *    the tower's green power LED and keep the 9V IR transmitter amplifier energized.
- *  - Streamlined TX-only architecture: zero background reader overhead or framing glitch interrupts.
  *  - Safe fallback for readHandset(channel, port): returns "none".
  */
 export class LegoPFIRrcx extends LegoPFIR {
@@ -25,14 +26,10 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.BYTE_US = 86.8;
     this.FRAME_REPEAT = 2; // 2 repeats with interleaving is fast (~38ms) and optically reliable
 
-    // Tower 9V VCC Power Management
     this.isTransmitting = false;
     this.lastTxTime = 0;
-    this.keepAliveTimer = null;
-    this.autoKeepAliveEnabled = true;
 
-    // Optional telemetry callbacks for UI
-    this.onKeepAlivePulse = null;
+    // Optional telemetry callback for UI
     this.onTxActivity = null;
 
     this.status = "disconnected";
@@ -72,69 +69,12 @@ export class LegoPFIRrcx extends LegoPFIR {
         this.name = this.manager?._allocateName?.("PFIRrcx") || "PFIRrcx";
       }
 
-      this.log(`Connected as ${this.name} (115200 baud TX mode)`);
+      this.log(`Connected as ${this.name} (115200 baud battery-saver TX mode)`);
       this.setStatus("connected", "Connected");
-
-      // Wake the tower immediately to turn on the green LED and power the 9V IR amplifier
-      await this.wakeTower();
-
-      // Start tower power maintainer
-      this._startKeepAlive();
     } catch (err) {
       this.log(`Connect error: ${err}`);
       this.setStatus("error", "Connection failed");
       throw err;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Tower 9V VCC Power Management
-  // The RCX 9713 Serial Tower contains a capacitive envelope detector
-  // on the TX line that turns on its internal 9V amplifier and green
-  // power LED when activity is detected, maintaining power for ~4-5 seconds.
-  // ------------------------------------------------------------
-  async wakeTower() {
-    if (!this.writer || this.isTransmitting) return;
-    try {
-      // Sending [0x00, 0x00] in 8N1 provides ~190µs of continuous active low,
-      // which reliably triggers the tower's mono-stable switch and illuminates the green LED.
-      await this.writer.write(new Uint8Array([0x00, 0x00]));
-      this.lastTxTime = performance.now();
-      this.onKeepAlivePulse?.();
-      console.log("[RCX TOWER] 9V VCC Wake pulse sent. Green LED energized.");
-    } catch (e) {
-      // Ignore transient write collisions
-    }
-  }
-
-  _startKeepAlive() {
-    this._stopKeepAlive();
-    if (!this.autoKeepAliveEnabled) return;
-
-    this.keepAliveTimer = setInterval(async () => {
-      if (!this.writer || this.isTransmitting) return;
-      const now = performance.now();
-      // Refresh tower power if no real motor commands were sent in the last 3.5s
-      if (now - this.lastTxTime >= 3500) {
-        await this.wakeTower();
-      }
-    }, 2000);
-  }
-
-  _stopKeepAlive() {
-    if (this.keepAliveTimer) {
-      clearInterval(this.keepAliveTimer);
-      this.keepAliveTimer = null;
-    }
-  }
-
-  // Set whether the background power pulse is active
-  setAutoKeepAlive(enabled) {
-    this.autoKeepAliveEnabled = enabled;
-    if (enabled && this.status === "connected") {
-      this._startKeepAlive();
-    } else {
-      this._stopKeepAlive();
     }
   }
 
@@ -297,8 +237,6 @@ export class LegoPFIRrcx extends LegoPFIR {
   // Clean Disconnect
   // ------------------------------------------------------------
   async disconnect() {
-    this._stopKeepAlive();
-
     try {
       if (this.writer) {
         this.writer.releaseLock();
