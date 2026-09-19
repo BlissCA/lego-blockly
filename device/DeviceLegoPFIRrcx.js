@@ -35,11 +35,14 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.keepAliveTimer = null;
     this.readLoopActive = false;
 
+    this.ignoreRxUntil = 0;
+
     // Pulse Demodulator State
-    this.rxState = "IDLE"; // "IDLE" | "IN_FRAME"
+    this.rxState = "IDLE"; // "IDLE" | "AWAITING_START_INTERVAL" | "IN_FRAME"
     this.lastMarkTime = 0;
     this.currentBits = 0;
     this.bitCount = 0;
+    this.frameIntervals = [];
     this.rxFrameTimer = null;
 
     // Optional event listener hook for UI/diagnostics
@@ -50,16 +53,17 @@ export class LegoPFIRrcx extends LegoPFIR {
     this.status = "disconnected";
   }
 
-  // Arm 30ms watchdog timer so rxState can never remain stuck in IN_FRAME
+  // Arm watchdog timer so rxState can never remain stuck in IN_FRAME
   _armFrameTimeout() {
     if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
     this.rxFrameTimer = setTimeout(() => {
-      if (this.rxState === "IN_FRAME") {
+      if (this.rxState !== "IDLE") {
         this.rxState = "IDLE";
         this.bitCount = 0;
         this.currentBits = 0;
+        this.frameIntervals = [];
       }
-    }, 30);
+    }, 45);
   }
 
   // ------------------------------------------------------------
@@ -123,8 +127,13 @@ export class LegoPFIRrcx extends LegoPFIR {
 
   async _sendKeepAlivePulse() {
     if (!this.writer || this.isTransmitting) return;
-    // Set isTransmitting = true to suppress optical echo in the RX reader loop
     this.isTransmitting = true;
+    const now = performance.now();
+    this.lastTxTime = now;
+    this.lastKeepAliveTime = now;
+    // Suppress optical reflections for 45ms to absorb full echo and TSOP AGC recovery
+    this.ignoreRxUntil = now + 45;
+
     try {
       // The RCX 9713 power detector requires sufficient pulse width / energy to charge
       // the capacitive envelope detector on TXD. Sending [0x00, 0x00] in 8N1 provides
@@ -132,19 +141,21 @@ export class LegoPFIRrcx extends LegoPFIR {
       // triggers the tower's mono-stable switch and illuminates the green LED,
       // while being completely ignored by LEGO PF receivers.
       await this.writer.write(new Uint8Array([0x00, 0x00]));
-      this.lastKeepAliveTime = performance.now();
       this.onKeepAlivePulse?.();
     } catch (e) {
       // Ignore transient serial write collisions
     } finally {
-      // Hold isTransmitting = true for 40ms to absorb optical reflections and TSOP AGC recovery time
       setTimeout(() => {
         this.isTransmitting = false;
-        this.rxState = "IDLE";
-        this.bitCount = 0;
-        this.currentBits = 0;
-        this.lastMarkTime = performance.now();
-      }, 40);
+        if (this.rxState !== "IN_FRAME") {
+          this.rxState = "IDLE";
+          this.bitCount = 0;
+          this.currentBits = 0;
+          this.frameIntervals = [];
+        }
+        // Setting lastMarkTime = 0 ensures the next real handset mark is treated as Mark 0
+        this.lastMarkTime = 0;
+      }, 45);
     }
   }
 
@@ -202,8 +213,9 @@ export class LegoPFIRrcx extends LegoPFIR {
             const { value, done } = await this.reader.read();
             if (done) break;
 
-            // Optical Echo Suppression: Ignore bytes echoed by TX LEDs
-            if (this.isTransmitting) {
+            const now = performance.now();
+            // Optical Echo Suppression: Ignore bytes echoed by TX LEDs or keep-alive pulses
+            if (this.isTransmitting || now < this.ignoreRxUntil) {
               continue;
             }
 
@@ -235,77 +247,141 @@ export class LegoPFIRrcx extends LegoPFIR {
   }
 
   // ------------------------------------------------------------
-  // TSOP 1138 Pulse Demodulator
+  // TSOP 1138 Pulse Demodulator & Signal Processor
   // ------------------------------------------------------------
-  _processRxChunk(chunk) {
-    const now = performance.now();
-    const elapsed = now - this.lastMarkTime;
+  _checkLrc(frame) {
+    const n1 = (frame >> 12) & 0x0F;
+    const n2 = (frame >> 8) & 0x0F;
+    const n3 = (frame >> 4) & 0x0F;
+    const n4 = frame & 0x0F;
+    return ((n1 ^ n2 ^ n3 ^ n4) === 0x0F);
+  }
 
-    // Timeout: If more than 25ms elapsed between marks, reset parser to IDLE
-    if (elapsed > 25) {
-      this.rxState = "IDLE";
+  _tryAdaptiveDecode(intervals) {
+    if (intervals.length !== 16) return null;
+    // Scan sliding decision thresholds between 0.40ms and 0.85ms in 0.02ms steps
+    for (let th = 0.40; th <= 0.85; th += 0.02) {
+      let candidate = 0;
+      for (let i = 0; i < 16; i++) {
+        const bit = intervals[i] > th ? 1 : 0;
+        candidate = (candidate << 1) | bit;
+      }
+      if (this._checkLrc(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  _processRxPulse(delta) {
+    // 1. Timeout / Idle Quiet Period Detection:
+    // If more than 20ms elapsed since last mark, we were in channel silence (>60ms between PF repeats).
+    // This mark is guaranteed to be Mark 0 (the Start mark)!
+    if (delta > 20) {
+      this.rxState = "AWAITING_START_INTERVAL";
       this.bitCount = 0;
       this.currentBits = 0;
+      this.frameIntervals = [];
+      this._armFrameTimeout();
+      console.log(`[RCX RX] Mark 0 (Start mark) detected after ${delta.toFixed(1)}ms silence. Awaiting start interval...`);
+      return;
     }
 
-    // Ignore secondary byte arrivals within < 0.20ms (belonging to the same 158µs Mark burst)
-    if (elapsed < 0.20) {
+    // 2. State: AWAITING_START_INTERVAL (measuring interval to Mark 1)
+    // Nominal Start bit period = 158µs mark + 1026µs pause = 1.184ms.
+    // Accept wide range: 0.60ms to 4.50ms to accommodate USB latency / OS timer jitter.
+    if (this.rxState === "AWAITING_START_INTERVAL") {
+      if (delta >= 0.60 && delta <= 4.50) {
+        this.rxState = "IN_FRAME";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        this.frameIntervals = [];
+        this._armFrameTimeout();
+        console.log(`[RCX RX] Start bit verified (interval: ${delta.toFixed(2)}ms). Listening for 16 data bits...`);
+      } else {
+        // Delta was out of range (isolated noise), reset parser
+        this.rxState = "IDLE";
+      }
+      return;
+    }
+
+    // 3. State: IN_FRAME - Process 16 Data Bits
+    if (this.rxState === "IN_FRAME") {
+      this._armFrameTimeout();
+      this.frameIntervals.push(delta);
+
+      // Nominal bit periods:
+      // Bit 0: 158µs mark + 263µs pause = 0.421ms
+      // Bit 1: 158µs mark + 553µs pause = 0.711ms
+      // Decision midpoint: 0.565ms
+      const bit = (delta > 0.565) ? 1 : 0;
+      this.currentBits = (this.currentBits << 1) | bit;
+      this.bitCount++;
+
+      console.log(`[RCX RX] Bit ${this.bitCount}/16 = ${bit} (delta: ${delta.toFixed(2)}ms)`);
+
+      // Once all 16 bits are captured:
+      if (this.bitCount === 16) {
+        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
+
+        let finalFrame = this.currentBits;
+        let lrcOk = this._checkLrc(finalFrame);
+
+        // If direct decode failed checksum, test adaptive thresholding on intervals
+        if (!lrcOk && this.frameIntervals.length === 16) {
+          const recovered = this._tryAdaptiveDecode(this.frameIntervals);
+          if (recovered !== null) {
+            finalFrame = recovered;
+            lrcOk = true;
+            console.log(`[RCX RX] Adaptive thresholding successfully recovered valid frame: 0x${finalFrame.toString(16).toUpperCase()}`);
+          }
+        }
+
+        if (lrcOk) {
+          console.log(`[RCX RX SUCCESS] 16 bits captured & verified: 0x${finalFrame.toString(16).padStart(4, '0').toUpperCase()}`);
+          this._finalizeIncomingFrame(finalFrame);
+        } else {
+          console.warn(`[RCX RX] Discarding frame 0x${finalFrame.toString(16).padStart(4, '0')} (LRC checksum mismatch). Intervals: [${this.frameIntervals.map(d => d.toFixed(2)).join(', ')}]`);
+        }
+
+        this.rxState = "IDLE";
+        this.bitCount = 0;
+        this.currentBits = 0;
+        this.frameIntervals = [];
+      }
+    }
+  }
+
+  _processRxChunk(chunk) {
+    const now = performance.now();
+    const elapsed = this.lastMarkTime > 0 ? (now - this.lastMarkTime) : 9999;
+
+    // Optical Echo Blanking Check: discard transmission reflections
+    if (this.isTransmitting || now < this.ignoreRxUntil) {
+      return;
+    }
+
+    // Always log raw reception so user immediately sees incoming data
+    const hex = Array.from(chunk)
+      .map((b) => '0x' + b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+    console.log(`[RCX RX RAW] ${chunk.length} byte(s) [${hex}] | delta: ${elapsed.toFixed(2)}ms | State: ${this.rxState}`);
+
+    // If USB serial driver buffered entire frame (18 marks) in one or two chunks:
+    if (chunk.length >= 16) {
+      console.log(`[RCX RX BATCH] Full frame buffer received (${chunk.length} bytes)!`);
+    }
+
+    // Debounce secondary bytes from the same 158µs IR pulse:
+    // (At 115200 baud, one 158µs carrier burst can generate 1-2 UART bytes within ~0.15ms)
+    if (elapsed < 0.15) {
       return;
     }
 
     const delta = elapsed;
     this.lastMarkTime = now;
 
-    // State 1: IDLE - Look for Start Bit Pause (~1.026ms, period ~1.18ms)
-    // Accept delta between 0.80ms and 2.50ms
-    if (this.rxState === "IDLE") {
-      if (delta >= 0.80 && delta <= 2.50) {
-        this.rxState = "IN_FRAME";
-        this.bitCount = 0;
-        this.currentBits = 0;
-        this._armFrameTimeout();
-        console.log(`[RCX RX] Start bit detected! Delta: ${delta.toFixed(2)}ms. Listening for 16 bits...`);
-      }
-      return;
-    }
-
-    // State 2: IN_FRAME - Process 16 Data Bits
-    if (this.rxState === "IN_FRAME") {
-      this._armFrameTimeout();
-
-      // Bit 0: Pause ~263µs (period ~421µs) -> Window 0.20ms - 0.54ms
-      // Bit 1: Pause ~553µs (period ~711µs) -> Window 0.55ms - 1.05ms
-      if (delta >= 0.20 && delta <= 0.54) {
-        this.currentBits = (this.currentBits << 1) | 0;
-        this.bitCount++;
-      } else if (delta > 0.54 && delta <= 1.05) {
-        this.currentBits = (this.currentBits << 1) | 1;
-        this.bitCount++;
-      } else if (delta > 1.05 && delta <= 2.50 && this.bitCount === 0) {
-        // Consecutive start bit / re-synchronization
-        this.bitCount = 0;
-        this.currentBits = 0;
-        return;
-      } else {
-        // Glitch or noise burst
-        console.warn(`[RCX RX] Bit ${this.bitCount} glitch with delta ${delta.toFixed(2)}ms, resetting to IDLE.`);
-        this.rxState = "IDLE";
-        this.bitCount = 0;
-        this.currentBits = 0;
-        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
-        return;
-      }
-
-      // If all 16 bits have been captured, validate & dispatch
-      if (this.bitCount === 16) {
-        if (this.rxFrameTimer) clearTimeout(this.rxFrameTimer);
-        console.log(`[RCX RX] 16 bits captured: 0x${this.currentBits.toString(16).padStart(4, '0').toUpperCase()}`);
-        this._finalizeIncomingFrame(this.currentBits);
-        this.rxState = "IDLE";
-        this.bitCount = 0;
-        this.currentBits = 0;
-      }
-    }
+    this._processRxPulse(delta);
   }
 
   // ------------------------------------------------------------
@@ -474,6 +550,47 @@ export class LegoPFIRrcx extends LegoPFIR {
     this._finalizeIncomingFrame(frame);
   }
 
+  // Convenient direct command injection for quick testing:
+  // e.g. dev.injectTestCommand(0, 0, "fwd") -> Sets Ch 1 Port A (Red) = FWD
+  injectTestCommand(channel, port, action) {
+    const actVal = action === "fwd" ? 1 : action === "rev" ? 2 : 0;
+    const n1 = channel & 0x03; // toggle=0, esc=0, ch
+    const n2 = 0x01;           // Combo direct mode
+    const n3 = (port === 0) ? (actVal & 0x03) : ((actVal & 0x03) << 2);
+    const n4 = 0x0f ^ n1 ^ n2 ^ n3;
+    const frame = (n1 << 12) | (n2 << 8) | (n3 << 4) | n4;
+    console.log(`[RCX RX TEST] Injecting command Ch ${channel + 1} Port ${port === 0 ? 'A (Red)' : 'B (Blue)'} = ${action.toUpperCase()} (Frame: 0x${frame.toString(16).padStart(4, '0').toUpperCase()})`);
+    this._finalizeIncomingFrame(frame);
+  }
+
+  // High-fidelity synthetic pulse injector: feeds exact timing intervals into _processRxPulse
+  // to verify the state machine, timing windows, bit assembly, and event dispatch end-to-end.
+  async injectTestPulses(frame = 0x411B) {
+    console.log(`[RCX RX TEST] Starting synthetic pulse sequence for frame 0x${frame.toString(16).padStart(4, '0').toUpperCase()}...`);
+
+    // 1. Initial idle mark after quiet period (delta > 20ms triggers Mark 0 detection)
+    this._processRxPulse(50.0);
+
+    // Short pause for console log readability
+    await new Promise(r => setTimeout(r, 10));
+
+    // 2. Start bit pause (nominal 1.184ms)
+    this._processRxPulse(1.184);
+
+    // 3. 16 data bits
+    for (let i = 0; i < 16; i++) {
+      const bit = (frame >> (15 - i)) & 1;
+      // Bit 0 = 0.421ms, Bit 1 = 0.711ms
+      const deltaMs = bit ? 0.711 : 0.421;
+      await new Promise(r => setTimeout(r, 5));
+      this._processRxPulse(deltaMs);
+    }
+
+    // 4. Stop bit pause (nominal 1.184ms)
+    await new Promise(r => setTimeout(r, 10));
+    this._processRxPulse(1.184);
+  }
+
   // ------------------------------------------------------------
   // Override: raw write with Optical Echo Blanking & In-Flight Protection
   // ------------------------------------------------------------
@@ -489,11 +606,16 @@ export class LegoPFIRrcx extends LegoPFIR {
 
     // Activate Optical Echo Blanking
     this.isTransmitting = true;
-    this.lastTxTime = performance.now();
+    const now = performance.now();
+    this.lastTxTime = now;
+    // Suppress reflections for 80ms while transmission completes
+    this.ignoreRxUntil = now + 80;
+
     // Reset RX parser so self-transmitted bursts are ignored
     this.rxState = "IDLE";
     this.bitCount = 0;
     this.currentBits = 0;
+    this.frameIntervals = [];
 
     try {
       const frames = [];
@@ -507,11 +629,17 @@ export class LegoPFIRrcx extends LegoPFIR {
     } finally {
       this.lastTxTime = performance.now();
       // Echo Blanking Tail: The high-intensity TX LEDs reflect into the TSOP1138.
-      // Wait 35ms after transmission for the sensor AGC to settle before reenabling RX.
+      // Wait 45ms after transmission for the sensor AGC to settle before reenabling RX.
       setTimeout(() => {
         this.isTransmitting = false;
-        this.rxState = "IDLE";
-      }, 35);
+        if (this.rxState !== "IN_FRAME") {
+          this.rxState = "IDLE";
+          this.bitCount = 0;
+          this.currentBits = 0;
+          this.frameIntervals = [];
+        }
+        this.lastMarkTime = 0;
+      }, 45);
     }
   }
 
