@@ -348,7 +348,7 @@ export class LegoPFIR {
     this.toggleStates[ch][port] ^= 1;
     const toggle = this.toggleStates[ch][port];
 
-    const nibble1 = (toggle << 3) | ch;
+    const nibble1 = (1 << 3) | ch;  // was (toggle << 3) | ch;  But apparantly older version of PF IR Receiver (2k8) only works with toggle=1
     const nibble2 = (port === 1) ? 0x5 : 0x4;
     const nibble3 = pwmNibble & 0x0F;
     const nibble4 = 0xF ^ nibble1 ^ nibble2 ^ nibble3;
