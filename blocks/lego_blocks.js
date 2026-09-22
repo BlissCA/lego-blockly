@@ -4568,7 +4568,7 @@ Blockly.Blocks['Legoa_inputnum'] = {
 
     this.setOutput(true, "Number");
     this.setColour(230);
-    this.setTooltip("Returns a predefined constant value for Lego A output ports.");
+    this.setTooltip("Returns a predefined constant value for Lego A input ports.");
   }
 };
 
