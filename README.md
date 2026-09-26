@@ -24,7 +24,7 @@ Lego Blockly supports for now:
 - WeDo 2.0 (BLE)
 - LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
 - Lego Dimensions Toypad USB.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
-- Lego Power Function IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png)
+- Lego Power Function IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png).  Arduino Sketches are available for ESP-WROOM-32 (LegoPFIR_BLE_ESP_WROOM_32_V3) and ESP32-C3 (LegoPFIR_BLE_ESP32_C3_V1) in the [folder SketchArduino](SketchArduino).
 - Lego Power Function IR TX only with the use of a RCX Serial IR tower.
 
 For some devices, you need access to serial ports:
@@ -67,7 +67,7 @@ Special thanks to people who participate in this forum thread.  They give precio
 	- ARDUINO UNO/NANO:
 		- You need [Arduino free IDE](https://www.arduino.cc/en/software/).  
 		- See [folder SketchArduino](SketchArduino) and upload sketch to your Arduino.  Use Lego9750_V2 (NO PF IR, HW PWM) or the latest Lego9750_PF_UNO_V4 (PF IR, SOFT PWM) or Lego9750_UNO_V3 (NO PF IR, HW PWM) (V3, V4 support dual protocol (Blockly and Bit Bang for Lego Legacy DOS software), See ESP32 below).
-		- You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins a the same time).
+		- You can use the USB port directly on the Arduino. or you can use rx tx pin (0, 1) (Cannot use both USB and RxTx Pins at the same time).
 		- Interface A Outputs 0 to 5 should be wired to Arduino pins 3, 5, 6, 9, 10, 11.
 		- Interface A Inputs 6 and 7 should be wired to Arduino pins 7 and 8 respectively.
 		- For Power Function IR, you have to wire a IR Led to Pin 2 and gnd.  You will need to use a resistor too and the value depends of the IR Led used.
@@ -77,9 +77,9 @@ Special thanks to people who participate in this forum thread.  They give precio
 		- The ESP32 uses Built-in Bluetooth and USB to Serial chip onboard.
 		- You must have bluetooth on your PC.  Or you can buy a cheap TP-Link BT/BLE dongle.
 		- Once paired in windows, it creates 2 vitural COM port like the HC-05 does.  You must use the OUTBOUND com port.
-		- You must use original ESP-WROOM-32 that has standard BT, not BLE.
+		- You must use original ESP-WROOM-32 that has classic BT.
 		The newer ESP32-S3, C3, C6 only have BLE...
-		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V5 provided in the [folder SketchArduino](SketchArduino).
+		- Use Arduino IDE to upload the ESP32 Sketch Lego9750_PF_ESP32_BT_USB_V6 provided in the [folder SketchArduino](SketchArduino).
 		- ~~IMPORTANT: In Arduino IDE, Menu Tools, Board, Board Manager, USE esp32 package 2.0.17!~~  Can now use latest esp32 package 3.3.11.
 		- ~~IMPORTANT: Since the ESP32 GPIO's operate at 3.3v level, you need to use a Bidirectional Logic Level converter (TXS0108E, or DFR0844 should do the job) between GPIO's and Lego Interface A Inputs and Outputs connector pins...~~
 		Apparently, The Interface A tolerates 3.3V level out of the box, so no need for a logic level converter...

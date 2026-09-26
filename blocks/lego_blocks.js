@@ -2018,7 +2018,7 @@ window.addEventListener("load", () => {
 
     {
       "type": "legoa2_inp_on",
-      "message0": "%1 inp %2 ON",
+      "message0": "%1 inp %2 ON?",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
         {
@@ -2034,7 +2034,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "legoa2_inp_rot",
-      "message0": "%1 inp %2 rotation count",
+      "message0": "%1 inp %2 rotation count?",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLegoADropdown },
         {
