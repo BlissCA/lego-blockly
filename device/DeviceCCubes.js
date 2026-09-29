@@ -1,13 +1,15 @@
-// DeviceCCubes.js
+// device/DeviceCCubes.js
 // Circuit Cubes Bluetooth Battery Cube BLE Driver
-// Architecture and design patterns aligned with DeviceLegoWeDo2.js and lego-blockly device system
+// Architecture and design patterns aligned with DeviceLegoWeDo2.js and lego-blockly
 
-// ---------------- Nordic UART Service (NUS) UUIDs ----------------
-export const CCUBES_SERVICE_NUS   = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; // Nordic UART Service
-export const CCUBES_CHAR_RX_WRITE = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // RX Characteristic (Write command to Cube)
-export const CCUBES_CHAR_TX_NOTIF = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // TX Characteristic (Notifications from Cube)
+export const CCUBES_SERVICE_NUS   = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; // Standard Nordic UART Service
+export const CCUBES_CHAR_RX_WRITE = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // RX Write Characteristic
+export const CCUBES_CHAR_TX_NOTIF = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // TX Notify Characteristic
 
-// Helper: clamp numeric value
+// Alternative service UUIDs found on some Tenka hardware revisions
+export const CCUBES_SERVICE_FFF0  = "0000fff0-0000-1000-8000-00805f9b34fb";
+export const CCUBES_SERVICE_FFE0  = "0000ffe0-0000-1000-8000-00805f9b34fb";
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -17,41 +19,32 @@ export class CCubes {
     this.name = name || null;
     this.manager = manager;
 
-    // Web Bluetooth GATT handles
     this.device = null;
     this.server = null;
     this.serviceNus = null;
     this.charRx = null;
     this.charTx = null;
 
-    // Device identity and status
-    this.namePrefix = "CCubes"; // Manager allocates CCubes1, CCubes2, CCubes3, etc.
+    this.namePrefix = "CCubes";
     this.status = "idle";
     this.statusMessage = "";
     this.isConnected = false;
 
-    // Command queue
     this.queueActive = true;
     this.commandQueue = Promise.resolve();
 
-    // Cache of last commanded motor states to avoid flooding BLE during Blockly loops
-    // Circuit Cubes outputs: 'a', 'b', 'c'
     this.portState = {
       a: null,
       b: null,
       c: null
     };
 
-    // Telemetry received from cube
     this.lastNotification = "";
     this.rawTelemetry = [];
 
-    // Bind event handlers
     this._onGattDisconnected = this._onGattDisconnected.bind(this);
     this._onTxNotification = this._onTxNotification.bind(this);
   }
-
-  // ---------------- Status + Logging ----------------
 
   setStatus(status, message) {
     this.status = status;
@@ -63,8 +56,6 @@ export class CCubes {
     console.log(`[${this.name || this.namePrefix}] ${msg}`);
     this.manager?.appendLog?.(this, msg);
   }
-
-  // ---------------- Command Queueing ----------------
 
   enqueueCommand(fn) {
     if (!this.queueActive) {
@@ -82,8 +73,6 @@ export class CCubes {
     return this.commandQueue;
   }
 
-  // ---------------- Loop Optimization / Cache Helper ----------------
-  // Avoids sending redundant BLE packets when called repeatedly in Blockly loops
   shouldSend(channel, power, force = false) {
     if (force) {
       this.portState[channel] = power;
@@ -91,7 +80,6 @@ export class CCubes {
     }
 
     if (this.portState[channel] === power) {
-      // Unchanged value; suppress transmission
       return false;
     }
 
@@ -107,8 +95,6 @@ export class CCubes {
     };
   }
 
-  // ---------------- Channel / Port Normalization ----------------
-  // Accepts 'A', 'B', 'C', 'a', 'b', 'c', 1, 2, 3, or 0
   _normalizeChannel(channel) {
     if (typeof channel === "string") {
       const s = channel.trim().toLowerCase();
@@ -122,14 +108,9 @@ export class CCubes {
       if (channel === 3) return "c";
       if (channel === 0) return "a";
     }
-    return "a"; // Default fallback
+    return "a";
   }
 
-  // ---------------- Protocol Encoding ----------------
-  // Format: dNNNc
-  // d: direction '+' or '-'
-  // NNN: speed 000..255 (3 digits with leading zeroes)
-  // c: channel 'a', 'b', or 'c'
   _encodeCommand(channel, power) {
     const p = clamp(Math.round(power || 0), -255, 255);
     const direction = p < 0 ? "-" : "+";
@@ -138,7 +119,6 @@ export class CCubes {
     return `${direction}${speedStr}${channel}`;
   }
 
-  // ---------------- Low-level BLE Write ----------------
   async _writeString(cmdString) {
     return this.enqueueCommand(async () => {
       if (!this.charRx) {
@@ -154,23 +134,13 @@ export class CCubes {
         await this.charRx.writeValue(bytes);
       }
 
-      // Small hardware pacing guard for Circuit Cubes UART queue
-      await new Promise(r => setTimeout(r, 12));
+      await new Promise(r => setTimeout(r, 10));
     });
   }
-
-  // ---------------- Connection Lifecycle ----------------
 
   async connect() {
     this.setStatus("connecting", "Requesting Circuit Cubes...");
     this.log("Connecting to Circuit Cubes Bluetooth Battery Cube...");
-
-    if (!navigator.bluetooth) {
-      const err = new Error("Web Bluetooth API is not available on this browser.");
-      this.log(err.message);
-      this.setStatus("idle", "Bluetooth not supported");
-      throw err;
-    }
 
     let device;
     try {
@@ -178,10 +148,13 @@ export class CCubes {
         filters: [
           { services: [CCUBES_SERVICE_NUS] },
           { namePrefix: "Tenka" },
-          { namePrefix: "Circuit" },
-          { namePrefix: "CC" }
+          { namePrefix: "Circuit" }
         ],
-        optionalServices: [CCUBES_SERVICE_NUS]
+        optionalServices: [
+          CCUBES_SERVICE_NUS,
+          CCUBES_SERVICE_FFF0,
+          CCUBES_SERVICE_FFE0
+        ]
       });
     } catch (err) {
       this.log("No Circuit Cubes device selected");
@@ -190,72 +163,63 @@ export class CCubes {
     }
 
     this.device = device;
-    this.setStatus("connecting", `Connecting to ${device.name || "Circuit Cube"}...`);
 
-    // Connect GATT server with retry
-    // On Windows, the initial pairing handshake may briefly disconnect and reconnect
-    let connected = false;
-    let lastError = null;
+    this.device.addEventListener("gattserverdisconnected", () => {
+      this.log("GATT server disconnected — device lost.");
+      this.manager?.handleDeviceLost?.(this);
+      this.forceDisconnect().catch(() => {});
+    });
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    this.setStatus("connecting", "Connecting via BLE...");
+    this.log(`Connecting to GATT server on ${device.name || "Circuit Cube"}...`);
+
+    this.server = await device.gatt.connect();
+
+    // Auto-detect service: Nordic NUS (6e40) -> FFF0 -> FFE0
+    let foundService = null;
+    let foundRx = null;
+    let foundTx = null;
+
+    try {
+      foundService = await this.server.getPrimaryService(CCUBES_SERVICE_NUS);
+      foundRx = await foundService.getCharacteristic(CCUBES_CHAR_RX_WRITE);
+      foundTx = await foundService.getCharacteristic(CCUBES_CHAR_TX_NOTIF).catch(() => null);
+      this.log("Connected via Nordic UART Service (NUS)");
+    } catch (nusErr) {
+      this.log("NUS 6e40 not found, trying FFF0 alternative service...");
       try {
-        this.log(`Connecting to GATT server on ${device.name || "Circuit Cube"} (attempt ${attempt}/3)...`);
-        this.server = await device.gatt.connect();
-
-        // Brief delay for Bluetooth stack and GATT services to stabilize
-        await new Promise(r => setTimeout(r, 250));
-
-        if (!this.server || !this.server.connected) {
-          throw new Error("GATT server is not connected after handshake");
-        }
-
-        // Discover Nordic UART Service
-        this.log("Locating Nordic UART Service (NUS)...");
-        this.serviceNus = await this.server.getPrimaryService(CCUBES_SERVICE_NUS);
-        connected = true;
-        break;
-      } catch (err) {
-        lastError = err;
-        this.log(`GATT connection attempt ${attempt} failed: ${err?.message || err}`);
-        if (attempt < 3) {
-          this.setStatus("connecting", `Pairing handshake in progress (attempt ${attempt + 1}/3)...`);
-          await new Promise(r => setTimeout(r, 600));
-        }
+        foundService = await this.server.getPrimaryService(CCUBES_SERVICE_FFF0);
+        foundRx = await foundService.getCharacteristic("0000fff2-0000-1000-8000-00805f9b34fb")
+          .catch(() => foundService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb"));
+        foundTx = await foundService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb").catch(() => null);
+        this.log("Connected via FFF0 UART Service");
+      } catch (fffErr) {
+        this.log("FFF0 not found, trying FFE0 alternative service...");
+        foundService = await this.server.getPrimaryService(CCUBES_SERVICE_FFE0);
+        foundRx = await foundService.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb");
+        foundTx = foundRx;
+        this.log("Connected via FFE0 UART Service");
       }
     }
 
-    if (!connected || !this.serviceNus) {
-      throw lastError || new Error("Failed to connect to GATT server or discover NUS service.");
-    }
+    this.serviceNus = foundService;
+    this.charRx = foundRx;
+    this.charTx = foundTx;
 
-    // Discover RX Characteristic (device write command)
-    this.log("Locating RX characteristic (commands)...");
-    this.charRx = await this.serviceNus.getCharacteristic(CCUBES_CHAR_RX_WRITE);
-
-    // Discover TX Characteristic (device notifications, if supported)
-    try {
-      this.charTx = await this.serviceNus.getCharacteristic(CCUBES_CHAR_TX_NOTIF);
-      if (this.charTx) {
+    if (this.charTx && this.charTx.startNotifications) {
+      try {
         await this.charTx.startNotifications();
         this.charTx.addEventListener("characteristicvaluechanged", this._onTxNotification);
-      }
-    } catch (notifErr) {
-      this.log("TX notifications not available or optional: " + (notifErr?.message || notifErr));
+      } catch (_) {}
     }
 
-    // Allocate Name via DeviceManager (CCubes1, CCubes2, etc.)
     if (!this.name) {
-      this.name = this.manager?._allocateName ? this.manager._allocateName(this.namePrefix) : "CCubes1";
+      this.name = this.manager._allocateName(this.namePrefix);
     }
 
     this.isConnected = true;
     this.queueActive = true;
     this.resetPortStates();
-
-    // Attach lost-device listener ONLY AFTER successful connection!
-    // This prevents premature teardown during the initial Windows pairing handshake.
-    this.device.removeEventListener("gattserverdisconnected", this._onGattDisconnected);
-    this.device.addEventListener("gattserverdisconnected", this._onGattDisconnected);
 
     this.log(`Connected as ${this.name}`);
     this.setStatus("connected", "Connected");
@@ -267,17 +231,12 @@ export class CCubes {
     try {
       this.queueActive = false;
 
-      // Stop motors cleanly before disconnect
       try {
         await this.motorStopAll();
       } catch (_) {}
 
       if (this.charTx) {
         this.charTx.removeEventListener("characteristicvaluechanged", this._onTxNotification);
-      }
-
-      if (this.device) {
-        this.device.removeEventListener("gattserverdisconnected", this._onGattDisconnected);
       }
 
       if (this.server && this.server.connected) {
@@ -300,11 +259,8 @@ export class CCubes {
         this.charTx.removeEventListener("characteristicvaluechanged", this._onTxNotification);
       }
 
-      if (this.device) {
-        this.device.removeEventListener("gattserverdisconnected", this._onGattDisconnected);
-        if (this.device.gatt && this.device.gatt.connected) {
-          this.device.gatt.disconnect();
-        }
+      if (this.device && this.device.gatt && this.device.gatt.connected) {
+        this.device.gatt.disconnect();
       }
 
       this.isConnected = false;
@@ -316,15 +272,10 @@ export class CCubes {
   }
 
   _onGattDisconnected() {
-    // Ignore if not yet connected or already disconnected
-    if (!this.isConnected) {
-      return;
-    }
     this.isConnected = false;
     this.queueActive = false;
     this.setStatus("disconnected", "GATT disconnected");
     this.log("GATT server disconnected — device lost.");
-    this.manager?.handleDeviceLost?.(this);
   }
 
   _onTxNotification(event) {
@@ -340,12 +291,6 @@ export class CCubes {
 
   // ---------------- Motor Control API for Blockly ----------------
 
-  /**
-   * Set motor power for a specific channel (A, B, C)
-   * @param {string|number} channel Port/Channel ('A', 'B', 'C', 1, 2, 3, or 'all')
-   * @param {number} power Speed value (-255 to 255; negative for reverse, positive for forward, 0 to stop)
-   * @param {boolean} force If true, bypasses loop command de-duplication cache
-   */
   async motorPower(channel = "a", power = 100, force = false) {
     const ch = this._normalizeChannel(channel);
 
@@ -358,7 +303,6 @@ export class CCubes {
 
     const p = clamp(Math.round(Number(power) || 0), -255, 255);
 
-    // Suppress redundant command if power hasn't changed inside a Blockly loop
     if (!this.shouldSend(ch, p, force)) {
       return;
     }
@@ -367,40 +311,22 @@ export class CCubes {
     await this._writeString(cmd);
   }
 
-  /**
-   * Stop a single motor channel
-   * @param {string|number} channel Channel ('A', 'B', 'C', 1, 2, 3)
-   */
   async motorStop(channel = "a") {
     await this.motorPower(channel, 0, true);
   }
 
-  /**
-   * Stop all 3 motor outputs on the Circuit Cube
-   */
   async motorStopAll() {
     await this.motorPower("a", 0, true);
     await this.motorPower("b", 0, true);
     await this.motorPower("c", 0, true);
   }
 
-  /**
-   * Run motor for a specified duration in milliseconds, then stop
-   * @param {string|number} channel Port ('A', 'B', 'C', 1, 2, 3)
-   * @param {number} power Speed (-255 to 255)
-   * @param {number} durationMs Duration in ms
-   */
   async motorTime(channel = "a", power = 100, durationMs = 1000) {
     await this.motorPower(channel, power, true);
     await new Promise(resolve => setTimeout(resolve, durationMs));
     await this.motorStop(channel);
   }
 
-  /**
-   * Get currently commanded power for a port
-   * @param {string|number} channel
-   * @returns {number}
-   */
   getMotorPower(channel = "a") {
     const ch = this._normalizeChannel(channel);
     return this.portState[ch] ?? 0;
