@@ -28,6 +28,7 @@ import "./device/DeviceLegoToyPad.js";
 import "./device/DeviceSBrick.js";
 import "./device/DeviceLegoPFIR.js";
 import "./device/DeviceLegoPFIRrcx.js";
+import "./device/DeviceCCubes.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
@@ -989,12 +990,15 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.motor_StopAll) {
         // PF IR: stop all motors of all channels
         await dev.motor_StopAll();
-      } else if (dev.motorStopAll) {
+      } else if (dev.name.startsWith("SBrick")) {
         // SBrick: stop all motors / Lights
         dev.queueActive = false;
         await dev.commandQueue;
         await dev.motorStopAll();
         await dev._sendCommand(0x2C, [], false); // Stop Periodic adc readings
+      } else if (dev.name.startsWith("CCubes")) {
+        // Circuit Cubes: stop all motors / Lights
+        await dev.motorStopAll();
       }
 
     } catch (err) {
@@ -1099,6 +1103,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "PF_IR_RCX":
       dev = await window.deviceManager.connectLegoPFIRrcx();   // your unified PF IR RCX class
+      break;
+    
+    case "CCubes":
+      dev = await window.deviceManager.connectCCubes();
       break;
 
     default:

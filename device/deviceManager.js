@@ -14,6 +14,7 @@ import { LegoToyPad } from './DeviceLegoToyPad.js';
 import { SBrick } from './DeviceSBrick.js';
 import { LegoPFIR } from './DeviceLegoPFIR.js';
 import { LegoPFIRrcx } from './DeviceLegoPFIRrcx.js';
+import { CCubes } from './DeviceCCubes.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -446,13 +447,32 @@ export class DeviceManager {
       return dev;
 
     } catch (err) {
-      console.warn("Lego PF IR RCXConnection failed:", err);
+      console.warn("Lego PF IR RCX Connection failed:", err);
       await dev.disconnect();
       this._freeName(dev.name);
       return null;
     }
   }
+  
+  // -------------------------
+  // Connect Circuit Cubes
+  // -------------------------
 
+  async connectCCubes() {
+    const dev = new CCubes(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, PF IR logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("Circuit Cubes Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
   // -------------------------
   // Disconnect All
   // -------------------------
