@@ -14,7 +14,7 @@ import { LegoToyPad } from './DeviceLegoToyPad.js';
 import { SBrick } from './DeviceSBrick.js';
 import { LegoPFIR } from './DeviceLegoPFIR.js';
 import { LegoPFIRrcx } from './DeviceLegoPFIRrcx.js';
-import { CCubes } from './DeviceCCubes.js';
+import { CCubesESP32 } from './DeviceCCubesESP32.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -455,11 +455,11 @@ export class DeviceManager {
   }
   
   // -------------------------
-  // Connect Circuit Cubes
+  // Connect Circuit Cubes ESP32 Bridge
   // -------------------------
 
-  async connectCCubes() {
-    const dev = new CCubes(null, this);
+  async connectCCubesESP32() {
+    const dev = new CCubesESP32(null, this);
 
     try {
       await dev.connect();
