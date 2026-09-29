@@ -3673,7 +3673,77 @@ window.addEventListener("load", () => {
     }
 
   ]);
-  
+
+  // ---------------- Circuit Cubes BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "cube_mot_power",
+      "message0": "%1 cube %2 port %3 pwr %4",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getCCubesESP32Dropdown },
+				{ "type": "field_dropdown", "name": "CUBE", "options": [["1", "1"],["2", "2"]]},
+				{ "type": "field_dropdown", "name": "PORT", "options": [["A", "1"],["B", "2"], ["C", "3"]]},
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 50 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#007dd6",
+      "tooltip": "Turn ON when power = -255 to +255, 0=Stop"
+    },
+    {
+      "type": "cube_stop_all",
+      "message0": "%1 cube %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getCCubesESP32Dropdown },
+				{ "type": "field_dropdown", "name": "CUBE", "options": [["1", "1"],["2", "2"]]}
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#007dd6",
+      "tooltip": "Stop All Motors of a Cube"
+    },
+    {
+      "type": "cube_assign",
+      "message0": "%1 cube %2 MAC %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getCCubesESP32Dropdown },
+				{ "type": "field_dropdown", "name": "CUBE", "options": [["1", "1"],["2", "2"]]},
+        {
+          "type": "input_value",
+          "name": "MAC",
+          "check": "String"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": "#007dd6",
+      "tooltip": "Assign MAC address to a Cube"
+    },
+    {
+      "type": "cube_scan",
+      "message0": "%1 get MAC list",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getCCubesESP32Dropdown }
+      ],
+      "inputsInline": true,
+			"output": "Array",
+      "colour": "#007dd6",
+      "tooltip": "Get available Cubes MAC address into a list"
+    }
+
+  ]);  
+
   
   // ---------------- LEGO SBrick/SBrick+/SBrick Light BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([

@@ -2613,6 +2613,63 @@ javascriptGenerator.forBlock["tpad_fade_leds_sliders"] = function (block) {
 };
 
 
+// ---------------- CIRCUIT CUBES GENERATORS ----------------
+
+javascriptGenerator.forBlock["cube_mot_power"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const cube = block.getFieldValue("CUBE");
+  const port = block.getFieldValue("PORT");
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorPower(${cube}, ${port}, ${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["cube_stop_all"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const cube = block.getFieldValue("CUBE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStopAll(${cube});
+}
+`;
+};
+
+javascriptGenerator.forBlock["cube_assign"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const cube = block.getFieldValue("CUBE");
+  const mac  = javascriptGenerator.valueToCode(block, "MAC", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.assignCube(${cube}, ${mac});
+}
+`;
+};
+
+javascriptGenerator.forBlock["cube_scan"] = function (block) {
+  const dev    = block.getFieldValue("DEVICE");
+
+  const code =
+    `(await deviceManager.getDeviceByName("${dev}").scanForMacList()`;
+
+  return [code, javascriptGenerator.ORDER_NONE];
+};
+
+
 
 
 // ---------------- SBRICK DEVICE GENERATORS ----------------

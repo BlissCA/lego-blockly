@@ -2310,7 +2310,30 @@ const toolbox = {
         },
         { "kind": "block", "type": "legopfir_readgeneric" }
       ]
+    },
+    {
+      "kind": "category",
+      "name": "Cube",
+      "colour": "#007dd6",
+      "contents": [
+				{ "kind": "block", "type": "cube_scan" },
+        {
+          "kind": "block",
+          "type": "cube_assign",
+          "inputs": {
+            "MAC": {
+              "shadow": {
+                "type": "text",
+                "fields": { "TEXT": "01:02:03:04:05:06" }
+              }
+            }
+          }
+        },
+        { "kind": "block", "type": "cube_mot_power" },
+        { "kind": "block", "type": "cube_stop_all" }
+      ]
     }
+    
     /*
     ,
     {
