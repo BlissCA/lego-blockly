@@ -2664,7 +2664,7 @@ javascriptGenerator.forBlock["cube_scan"] = function (block) {
   const dev    = block.getFieldValue("DEVICE");
 
   const code =
-    `(await deviceManager.getDeviceByName("${dev}").scanForMacList()`;
+    `(await deviceManager.getDeviceByName("${dev}").scanForMacList())`;
 
   return [code, javascriptGenerator.ORDER_NONE];
 };

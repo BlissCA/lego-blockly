@@ -3701,7 +3701,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "cube_stop_all",
-      "message0": "%1 cube %2",
+      "message0": "%1 cube %2 Stop all",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getCCubesESP32Dropdown },
 				{ "type": "field_dropdown", "name": "CUBE", "options": [["1", "1"],["2", "2"]]}
