@@ -190,20 +190,46 @@ export class CCubes {
     }
 
     this.device = device;
+    this.setStatus("connecting", `Connecting to ${device.name || "Circuit Cube"}...`);
 
-    // Lost-device detection handler
-    this.device.addEventListener("gattserverdisconnected", this._onGattDisconnected);
+    // Connect GATT server with retry
+    // On Windows, the initial pairing handshake may briefly disconnect and reconnect
+    let connected = false;
+    let lastError = null;
 
-    this.setStatus("connecting", "Connecting via BLE...");
-    this.log(`Connecting to GATT server on ${device.name || "Circuit Cube"}...`);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        this.log(`Connecting to GATT server on ${device.name || "Circuit Cube"} (attempt ${attempt}/3)...`);
+        this.server = await device.gatt.connect();
 
-    // Connect GATT server
-    this.server = await device.gatt.connect();
+        // Brief delay for Bluetooth stack and GATT services to stabilize
+        await new Promise(r => setTimeout(r, 250));
 
-    // Discover Nordic UART Service
-    this.serviceNus = await this.server.getPrimaryService(CCUBES_SERVICE_NUS);
+        if (!this.server || !this.server.connected) {
+          throw new Error("GATT server is not connected after handshake");
+        }
+
+        // Discover Nordic UART Service
+        this.log("Locating Nordic UART Service (NUS)...");
+        this.serviceNus = await this.server.getPrimaryService(CCUBES_SERVICE_NUS);
+        connected = true;
+        break;
+      } catch (err) {
+        lastError = err;
+        this.log(`GATT connection attempt ${attempt} failed: ${err?.message || err}`);
+        if (attempt < 3) {
+          this.setStatus("connecting", `Pairing handshake in progress (attempt ${attempt + 1}/3)...`);
+          await new Promise(r => setTimeout(r, 600));
+        }
+      }
+    }
+
+    if (!connected || !this.serviceNus) {
+      throw lastError || new Error("Failed to connect to GATT server or discover NUS service.");
+    }
 
     // Discover RX Characteristic (device write command)
+    this.log("Locating RX characteristic (commands)...");
     this.charRx = await this.serviceNus.getCharacteristic(CCUBES_CHAR_RX_WRITE);
 
     // Discover TX Characteristic (device notifications, if supported)
@@ -225,6 +251,11 @@ export class CCubes {
     this.isConnected = true;
     this.queueActive = true;
     this.resetPortStates();
+
+    // Attach lost-device listener ONLY AFTER successful connection!
+    // This prevents premature teardown during the initial Windows pairing handshake.
+    this.device.removeEventListener("gattserverdisconnected", this._onGattDisconnected);
+    this.device.addEventListener("gattserverdisconnected", this._onGattDisconnected);
 
     this.log(`Connected as ${this.name}`);
     this.setStatus("connected", "Connected");
@@ -269,8 +300,11 @@ export class CCubes {
         this.charTx.removeEventListener("characteristicvaluechanged", this._onTxNotification);
       }
 
-      if (this.device && this.device.gatt.connected) {
-        this.device.gatt.disconnect();
+      if (this.device) {
+        this.device.removeEventListener("gattserverdisconnected", this._onGattDisconnected);
+        if (this.device.gatt && this.device.gatt.connected) {
+          this.device.gatt.disconnect();
+        }
       }
 
       this.isConnected = false;
@@ -282,6 +316,10 @@ export class CCubes {
   }
 
   _onGattDisconnected() {
+    // Ignore if not yet connected or already disconnected
+    if (!this.isConnected) {
+      return;
+    }
     this.isConnected = false;
     this.queueActive = false;
     this.setStatus("disconnected", "GATT disconnected");
