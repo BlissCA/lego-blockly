@@ -865,6 +865,15 @@ function getLegoPFIRDropdown() {
     : [['No Lego PF IR', 'NONE']];
 }
 
+// Only Circuit Cubes ESP32 devices
+function getCCubesESP32Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "Cubesp");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No SBrick', 'NONE']];
+}
 
 window.addEventListener("load", () => {
 

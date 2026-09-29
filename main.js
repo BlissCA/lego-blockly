@@ -28,7 +28,7 @@ import "./device/DeviceLegoToyPad.js";
 import "./device/DeviceSBrick.js";
 import "./device/DeviceLegoPFIR.js";
 import "./device/DeviceLegoPFIRrcx.js";
-import "./device/DeviceCCubesESP32.js";
+import "./device/DeviceCCubesESP32BLE.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
