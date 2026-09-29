@@ -35,7 +35,8 @@ const ASSETS = [
   "./device/DeviceSBrick.js",
   "./device/DeviceLegoPFIR.js",
   "./device/DeviceLegoPFIRrcx.js",
-  
+  "./device/DeviceCCubesESP32.js",
+
   // Icons
   "./icons/icon-192.png",
   "./icons/icon-512.png"
