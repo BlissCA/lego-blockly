@@ -996,7 +996,7 @@ document.getElementById("stopBtn").onclick = async () => {
         await dev.commandQueue;
         await dev.motorStopAll();
         await dev._sendCommand(0x2C, [], false); // Stop Periodic adc readings
-      } else if (dev.name.startsWith("CCubesp")) {
+      } else if (dev.name.startsWith("Cubesp")) {
         // Circuit Cubes: stop all motors / Lights
         await dev.motorStopAll();
       }
