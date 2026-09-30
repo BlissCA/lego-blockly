@@ -15,6 +15,25 @@
     Circuit Cube #1 & Cube #2 (Tenka Nordic UART Service)
 
     * Note: Also accepts commands simultaneously via USB Serial (115200 baud).
+
+  Serial Protocol (115200 baud, newline-terminated):
+    PC -> ESP32:
+      PING                         -> Handshake check (responds: PONG:CCUBES_BRIDGE_V1)
+      SCAN:<seconds>               -> Runs BLE scan (e.g. SCAN:3)
+      ASSIGN:<cubeNum>:<mac>       -> Connects Cube 1 or 2 to MAC (e.g. ASSIGN:1:FC:58:FA:86:E9:38)
+      DISCONNECT:<cubeNum>         -> Disconnects specified cube (e.g. DISCONNECT:1)
+      MOTOR:<cubeNum>:<ch>:<power> -> Commands motor (e.g. MOTOR:1:a:200 or MOTOR:2:all:0)
+      STOP:<cubeNum>               -> Stops all 3 channels on cube (e.g. STOP:1)
+      STOP_ALL                     -> Stops all channels on all connected cubes
+      STATUS                       -> Queries connection status of both cubes
+
+    ESP32 -> PC:
+      PONG:CCUBES_BRIDGE_V1
+      FOUND:<mac>:<name>:<rssi>    -> Emitted during SCAN for each Tenka/Circuit Cube
+      SCAN_DONE                    -> Emitted when BLE scan finishes
+      STATUS:<cubeNum>:<STATE>:<mac> (STATE = CONNECTED | DISCONNECTED | FAILED | CONNECTING)
+      LOG:<message>
+      OK    
   =============================================================================
 */
 
@@ -238,9 +257,36 @@ bool connectCube(int cubeIdx, String mac) {
   c.pRxChar = nullptr;
 
   sendResponse("STATUS:" + String(c.id) + ":CONNECTING:" + mac);
-  sendResponse("LOG:Connecting to " + mac + "...");
+  sendResponse("LOG:Searching for Cube " + mac + "...");
 
-  BLEAddress targetAddr(mac.c_str());
+  if (isScanning) {
+    pBLEScan->stop();
+    isScanning = false;
+  }
+
+  pBLEScan->clearResults();
+  BLEScanResults* pResults = pBLEScan->start(2, false);
+  BLEAdvertisedDevice* pFoundDevice = nullptr;
+
+  if (pResults != nullptr) {
+    for (int i = 0; i < pResults->getCount(); i++) {
+      BLEAdvertisedDevice dev = pResults->getDevice(i);
+      String devAddr = dev.getAddress().toString().c_str();
+      if (devAddr.equalsIgnoreCase(mac)) {
+        pFoundDevice = new BLEAdvertisedDevice(dev);
+        break;
+      }
+    }
+  }
+
+  if (pFoundDevice == nullptr) {
+    pBLEScan->clearResults();
+    sendResponse("STATUS:" + String(c.id) + ":FAILED:NOT_FOUND");
+    sendResponse("LOG:Cube " + mac + " not found nearby (Cube is off or out of range).");
+    return false;
+  }
+
+  sendResponse("LOG:Cube found! Establishing BLE connection...");
 
   if (c.pClient == nullptr) {
     c.pClient = BLEDevice::createClient();
@@ -248,13 +294,15 @@ bool connectCube(int cubeIdx, String mac) {
   }
 
   bool connected = false;
-  if (c.pClient->connect(targetAddr)) {
+  if (c.pClient->connect(pFoundDevice)) {
     connected = true;
   }
+  delete pFoundDevice;
+  pBLEScan->clearResults();
 
   if (!connected) {
     sendResponse("STATUS:" + String(c.id) + ":FAILED:NOT_FOUND");
-    sendResponse("LOG:Could not reach Cube #" + String(c.id) + " (" + mac + "). Is it turned on?");
+    sendResponse("LOG:Could not reach Cube #" + String(c.id) + " (" + mac + ").");
     return false;
   }
 

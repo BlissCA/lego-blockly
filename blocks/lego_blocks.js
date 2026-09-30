@@ -3689,7 +3689,7 @@ window.addEventListener("load", () => {
           "check": "Number",
           "shadow": {
             "type": "math_number",
-            "fields": { "NUM": 50 }
+            "fields": { "NUM": 200 }
           }
         }
       ],

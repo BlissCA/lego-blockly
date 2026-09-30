@@ -2329,11 +2329,25 @@ const toolbox = {
             }
           }
         },
-        { "kind": "block", "type": "cube_mot_power" },
+        { "kind": "block", "type": "cube_mot_power",
+          "inputs": {
+            "PWR": {
+              "shadow": {
+                "type": "math_number_constrained",
+                "extraState": {
+                  "min": -255,
+                  "max": 255,
+                  "precision": 1
+                },
+                "fields": { "NUM": 200 }
+              }
+            }
+          }
+        },
         { "kind": "block", "type": "cube_stop_all" }
       ]
     }
-    
+
     /*
     ,
     {
