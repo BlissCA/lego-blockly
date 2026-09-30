@@ -240,15 +240,21 @@ export class CCubesESP32BLE {
     document.dispatchEvent(new Event("serial-connected"));
   }
 
+  _withTimeout(promise, ms, label) {
+    let t;
+    const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+  }
+
   // Opens GATT + notifications on this.device (used by connect() and by auto-reconnect)
   async _openGatt() {
     try { this.charTx?.removeEventListener("characteristicvaluechanged", this._handleNotification); } catch (_) {}
     this._incomingBuffer = "";
-    this.server = await this.device.gatt.connect();
-    this.service = await this.server.getPrimaryService(NUS_SERVICE_UUID);
-    this.charRx = await this.service.getCharacteristic(NUS_CHAR_RX_UUID);
-    this.charTx = await this.service.getCharacteristic(NUS_CHAR_TX_UUID);
-    await this.charTx.startNotifications();
+    this.server = await this._withTimeout(this.device.gatt.connect(), 10000, "GATT connect");
+    this.service = await this._withTimeout(this.server.getPrimaryService(NUS_SERVICE_UUID), 8000, "Service discovery");
+    this.charRx = await this._withTimeout(this.service.getCharacteristic(NUS_CHAR_RX_UUID), 5000, "RX characteristic");
+    this.charTx = await this._withTimeout(this.service.getCharacteristic(NUS_CHAR_TX_UUID), 5000, "TX characteristic");
+    await this._withTimeout(this.charTx.startNotifications(), 8000, "Start notifications");
     this.charTx.addEventListener("characteristicvaluechanged", this._handleNotification);
     this.isConnected = true;
   }
@@ -294,11 +300,14 @@ export class CCubesESP32BLE {
     this._reconnecting = true;
     this.setStatus("connecting", "Bridge link lost, reconnecting...");
     this.commandQueue = Promise.resolve();
-    for (let attempt = 1; attempt <= 6; attempt++) {
+    const MAX = 8;
+    for (let attempt = 1; attempt <= MAX; attempt++) {
       if (!this.queueActive) { this._reconnecting = false; return; }
-      await new Promise(r => setTimeout(r, attempt === 1 ? 700 : 1500));
+      // Drop any stale/half-open link so Windows and the ESP32 both start clean
+      try { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); } catch (_) {}
+      await new Promise(r => setTimeout(r, attempt === 1 ? 1500 : 2000));
       try {
-        this.log(`Reconnecting to bridge (attempt ${attempt}/6)...`);
+        this.log(`Reconnecting to bridge (attempt ${attempt}/${MAX})...`);
         await this._openGatt();
         this._reconnecting = false;
         this.setStatus("connected", "Wireless Bridge Connected");
@@ -309,7 +318,9 @@ export class CCubesESP32BLE {
         this.log("Reconnect failed: " + (err?.message || err));
       }
     }
+    try { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); } catch (_) {}
     this._reconnecting = false;
+    this.isConnected = false;
     this.log("Could not reconnect to the bridge.");
     this.manager?.handleDeviceLost?.(this);
   }
