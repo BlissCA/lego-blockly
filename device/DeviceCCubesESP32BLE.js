@@ -109,7 +109,7 @@ export class CCubesESP32BLE {
     return this.enqueueCommand(async () => {
       if (!this.charRx) throw new Error("Wireless bridge characteristic not available");
       const data = line.endsWith("\n") ? line : line + "\n";
-      console.log(`[ESP32-BLE TX] ${line.trim()}`);
+      //console.log(`[ESP32-BLE TX] ${line.trim()}`);
       const bytes = new TextEncoder().encode(data);
       const CHUNK_SIZE = 20;
       for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
