@@ -167,13 +167,18 @@ export class CCubesESP32BLE {
       return;
     }
     if (line === "SCAN_DONE") {
-      this._scanActive = false;
-      this.log(`BLE Scan complete. Found ${this._discoveredCubes.length} Circuit Cube(s).`);
-      if (this._scanResolve) {
-        this._scanResolve([...this._discoveredCubes]);
-        this._scanResolve = null;
-      }
-      window.dispatchEvent(new CustomEvent("cubesp-scan-done", { detail: this._discoveredCubes }));
+      // Wait briefly so a FOUND line that arrives just after SCAN_DONE is still counted.
+      // _scanActive stays true meanwhile, so a new scan() can't start and wipe the list.
+      setTimeout(() => {
+        const result = [...this._discoveredCubes];
+        this._scanActive = false;
+        this.log(`BLE Scan complete. Found ${result.length} Circuit Cube(s).`);
+        if (this._scanResolve) {
+          this._scanResolve(result);
+          this._scanResolve = null;
+        }
+        window.dispatchEvent(new CustomEvent("cubesp-scan-done", { detail: result }));
+      }, 300);
       return;
     }
     if (line.startsWith("STATUS:")) {
