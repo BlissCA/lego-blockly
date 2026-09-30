@@ -309,14 +309,19 @@ export class CCubesESP32BLE {
     const mac = String(macAddress || "").trim().toUpperCase();
     if (!mac || mac.length < 11) throw new Error(`Invalid MAC: "${macAddress}"`);
 
+    if (this.cubes[idx]?.isConnected && this.cubes[idx]?.mac === mac) {
+      this.log(`Cube #${idx} is already paired and connected to ${mac}.`);
+      return { success: true, cube: idx, mac, alreadyConnected: true };
+    }
+
     const promise = new Promise((resolve, reject) => {
       this._assignResolvers[idx] = { resolve, reject };
       setTimeout(() => {
         if (this._assignResolvers[idx]) {
-          this._assignResolvers[idx].reject(new Error(`Connection to ${mac} timed out.`));
+          this._assignResolvers[idx].reject(new Error(`Connection to ${mac} timed out (Cube is off or out of range).`));
           this._assignResolvers[idx] = null;
         }
-      }, 12000);
+      }, 10000);
     });
 
     await this.writeLine(`ASSIGN:${idx}:${mac}`);

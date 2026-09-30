@@ -2,6 +2,20 @@
   =============================================================================
   Circuit Cubes ESP32 Wireless BLE Multi-Role Bridge (CCubesESP32BLEBridge.ino)
   =============================================================================
+  Compatible with:
+    - ESP32 (ESP-WROOM-32, NodeMCU-32S, ESP32 DevKit)
+    - ESP32-S3 (ESP32-S3 DevKitC-1, etc.)
+    - ESP32-C3 (ESP32-C3 DevKitM-1, SuperMini, etc.)
+
+  Architecture:
+    PC (Web Bluetooth in Chrome)
+         || (BLE Wireless - Peripheral Role: "CCubes_ESP32_Bridge")
+       ESP32 (BLE Multi-Role: Server to PC, Client to Cubes)
+         || (BLE Wireless - Central Role)
+    Circuit Cube #1 & Cube #2 (Tenka Nordic UART Service)
+
+    * Note: Also accepts commands simultaneously via USB Serial (115200 baud).
+  =============================================================================
 */
 
 #include <Arduino.h>
@@ -12,8 +26,6 @@
 #include <BLEAdvertisedDevice.h>
 #include <BLEClient.h>
 #include <BLE2902.h>
-#include <queue>
-#include <string>
 
 static const char* NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 static const char* NUS_CHAR_RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -39,7 +51,58 @@ static BLEServer* pBleServer = nullptr;
 static BLECharacteristic* pServerTxChar = nullptr;
 static bool isPcConnected = false;
 
-// Thread-safe command queue between BLE callback and main loop
+void handleCommand(String line);
+
+#include <queue>
+#include <string>
+
+static std::queue<String> responseQueue;
+static portMUX_TYPE respMux = portMUX_INITIALIZER_UNLOCKED;
+
+void sendResponse(String msg) {
+  Serial.println(msg);
+
+  portENTER_CRITICAL(&respMux);
+  if (responseQueue.size() < 32) {
+    responseQueue.push(msg);
+  }
+  portEXIT_CRITICAL(&respMux);
+}
+
+void flushResponses() {
+  if (!isPcConnected || pServerTxChar == nullptr) {
+    portENTER_CRITICAL(&respMux);
+    while (!responseQueue.empty()) responseQueue.pop();
+    portEXIT_CRITICAL(&respMux);
+    return;
+  }
+
+  for (int r = 0; r < 3; r++) {
+    String msg = "";
+    portENTER_CRITICAL(&respMux);
+    if (!responseQueue.empty()) {
+      msg = responseQueue.front();
+      responseQueue.pop();
+    }
+    portEXIT_CRITICAL(&respMux);
+
+    if (msg.length() == 0) break;
+
+    String payload = msg + "\n";
+    const uint8_t* data = (const uint8_t*)payload.c_str();
+    size_t len = payload.length();
+    size_t offset = 0;
+
+    while (offset < len) {
+      size_t chunk = (len - offset > 20) ? 20 : (len - offset);
+      pServerTxChar->setValue((uint8_t*)(data + offset), chunk);
+      pServerTxChar->notify();
+      offset += chunk;
+      if (offset < len) delay(3);
+    }
+  }
+}
+
 static std::queue<std::string> bleCmdQueue;
 static portMUX_TYPE cmdMux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -49,27 +112,6 @@ void queueBleCommand(const std::string& cmd) {
     bleCmdQueue.push(cmd);
   }
   portEXIT_CRITICAL(&cmdMux);
-}
-
-void handleCommand(String line);
-
-void sendResponse(String msg) {
-  Serial.println(msg);
-
-  if (isPcConnected && pServerTxChar != nullptr) {
-    String payload = msg + "\n";
-    const char* data = payload.c_str();
-    size_t len = payload.length();
-    size_t offset = 0;
-
-    while (offset < len) {
-      size_t chunk = (len - offset > 20) ? 20 : (len - offset);
-      pServerTxChar->setValue((uint8_t*)(data + offset), chunk);
-      pServerTxChar->notify();
-      offset += chunk;
-      if (offset < len) delay(4);
-    }
-  }
 }
 
 class BleServerCallbacks : public BLEServerCallbacks {
@@ -178,9 +220,17 @@ bool connectCube(int cubeIdx, String mac) {
   if (cubeIdx < 0 || cubeIdx >= MAX_CUBES) return false;
   CubeSlot& c = cubes[cubeIdx];
 
+  // 1. Already connected to this exact MAC: Keep existing link, report success immediately
+  if (c.isConnected && c.pClient != nullptr && c.pClient->isConnected() && c.macAddress.equalsIgnoreCase(mac)) {
+    sendResponse("STATUS:" + String(c.id) + ":CONNECTED:" + mac);
+    sendResponse("LOG:Cube #" + String(c.id) + " is already paired and connected to " + mac);
+    return true;
+  }
+
+  // 2. If previously connected to a different MAC, disconnect it first
   if (c.pClient != nullptr && c.pClient->isConnected()) {
     c.pClient->disconnect();
-    delay(150);
+    delay(100);
   }
 
   c.macAddress = mac;
@@ -188,6 +238,7 @@ bool connectCube(int cubeIdx, String mac) {
   c.pRxChar = nullptr;
 
   sendResponse("STATUS:" + String(c.id) + ":CONNECTING:" + mac);
+  sendResponse("LOG:Connecting to " + mac + "...");
 
   BLEAddress targetAddr(mac.c_str());
 
@@ -197,17 +248,13 @@ bool connectCube(int cubeIdx, String mac) {
   }
 
   bool connected = false;
-  for (int attempt = 1; attempt <= 2; attempt++) {
-    sendResponse("LOG:Connecting to " + mac + " (attempt " + String(attempt) + "/2)...");
-    if (c.pClient->connect(targetAddr)) {
-      connected = true;
-      break;
-    }
-    delay(200);
+  if (c.pClient->connect(targetAddr)) {
+    connected = true;
   }
 
   if (!connected) {
-    sendResponse("STATUS:" + String(c.id) + ":FAILED:CONNECTION_TIMEOUT");
+    sendResponse("STATUS:" + String(c.id) + ":FAILED:NOT_FOUND");
+    sendResponse("LOG:Could not reach Cube #" + String(c.id) + " (" + mac + "). Is it turned on?");
     return false;
   }
 
@@ -227,6 +274,7 @@ bool connectCube(int cubeIdx, String mac) {
   c.portPower[1] = 0;
   c.portPower[2] = 0;
 
+  // Ultra-low latency connection interval: 7.5ms min, 15ms max
   c.pClient->updateConnParams(6, 12, 0, 200);
 
   sendResponse("STATUS:" + String(c.id) + ":CONNECTED:" + mac);
@@ -253,8 +301,8 @@ bool setMotorPower(int cubeIdx, char channel, int power) {
   if (cubeIdx < 0 || cubeIdx >= MAX_CUBES) return false;
   CubeSlot& c = cubes[cubeIdx];
 
-  if (!c.isConnected || c.pRxChar == nullptr) {
-    sendResponse("LOG:Error: Cube #" + String(c.id) + " is not connected.");
+  if (!c.isConnected || c.pClient == nullptr || !c.pClient->isConnected() || c.pRxChar == nullptr) {
+    c.isConnected = false;
     return false;
   }
 
@@ -396,11 +444,9 @@ void setup() {
     cubes[i].portPower[2] = 0;
   }
 
-  // 1. Initialize BLE Stack with high MTU
   BLEDevice::init("CCubes_ESP32_Bridge");
   BLEDevice::setMTU(517);
 
-  // 2. Setup GATT Server (Peripheral to PC)
   pBleServer = BLEDevice::createServer();
   pBleServer->setCallbacks(new BleServerCallbacks());
 
@@ -420,15 +466,13 @@ void setup() {
 
   pService->start();
 
-  // 3. Setup Advertising to PC
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(BLEUUID(NUS_SERVICE_UUID));
   pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06); // 7.5ms
-  pAdvertising->setMaxPreferred(0x10); // 20ms
+  pAdvertising->setMinPreferred(0x06);
+  pAdvertising->setMaxPreferred(0x10);
   BLEDevice::startAdvertising();
 
-  // 4. Setup BLE Scanner (Central to Circuit Cubes)
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new ScanAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
@@ -446,7 +490,8 @@ static char rxBuffer[128];
 static uint8_t rxIndex = 0;
 
 void loop() {
-  // 1. Process commands from Web Bluetooth (safely in main task context)
+  flushResponses();
+
   std::string bleCmd = "";
   portENTER_CRITICAL(&cmdMux);
   if (!bleCmdQueue.empty()) {
@@ -459,7 +504,6 @@ void loop() {
     handleCommand(String(bleCmd.c_str()));
   }
 
-  // 2. Read any serial commands from USB if connected
   while (Serial.available() > 0) {
     char c = (char)Serial.read();
     if (c == '\n' || c == '\r') {
@@ -475,11 +519,9 @@ void loop() {
     }
   }
 
-  // 3. Check if active BLE scan has completed
   if (isScanning && millis() >= scanEndTime) {
     isScanning = false;
     pBLEScan->stop();
     sendResponse("SCAN_DONE");
-    sendResponse("LOG:BLE Scan complete.");
   }
 }
