@@ -245,7 +245,7 @@ export class DeviceManager {
   }
 
   // -------------------------
-  // Connect LEGO RCX
+  // Connect LEGO RCX Serial IR Tower OR CyberMaster Serial Radio Tower)
   // -------------------------
 
   async connectRcx() {
@@ -262,6 +262,29 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("RCX connection failed:", err);
+      await dev.disconnect();
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO RCX USB IR TOWER
+  // -------------------------
+
+  async connectRcx() {
+    const dev = new LegoRcx(null, this);
+
+    try {
+      await dev.connectUsbTower();
+      if (dev.status === "Connected") {
+        this._addDevice(dev);
+        return dev;
+      } else {
+        return null;
+      }
+
+    } catch (err) {
+      console.warn("RCX USB IR Tower connection failed:", err);
       await dev.disconnect();
       return null;
     }

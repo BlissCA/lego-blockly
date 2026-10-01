@@ -1059,9 +1059,14 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
       dev = await window.deviceManager.connectLegoInterfaceB();
       break;
 
-    case "RCX":
+    case "RCXSER":
       window.useCyberMaster = false;
-      dev = await window.deviceManager.connectRcx();   // your unified RCX/CM class
+      dev = await window.deviceManager.connectRcx();   // your unified RCX/CM (Serial Tower)class
+      break;
+
+    case "RCXUSB":
+      window.useCyberMaster = false;
+      dev = await window.deviceManager.connectRcxUsb();   // your unified RCX USB IR Tower class
       break;
 
     case "CM":

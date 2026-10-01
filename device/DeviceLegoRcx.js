@@ -163,11 +163,11 @@ export class LegoRcx {
 
     // TSOP Keep-alive heartbeat settings
     // 9V Battery Serial IR Tower sleeps receiver after ~5s of TX inactivity.
-    // Periodic ping keeps TSOP powered so remote handset signals are never missed!
+    // Periodic ping keeps TSOP powered ONLY while read methods are actively in use!
     this._keepAliveTimer = null;
     this._keepAliveIntervalMs = 1800; // 1.8 seconds (well inside the ~5s sleep window)
-    this._keepAliveLastTouch = Date.now();
-    this._keepAliveAutoSleepTimeoutMs = 30000; // auto-pause after 30s of total inactivity
+    this._keepAliveLastTouch = 0; // 0 until a read method is called
+    this._keepAliveAutoSleepTimeoutMs = 5000; // auto-pause 5s after last read call so Green LED turns off quickly
 
     this.isReading = false;
     this.readBuffer = new Uint8Array(0);
@@ -200,15 +200,16 @@ export class LegoRcx {
       this._keepAliveTimer = null;
     }
 
-    this.log(`Started Tower TSOP Keep-Alive Pulse (${this._keepAliveIntervalMs}ms).`);
+    this.log(`Started Tower TSOP Keep-Alive Pulse (${this._keepAliveIntervalMs}ms). Powering TSOP (Green LED on).`);
     this._sendTowerKeepAlivePing();
 
     this._keepAliveTimer = setInterval(() => {
       const hasListeners = this.remoteListeners.size > 0;
       const recentActivity = Date.now() - this._keepAliveLastTouch < this._keepAliveAutoSleepTimeoutMs;
 
-      if (!hasListeners && !recentActivity && !this.isTowerOnly) {
-        this.log("Pausing TSOP Keep-Alive pulse to save 9V battery.");
+      // Auto-pause if completely inactive and no listeners attached to save 9V battery & turn off Green LED
+      if (!hasListeners && !recentActivity) {
+        this.log("Pausing TSOP Keep-Alive pulse (no active read method calls). Green LED will turn off.");
         this.stopRemoteKeepAlive();
         return;
       }
@@ -221,7 +222,7 @@ export class LegoRcx {
     if (this._keepAliveTimer) {
       clearInterval(this._keepAliveTimer);
       this._keepAliveTimer = null;
-      this.log("Stopped Tower TSOP Keep-Alive Pulse.");
+      this.log("Stopped Tower TSOP Keep-Alive Pulse. Tower will sleep TSOP (Green LED off).");
     }
   }
 
@@ -441,14 +442,11 @@ export class LegoRcx {
         this.name = `${this.devicePrefix}1`;
       }
 
-      // Automatically start TSOP keep-alive pulse so the 9V serial tower receiver does not sleep!
-      this.startRemoteKeepAlive(1800);
-
-      this.log(`Tower-Only mode selected directly. Name assigned: ${this.name}`);
+      this.log(`Tower-Only mode selected directly. Name assigned: ${this.name} (Keep-alive idle until read methods are used)`);
       this.status = "Connected";
       if (typeof window.logStatus === "function") {
         window.logStatus(
-          `${this.name}: IR Tower connected (Tower-Only mode, TSOP keep-alive active).`
+          `${this.name}: IR Tower connected (Tower-Only mode, standby).`
         );
       }
       return;
@@ -497,14 +495,11 @@ export class LegoRcx {
         this.name = `${this.devicePrefix}1`;
       }
 
-      // Automatically start TSOP keep-alive pulse so the 9V serial tower receiver does not sleep!
-      this.startRemoteKeepAlive(1800);
-
-      this.log(`Brick offline. IR Tower connected in Remote-Only mode. Name assigned: ${this.name}`);
+      this.log(`Brick offline. IR Tower connected in Remote-Only mode. Name assigned: ${this.name} (Standby, Green LED off until read methods are used)`);
       this.status = "Connected";
       if (typeof window.logStatus === "function") {
         window.logStatus(
-          `${this.name}: IR Tower connected (TSOP keep-alive active, brick powered off).`
+          `${this.name}: IR Tower connected (Standby, brick powered off).`
         );
       }
     }
@@ -846,30 +841,32 @@ export class LegoRcx {
     if (!payload || payload.length === 0) return null;
     const op = payload[0] & ~0x08;
 
-    // 1. LEGO 16-bit Remote Control Opcode 0xD2
+    // 1. LEGO 16-bit Remote Control Opcode 0xD2 (Handset 9738)
     if (op === 0xD2 && payload.length >= 3) {
       const lowByte = payload[1];
       const highByte = payload[2];
       const word = (highByte << 8) | lowByte;
 
-      if (word & 0x0001) return REMOTE_KEYS.MSG1;
-      if (word & 0x0002) return REMOTE_KEYS.MSG2;
-      if (word & 0x0004) return REMOTE_KEYS.MSG3;
+      // Exact hardware-verified bitmask mapping for LEGO Remote Handset 9738:
+      if (word & 0x0100) return REMOTE_KEYS.MSG1;
+      if (word & 0x0200) return REMOTE_KEYS.MSG2;
+      if (word & 0x0400) return REMOTE_KEYS.MSG3;
 
-      if (word & 0x0008) return REMOTE_KEYS.A_FWD;
-      if (word & 0x0010) return REMOTE_KEYS.A_REV;
-      if (word & 0x0020) return REMOTE_KEYS.B_FWD;
-      if (word & 0x0040) return REMOTE_KEYS.B_REV;
-      if (word & 0x0080) return REMOTE_KEYS.C_FWD;
-      if (word & 0x0100) return REMOTE_KEYS.C_REV;
+      if (word & 0x0800) return REMOTE_KEYS.A_FWD;
+      if (word & 0x4000) return REMOTE_KEYS.A_REV;
+      if (word & 0x1000) return REMOTE_KEYS.B_FWD;
+      if (word & 0x8000) return REMOTE_KEYS.B_REV;
+      if (word & 0x2000) return REMOTE_KEYS.C_FWD;
+      if (word & 0x0001) return REMOTE_KEYS.C_REV;
 
-      if (word & 0x0200) return REMOTE_KEYS.P1;
-      if (word & 0x0400) return REMOTE_KEYS.P2;
-      if (word & 0x0800) return REMOTE_KEYS.P3;
-      if (word & 0x1000) return REMOTE_KEYS.P4;
-      if (word & 0x2000) return REMOTE_KEYS.P5;
-      if (word & 0x4000) return REMOTE_KEYS.STOP;
-      if (word & 0x8000) return REMOTE_KEYS.BEEP;
+      if (word & 0x0002) return REMOTE_KEYS.P1;
+      if (word & 0x0004) return REMOTE_KEYS.P2;
+      if (word & 0x0008) return REMOTE_KEYS.P3;
+      if (word & 0x0010) return REMOTE_KEYS.P4;
+      if (word & 0x0020) return REMOTE_KEYS.P5;
+
+      if (word & 0x0040) return REMOTE_KEYS.STOP;
+      if (word & 0x0080) return REMOTE_KEYS.BEEP;
     }
 
     // 2. Direct Opcode 0xF7: Send Message 1, 2, or 3
@@ -1061,22 +1058,22 @@ export class LegoRcx {
 
     let word = 0;
     switch (keyInfo.code) {
-      case 1:  word = 0x0001; break; // Msg1
-      case 2:  word = 0x0002; break; // Msg2
-      case 3:  word = 0x0004; break; // Msg3
-      case 4:  word = 0x0008; break; // A Fwd
-      case 5:  word = 0x0010; break; // A Rev
-      case 6:  word = 0x0020; break; // B Fwd
-      case 7:  word = 0x0040; break; // B Rev
-      case 8:  word = 0x0080; break; // C Fwd
-      case 9:  word = 0x0100; break; // C Rev
-      case 10: word = 0x0200; break; // P1
-      case 11: word = 0x0400; break; // P2
-      case 12: word = 0x0800; break; // P3
-      case 13: word = 0x1000; break; // P4
-      case 14: word = 0x2000; break; // P5
-      case 15: word = 0x4000; break; // Stop
-      case 16: word = 0x8000; break; // Beep
+      case 1:  word = 0x0100; break; // Msg1
+      case 2:  word = 0x0200; break; // Msg2
+      case 3:  word = 0x0400; break; // Msg3
+      case 4:  word = 0x0800; break; // A Fwd
+      case 5:  word = 0x4000; break; // A Rev
+      case 6:  word = 0x1000; break; // B Fwd
+      case 7:  word = 0x8000; break; // B Rev
+      case 8:  word = 0x2000; break; // C Fwd
+      case 9:  word = 0x0001; break; // C Rev
+      case 10: word = 0x0002; break; // P1
+      case 11: word = 0x0004; break; // P2
+      case 12: word = 0x0008; break; // P3
+      case 13: word = 0x0010; break; // P4
+      case 14: word = 0x0020; break; // P5
+      case 15: word = 0x0040; break; // Stop
+      case 16: word = 0x0080; break; // Beep
       default: word = 0;
     }
 
