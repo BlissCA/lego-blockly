@@ -271,7 +271,7 @@ export class DeviceManager {
   // Connect LEGO RCX USB IR TOWER
   // -------------------------
 
-  async connectRcx() {
+  async connectRcxUsb() {
     const dev = new LegoRcx(null, this);
 
     try {
