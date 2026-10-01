@@ -1,38 +1,130 @@
 // device/DeviceLegoRcx.js
+// Upgraded LegoRcx driver with Mindstorms RCX Remote Handset IR Decoding support
+// Supports both Full Brick Mode ("Rcx1" / "CM1") and Tower-Only Remote Mode ("RcxIR1" / "CM_IR1")
+
+/**
+ * LEGO Mindstorms RCX Remote Handset key definitions and mappings.
+ * Keys supported:
+ * Msg1, Msg2, Msg3,
+ * A Fwd, A Rev, B Fwd, B Rev, C Fwd, C Rev,
+ * P1, P2, P3, P4, P5,
+ * Stop, Beep.
+ */
+export const REMOTE_KEYS = {
+  NONE: { code: 0, name: "None", label: "None", category: "system", description: "No button pressed" },
+  MSG1: { code: 1, name: "Msg1", label: "Message 1", category: "message", description: "Send / Receive IR Message 1 (0xF7 0x01)" },
+  MSG2: { code: 2, name: "Msg2", label: "Message 2", category: "message", description: "Send / Receive IR Message 2 (0xF7 0x02)" },
+  MSG3: { code: 3, name: "Msg3", label: "Message 3", category: "message", description: "Send / Receive IR Message 3 (0xF7 0x03)" },
+  A_FWD: { code: 4, name: "A Fwd", label: "Motor A Forward", category: "motor", description: "Motor A Forward (0x0008)" },
+  A_REV: { code: 5, name: "A Rev", label: "Motor A Reverse", category: "motor", description: "Motor A Reverse (0x0010)" },
+  B_FWD: { code: 6, name: "B Fwd", label: "Motor B Forward", category: "motor", description: "Motor B Forward (0x0020)" },
+  B_REV: { code: 7, name: "B Rev", label: "Motor B Reverse", category: "motor", description: "Motor B Reverse (0x0040)" },
+  C_FWD: { code: 8, name: "C Fwd", label: "Motor C Forward", category: "motor", description: "Motor C Forward (0x0080)" },
+  C_REV: { code: 9, name: "C Rev", label: "Motor C Reverse", category: "motor", description: "Motor C Reverse (0x0100)" },
+  P1:   { code: 10, name: "P1",   label: "Program 1", category: "program", description: "Select / Run Program 1 (0x91 0x00)" },
+  P2:   { code: 11, name: "P2",   label: "Program 2", category: "program", description: "Select / Run Program 2 (0x91 0x01)" },
+  P3:   { code: 12, name: "P3",   label: "Program 3", category: "program", description: "Select / Run Program 3 (0x91 0x02)" },
+  P4:   { code: 13, name: "P4",   label: "Program 4", category: "program", description: "Select / Run Program 4 (0x91 0x03)" },
+  P5:   { code: 14, name: "P5",   label: "Program 5", category: "program", description: "Select / Run Program 5 (0x91 0x04)" },
+  STOP: { code: 15, name: "Stop", label: "Stop",      category: "system",  description: "Stop all tasks and motors (0x50 / 0x4000)" },
+  BEEP: { code: 16, name: "Beep", label: "Beep",      category: "system",  description: "Play system beep / sound (0x51 0x00 / 0x8000)" }
+};
+
+export const REMOTE_KEY_BY_CODE = {};
+export const REMOTE_KEY_BY_NAME = {};
+
+export function normalizeKeyString(str) {
+  return String(str).toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+Object.values(REMOTE_KEYS).forEach(k => {
+  REMOTE_KEY_BY_CODE[k.code] = k;
+  REMOTE_KEY_BY_NAME[k.name.toLowerCase()] = k;
+  REMOTE_KEY_BY_NAME[normalizeKeyString(k.name)] = k;
+  if (k.name === "A Fwd") {
+    REMOTE_KEY_BY_NAME["a_fwd"] = k;
+    REMOTE_KEY_BY_NAME["afwd"] = k;
+    REMOTE_KEY_BY_NAME["a forward"] = k;
+  } else if (k.name === "A Rev") {
+    REMOTE_KEY_BY_NAME["a_rev"] = k;
+    REMOTE_KEY_BY_NAME["arev"] = k;
+    REMOTE_KEY_BY_NAME["a reverse"] = k;
+  } else if (k.name === "B Fwd") {
+    REMOTE_KEY_BY_NAME["b_fwd"] = k;
+    REMOTE_KEY_BY_NAME["bfwd"] = k;
+    REMOTE_KEY_BY_NAME["b forward"] = k;
+  } else if (k.name === "B Rev") {
+    REMOTE_KEY_BY_NAME["b_rev"] = k;
+    REMOTE_KEY_BY_NAME["brev"] = k;
+    REMOTE_KEY_BY_NAME["b reverse"] = k;
+  } else if (k.name === "C Fwd") {
+    REMOTE_KEY_BY_NAME["c_fwd"] = k;
+    REMOTE_KEY_BY_NAME["cfwd"] = k;
+    REMOTE_KEY_BY_NAME["c forward"] = k;
+  } else if (k.name === "C Rev") {
+    REMOTE_KEY_BY_NAME["c_rev"] = k;
+    REMOTE_KEY_BY_NAME["crev"] = k;
+    REMOTE_KEY_BY_NAME["c reverse"] = k;
+  }
+});
+
+// Dropdown options array for Blockly custom blocks
+export const REMOTE_KEY_DROPDOWN_OPTIONS = [
+  ["Msg1", "Msg1"],
+  ["Msg2", "Msg2"],
+  ["Msg3", "Msg3"],
+  ["A Fwd", "A Fwd"],
+  ["A Rev", "A Rev"],
+  ["B Fwd", "B Fwd"],
+  ["B Rev", "B Rev"],
+  ["C Fwd", "C Fwd"],
+  ["C Rev", "C Rev"],
+  ["P1", "P1"],
+  ["P2", "P2"],
+  ["P3", "P3"],
+  ["P4", "P4"],
+  ["P5", "P5"],
+  ["Stop", "Stop"],
+  ["Beep", "Beep"]
+];
+
+export const REMOTE_KEY_DROPDOWN_OPTIONS_NUMERIC = [
+  ["Msg1", 1],
+  ["Msg2", 2],
+  ["Msg3", 3],
+  ["A Fwd", 4],
+  ["A Rev", 5],
+  ["B Fwd", 6],
+  ["B Rev", 7],
+  ["C Fwd", 8],
+  ["C Rev", 9],
+  ["P1", 10],
+  ["P2", 11],
+  ["P3", 12],
+  ["P4", 13],
+  ["P5", 14],
+  ["Stop", 15],
+  ["Beep", 16]
+];
 
 export class LegoRcx {
-  constructor(name, manager) {
+  constructor(name = null, manager = null) {
     this.name = name;
     this.manager = manager;
 
-    // ---------------- RCX vs CyberMaster configuration ----------------
-    this.isCM = !!window.useCyberMaster;
+    this.isCM = typeof window !== "undefined" && !!window.useCyberMaster;
 
     if (this.isCM) {
-      // CyberMaster
       this.devicePrefix = "CM";
-
-      // CM header: 0xFE 0x00 0x00 0xFF
       this.headerBytes = Uint8Array.from([0xFE, 0x00, 0x00, 0xFF]);
-
-      // CM reply signature: only 0xFF (we still append replyCode + replyComp later)
       this.replySignatureBase = Uint8Array.from([0xFF]);
-
-      // CM handshake: A5 + "Do you byte, when I knock?" → expect "Just a bit off the block!"
       this.handshakeOpcode = 0xA5;
       this.handshakePhrase = "Do you byte, when I knock?";
       this.expectedReplyPhrase = "Just a bit off the block!";
     } else {
-      // RCX
       this.devicePrefix = "Rcx";
-
-      // RCX header: 0x55 0xFF 0x00
       this.headerBytes = Uint8Array.from([0x55, 0xFF, 0x00]);
-
-      // RCX reply signature base: 0x55 0xFF 0x00
       this.replySignatureBase = Uint8Array.from([0x55, 0xFF, 0x00]);
-
-      // RCX handshake: alive opcode 0x10
       this.handshakeOpcode = 0x10;
       this.handshakePhrase = null;
       this.expectedReplyPhrase = null;
@@ -43,6 +135,8 @@ export class LegoRcx {
     this.writer = null;
 
     this.status = "idle";
+    this.hasBrick = false;
+    this.isTowerOnly = false;
 
     this.queue = Promise.resolve();
     this.queueActive = true;
@@ -51,38 +145,164 @@ export class LegoRcx {
     this.opCodeEx = new Set([0xF7]);
     this.NoReply = false;
 
-    // Cache of last output states
-    // New Output Cache that work for both single and multiple commands.
     this.portState = {};
     for (let p = 1; p <= 3; p++) {
       this.portState[p] = { mode: "off", power: 7 };
     }
+
+    this.currentRemoteKey = REMOTE_KEYS.NONE;
+    this.lastRemoteKey = REMOTE_KEYS.NONE;
+    this.lastRemoteEvent = null;
+    this.remoteKeyTimestamp = 0;
+    this.remoteAutoClearTimeoutMs = 600;
+    this.remoteListeners = new Set();
+
+    this.isReading = false;
+    this.readBuffer = new Uint8Array(0);
+    this.pendingReply = null;
+    this.onPacketLogged = null;
   }
 
   log(msg) {
-    console.log(`[${this.devicePrefix} ${this.name}] ${msg}`);
+    console.log(`[${this.devicePrefix} ${this.name || "unnamed"}] ${msg}`);
   }
 
-  // ---------------- Queue ----------------
+  getRemoteKey() {
+    this._checkRemoteKeyTimeout();
+    return this.currentRemoteKey.code !== 0 ? this.currentRemoteKey.name : "";
+  }
+
+  getRemoteKeyCode() {
+    this._checkRemoteKeyTimeout();
+    return this.currentRemoteKey.code;
+  }
+
+  consumeRemoteKey() {
+    const key = this.getRemoteKey();
+    this.clearRemoteKey();
+    return key;
+  }
+
+  consumeRemoteKeyCode() {
+    const code = this.getRemoteKeyCode();
+    this.clearRemoteKey();
+    return code;
+  }
+
+  isRemoteKeyPressed(key) {
+    this._checkRemoteKeyTimeout();
+    if (typeof key === "number") {
+      return this.currentRemoteKey.code === key;
+    }
+    const cleanExpected = normalizeKeyString(String(key));
+    const cleanCurrent = normalizeKeyString(this.currentRemoteKey.name);
+    return cleanCurrent === cleanExpected;
+  }
+
+  clearRemoteKey() {
+    this.currentRemoteKey = REMOTE_KEYS.NONE;
+    this.remoteKeyTimestamp = 0;
+  }
+
+  onRemoteKey(callback) {
+    this.remoteListeners.add(callback);
+    return () => this.remoteListeners.delete(callback);
+  }
+
+  offRemoteKey(callback) {
+    this.remoteListeners.delete(callback);
+  }
+
+  waitForRemoteKey(expectedKey = null, timeoutMs = 0) {
+    return new Promise((resolve, reject) => {
+      let timeoutId = null;
+
+      const listener = (event) => {
+        if (!expectedKey) {
+          cleanup();
+          resolve(event);
+        } else if (typeof expectedKey === "number" && event.code === expectedKey) {
+          cleanup();
+          resolve(event);
+        } else if (
+          typeof expectedKey === "string" &&
+          normalizeKeyString(event.name) === normalizeKeyString(expectedKey)
+        ) {
+          cleanup();
+          resolve(event);
+        }
+      };
+
+      const cleanup = () => {
+        this.remoteListeners.delete(listener);
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+
+      if (timeoutMs > 0) {
+        timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Timed out waiting for remote key ${expectedKey || "any"}`));
+        }, timeoutMs);
+      }
+
+      this.remoteListeners.add(listener);
+    });
+  }
+
+  _checkRemoteKeyTimeout() {
+    if (this.currentRemoteKey.code !== 0 && this.remoteAutoClearTimeoutMs > 0) {
+      if (Date.now() - this.remoteKeyTimestamp > this.remoteAutoClearTimeoutMs) {
+        this.currentRemoteKey = REMOTE_KEYS.NONE;
+      }
+    }
+  }
+
+  simulateRemotePress(keyNameOrCode) {
+    let keyInfo;
+    if (typeof keyNameOrCode === "number") {
+      keyInfo = REMOTE_KEY_BY_CODE[keyNameOrCode];
+    } else {
+      keyInfo =
+        REMOTE_KEY_BY_NAME[String(keyNameOrCode).toLowerCase()] ||
+        REMOTE_KEY_BY_NAME[normalizeKeyString(String(keyNameOrCode))];
+    }
+
+    if (!keyInfo || keyInfo.code === 0) return;
+    this._dispatchRemoteEvent(keyInfo, undefined, "simulated");
+  }
+
   enqueue(fn) {
-    if (!this.queueActive) return Promise.resolve();
+    if (!this.queueActive) return Promise.resolve(null);
     this.queue = this.queue.then(fn).catch(err => console.error(err));
     return this.queue;
   }
 
-  // ---------------- Connect ----------------
-  async connect() {
+  isBrickOnline() {
+    return this.hasBrick && !this.isTowerOnly;
+  }
+
+  isTowerOnlyMode() {
+    return this.isTowerOnly;
+  }
+
+  async connect(existingPort = null, options = {}) {
     this.log("Requesting serial port...");
 
-    // 1. User selects a port (or autoSelectPort picks the last used one)
     try {
-      this.port = await window.autoSelectPort();
+      if (existingPort) {
+        this.port = existingPort;
+      } else if (typeof window.autoSelectPort === "function") {
+        this.port = await window.autoSelectPort();
+      } else if (navigator && navigator.serial) {
+        this.port = await navigator.serial.requestPort();
+      } else {
+        throw new Error("Web Serial API is not supported in this browser.");
+      }
     } catch (err) {
-      this.log("User cancelled port selection");
-      throw err;  // bubble up to deviceManager
+      this.log("User cancelled port selection or error: " + err);
+      throw err;
     }
 
-    // 2. Open the port
     await this.port.open({
       baudRate: 2400,
       dataBits: 8,
@@ -100,50 +320,469 @@ export class LegoRcx {
     }
 
     this.writer = this.port.writable.getWriter();
+    this._startReaderLoop();
 
-    // 3. Handshake
-    let ok;
-    if (this.isCM) {
-      //ok = await this.alive();
-      ok = await this._handshakeCM();
-    } else {
-      ok = await this.alive();
-    }
+    // Direct tower-only connection requested
+    if (options && options.towerOnly) {
+      this.hasBrick = false;
+      this.isTowerOnly = true;
+      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
 
-    if (!ok) {
-      this.log(`${this.devicePrefix} did not respond. Power it on.`);
-      window.logStatus(`${this.devicePrefix}: Please power on the device and Reconnect.`);
-      this.disconnect();
-    } else {
-
-      // ⭐ Allocate name ONLY NOW
-      if (!this.name) {
+      if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
+      } else if (!this.name) {
+        this.name = `${this.devicePrefix}1`;
       }
 
-      this.log("Connected.");
+      this.log(`Tower-Only mode selected directly. Name assigned: ${this.name}`);
       this.status = "Connected";
+      if (typeof window.logStatus === "function") {
+        window.logStatus(
+          `${this.name}: IR Tower connected (Tower-Only mode, brick offline).`
+        );
+      }
+      return;
+    }
+
+    // 3. Handshake check: Test if an RCX or CyberMaster brick is powered on
+    let ok = false;
+    try {
+      if (this.isCM) {
+        ok = await this._handshakeCM(true);
+      } else {
+        ok = await this.alive(true);
+      }
+    } catch (err) {
+      console.warn("Handshake error:", err);
+      ok = false;
+    }
+
+    if (ok) {
+      // 🌟 FULL BRICK MODE: The RCX / CM brick responded!
+      this.hasBrick = true;
+      this.isTowerOnly = false;
+      this.devicePrefix = this.isCM ? "CM" : "Rcx";
+
+      if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
+        this.name = this.manager._allocateName(this.devicePrefix);
+      } else if (!this.name) {
+        this.name = `${this.devicePrefix}1`;
+      }
+
+      this.log(`Full brick online. Name assigned: ${this.name}`);
+      this.status = "Connected";
+      if (typeof window.logStatus === "function") {
+        window.logStatus(`${this.name}: Connected with ${this.devicePrefix} brick online.`);
+      }
+    } else {
+      // 🌟 TOWER-ONLY / REMOTE HANDSET MODE: No brick responded, but IR Serial Tower is open!
+      // DO NOT disconnect! Use prefix "RcxIR" or "CM_IR" so the handset can be used in Blockly.
+      this.hasBrick = false;
+      this.isTowerOnly = true;
+      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
+
+      if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
+        this.name = this.manager._allocateName(this.devicePrefix);
+      } else if (!this.name) {
+        this.name = `${this.devicePrefix}1`;
+      }
+
+      this.log(`Brick offline. IR Tower connected in Remote-Only mode. Name assigned: ${this.name}`);
+      this.status = "Connected";
+      if (typeof window.logStatus === "function") {
+        window.logStatus(
+          `${this.name}: IR Tower connected (Remote Handset mode active, brick powered off).`
+        );
+      }
     }
   }
 
-  // ---------------- CyberMaster handshake (using rcxCmd) ----------------
+  /**
+   * Re-checks if the RCX brick has been powered on without having to reconnect the serial port.
+   * If brick answers, automatically upgrades from "RcxIR1" to "Rcx1" (or "CM_IR1" to "CM1").
+   */
+  async checkBrickOnline() {
+    if (!this.port || !this.port.readable) return false;
+
+    let ok = false;
+    try {
+      if (this.isCM) {
+        ok = await this._handshakeCM(true);
+      } else {
+        ok = await this.alive(true);
+      }
+    } catch {
+      ok = false;
+    }
+
+    if (ok && this.isTowerOnly) {
+      // Brick was just powered on! Upgrade device prefix and name
+      this.hasBrick = true;
+      this.isTowerOnly = false;
+
+      const oldName = this.name;
+      if (this.name && this.manager && typeof this.manager._removeDevice === "function") {
+        this.manager._removeDevice(this);
+      }
+
+      this.devicePrefix = this.isCM ? "CM" : "Rcx";
+      if (this.manager && typeof this.manager._allocateName === "function") {
+        this.name = this.manager._allocateName(this.devicePrefix);
+      } else {
+        this.name = `${this.devicePrefix}1`;
+      }
+
+      this.log(`Upgraded from ${oldName} to full brick online. New name: ${this.name}`);
+      if (typeof window.logStatus === "function") {
+        window.logStatus(`${this.name}: RCX brick detected and online!`);
+      }
+    } else if (!ok && this.hasBrick) {
+      // Brick was powered off
+      this.hasBrick = false;
+      this.isTowerOnly = true;
+
+      const oldName = this.name;
+      if (this.name && this.manager && typeof this.manager._removeDevice === "function") {
+        this.manager._removeDevice(this);
+      }
+
+      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
+      if (this.manager && typeof this.manager._allocateName === "function") {
+        this.name = this.manager._allocateName(this.devicePrefix);
+      } else {
+        this.name = `${this.devicePrefix}1`;
+      }
+
+      this.log(`Brick offline. Downgraded from ${oldName} to tower-only name: ${this.name}`);
+      if (typeof window.logStatus === "function") {
+        window.logStatus(`${this.name}: RCX brick powered off. Switched to Tower-Only mode.`);
+      }
+    }
+
+    return ok;
+  }
+
+  async _startReaderLoop() {
+    if (this.isReading || !this.port || !this.port.readable) return;
+    this.isReading = true;
+
+    try {
+      while (this.port && this.port.readable && this.isReading) {
+        try {
+          this.reader = this.port.readable.getReader();
+        } catch (err) {
+          console.warn("Could not get reader lock:", err);
+          break;
+        }
+
+        try {
+          while (this.isReading) {
+            const { value, done } = await this.reader.read();
+            if (done) break;
+            if (value && value.length > 0) {
+              this._handleIncomingRawBytes(value);
+            }
+          }
+        } catch (err) {
+          if (err?.name === "ParityError" || err?.message?.includes("Parity")) {
+            continue;
+          }
+          if (this.isReading) {
+            console.warn(`[${this.devicePrefix}] Reader error:`, err);
+          }
+        } finally {
+          try { this.reader.releaseLock(); } catch {}
+          this.reader = null;
+        }
+
+        if (!this.isReading) break;
+        await new Promise(r => setTimeout(r, 50));
+      }
+    } catch (outerErr) {
+      console.warn("Reader loop stopped:", outerErr);
+    } finally {
+      this.isReading = false;
+    }
+  }
+
+  _handleIncomingRawBytes(chunk) {
+    if (this.onPacketLogged) {
+      this.onPacketLogged("rx", chunk);
+    }
+
+    const merged = new Uint8Array(this.readBuffer.length + chunk.length);
+    merged.set(this.readBuffer);
+    merged.set(chunk, this.readBuffer.length);
+    this.readBuffer = merged;
+
+    if (this.pendingReply) {
+      const foundIdx = this.findSignature(this.readBuffer, this.pendingReply.signature);
+      if (foundIdx !== -1) {
+        const sigLen = this.pendingReply.signature.length;
+        const needed = sigLen + 2 * this.pendingReply.vblen;
+
+        if (this.readBuffer.length >= foundIdx + needed) {
+          let vals = [];
+          for (let i = 0; i < this.pendingReply.vblen; i++) {
+            vals.push(this.readBuffer[foundIdx + sigLen + i * 2]);
+          }
+
+          const replyResult =
+            this.pendingReply.vblen > 0
+              ? Uint8Array.from(vals)
+              : Uint8Array.from([0x00]);
+
+          const pending = this.pendingReply;
+          this.pendingReply = null;
+          if (pending.timeoutTimer) clearTimeout(pending.timeoutTimer);
+
+          this.readBuffer = this.readBuffer.slice(foundIdx + needed);
+          pending.resolve(replyResult);
+          return;
+        }
+      }
+    }
+
+    this._scanForRemotePackets();
+
+    if (this.readBuffer.length > 512) {
+      this.readBuffer = this.readBuffer.slice(this.readBuffer.length - 128);
+    }
+  }
+
+  _scanForRemotePackets() {
+    if (this.readBuffer.length < 5) return;
+
+    const headerRcx = Uint8Array.from([0x55, 0xFF, 0x00]);
+    const headerCm  = Uint8Array.from([0xFE, 0x00, 0x00, 0xFF]);
+
+    let idx = this.findSignature(this.readBuffer, headerRcx);
+    let hdrLen = 3;
+
+    if (idx === -1) {
+      idx = this.findSignature(this.readBuffer, headerCm);
+      hdrLen = 4;
+    }
+
+    if (idx === -1) {
+      this._checkRawComplementRemote();
+      return;
+    }
+
+    const packetStart = idx + hdrLen;
+    const decoded = this._decodeRcxPacketBody(this.readBuffer.slice(packetStart));
+
+    if (decoded) {
+      const { payload, totalBytesConsumed } = decoded;
+      const fullPacket = this.readBuffer.slice(idx, packetStart + totalBytesConsumed);
+
+      const keyInfo = this._mapPayloadToRemoteKey(payload);
+      if (keyInfo && keyInfo.code !== 0) {
+        this._dispatchRemoteEvent(keyInfo, fullPacket, "ir_tower");
+      }
+
+      this.readBuffer = this.readBuffer.slice(packetStart + totalBytesConsumed);
+    } else if (this.readBuffer.length > idx + 20) {
+      this.readBuffer = this.readBuffer.slice(idx + 1);
+    }
+  }
+
+  _decodeRcxPacketBody(bytes) {
+    if (bytes.length < 4) return null;
+
+    const payload = [];
+    let sum = 0;
+    let i = 0;
+
+    while (i + 1 < bytes.length) {
+      const b = bytes[i];
+      const comp = bytes[i + 1];
+
+      if (((b + comp) & 0xFF) !== 0xFF) {
+        return null;
+      }
+
+      if (payload.length > 0 && b === (sum & 0xFF)) {
+        return {
+          payload: Uint8Array.from(payload),
+          totalBytesConsumed: i + 2,
+        };
+      }
+
+      payload.push(b);
+      sum += b;
+      i += 2;
+    }
+
+    return null;
+  }
+
+  _checkRawComplementRemote() {
+    if (this.readBuffer.length < 2) return;
+    for (let i = 0; i <= this.readBuffer.length - 2; i += 2) {
+      const b1 = this.readBuffer[i];
+      const b2 = this.readBuffer[i + 1];
+      if (((b1 + b2) & 0xFF) === 0xFF) {
+        const key = this._mapSingleByteToRemoteKey(b1);
+        if (key && key.code !== 0) {
+          this._dispatchRemoteEvent(key, this.readBuffer.slice(i, i + 2), "ir_tower");
+          this.readBuffer = this.readBuffer.slice(i + 2);
+          return;
+        }
+      }
+    }
+  }
+
+  _mapPayloadToRemoteKey(payload) {
+    if (!payload || payload.length === 0) return null;
+    const op = payload[0] & ~0x08;
+
+    // 1. LEGO 16-bit Remote Control Opcode 0xD2
+    if (op === 0xD2 && payload.length >= 3) {
+      const lowByte = payload[1];
+      const highByte = payload[2];
+      const word = (highByte << 8) | lowByte;
+
+      if (word & 0x0001) return REMOTE_KEYS.MSG1;
+      if (word & 0x0002) return REMOTE_KEYS.MSG2;
+      if (word & 0x0004) return REMOTE_KEYS.MSG3;
+
+      if (word & 0x0008) return REMOTE_KEYS.A_FWD;
+      if (word & 0x0010) return REMOTE_KEYS.A_REV;
+      if (word & 0x0020) return REMOTE_KEYS.B_FWD;
+      if (word & 0x0040) return REMOTE_KEYS.B_REV;
+      if (word & 0x0080) return REMOTE_KEYS.C_FWD;
+      if (word & 0x0100) return REMOTE_KEYS.C_REV;
+
+      if (word & 0x0200) return REMOTE_KEYS.P1;
+      if (word & 0x0400) return REMOTE_KEYS.P2;
+      if (word & 0x0800) return REMOTE_KEYS.P3;
+      if (word & 0x1000) return REMOTE_KEYS.P4;
+      if (word & 0x2000) return REMOTE_KEYS.P5;
+      if (word & 0x4000) return REMOTE_KEYS.STOP;
+      if (word & 0x8000) return REMOTE_KEYS.BEEP;
+    }
+
+    // 2. Direct Opcode 0xF7: Send Message 1, 2, or 3
+    if (op === 0xF7 && payload.length >= 2) {
+      const msgVal = payload[1];
+      if (msgVal === 1) return REMOTE_KEYS.MSG1;
+      if (msgVal === 2) return REMOTE_KEYS.MSG2;
+      if (msgVal === 3) return REMOTE_KEYS.MSG3;
+      return REMOTE_KEYS.MSG1;
+    }
+
+    // 3. Direct Opcode 0x91: Select Program
+    if (op === 0x91 && payload.length >= 2) {
+      const prog = payload[1];
+      if (prog === 0) return REMOTE_KEYS.P1;
+      if (prog === 1) return REMOTE_KEYS.P2;
+      if (prog === 2) return REMOTE_KEYS.P3;
+      if (prog === 3) return REMOTE_KEYS.P4;
+      if (prog === 4) return REMOTE_KEYS.P5;
+    }
+
+    // 4. Direct Opcode 0x51: Play Sound (Beep)
+    if (op === 0x51) {
+      return REMOTE_KEYS.BEEP;
+    }
+
+    // 5. Direct Opcode 0x50: Stop All Tasks & Motors
+    if (op === 0x50) {
+      return REMOTE_KEYS.STOP;
+    }
+
+    // 6. Direct Opcode 0xE1: Motor Direction (0x80 = fwd, 0x00 = rev)
+    if (op === 0xE1 && payload.length >= 2) {
+      const arg = payload[1];
+      const isFwd = (arg & 0x80) !== 0;
+      const motors = arg & 0x07;
+
+      if (motors & 0x01) return isFwd ? REMOTE_KEYS.A_FWD : REMOTE_KEYS.A_REV;
+      if (motors & 0x02) return isFwd ? REMOTE_KEYS.B_FWD : REMOTE_KEYS.B_REV;
+      if (motors & 0x04) return isFwd ? REMOTE_KEYS.C_FWD : REMOTE_KEYS.C_REV;
+    }
+
+    // 7. Direct Opcode 0x21: Motor On / Off (Bitmask A=1, B=2, C=4)
+    if (op === 0x21 && payload.length >= 2) {
+      const arg = payload[1];
+      const motors = arg & 0x07;
+      if (arg === 0x47) return REMOTE_KEYS.STOP;
+      if (motors & 0x01) return REMOTE_KEYS.A_FWD;
+      if (motors & 0x02) return REMOTE_KEYS.B_FWD;
+      if (motors & 0x04) return REMOTE_KEYS.C_FWD;
+    }
+
+    // 8. Opcode 0x81: Stop task
+    if (op === 0x81) {
+      return REMOTE_KEYS.STOP;
+    }
+
+    return null;
+  }
+
+  _mapSingleByteToRemoteKey(byte) {
+    switch (byte) {
+      case 0x01: return REMOTE_KEYS.MSG1;
+      case 0x02: return REMOTE_KEYS.MSG2;
+      case 0x03: return REMOTE_KEYS.MSG3;
+      case 0x08: case 0x41: return REMOTE_KEYS.A_FWD;
+      case 0x10: return REMOTE_KEYS.A_REV;
+      case 0x20: case 0x42: return REMOTE_KEYS.B_FWD;
+      case 0x40: return REMOTE_KEYS.B_REV;
+      case 0x80: case 0x43: return REMOTE_KEYS.C_FWD;
+      case 0x0100: return REMOTE_KEYS.C_REV;
+      case 0x11: return REMOTE_KEYS.P1;
+      case 0x12: return REMOTE_KEYS.P2;
+      case 0x13: return REMOTE_KEYS.P3;
+      case 0x14: return REMOTE_KEYS.P4;
+      case 0x15: return REMOTE_KEYS.P5;
+      case 0x50: return REMOTE_KEYS.STOP;
+      case 0x51: return REMOTE_KEYS.BEEP;
+      default: return null;
+    }
+  }
+
+  _dispatchRemoteEvent(keyInfo, rawPacket = undefined, source = "ir_tower") {
+    this.currentRemoteKey = keyInfo;
+    this.lastRemoteKey = keyInfo;
+    this.remoteKeyTimestamp = Date.now();
+
+    const event = {
+      name: keyInfo.name,
+      code: keyInfo.code,
+      timestamp: this.remoteKeyTimestamp,
+      rawPacket,
+      source,
+    };
+
+    this.lastRemoteEvent = event;
+
+    if (this.onPacketLogged && rawPacket) {
+      this.onPacketLogged("remote", rawPacket, `Key: ${keyInfo.name} (#${keyInfo.code})`);
+    }
+
+    this.log(`[Remote Event] Pressed: ${keyInfo.name} (#${keyInfo.code})`);
+
+    for (const listener of this.remoteListeners) {
+      try {
+        listener(event);
+      } catch (err) {
+        console.error("Error in remote key listener:", err);
+      }
+    }
+  }
+
   async _handshakeCM() {
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
-    const phrase = this.handshakePhrase;           // "Do you byte, when I knock?"
-    const expected = this.expectedReplyPhrase;     // "Just a bit off the block!"
+    const phrase = this.handshakePhrase || "Do you byte, when I knock?";
+    const expected = this.expectedReplyPhrase || "Just a bit off the block!";
 
-    // Build command: [A5] + phrase bytes
-    const cmd = Uint8Array.from([
-      this.handshakeOpcode,                        // 0xA5
-      ...encoder.encode(phrase)
-    ]);
-
-    // Expected reply length (ASCII chars)
+    const cmd = Uint8Array.from([this.handshakeOpcode, ...encoder.encode(phrase)]);
     const replyLen = expected.length;
 
-    // Use rcxCmd — it handles retries, signature, complements, buffering
     const replyBytes = await this.rcxCmd(cmd, replyLen);
     if (!replyBytes) return false;
 
@@ -151,15 +790,14 @@ export class LegoRcx {
     return replyText.includes(expected);
   }
 
-  // ---------------- Write ----------------
   async writeBytes(bytes) {
     if (!this.writer) return;
-    //if (this.isCM) 
-    //console.log("Sent:", bytes.toHex().match(/.{1,2}/g).join(' '));
+    if (this.onPacketLogged) {
+      this.onPacketLogged("tx", bytes);
+    }
     await this.writer.write(bytes);
   }
 
-  // ---------------- RCX / CM Protocol ----------------
   mkSerBuffWr(cmd) {
     if (!cmd || cmd.length === 0) cmd = new Uint8Array([0x10]);
 
@@ -190,149 +828,124 @@ export class LegoRcx {
     buff.push(sum & 0xFF);
     buff.push((-1 - sum) & 0xFF);
 
-    // Header is now dynamic (RCX vs CM)
     return Uint8Array.from([...this.headerBytes, ...buff]);
   }
 
-  async rcxCmd(cmd, vblen = 0) {
-    return this.enqueue(async () => {
+  createRemotePacket(keyNameOrCode) {
+    let keyInfo;
+    if (typeof keyNameOrCode === "number") {
+      keyInfo = REMOTE_KEY_BY_CODE[keyNameOrCode];
+    } else {
+      keyInfo =
+        REMOTE_KEY_BY_NAME[String(keyNameOrCode).toLowerCase()] ||
+        REMOTE_KEY_BY_NAME[normalizeKeyString(String(keyNameOrCode))];
+    }
 
+    if (!keyInfo) return new Uint8Array(0);
+
+    let word = 0;
+    switch (keyInfo.code) {
+      case 1:  word = 0x0001; break; // Msg1
+      case 2:  word = 0x0002; break; // Msg2
+      case 3:  word = 0x0004; break; // Msg3
+      case 4:  word = 0x0008; break; // A Fwd
+      case 5:  word = 0x0010; break; // A Rev
+      case 6:  word = 0x0020; break; // B Fwd
+      case 7:  word = 0x0040; break; // B Rev
+      case 8:  word = 0x0080; break; // C Fwd
+      case 9:  word = 0x0100; break; // C Rev
+      case 10: word = 0x0200; break; // P1
+      case 11: word = 0x0400; break; // P2
+      case 12: word = 0x0800; break; // P3
+      case 13: word = 0x1000; break; // P4
+      case 14: word = 0x2000; break; // P5
+      case 15: word = 0x4000; break; // Stop
+      case 16: word = 0x8000; break; // Beep
+      default: word = 0;
+    }
+
+    const cmd = Uint8Array.from([0xD2, word & 0xFF, (word >> 8) & 0xFF]);
+    return this.mkSerBuffWr(cmd);
+  }
+
+  async rcxCmd(cmd, vblen = 0, forceCheck = false) {
+    if (this.isTowerOnly && !forceCheck && !this.NoReply && !this.opCodeEx.has(cmd[0])) {
+      console.warn(
+        `[${this.devicePrefix} ${this.name || ""}] Skipped command 0x${cmd[0].toString(16)}: RCX brick is offline (Tower-Only mode).`
+      );
+      return null;
+    }
+
+    return this.enqueue(async () => {
       const buff = this.mkSerBuffWr(cmd);
 
-      // For RCX: headerBytes = [0x55, 0xFF, 0x00]
-      // For CM:  headerBytes = [0xFE, 0x00, 0x00, 0xFF]
-      // replyCode and replyComp are always the first two bytes after header
       const replyCode = buff[this.headerBytes.length + 1];
       const replyComp = buff[this.headerBytes.length];
 
-      // Signature = base signature (RCX: 55 FF 00, CM: FF) + replyCode + replyComp
       const signature = Uint8Array.from([
         ...this.replySignatureBase,
         replyCode,
-        replyComp
+        replyComp,
       ]);
 
-      //console.log("Signature:", signature.toHex().match(/.{1,2}/g).join(' '));
-
-      // Try up to 3 times
       for (let attempt = 1; attempt <= 3; attempt++) {
-
-        // Write command
-        await this.writeBytes(buff);
-
-        // Allow IR tower to switch TX→RX
-        //await new Promise(r => setTimeout(r, 20));
+        let replyPromise;
 
         if (this.NoReply) {
-          // No-reply command (e.g. msg) → return immediately
+          replyPromise = Promise.resolve(Uint8Array.from([0x00]));
+        } else {
+          replyPromise = new Promise((resolve, reject) => {
+            const timeoutTimer = setTimeout(() => {
+              if (this.pendingReply) {
+                this.pendingReply = null;
+                resolve(null);
+              }
+            }, 1000);
+
+            this.pendingReply = {
+              signature,
+              vblen,
+              resolve,
+              reject,
+              timeoutTimer,
+              startTime: performance.now(),
+            };
+          });
+        }
+
+        await this.writeBytes(buff);
+
+        if (this.NoReply) {
           return Uint8Array.from([0x00]);
         }
 
-        const reader = this.port.readable.getReader();
+        const result = await replyPromise;
 
-        try {
-          const t0 = performance.now();
-          let collected = new Uint8Array(0);
-          let found = -1;
-
-          // Read until signature found or timeout
-          while (performance.now() < t0 + 1000) {  // was 200
-
-            let value = null;
-            let done = false;
-
-            try {
-              const readPromise = reader.read();
-              const timeoutPromise = new Promise(r => setTimeout(() => {
-                r({ value: null, done: false });
-              }, 1000)); // was 340
-
-              ({ value, done } = await Promise.race([readPromise, timeoutPromise]));
-
-            } catch (err) {
-              // Ignore parity errors
-              if (err?.name === "ParityError" || err?.message?.includes("Parity")) {
-                continue;
-              }
-              console.warn(`[${this.devicePrefix} ${this.name}] Read error:`, err);
-              break;
-            }
-
-            if (done) break;
-            if (!value) continue;
-
-            // Append bytes
-            let tmp = new Uint8Array(collected.length + value.length);
-            tmp.set(collected);
-            tmp.set(value, collected.length);
-            collected = tmp;
-
-            if (collected.length >= signature.length + 2) {
-              found = this.findSignature(collected, signature);
-              if (found !== -1) break;
-            }
-          }
-          //console.log("collected:", collected.toHex()?.match(/.{1,2}/g)?.join(' '));
-
-          // If reply found → extract values and return
-          if (found !== -1) {
-
-            if (vblen > 0) {
-              const needed = signature.length + 2 * vblen;
-
-              while (collected.length < found + needed) {
-                const readPromise = reader.read();
-                const timeoutPromise = new Promise(r => setTimeout(() => {
-                  r({ value: null, done: false });
-                }, 340)); // was 20
-
-                const { value, done } = await Promise.race([readPromise, timeoutPromise]);
-                if (done || !value) break;
-
-                let tmp = new Uint8Array(collected.length + value.length);
-                tmp.set(collected);
-                tmp.set(value, collected.length);
-                collected = tmp;
-              }
-
-              let vals = [];
-              for (let i = 0; i < vblen; i++) {
-                vals.push(collected[found + signature.length + i * 2]);
-              }
-              // ⭐ Mandatory cool‑down delay after successful RCX/CM command
-              await new Promise(r => setTimeout(r, 20));
-              return Uint8Array.from(vals);
-            }
-
-            // ⭐ Mandatory cool‑down delay after successful RCX/CM command
-            await new Promise(r => setTimeout(r, 20));
-            return Uint8Array.from([0x00]);
-          }
-
-          // No reply → retry
-          console.warn(`[${this.devicePrefix} ${this.name}] No reply for cmd ${cmd[0].toString(16)} (attempt ${attempt})`);
-
-        } finally {
-          try { reader.releaseLock(); } catch {}
+        if (result !== null) {
+          await new Promise((r) => setTimeout(r, 20));
+          return result;
         }
 
-        // Small delay before retry
+        console.warn(
+          `[${this.devicePrefix} ${this.name || ""}] No reply for cmd 0x${cmd[0].toString(16)} (attempt ${attempt})`
+        );
+
         if (this.isCM) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 500));
         } else {
-          await new Promise(r => setTimeout(r, 30));
+          await new Promise((r) => setTimeout(r, 30));
         }
       }
 
-      // All retries failed
       console.warn(
-        `[${this.devicePrefix} ${this.name}] Command failed after 3 attempts: ${cmd[0].toString(16)}`
+        `[${this.devicePrefix} ${this.name || ""}] Command failed after 3 attempts: 0x${cmd[0].toString(16)}`
       );
       return null;
     });
   }
 
   findSignature(buffer, signature) {
+    if (buffer.length < signature.length) return -1;
     for (let i = 0; i <= buffer.length - signature.length; i++) {
       let ok = true;
       for (let j = 0; j < signature.length; j++) {
@@ -346,9 +959,15 @@ export class LegoRcx {
     return -1;
   }
 
-  // ---------------- Disconnect ----------------
   async disconnect() {
     this.queueActive = false;
+    this.isReading = false;
+
+    if (this.pendingReply) {
+      if (this.pendingReply.timeoutTimer) clearTimeout(this.pendingReply.timeoutTimer);
+      this.pendingReply.resolve(null);
+      this.pendingReply = null;
+    }
 
     try { this.reader?.releaseLock(); } catch {}
     try { this.writer?.releaseLock(); } catch {}
@@ -357,22 +976,25 @@ export class LegoRcx {
     this.reader = null;
     this.writer = null;
     this.port = null;
+    this.readBuffer = new Uint8Array(0);
 
     this.portState = {};
     for (let p = 1; p <= 3; p++) {
       this.portState[p] = { mode: "off", power: 7 };
     }
 
-    // Free the name if it was allocated
-    if (this.name) {
+    if (this.name && this.manager && typeof this.manager._removeDevice === "function") {
       this.manager._removeDevice(this);
       this.name = null;
     }
 
+    this.hasBrick = false;
+    this.isTowerOnly = false;
+    this.clearRemoteKey();
     this.status = "Disconnected";
+    this.log("Disconnected.");
   }
 
-  // ---------------- Helper Method to Update Cache for multiple port commands ----------------
   shouldSendMulti(mask, mode, power = null) {
     let mustSend = false;
 
@@ -386,7 +1008,6 @@ export class LegoRcx {
       }
     }
 
-    // Update states
     if (mustSend) {
       for (let p = 1; p <= 3; p++) {
         if (mask & (1 << (p - 1))) {
@@ -399,36 +1020,52 @@ export class LegoRcx {
     return mustSend;
   }
 
-  // ---------------- High-level commands ----------------
-
-  async alive() {
-    const r = await this.rcxCmd(Uint8Array.from([0x10]));
+  async alive(forceCheck = false) {
+    const r = await this.rcxCmd(Uint8Array.from([0x10]), 0, forceCheck);
     return r !== null;
   }
 
   async pwroff() {
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot power off: RCX brick is offline.`);
+      return;
+    }
     await this.rcxCmd(Uint8Array.from([0x60]));
   }
 
   async snd(soundType) {
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot play brick sound: RCX brick is offline.`);
+      return;
+    }
     await this.rcxCmd(Uint8Array.from([0x51, soundType & 0xFF]));
   }
 
   async prg(progNo = 1) {
-    let p = (progNo < 1 || progNo > 5) ? 0 : progNo - 1;
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot select program: RCX brick is offline.`);
+      return;
+    }
+    let p = progNo < 1 || progNo > 5 ? 0 : progNo - 1;
     await this.rcxCmd(Uint8Array.from([0x91, p]));
   }
 
   async start(taskNo = 0) {
-    let t = (taskNo < 0 || taskNo > 9) ? 0 : taskNo;
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot start task: RCX brick is offline.`);
+      return;
+    }
+    let t = taskNo < 0 || taskNo > 9 ? 0 : taskNo;
     await this.rcxCmd(Uint8Array.from([0x71, t]));
   }
 
   async stop(taskNo = -1) {
-    if (taskNo < 0 || taskNo > 9)
-      await this.rcxCmd(Uint8Array.from([0x50]));
-    else
-      await this.rcxCmd(Uint8Array.from([0x81, taskNo]));
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot stop task: RCX brick is offline.`);
+      return;
+    }
+    if (taskNo < 0 || taskNo > 9) await this.rcxCmd(Uint8Array.from([0x50]));
+    else await this.rcxCmd(Uint8Array.from([0x81, taskNo]));
   }
 
   async msg(msgByte) {
@@ -436,6 +1073,10 @@ export class LegoRcx {
   }
 
   async getval(source, arg = 0) {
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot read value: RCX brick is offline.`);
+      return null;
+    }
     const vb = await this.rcxCmd(Uint8Array.from([0x12, source, arg]), 2);
     if (!vb) return null;
     let v = (vb[1] << 8) + vb[0];
@@ -452,7 +1093,6 @@ export class LegoRcx {
   }
 }
 
-
 class RcxMotor {
   constructor(rcx, motors) {
     this.rcx = rcx;
@@ -460,35 +1100,63 @@ class RcxMotor {
   }
 
   async on() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.on(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     if (!this.rcx.shouldSendMulti(this.motors, "on")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x80 | this.motors]));
   }
 
   async off() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.off(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     if (!this.rcx.shouldSendMulti(this.motors, "off")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x40 | this.motors]));
   }
 
   async float() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.float(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     if (!this.rcx.shouldSendMulti(this.motors, "float")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x21, 0x00 | this.motors]));
   }
 
   async flip() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.flip(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     return this.rcx.rcxCmd(Uint8Array.from([0xE1, 0x40 | this.motors]));
   }
 
   async f() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.f(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     if (!this.rcx.shouldSendMulti(this.motors, "f")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0xE1, 0x80 | this.motors]));
   }
 
   async r() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.r(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     if (!this.rcx.shouldSendMulti(this.motors, "r")) return;
     return this.rcx.rcxCmd(Uint8Array.from([0xE1, 0x00 | this.motors]));
   }
 
   async pow(power) {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored motor.pow(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     const p = power & 0x07;
     if (!this.rcx.shouldSendMulti(this.motors, "pow", p)) return;
     return this.rcx.rcxCmd(Uint8Array.from([0x13, this.motors, 0x02, p]));
@@ -502,16 +1170,31 @@ class RcxSensor {
   }
 
   async type(typeNo) {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored sensor.type(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     return this.rcx.rcxCmd(Uint8Array.from([0x32, this.input, typeNo & 0xFF]));
   }
 
   async mode(modeCode) {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored sensor.mode(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     return this.rcx.rcxCmd(Uint8Array.from([0x42, this.input, modeCode & 0xFF]));
   }
 
   async clear() {
+    if (this.rcx.isTowerOnly) {
+      console.warn(`[${this.rcx.name}] Ignored sensor.clear(): RCX brick is offline (Tower-Only mode).`);
+      return;
+    }
     return this.rcx.rcxCmd(Uint8Array.from([0xD1, this.input]));
   }
 }
 
-window.LegoRcx = LegoRcx;
+if (typeof window !== "undefined") {
+  window.LegoRcx = LegoRcx;
+  window.REMOTE_KEYS = REMOTE_KEYS;
+}
