@@ -157,24 +157,124 @@ export class LegoRcx {
     this.remoteAutoClearTimeoutMs = 600;
     this.remoteListeners = new Set();
 
+    // Enable verbose console debug logging by default
+    this.debug = true;
+    this.enableAutoKeepAlive = true;
+
+    // TSOP Keep-alive heartbeat settings
+    // 9V Battery Serial IR Tower sleeps receiver after ~5s of TX inactivity.
+    // Periodic ping keeps TSOP powered so remote handset signals are never missed!
+    this._keepAliveTimer = null;
+    this._keepAliveIntervalMs = 1800; // 1.8 seconds (well inside the ~5s sleep window)
+    this._keepAliveLastTouch = Date.now();
+    this._keepAliveAutoSleepTimeoutMs = 30000; // auto-pause after 30s of total inactivity
+
     this.isReading = false;
     this.readBuffer = new Uint8Array(0);
     this.pendingReply = null;
     this.onPacketLogged = null;
+
+    // WebUSB state for LEGO USB IR Tower (0x0694:0x0001)
+    this.isUsbTower = false;
+    this.usbDevice = null;
+    this._usbInEpNum = 2;
+    this._usbInEpSize = 64;
+    this._usbOutEpNum = 1;
   }
 
   log(msg) {
     console.log(`[${this.devicePrefix} ${this.name || "unnamed"}] ${msg}`);
   }
 
+  setDebug(enabled) {
+    this.debug = enabled;
+  }
+
+  // ---------------- Tower TSOP Keep-Alive Pulse ----------------
+  startRemoteKeepAlive(intervalMs = 1800) {
+    this._keepAliveIntervalMs = intervalMs;
+    this._keepAliveLastTouch = Date.now();
+
+    if (this._keepAliveTimer) {
+      clearInterval(this._keepAliveTimer);
+      this._keepAliveTimer = null;
+    }
+
+    this.log(`Started Tower TSOP Keep-Alive Pulse (${this._keepAliveIntervalMs}ms).`);
+    this._sendTowerKeepAlivePing();
+
+    this._keepAliveTimer = setInterval(() => {
+      const hasListeners = this.remoteListeners.size > 0;
+      const recentActivity = Date.now() - this._keepAliveLastTouch < this._keepAliveAutoSleepTimeoutMs;
+
+      if (!hasListeners && !recentActivity && !this.isTowerOnly) {
+        this.log("Pausing TSOP Keep-Alive pulse to save 9V battery.");
+        this.stopRemoteKeepAlive();
+        return;
+      }
+
+      this._sendTowerKeepAlivePing();
+    }, this._keepAliveIntervalMs);
+  }
+
+  stopRemoteKeepAlive() {
+    if (this._keepAliveTimer) {
+      clearInterval(this._keepAliveTimer);
+      this._keepAliveTimer = null;
+      this.log("Stopped Tower TSOP Keep-Alive Pulse.");
+    }
+  }
+
+  isRemoteKeepAliveActive() {
+    return this._keepAliveTimer !== null;
+  }
+
+  _touchRemoteActivity() {
+    this._keepAliveLastTouch = Date.now();
+    if (this.enableAutoKeepAlive && !this._keepAliveTimer && (this.port || this.usbDevice)) {
+      this.startRemoteKeepAlive(this._keepAliveIntervalMs);
+    }
+  }
+
+  async _sendTowerKeepAlivePing() {
+    if (!this.writer && !this.usbDevice) return;
+    try {
+      const pingPacket = this.mkSerBuffWr(Uint8Array.from([0x10]));
+      if (this.writer) {
+        await this.writer.write(pingPacket);
+      } else if (this.usbDevice) {
+        await this.usbDevice.transferOut(this._usbOutEpNum || 1, pingPacket);
+      }
+    } catch {
+      // Ignore keep-alive write transient errors
+    }
+  }
+
   getRemoteKey() {
+    this._touchRemoteActivity();
     this._checkRemoteKeyTimeout();
     return this.currentRemoteKey.code !== 0 ? this.currentRemoteKey.name : "";
   }
 
   getRemoteKeyCode() {
+    this._touchRemoteActivity();
     this._checkRemoteKeyTimeout();
     return this.currentRemoteKey.code;
+  }
+
+  getLastRemoteKey() {
+    this._touchRemoteActivity();
+    return this.lastRemoteKey.code !== 0 ? this.lastRemoteKey.name : "";
+  }
+
+  getLastRemoteKeyCode() {
+    this._touchRemoteActivity();
+    return this.lastRemoteKey.code;
+  }
+
+  getLastRemoteEvent() {
+    this._touchRemoteActivity();
+    return this.lastRemoteEvent;
   }
 
   consumeRemoteKey() {
@@ -190,6 +290,7 @@ export class LegoRcx {
   }
 
   isRemoteKeyPressed(key) {
+    this._touchRemoteActivity();
     this._checkRemoteKeyTimeout();
     if (typeof key === "number") {
       return this.currentRemoteKey.code === key;
@@ -206,6 +307,7 @@ export class LegoRcx {
 
   onRemoteKey(callback) {
     this.remoteListeners.add(callback);
+    this._touchRemoteActivity();
     return () => this.remoteListeners.delete(callback);
   }
 
@@ -214,6 +316,7 @@ export class LegoRcx {
   }
 
   waitForRemoteKey(expectedKey = null, timeoutMs = 0) {
+    this._touchRemoteActivity();
     return new Promise((resolve, reject) => {
       let timeoutId = null;
 
@@ -311,12 +414,16 @@ export class LegoRcx {
       bufferSize: 3 * 32 * 1024
     });
 
-    if (this.isCM) {
+    // Configure RS-232 control lines (DTR and RTS)
+    // The LEGO Serial IR Tower requires DTR=true and RTS=true for transceiver power and CTS detection!
+    try {
       await this.port.setSignals({ 
         dataTerminalReady: true, 
-        requestToSend: false 
+        requestToSend: !this.isCM 
       });
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 150));
+    } catch (sigErr) {
+      console.warn("Could not set serial signals (DTR/RTS):", sigErr);
     }
 
     this.writer = this.port.writable.getWriter();
@@ -334,11 +441,14 @@ export class LegoRcx {
         this.name = `${this.devicePrefix}1`;
       }
 
+      // Automatically start TSOP keep-alive pulse so the 9V serial tower receiver does not sleep!
+      this.startRemoteKeepAlive(1800);
+
       this.log(`Tower-Only mode selected directly. Name assigned: ${this.name}`);
       this.status = "Connected";
       if (typeof window.logStatus === "function") {
         window.logStatus(
-          `${this.name}: IR Tower connected (Tower-Only mode, brick offline).`
+          `${this.name}: IR Tower connected (Tower-Only mode, TSOP keep-alive active).`
         );
       }
       return;
@@ -387,13 +497,105 @@ export class LegoRcx {
         this.name = `${this.devicePrefix}1`;
       }
 
+      // Automatically start TSOP keep-alive pulse so the 9V serial tower receiver does not sleep!
+      this.startRemoteKeepAlive(1800);
+
       this.log(`Brick offline. IR Tower connected in Remote-Only mode. Name assigned: ${this.name}`);
       this.status = "Connected";
       if (typeof window.logStatus === "function") {
         window.logStatus(
-          `${this.name}: IR Tower connected (Remote Handset mode active, brick powered off).`
+          `${this.name}: IR Tower connected (TSOP keep-alive active, brick powered off).`
         );
       }
+    }
+  }
+
+  // ---------------- LEGO USB IR Tower (WebUSB) ----------------
+  async connectUsbTower(device = null) {
+    this.log("Requesting LEGO USB IR Tower via WebUSB...");
+    if (typeof navigator === "undefined" || !navigator.usb) {
+      throw new Error("WebUSB API is not supported in this browser. Please use Chrome, Edge, or Opera.");
+    }
+
+    try {
+      if (device) {
+        this.usbDevice = device;
+      } else {
+        this.usbDevice = await navigator.usb.requestDevice({
+          filters: [{ vendorId: 0x0694, productId: 0x0001 }],
+        });
+      }
+
+      await this.usbDevice.open();
+      if (this.usbDevice.configuration === null) {
+        await this.usbDevice.selectConfiguration(1);
+      }
+      await this.usbDevice.claimInterface(0);
+
+      let inEndpoint = null;
+      let outEndpoint = null;
+      try {
+        const iface = this.usbDevice.configuration?.interfaces[0];
+        const alternate = iface?.alternates[0];
+        if (alternate && alternate.endpoints) {
+          inEndpoint = alternate.endpoints.find((ep) => ep.direction === "in");
+          outEndpoint = alternate.endpoints.find((ep) => ep.direction === "out");
+        }
+      } catch (epErr) {
+        console.warn("Could not inspect USB endpoints:", epErr);
+      }
+      this._usbInEpNum = inEndpoint ? inEndpoint.endpointNumber : 2;
+      this._usbInEpSize = inEndpoint ? inEndpoint.packetSize : 64;
+      this._usbOutEpNum = outEndpoint ? outEndpoint.endpointNumber : 1;
+
+      this.isUsbTower = true;
+      this.isTowerOnly = true;
+      this.hasBrick = false;
+      this.devicePrefix = "RcxIR";
+
+      if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
+        this.name = this.manager._allocateName(this.devicePrefix);
+      } else if (!this.name) {
+        this.name = `${this.devicePrefix}1`;
+      }
+
+      this._startUsbReaderLoop();
+      this.status = "Connected";
+      this.log(`LEGO USB IR Tower connected. Name assigned: ${this.name} (IN ep: ${this._usbInEpNum}, OUT ep: ${this._usbOutEpNum})`);
+      if (typeof window.logStatus === "function") {
+        window.logStatus(`${this.name}: LEGO USB IR Tower connected (USB powered, no sleep).`);
+      }
+      return this.usbDevice;
+    } catch (err) {
+      this.log("USB Tower connection error: " + err);
+      throw err;
+    }
+  }
+
+  async _startUsbReaderLoop() {
+    if (this.isReading || !this.usbDevice) return;
+    this.isReading = true;
+
+    try {
+      while (this.usbDevice && this.isReading) {
+        try {
+          const result = await this.usbDevice.transferIn(this._usbInEpNum || 2, this._usbInEpSize || 64);
+          if (result && result.data && result.data.byteLength > 0) {
+            const u8 = new Uint8Array(
+              result.data.buffer,
+              result.data.byteOffset,
+              result.data.byteLength
+            );
+            this._handleIncomingRawBytes(u8);
+          }
+        } catch (err) {
+          if (this.isReading) {
+            await new Promise((r) => setTimeout(r, 60));
+          }
+        }
+      }
+    } finally {
+      this.isReading = false;
     }
   }
 
@@ -506,6 +708,13 @@ export class LegoRcx {
   }
 
   _handleIncomingRawBytes(chunk) {
+    if (this.debug) {
+      const hexStr = Array.from(chunk)
+        .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+        .join(" ");
+      console.log(`[${this.devicePrefix} ${this.name || ""}] RX RAW (${chunk.length}b): ${hexStr}`);
+    }
+
     if (this.onPacketLogged) {
       this.onPacketLogged("rx", chunk);
     }
@@ -762,7 +971,10 @@ export class LegoRcx {
       this.onPacketLogged("remote", rawPacket, `Key: ${keyInfo.name} (#${keyInfo.code})`);
     }
 
-    this.log(`[Remote Event] Pressed: ${keyInfo.name} (#${keyInfo.code})`);
+    console.log(
+      `%c[${this.devicePrefix} ${this.name || ""}] 🎮 REMOTE HANDSET KEY: ${keyInfo.name} (Code: ${keyInfo.code})`,
+      "color: #10b981; font-weight: bold; font-size: 13px;"
+    );
 
     for (const listener of this.remoteListeners) {
       try {
@@ -791,11 +1003,15 @@ export class LegoRcx {
   }
 
   async writeBytes(bytes) {
-    if (!this.writer) return;
+    if (!this.writer && !this.usbDevice) return;
     if (this.onPacketLogged) {
       this.onPacketLogged("tx", bytes);
     }
-    await this.writer.write(bytes);
+    if (this.writer) {
+      await this.writer.write(bytes);
+    } else if (this.usbDevice) {
+      await this.usbDevice.transferOut(this._usbOutEpNum || 1, bytes);
+    }
   }
 
   mkSerBuffWr(cmd) {
@@ -960,6 +1176,7 @@ export class LegoRcx {
   }
 
   async disconnect() {
+    this.stopRemoteKeepAlive();
     this.queueActive = false;
     this.isReading = false;
 
@@ -972,10 +1189,13 @@ export class LegoRcx {
     try { this.reader?.releaseLock(); } catch {}
     try { this.writer?.releaseLock(); } catch {}
     try { await this.port?.close(); } catch {}
+    try { await this.usbDevice?.close(); } catch {}
 
     this.reader = null;
     this.writer = null;
     this.port = null;
+    this.usbDevice = null;
+    this.isUsbTower = false;
     this.readBuffer = new Uint8Array(0);
 
     this.portState = {};
