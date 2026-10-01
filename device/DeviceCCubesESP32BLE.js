@@ -226,8 +226,7 @@ export class CCubesESP32BLE {
     const device = await navigator.bluetooth.requestDevice({
       filters: [
         { name: "CCubes_ESP32_Bridge" },
-        { namePrefix: "CCubes" },
-        { services: [NUS_SERVICE_UUID] }
+        { namePrefix: "CCubes_ESP32" }
       ],
       optionalServices: [NUS_SERVICE_UUID]
     });
