@@ -109,7 +109,7 @@ export class CCubesESP32BLE {
     return this.enqueueCommand(async () => {
       if (!this.charRx) throw new Error("Wireless bridge characteristic not available");
       const data = line.endsWith("\n") ? line : line + "\n";
-      //console.log(`[ESP32-BLE TX] ${line.trim()}`);
+      console.log(`[ESP32-BLE TX] ${line.trim()}`);
       const bytes = new TextEncoder().encode(data);
       const CHUNK_SIZE = 20;
       for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
@@ -167,18 +167,13 @@ export class CCubesESP32BLE {
       return;
     }
     if (line === "SCAN_DONE") {
-      // Wait briefly so a FOUND line that arrives just after SCAN_DONE is still counted.
-      // _scanActive stays true meanwhile, so a new scan() can't start and wipe the list.
-      setTimeout(() => {
-        const result = [...this._discoveredCubes];
-        this._scanActive = false;
-        this.log(`BLE Scan complete. Found ${result.length} Circuit Cube(s).`);
-        if (this._scanResolve) {
-          this._scanResolve(result);
-          this._scanResolve = null;
-        }
-        window.dispatchEvent(new CustomEvent("cubesp-scan-done", { detail: result }));
-      }, 300);
+      this._scanActive = false;
+      this.log(`BLE Scan complete. Found ${this._discoveredCubes.length} Circuit Cube(s).`);
+      if (this._scanResolve) {
+        this._scanResolve([...this._discoveredCubes]);
+        this._scanResolve = null;
+      }
+      window.dispatchEvent(new CustomEvent("cubesp-scan-done", { detail: this._discoveredCubes }));
       return;
     }
     if (line.startsWith("STATUS:")) {
@@ -191,7 +186,6 @@ export class CCubesESP32BLE {
         if (state === "CONNECTED") {
           this.cubes[cubeNum].isConnected = true;
           this.cubes[cubeNum].mac = mac;
-          this.cubePortState[cubeNum] = { a: null, b: null, c: null };
           this.log(`Cube #${cubeNum} CONNECTED to ${mac}`);
           window.logStatus?.(`Cube #${cubeNum} connected (${mac})`);
           if (this._assignResolvers[cubeNum]) {
@@ -200,11 +194,17 @@ export class CCubesESP32BLE {
           }
         } else if (state === "DISCONNECTED") {
           this.cubes[cubeNum].isConnected = false;
+          this.cubes[cubeNum].mac = "";
           this.cubePortState[cubeNum] = { a: null, b: null, c: null };
           this.log(`Cube #${cubeNum} disconnected.`);
           window.logStatus?.(`Cube #${cubeNum} disconnected`);
+          if (this._assignResolvers[cubeNum]) {
+            this._assignResolvers[cubeNum].reject(new Error(`Cube #${cubeNum} disconnected`));
+            this._assignResolvers[cubeNum] = null;
+          }
         } else if (state === "FAILED") {
           this.cubes[cubeNum].isConnected = false;
+          this.cubes[cubeNum].mac = "";
           this.log(`Cube #${cubeNum} connection FAILED.`);
           window.logStatus?.(`Cube #${cubeNum} connection failed`);
           if (this._assignResolvers[cubeNum]) {
@@ -224,16 +224,27 @@ export class CCubesESP32BLE {
     if (!navigator.bluetooth) throw new Error("Web Bluetooth API is not supported in this browser.");
 
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "CCubes_ESP32_Bridge" }, { namePrefix: "CCubes" }],
+      filters: [
+        { name: "CCubes_ESP32_Bridge" },
+        { namePrefix: "CCubes" },
+        { services: [NUS_SERVICE_UUID] }
+      ],
       optionalServices: [NUS_SERVICE_UUID]
     });
 
     this.device = device;
     this.device.addEventListener("gattserverdisconnected", this._onGattDisconnect);
 
-    await this._openGatt();
+    this.server = await this.device.gatt.connect();
+    this.service = await this.server.getPrimaryService(NUS_SERVICE_UUID);
+    this.charRx = await this.service.getCharacteristic(NUS_CHAR_RX_UUID);
+    this.charTx = await this.service.getCharacteristic(NUS_CHAR_TX_UUID);
+
+    await this.charTx.startNotifications();
+    this.charTx.addEventListener("characteristicvaluechanged", this._handleNotification);
 
     if (!this.name) this.name = this.manager._allocateName(this.namePrefix);
+    this.isConnected = true;
     this.queueActive = true;
 
     await this.writeLine("PING");
@@ -243,25 +254,6 @@ export class CCubesESP32BLE {
     this.setStatus("connected", "Wireless Bridge Connected");
     window.logStatus?.(`Connected: ${this.name} (Wireless)`);
     document.dispatchEvent(new Event("serial-connected"));
-  }
-
-  _withTimeout(promise, ms, label) {
-    let t;
-    const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
-  }
-
-  // Opens GATT + notifications on this.device (used by connect() and by auto-reconnect)
-  async _openGatt() {
-    try { this.charTx?.removeEventListener("characteristicvaluechanged", this._handleNotification); } catch (_) {}
-    this._incomingBuffer = "";
-    this.server = await this._withTimeout(this.device.gatt.connect(), 10000, "GATT connect");
-    this.service = await this._withTimeout(this.server.getPrimaryService(NUS_SERVICE_UUID), 8000, "Service discovery");
-    this.charRx = await this._withTimeout(this.service.getCharacteristic(NUS_CHAR_RX_UUID), 5000, "RX characteristic");
-    this.charTx = await this._withTimeout(this.service.getCharacteristic(NUS_CHAR_TX_UUID), 5000, "TX characteristic");
-    await this._withTimeout(this.charTx.startNotifications(), 8000, "Start notifications");
-    this.charTx.addEventListener("characteristicvaluechanged", this._handleNotification);
-    this.isConnected = true;
   }
 
   async disconnect() {
@@ -294,39 +286,6 @@ export class CCubesESP32BLE {
 
   _onGattDisconnect() {
     this.log("ESP32 Wireless Bridge GATT connection lost.");
-    this.isConnected = false;
-    // queueActive is false after disconnect()/forceDisconnect(): that was deliberate
-    if (!this.queueActive || this._reconnecting) return;
-    this._reconnectBridge();
-  }
-
-  // The ESP32 keeps its Cube links alive and re-advertises, so just reconnect to it.
-  async _reconnectBridge() {
-    this._reconnecting = true;
-    this.setStatus("connecting", "Bridge link lost, reconnecting...");
-    this.commandQueue = Promise.resolve();
-    const MAX = 8;
-    for (let attempt = 1; attempt <= MAX; attempt++) {
-      if (!this.queueActive) { this._reconnecting = false; return; }
-      // Drop any stale/half-open link so Windows and the ESP32 both start clean
-      try { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); } catch (_) {}
-      await new Promise(r => setTimeout(r, attempt === 1 ? 1500 : 2000));
-      try {
-        this.log(`Reconnecting to bridge (attempt ${attempt}/${MAX})...`);
-        await this._openGatt();
-        this._reconnecting = false;
-        this.setStatus("connected", "Wireless Bridge Connected");
-        this.log("Bridge reconnected.");
-        await this.writeLine("STATUS");   // resync which Cubes are still connected
-        return;
-      } catch (err) {
-        this.log("Reconnect failed: " + (err?.message || err));
-      }
-    }
-    try { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); } catch (_) {}
-    this._reconnecting = false;
-    this.isConnected = false;
-    this.log("Could not reconnect to the bridge.");
     this.manager?.handleDeviceLost?.(this);
   }
 
@@ -364,6 +323,11 @@ export class CCubesESP32BLE {
     if (this.cubes[idx]?.isConnected && this.cubes[idx]?.mac === mac) {
       this.log(`Cube #${idx} is already paired and connected to ${mac}.`);
       return { success: true, cube: idx, mac, alreadyConnected: true };
+    }
+
+    if (this._assignResolvers[idx]) {
+      try { this._assignResolvers[idx].reject(new Error("Superseded by new connection attempt")); } catch (_) {}
+      this._assignResolvers[idx] = null;
     }
 
     const promise = new Promise((resolve, reject) => {
