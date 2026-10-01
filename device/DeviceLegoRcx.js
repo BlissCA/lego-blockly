@@ -158,7 +158,7 @@ export class LegoRcx {
     this.remoteListeners = new Set();
 
     // Enable verbose console debug logging by default
-    this.debug = true;
+    this.debug = false;
     this.enableAutoKeepAlive = true;
 
     // TSOP Keep-alive heartbeat settings
@@ -430,11 +430,11 @@ export class LegoRcx {
     this.writer = this.port.writable.getWriter();
     this._startReaderLoop();
 
-    // Direct tower-only connection requested
-    if (options && options.towerOnly) {
+    // Direct tower-only connection requested for RCX only
+    if (options && options.towerOnly && !this.isCM) {
       this.hasBrick = false;
       this.isTowerOnly = true;
-      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
+      this.devicePrefix = "RcxIR";
 
       if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
@@ -474,7 +474,7 @@ export class LegoRcx {
       if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
       } else if (!this.name) {
-        this.name = `${this.devicePrefix}1`;
+        this.name = `${this.devicePrefix}99`;
       }
 
       this.log(`Full brick online. Name assigned: ${this.name}`);
@@ -484,15 +484,22 @@ export class LegoRcx {
       }
     } else {
       // 🌟 TOWER-ONLY / REMOTE HANDSET MODE: No brick responded, but IR Serial Tower is open!
-      // DO NOT disconnect! Use prefix "RcxIR" or "CM_IR" so the handset can be used in Blockly.
+      // DO NOT disconnect! Use prefix "RcxIR"
+      // BUT IS isCM? Disconnect!.
+      if (this.isCM) {
+          this.devicePrefix = "CM";
+          this.log(`${this.devicePrefix} did not respond. Power it on.`);
+          window.logStatus(`${this.devicePrefix}: Please power on the device and Reconnect.`);
+          this.disconnect();
+      }      
       this.hasBrick = false;
       this.isTowerOnly = true;
-      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
+      this.devicePrefix = "RcxIR";
 
       if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
       } else if (!this.name) {
-        this.name = `${this.devicePrefix}1`;
+        this.name = `${this.devicePrefix}99`;
       }
 
       this.log(`Brick offline. IR Tower connected in Remote-Only mode. Name assigned: ${this.name} (Standby, Green LED off until read methods are used)`);
@@ -506,7 +513,7 @@ export class LegoRcx {
   }
 
   // ---------------- LEGO USB IR Tower (WebUSB) ----------------
-  async connectUsbTower(device = null) {
+  async connectUsbTower(device = null, options = {}) {
     this.log("Requesting LEGO USB IR Tower via WebUSB...");
     if (typeof navigator === "undefined" || !navigator.usb) {
       throw new Error("WebUSB API is not supported in this browser. Please use Chrome, Edge, or Opera.");
@@ -544,26 +551,74 @@ export class LegoRcx {
       this._usbOutEpNum = outEndpoint ? outEndpoint.endpointNumber : 1;
 
       this.isUsbTower = true;
-      this.isTowerOnly = true;
-      this.hasBrick = false;
-      this.devicePrefix = "RcxIR";
+      this.queueActive = true;
+      this._startUsbReaderLoop();
 
-      if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
-        this.name = this.manager._allocateName(this.devicePrefix);
-      } else if (!this.name) {
-        this.name = `${this.devicePrefix}1`;
+      // Direct tower-only connection requested (Remote Handset only, no handshake)
+      if (options && options.towerOnly) {
+        this._applyUsbTowerOnly("Tower-Only mode selected directly.");
+        return this.usbDevice;
       }
 
-      this._startUsbReaderLoop();
-      this.status = "Connected";
-      this.log(`LEGO USB IR Tower connected. Name assigned: ${this.name} (IN ep: ${this._usbInEpNum}, OUT ep: ${this._usbOutEpNum})`);
-      if (typeof window.logStatus === "function") {
-        window.logStatus(`${this.name}: LEGO USB IR Tower connected (USB powered, no sleep).`);
+      // Handshake check (same logic as connect()): is an RCX brick powered on?
+      // Temporarily leave isTowerOnly=false so rcxCmd() is not short-circuited.
+      this.hasBrick = false;
+      this.isTowerOnly = false;
+      this.devicePrefix = "Rcx";
+
+      let ok = false;
+      try {
+        // Tiny settle delay so the reader loop is polling before we transmit
+        await new Promise((r) => setTimeout(r, 100));
+        ok = await this.alive(true);
+      } catch (hsErr) {
+        console.warn("USB Tower handshake error:", hsErr);
+        ok = false;
+      }
+
+      if (ok) {
+        // FULL BRICK MODE: the RCX answered through the USB tower
+        this.hasBrick = true;
+        this.isTowerOnly = false;
+        this.devicePrefix = "Rcx";
+
+        if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
+          this.name = this.manager._allocateName(this.devicePrefix);
+        } else if (!this.name) {
+          this.name = `${this.devicePrefix}99`;
+        }
+
+        this.status = "Connected";
+        this.log(`USB Tower connected, full brick online. Name assigned: ${this.name} (IN ep: ${this._usbInEpNum}, OUT ep: ${this._usbOutEpNum})`);
+        if (typeof window !== "undefined" && typeof window.logStatus === "function") {
+          window.logStatus(`${this.name}: Connected via USB IR Tower with Rcx brick online.`);
+        }
+      } else {
+        // TOWER-ONLY / REMOTE HANDSET MODE: no brick answered, tower stays open
+        this._applyUsbTowerOnly("Brick offline. USB IR Tower connected in Remote-Only mode.");
       }
       return this.usbDevice;
     } catch (err) {
       this.log("USB Tower connection error: " + err);
       throw err;
+    }
+  }
+
+  _applyUsbTowerOnly(reason) {
+    this.hasBrick = false;
+    this.isTowerOnly = true;
+    this.devicePrefix = "RcxIR";
+
+    if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
+      this.name = this.manager._allocateName(this.devicePrefix);
+    } else if (!this.name) {
+      this.name = `${this.devicePrefix}99`;
+    }
+
+    this.status = "Connected";
+    this.log(`${reason} Name assigned: ${this.name} (IN ep: ${this._usbInEpNum}, OUT ep: ${this._usbOutEpNum})`);
+    if (typeof window !== "undefined" && typeof window.logStatus === "function") {
+      window.logStatus(`${this.name}: LEGO USB IR Tower connected (Tower-Only mode, brick powered off).`);
     }
   }
 
@@ -599,7 +654,9 @@ export class LegoRcx {
    * If brick answers, automatically upgrades from "RcxIR1" to "Rcx1" (or "CM_IR1" to "CM1").
    */
   async checkBrickOnline() {
-    if (!this.port || !this.port.readable) return false;
+    const serialReady = !!(this.port && this.port.readable);
+    const usbReady = !!(this.usbDevice && this.usbDevice.opened);
+    if (!serialReady && !usbReady) return false;
 
     let ok = false;
     try {
@@ -1186,6 +1243,7 @@ export class LegoRcx {
     try { this.reader?.releaseLock(); } catch {}
     try { this.writer?.releaseLock(); } catch {}
     try { await this.port?.close(); } catch {}
+    try { await this.usbDevice?.releaseInterface(0); } catch {}
     try { await this.usbDevice?.close(); } catch {}
 
     this.reader = null;
