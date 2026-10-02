@@ -156,7 +156,7 @@ export class LegoRcx {
     this.lastRemoteKeys = [];
     this.lastRemoteEvent = null;
     this.remoteKeyTimestamp = 0;
-    this.remoteAutoClearTimeoutMs = 100;
+    this._remoteAutoClearCustomMs = null; // null = use the per-tower default (see getter below)
     this.remoteListeners = new Set();
 
     // Enable verbose console debug logging by default
@@ -190,6 +190,19 @@ export class LegoRcx {
 
   setDebug(enabled) {
     this.debug = enabled;
+  }
+
+  // Key release timeout (ms). Default depends on the tower: Serial = 600, USB = 100.
+  // Assigning a number overrides the default; assigning null restores it.
+  get remoteAutoClearTimeoutMs() {
+    if (this._remoteAutoClearCustomMs !== null && this._remoteAutoClearCustomMs !== undefined) {
+      return this._remoteAutoClearCustomMs;
+    }
+    return (this.isUsbTower || this.usbDevice) ? 100 : 600;
+  }
+
+  set remoteAutoClearTimeoutMs(ms) {
+    this._remoteAutoClearCustomMs = (ms === null || ms === undefined) ? null : Number(ms);
   }
 
   // ---------------- Tower TSOP Keep-Alive Pulse ----------------
