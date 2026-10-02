@@ -150,8 +150,10 @@ export class LegoRcx {
       this.portState[p] = { mode: "off", power: 7 };
     }
 
-    this.currentRemoteKey = REMOTE_KEYS.NONE;
+    this.currentRemoteKey = REMOTE_KEYS.NONE;   // primary key (first of the combo) - backward compatible
+    this.currentRemoteKeys = [];                // ALL keys currently held (combo support)
     this.lastRemoteKey = REMOTE_KEYS.NONE;
+    this.lastRemoteKeys = [];
     this.lastRemoteEvent = null;
     this.remoteKeyTimestamp = 0;
     this.remoteAutoClearTimeoutMs = 600;
@@ -290,19 +292,71 @@ export class LegoRcx {
     return code;
   }
 
+  // True if the key is part of the keys currently held (works for single keys AND combos).
   isRemoteKeyPressed(key) {
     this._touchRemoteActivity();
     this._checkRemoteKeyTimeout();
-    if (typeof key === "number") {
-      return this.currentRemoteKey.code === key;
-    }
-    const cleanExpected = normalizeKeyString(String(key));
-    const cleanCurrent = normalizeKeyString(this.currentRemoteKey.name);
-    return cleanCurrent === cleanExpected;
+    const k = this._resolveRemoteKey(key);
+    return !!k && this.currentRemoteKeys.some((c) => c.code === k.code);
+  }
+
+  // ---- Combo support (several keys pressed at the same time on the handset) ----
+  // Names of all keys currently held, e.g. ["A Fwd", "C Fwd"]
+  getRemoteKeys() {
+    this._touchRemoteActivity();
+    this._checkRemoteKeyTimeout();
+    return this.currentRemoteKeys.map((k) => k.name);
+  }
+
+  getRemoteKeyCodes() {
+    this._touchRemoteActivity();
+    this._checkRemoteKeyTimeout();
+    return this.currentRemoteKeys.map((k) => k.code);
+  }
+
+  // Combo as one string, e.g. "A Fwd+C Fwd" ("" if nothing pressed)
+  getRemoteCombo() {
+    return this.getRemoteKeys().join("+");
+  }
+
+  // keys: array or "A Fwd+C Fwd" string. exact=true -> exactly these keys and no others.
+  isRemoteComboPressed(keys, exact = true) {
+    this._touchRemoteActivity();
+    this._checkRemoteKeyTimeout();
+    const wanted = this._resolveRemoteKeyList(keys);
+    if (wanted.length === 0) return false;
+    const held = this.currentRemoteKeys;
+    const hasAll = wanted.every((w) => held.some((h) => h.code === w.code));
+    return exact ? hasAll && held.length === wanted.length : hasAll;
+  }
+
+  // Motor view of the handset: -1 = Rev, 0 = idle, 1 = Fwd (both Fwd+Rev held -> 0)
+  getRemoteMotorStates() {
+    this._touchRemoteActivity();
+    this._checkRemoteKeyTimeout();
+    const has = (k) => this.currentRemoteKeys.some((c) => c.code === k.code);
+    return {
+      A: (has(REMOTE_KEYS.A_FWD) ? 1 : 0) - (has(REMOTE_KEYS.A_REV) ? 1 : 0),
+      B: (has(REMOTE_KEYS.B_FWD) ? 1 : 0) - (has(REMOTE_KEYS.B_REV) ? 1 : 0),
+      C: (has(REMOTE_KEYS.C_FWD) ? 1 : 0) - (has(REMOTE_KEYS.C_REV) ? 1 : 0),
+    };
+  }
+
+  _resolveRemoteKey(key) {
+    if (key && typeof key === "object" && typeof key.code === "number") return key;
+    if (typeof key === "number") return REMOTE_KEY_BY_CODE[key] || null;
+    const str = String(key).trim();
+    return REMOTE_KEY_BY_NAME[str.toLowerCase()] || REMOTE_KEY_BY_NAME[normalizeKeyString(str)] || null;
+  }
+
+  _resolveRemoteKeyList(keys) {
+    const list = Array.isArray(keys) ? keys : String(keys).split("+");
+    return list.map((k) => this._resolveRemoteKey(k)).filter((k) => k && k.code !== 0);
   }
 
   clearRemoteKey() {
     this.currentRemoteKey = REMOTE_KEYS.NONE;
+    this.currentRemoteKeys = [];
     this.remoteKeyTimestamp = 0;
   }
 
@@ -325,15 +379,20 @@ export class LegoRcx {
         if (!expectedKey) {
           cleanup();
           resolve(event);
-        } else if (typeof expectedKey === "number" && event.code === expectedKey) {
+        } else if (typeof expectedKey === "number" && (event.codes || [event.code]).includes(expectedKey)) {
           cleanup();
           resolve(event);
-        } else if (
-          typeof expectedKey === "string" &&
-          normalizeKeyString(event.name) === normalizeKeyString(expectedKey)
-        ) {
-          cleanup();
-          resolve(event);
+        } else if (typeof expectedKey === "string" || Array.isArray(expectedKey)) {
+          const wanted = this._resolveRemoteKeyList(expectedKey);
+          const got = event.codes || [event.code];
+          // "A Fwd+C Fwd" (or an array) waits for exactly that combo; a single key matches if it is held
+          const ok = wanted.length > 1
+            ? wanted.length === got.length && wanted.every((w) => got.includes(w.code))
+            : wanted.length === 1 && got.includes(wanted[0].code);
+          if (ok) {
+            cleanup();
+            resolve(event);
+          }
         }
       };
 
@@ -357,22 +416,18 @@ export class LegoRcx {
     if (this.currentRemoteKey.code !== 0 && this.remoteAutoClearTimeoutMs > 0) {
       if (Date.now() - this.remoteKeyTimestamp > this.remoteAutoClearTimeoutMs) {
         this.currentRemoteKey = REMOTE_KEYS.NONE;
+        this.currentRemoteKeys = [];
       }
     }
   }
 
   simulateRemotePress(keyNameOrCode) {
-    let keyInfo;
-    if (typeof keyNameOrCode === "number") {
-      keyInfo = REMOTE_KEY_BY_CODE[keyNameOrCode];
-    } else {
-      keyInfo =
-        REMOTE_KEY_BY_NAME[String(keyNameOrCode).toLowerCase()] ||
-        REMOTE_KEY_BY_NAME[normalizeKeyString(String(keyNameOrCode))];
-    }
-
-    if (!keyInfo || keyInfo.code === 0) return;
-    this._dispatchRemoteEvent(keyInfo, undefined, "simulated");
+    // Accepts a key, an array of keys, or a combo string like "A Fwd+C Fwd"
+    const keys = typeof keyNameOrCode === "number"
+      ? this._resolveRemoteKeyList([keyNameOrCode])
+      : this._resolveRemoteKeyList(keyNameOrCode);
+    if (keys.length === 0) return;
+    this._dispatchRemoteEvent(keys, undefined, "simulated");
   }
 
   enqueue(fn) {
@@ -837,9 +892,9 @@ export class LegoRcx {
       const { payload, totalBytesConsumed } = decoded;
       const fullPacket = this.readBuffer.slice(idx, packetStart + totalBytesConsumed);
 
-      const keyInfo = this._mapPayloadToRemoteKey(payload);
-      if (keyInfo && keyInfo.code !== 0) {
-        this._dispatchRemoteEvent(keyInfo, fullPacket, "ir_tower");
+      const keys = this._mapPayloadToRemoteKeys(payload);
+      if (keys.length > 0) {
+        this._dispatchRemoteEvent(keys, fullPacket, "ir_tower");
       }
 
       this.readBuffer = this.readBuffer.slice(packetStart + totalBytesConsumed);
@@ -894,94 +949,94 @@ export class LegoRcx {
     }
   }
 
+  // Backward-compatible: returns only the primary (first) key
   _mapPayloadToRemoteKey(payload) {
-    if (!payload || payload.length === 0) return null;
+    const keys = this._mapPayloadToRemoteKeys(payload);
+    return keys.length ? keys[0] : null;
+  }
+
+  // Returns ALL keys carried by a packet (array, possibly empty).
+  // The 0xD2 remote opcode carries a 16-bit bitmask of every key currently held,
+  // so combos like A Fwd + C Fwd arrive in ONE packet.
+  _mapPayloadToRemoteKeys(payload) {
+    if (!payload || payload.length === 0) return [];
     const op = payload[0] & ~0x08;
 
     // 1. LEGO 16-bit Remote Control Opcode 0xD2 (Handset 9738)
     if (op === 0xD2 && payload.length >= 3) {
-      const lowByte = payload[1];
-      const highByte = payload[2];
-      const word = (highByte << 8) | lowByte;
+      const word = (payload[2] << 8) | payload[1];
 
-      // Exact hardware-verified bitmask mapping for LEGO Remote Handset 9738:
-      if (word & 0x0100) return REMOTE_KEYS.MSG1;
-      if (word & 0x0200) return REMOTE_KEYS.MSG2;
-      if (word & 0x0400) return REMOTE_KEYS.MSG3;
-
-      if (word & 0x0800) return REMOTE_KEYS.A_FWD;
-      if (word & 0x4000) return REMOTE_KEYS.A_REV;
-      if (word & 0x1000) return REMOTE_KEYS.B_FWD;
-      if (word & 0x8000) return REMOTE_KEYS.B_REV;
-      if (word & 0x2000) return REMOTE_KEYS.C_FWD;
-      if (word & 0x0001) return REMOTE_KEYS.C_REV;
-
-      if (word & 0x0002) return REMOTE_KEYS.P1;
-      if (word & 0x0004) return REMOTE_KEYS.P2;
-      if (word & 0x0008) return REMOTE_KEYS.P3;
-      if (word & 0x0010) return REMOTE_KEYS.P4;
-      if (word & 0x0020) return REMOTE_KEYS.P5;
-
-      if (word & 0x0040) return REMOTE_KEYS.STOP;
-      if (word & 0x0080) return REMOTE_KEYS.BEEP;
+      // Hardware-verified bitmask mapping for LEGO Remote Handset 9738 (priority order = result order)
+      const table = [
+        [0x0100, REMOTE_KEYS.MSG1],
+        [0x0200, REMOTE_KEYS.MSG2],
+        [0x0400, REMOTE_KEYS.MSG3],
+        [0x0800, REMOTE_KEYS.A_FWD],
+        [0x4000, REMOTE_KEYS.A_REV],
+        [0x1000, REMOTE_KEYS.B_FWD],
+        [0x8000, REMOTE_KEYS.B_REV],
+        [0x2000, REMOTE_KEYS.C_FWD],
+        [0x0001, REMOTE_KEYS.C_REV],
+        [0x0002, REMOTE_KEYS.P1],
+        [0x0004, REMOTE_KEYS.P2],
+        [0x0008, REMOTE_KEYS.P3],
+        [0x0010, REMOTE_KEYS.P4],
+        [0x0020, REMOTE_KEYS.P5],
+        [0x0040, REMOTE_KEYS.STOP],
+        [0x0080, REMOTE_KEYS.BEEP],
+      ];
+      const keys = table.filter(([bit]) => word & bit).map(([, k]) => k);
+      if (keys.length) return keys;
     }
 
     // 2. Direct Opcode 0xF7: Send Message 1, 2, or 3
     if (op === 0xF7 && payload.length >= 2) {
       const msgVal = payload[1];
-      if (msgVal === 1) return REMOTE_KEYS.MSG1;
-      if (msgVal === 2) return REMOTE_KEYS.MSG2;
-      if (msgVal === 3) return REMOTE_KEYS.MSG3;
-      return REMOTE_KEYS.MSG1;
+      if (msgVal === 2) return [REMOTE_KEYS.MSG2];
+      if (msgVal === 3) return [REMOTE_KEYS.MSG3];
+      return [REMOTE_KEYS.MSG1];
     }
 
     // 3. Direct Opcode 0x91: Select Program
     if (op === 0x91 && payload.length >= 2) {
-      const prog = payload[1];
-      if (prog === 0) return REMOTE_KEYS.P1;
-      if (prog === 1) return REMOTE_KEYS.P2;
-      if (prog === 2) return REMOTE_KEYS.P3;
-      if (prog === 3) return REMOTE_KEYS.P4;
-      if (prog === 4) return REMOTE_KEYS.P5;
+      const progKeys = [REMOTE_KEYS.P1, REMOTE_KEYS.P2, REMOTE_KEYS.P3, REMOTE_KEYS.P4, REMOTE_KEYS.P5];
+      if (progKeys[payload[1]]) return [progKeys[payload[1]]];
     }
 
     // 4. Direct Opcode 0x51: Play Sound (Beep)
-    if (op === 0x51) {
-      return REMOTE_KEYS.BEEP;
-    }
+    if (op === 0x51) return [REMOTE_KEYS.BEEP];
 
     // 5. Direct Opcode 0x50: Stop All Tasks & Motors
-    if (op === 0x50) {
-      return REMOTE_KEYS.STOP;
-    }
+    if (op === 0x50) return [REMOTE_KEYS.STOP];
 
-    // 6. Direct Opcode 0xE1: Motor Direction (0x80 = fwd, 0x00 = rev)
+    // 6. Direct Opcode 0xE1: Motor Direction (0x80 = fwd, 0x00 = rev) - bitmask A=1, B=2, C=4
     if (op === 0xE1 && payload.length >= 2) {
       const arg = payload[1];
       const isFwd = (arg & 0x80) !== 0;
       const motors = arg & 0x07;
-
-      if (motors & 0x01) return isFwd ? REMOTE_KEYS.A_FWD : REMOTE_KEYS.A_REV;
-      if (motors & 0x02) return isFwd ? REMOTE_KEYS.B_FWD : REMOTE_KEYS.B_REV;
-      if (motors & 0x04) return isFwd ? REMOTE_KEYS.C_FWD : REMOTE_KEYS.C_REV;
+      const keys = [];
+      if (motors & 0x01) keys.push(isFwd ? REMOTE_KEYS.A_FWD : REMOTE_KEYS.A_REV);
+      if (motors & 0x02) keys.push(isFwd ? REMOTE_KEYS.B_FWD : REMOTE_KEYS.B_REV);
+      if (motors & 0x04) keys.push(isFwd ? REMOTE_KEYS.C_FWD : REMOTE_KEYS.C_REV);
+      if (keys.length) return keys;
     }
 
     // 7. Direct Opcode 0x21: Motor On / Off (Bitmask A=1, B=2, C=4)
     if (op === 0x21 && payload.length >= 2) {
       const arg = payload[1];
+      if (arg === 0x47) return [REMOTE_KEYS.STOP];
       const motors = arg & 0x07;
-      if (arg === 0x47) return REMOTE_KEYS.STOP;
-      if (motors & 0x01) return REMOTE_KEYS.A_FWD;
-      if (motors & 0x02) return REMOTE_KEYS.B_FWD;
-      if (motors & 0x04) return REMOTE_KEYS.C_FWD;
+      const keys = [];
+      if (motors & 0x01) keys.push(REMOTE_KEYS.A_FWD);
+      if (motors & 0x02) keys.push(REMOTE_KEYS.B_FWD);
+      if (motors & 0x04) keys.push(REMOTE_KEYS.C_FWD);
+      if (keys.length) return keys;
     }
 
     // 8. Opcode 0x81: Stop task
-    if (op === 0x81) {
-      return REMOTE_KEYS.STOP;
-    }
+    if (op === 0x81) return [REMOTE_KEYS.STOP];
 
-    return null;
+    return [];
   }
 
   _mapSingleByteToRemoteKey(byte) {
@@ -1006,14 +1061,27 @@ export class LegoRcx {
     }
   }
 
-  _dispatchRemoteEvent(keyInfo, rawPacket = undefined, source = "ir_tower") {
+  // keyOrKeys: a single key object or an array of key objects (combo)
+  _dispatchRemoteEvent(keyOrKeys, rawPacket = undefined, source = "ir_tower") {
+    const keys = (Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys]).filter((k) => k && k.code !== 0);
+    if (keys.length === 0) return;
+    const keyInfo = keys[0]; // primary key (backward compatible)
+    const names = keys.map((k) => k.name);
+    const combo = names.join("+");
+
     this.currentRemoteKey = keyInfo;
+    this.currentRemoteKeys = keys;
     this.lastRemoteKey = keyInfo;
+    this.lastRemoteKeys = keys;
     this.remoteKeyTimestamp = Date.now();
 
     const event = {
-      name: keyInfo.name,
+      name: keyInfo.name,          // primary key
       code: keyInfo.code,
+      names,                       // every key held
+      codes: keys.map((k) => k.code),
+      combo,                       // "A Fwd+C Fwd"
+      isCombo: keys.length > 1,
       timestamp: this.remoteKeyTimestamp,
       rawPacket,
       source,
@@ -1022,11 +1090,11 @@ export class LegoRcx {
     this.lastRemoteEvent = event;
 
     if (this.onPacketLogged && rawPacket) {
-      this.onPacketLogged("remote", rawPacket, `Key: ${keyInfo.name} (#${keyInfo.code})`);
+      this.onPacketLogged("remote", rawPacket, `Key: ${combo} (#${event.codes.join("+")})`);
     }
 
     console.log(
-      `%c[${this.devicePrefix} ${this.name || ""}] 🎮 REMOTE HANDSET KEY: ${keyInfo.name} (Code: ${keyInfo.code})`,
+      `%c[${this.devicePrefix} ${this.name || ""}] 🎮 REMOTE HANDSET ${keys.length > 1 ? "COMBO" : "KEY"}: ${combo} (Code: ${event.codes.join("+")})`,
       "color: #10b981; font-weight: bold; font-size: 13px;"
     );
 
