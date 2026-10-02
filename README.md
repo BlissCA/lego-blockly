@@ -17,7 +17,7 @@ Lego Blockly supports for now:
 - Lego Interface B
 - Lego Interface A with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
 - Lego Power Function with the IR Receiver 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
-- Lego RCX / ControlMaster (RCX must use Serial IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.
+- Lego RCX / ControlMaster (RCX with Serial or USB IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.  Also support the RCX IR Remote Handset.
 - Lego NXT (BT or USB)
 - VLL : Virtal Light Link for Code Pilot and MicroScout brick
 - Wedo 1.0 (using the 2 ports USB hub)
@@ -97,7 +97,8 @@ Special thanks to people who participate in this forum thread.  They give precio
 			- Connector Pins 18, 20 goes to ESP32 33, 32. (Int.A Inputs 6 and 7)
 		- See very small footprint setup by @Toastie on Eurobricks forum: [Lego Interface A ESP32 setup](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/25/#findComment-3838950)
 		
-		
+	- RCX USB IR Tower:  IMPORTANT NOT FOR WINDOWS USERS. You must ues [Zadig](https://zadig.akeo.ie/) tool to make the RCX USB IR Tower seen as a WinUSB driver in windows device manager...
+	![LEGO USB Tower Zadig Config](https://bricksafe.com/files/Bliss2025/lego-blockly-october-2026/zadig-2.9_RCVqgiagcE.png/640x283.png) 
 
 ## Wonderful other related projects by others:
 - For RCX brick: [BlockNQC](https://www.webpbrick.com/nqc/blocknqc/) and [WebPBrick](https://www.webpbrick.com/ide/) by @maehw (https://github.com/maehw)
