@@ -156,7 +156,7 @@ export class LegoRcx {
     this.lastRemoteKeys = [];
     this.lastRemoteEvent = null;
     this.remoteKeyTimestamp = 0;
-    this.remoteAutoClearTimeoutMs = 600;
+    this.remoteAutoClearTimeoutMs = 300;
     this.remoteListeners = new Set();
 
     // Enable verbose console debug logging by default

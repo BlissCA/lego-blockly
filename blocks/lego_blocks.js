@@ -758,19 +758,34 @@ function getLegoBDropdown() {
     : [['No Lego B', 'NONE']];
 }
 
-// RCX + CyberMaster devices
+// RCX (Serial or USB) devices with RCX Bricks Detected
 function getRcxDropdown() {
   const devices = window.deviceManager?.devices || [];
 
-  // Accept both "Rcx" and "CM" prefixes
+  // Accept "Rcx" and "CM" prefixes, but exclude "RcxIR"
   const list = devices.filter(d =>
-    d.name.startsWith("Rcx") ||
-    d.name.startsWith("CM")
+    (d.name.startsWith("Rcx") || d.name.startsWith("CM")) &&
+    !d.name.startsWith("RcxIR")
   );
 
   return list.length
     ? list.map(d => [d.name, d.name])
     : [['No RCX/CM', 'NONE']];
+}
+
+// RCX (Serial or USB) devices
+function getRcxIrDropdown() {
+  const devices = window.deviceManager?.devices || [];
+
+  // Accept both "Rcx" and "RcxIR" prefixes
+  const list = devices.filter(d =>
+    d.name.startsWith("Rcx") ||
+    d.name.startsWith("RcxIR")
+  );
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No RCX IR', 'NONE']];
 }
 
 // CyberMaster devices
@@ -1576,16 +1591,6 @@ window.addEventListener("load", () => {
       "colour": 20
     },
     {
-      "type": "rcx_alive",
-      "message0": "%1 alive?",
-      "args0": [
-      ],
-      "inputsInline": true,
-      "previousStatement": null,
-      "nextStatement": null,
-      "colour": 20
-    },
-    {
       "type": "rcx_pwroff",
       "message0": "%1 power off",
       "args0": [
@@ -1601,6 +1606,35 @@ window.addEventListener("load", () => {
       "message0": "%1 alive?",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getRcxDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 20
+    },
+    {
+      "type": "rcx_ishandsetkeypressed",
+      "message0": "%1 handset %2 pressed?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        { "type": "field_dropdown", "name": "RCXKEY", "options": [
+          ["Msg1", "Msg1"],
+          ["Msg2", "Msg2"],
+          ["Msg3", "Msg3"],
+          ["A Fwd", "A Fwd"],
+          ["A Rev", "A Rev"],
+          ["B Fwd", "B Fwd"],
+          ["B Rev", "B Rev"],
+          ["C Fwd", "C Fwd"],
+          ["C Rev", "C Rev"],
+          ["P1", "P1"],
+          ["P2", "P2"],
+          ["P3", "P3"],
+          ["P4", "P4"],
+          ["P5", "P5"],
+          ["Stop", "Stop"],
+          ["Beep", "Beep"]
+          ]
+        },
       ],
       "inputsInline": true,
       "output": "Boolean",

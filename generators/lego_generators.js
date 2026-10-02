@@ -705,6 +705,16 @@ javascriptGenerator.forBlock["rcx_getinpval"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["rcx_ishandsetkeypressed"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const key = block.getFieldValue("RCXKEY");
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").isRemoteKeyPressed("${key}")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
 javascriptGenerator.forBlock["rcx_sensortype"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";

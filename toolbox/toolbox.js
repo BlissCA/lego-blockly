@@ -1145,7 +1145,11 @@ const toolbox = {
                   }
                 }            
               }
-            }                                    
+            },
+            {
+              "kind": "block",
+              "type": "rcx_ishandsetkeypressed"
+            }                                
           ]
         }
       ]
