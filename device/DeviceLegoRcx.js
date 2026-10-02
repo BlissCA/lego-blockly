@@ -156,7 +156,7 @@ export class LegoRcx {
     this.lastRemoteKeys = [];
     this.lastRemoteEvent = null;
     this.remoteKeyTimestamp = 0;
-    this.remoteAutoClearTimeoutMs = 300;
+    this.remoteAutoClearTimeoutMs = 100;
     this.remoteListeners = new Set();
 
     // Enable verbose console debug logging by default
@@ -194,6 +194,9 @@ export class LegoRcx {
 
   // ---------------- Tower TSOP Keep-Alive Pulse ----------------
   startRemoteKeepAlive(intervalMs = 1800) {
+    // The USB tower is bus-powered: its TSOP never sleeps, so no keep-alive is needed.
+    if (this.isUsbTower || this.usbDevice) return;
+
     this._keepAliveIntervalMs = intervalMs;
     this._keepAliveLastTouch = Date.now();
 
@@ -234,13 +237,16 @@ export class LegoRcx {
 
   _touchRemoteActivity() {
     this._keepAliveLastTouch = Date.now();
-    if (this.enableAutoKeepAlive && !this._keepAliveTimer && (this.port || this.usbDevice)) {
+    // Serial IR tower only (9V battery -> TSOP powers down after ~5s without traffic)
+    if (this.isUsbTower || this.usbDevice) return;
+    if (this.enableAutoKeepAlive && !this._keepAliveTimer && this.port) {
       this.startRemoteKeepAlive(this._keepAliveIntervalMs);
     }
   }
 
   async _sendTowerKeepAlivePing() {
-    if (!this.writer && !this.usbDevice) return;
+    if (this.isUsbTower || this.usbDevice) return; // never ping a USB tower
+    if (!this.writer) return;
     try {
       const pingPacket = this.mkSerBuffWr(Uint8Array.from([0x10]));
       if (this.writer) {
