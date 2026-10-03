@@ -107,6 +107,19 @@ export const REMOTE_KEY_DROPDOWN_OPTIONS_NUMERIC = [
   ["Beep", 16]
 ];
 
+// ---------------------------------------------------------------------------
+// RCX firmware download constants (see "RCX firmware download" section below)
+// ---------------------------------------------------------------------------
+const RCX_FW = {
+  START: 0x8000,                 // the boot ROM always loads the image at 0x8000
+  LEN: 0x4C00,                   // 0x8000..0xCBFF (19456 bytes max)
+  END: 0xCC00,
+  BLOCK: 200,                    // max data bytes per 0x45 "transfer data" block
+  KEY: [0x01, 0x03, 0x05, 0x07, 0x0B],            // key for delete firmware / get versions
+  UNLOCK_KEY: [0x4C, 0x45, 0x47, 0x4F, 0xAE],     // "LEGO" + 0xAE (the registered mark)
+  UNLOCK_STRING: "Do you byte, when I knock?",    // must be present inside the image
+};
+
 export class LegoRcx {
   constructor(name = null, manager = null) {
     this.name = name;
@@ -182,6 +195,16 @@ export class LegoRcx {
     this._usbInEpNum = 2;
     this._usbInEpSize = 64;
     this._usbOutEpNum = 1;
+
+    // Firmware download state (see "RCX firmware download" section)
+    this._firmwareBusy = false;
+    this._fwCancel = false;
+    this._fwStartTime = 0;
+    this._fwProgressOpts = null;
+    this.firmwareReplyMarginMs = 1500;   // extra time allowed for a reply on top of the IR transmit time
+    this.firmwareProgress = { phase: "idle", percent: 0, message: "", block: 0, blocks: 0, elapsedMs: 0, etaMs: null };
+    this.onFirmwareProgress = null;      // optional callback(progress)
+    this.lastFirmwareResult = null;      // { ok, error, cancelled, version, blocks, durationMs, restarts }
   }
 
   log(msg) {
@@ -208,7 +231,8 @@ export class LegoRcx {
   // ---------------- Tower TSOP Keep-Alive Pulse ----------------
   startRemoteKeepAlive(intervalMs = 1800) {
     // The USB tower is bus-powered: its TSOP never sleeps, so no keep-alive is needed.
-    if (this.isUsbTower || this.usbDevice) return;
+    // Also never ping while a firmware download owns the IR link.
+    if (this._firmwareBusy || this.isUsbTower || this.usbDevice) return;
 
     this._keepAliveIntervalMs = intervalMs;
     this._keepAliveLastTouch = Date.now();
@@ -251,13 +275,14 @@ export class LegoRcx {
   _touchRemoteActivity() {
     this._keepAliveLastTouch = Date.now();
     // Serial IR tower only (9V battery -> TSOP powers down after ~5s without traffic)
-    if (this.isUsbTower || this.usbDevice) return;
+    if (this._firmwareBusy || this.isUsbTower || this.usbDevice) return;
     if (this.enableAutoKeepAlive && !this._keepAliveTimer && this.port) {
       this.startRemoteKeepAlive(this._keepAliveIntervalMs);
     }
   }
 
   async _sendTowerKeepAlivePing() {
+    if (this._firmwareBusy) return;                // the firmware download owns the link
     if (this.isUsbTower || this.usbDevice) return; // never ping a USB tower
     if (!this.writer) return;
     try {
@@ -728,6 +753,9 @@ export class LegoRcx {
    * If brick answers, automatically upgrades from "RcxIR1" to "Rcx1" (or "CM_IR1" to "CM1").
    */
   async checkBrickOnline() {
+    // During a firmware download the brick must not be probed (and must not be "downgraded")
+    if (this._firmwareBusy) return this.hasBrick;
+
     const serialReady = !!(this.port && this.port.readable);
     const usbReady = !!(this.usbDevice && this.usbDevice.opened);
     if (!serialReady && !usbReady) return false;
@@ -878,7 +906,8 @@ export class LegoRcx {
       }
     }
 
-    this._scanForRemotePackets();
+    // During a firmware download the line only carries echo + replies: never scan for remote keys
+    if (!this._firmwareBusy) this._scanForRemotePackets();
 
     if (this.readBuffer.length > 512) {
       this.readBuffer = this.readBuffer.slice(this.readBuffer.length - 128);
@@ -1225,13 +1254,35 @@ export class LegoRcx {
     return this.mkSerBuffWr(cmd);
   }
 
-  async rcxCmd(cmd, vblen = 0, forceCheck = false) {
+  // opts (optional, used by the firmware download):
+  //   firmware:true   this command belongs to the firmware download (allowed while it is running)
+  //   timeoutMs       reply timeout per attempt (default 1000)
+  //   attempts        number of attempts (default 3)
+  //   retryDelayMs    pause between attempts
+  //   flush:true      empty the read buffer before every attempt
+  //   shouldAbort()   return true to stop retrying
+  async rcxCmd(cmd, vblen = 0, forceCheck = false, opts = null) {
+    const isFwCmd = !!(opts && opts.firmware);
+
+    // While a firmware download owns the IR link no other command may be sent:
+    // it would corrupt the download and the opcode toggle-bit sequence.
+    if (this._firmwareBusy && !isFwCmd) {
+      console.warn(
+        `[${this.devicePrefix} ${this.name || ""}] Skipped command 0x${cmd[0].toString(16)}: firmware download in progress.`
+      );
+      return null;
+    }
+
     if (this.isTowerOnly && !forceCheck && !this.NoReply && !this.opCodeEx.has(cmd[0])) {
       console.warn(
         `[${this.devicePrefix} ${this.name || ""}] Skipped command 0x${cmd[0].toString(16)}: RCX brick is offline (Tower-Only mode).`
       );
       return null;
     }
+
+    const replyTimeoutMs = (opts && opts.timeoutMs) || 1000;
+    const maxAttempts = (opts && opts.attempts) || 3;
+    const retryDelayMs = (opts && opts.retryDelayMs) || (this.isCM ? 500 : 30);
 
     return this.enqueue(async () => {
       const buff = this.mkSerBuffWr(cmd);
@@ -1245,7 +1296,10 @@ export class LegoRcx {
         replyComp,
       ]);
 
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (opts && typeof opts.shouldAbort === "function" && opts.shouldAbort()) return null;
+        if (opts && opts.flush) this.readBuffer = new Uint8Array(0);
+
         let replyPromise;
 
         if (this.NoReply) {
@@ -1257,7 +1311,7 @@ export class LegoRcx {
                 this.pendingReply = null;
                 resolve(null);
               }
-            }, 1000);
+            }, replyTimeoutMs);
 
             this.pendingReply = {
               signature,
@@ -1287,15 +1341,11 @@ export class LegoRcx {
           `[${this.devicePrefix} ${this.name || ""}] No reply for cmd 0x${cmd[0].toString(16)} (attempt ${attempt})`
         );
 
-        if (this.isCM) {
-          await new Promise((r) => setTimeout(r, 500));
-        } else {
-          await new Promise((r) => setTimeout(r, 30));
-        }
+        await new Promise((r) => setTimeout(r, retryDelayMs));
       }
 
       console.warn(
-        `[${this.devicePrefix} ${this.name || ""}] Command failed after 3 attempts: 0x${cmd[0].toString(16)}`
+        `[${this.devicePrefix} ${this.name || ""}] Command failed after ${maxAttempts} attempts: 0x${cmd[0].toString(16)}`
       );
       return null;
     });
@@ -1317,6 +1367,7 @@ export class LegoRcx {
   }
 
   async disconnect() {
+    this._fwCancel = true; // abort a running firmware download, if any
     this.stopRemoteKeepAlive();
     this.queueActive = false;
     this.isReading = false;
@@ -1446,6 +1497,390 @@ export class LegoRcx {
     return v;
   }
 
+  // =========================================================================
+  // RCX FIRMWARE DOWNLOAD  (Serial IR tower AND USB IR tower)
+  // =========================================================================
+  // The RCX loses its firmware every time the batteries are removed. The boot ROM
+  // then only understands a handful of opcodes, which is enough to load a firmware:
+  //
+  //   0x10 alive            make sure the RCX answers (also re-syncs the toggle bit)
+  //   0x65 delete firmware  key {01,03,05,07,0B}  -> back to boot ROM mode
+  //   0x75 start download   entry (LE16), image checksum (LE16), 0x00  -> status 0 = ok
+  //   0x45 transfer data    index (LE16), length (LE16), data..., sum8  -> status 0 = ok
+  //                         blocks of <= 200 bytes, the LAST block carries index 0
+  //   0xA5 unlock firmware  key {4C,45,47,4F,AE} ("LEGO" + 0xAE) -> "Just a bit off the block!"
+  //
+  // Reference: Kekoa Proudfoot's "RCX Internals" and his firmdl.c. It runs at 2400 baud:
+  // expect about 3 minutes for firm0332.lgo. Keep the RCX 10-20 cm in front of the tower.
+  //
+  // Blockly usage (all asynchronous):
+  //   await LegoRcx.loadFirmware(fileOrUrl)     // optional, e.g. from a button click
+  //   const ok = await rcx.uploadFirmware()     // true / false, details in rcx.lastFirmwareResult
+  //   rcx.getFirmwareProgress()                 // 0..100 (poll it from a Blockly loop)
+  //   rcx.cancelFirmwareUpload()
+
+  isFirmwareUploading() {
+    return this._firmwareBusy;
+  }
+
+  cancelFirmwareUpload() {
+    if (this._firmwareBusy) {
+      this._fwCancel = true;
+      this.log("Firmware upload: cancel requested.");
+    }
+  }
+
+  getFirmwareProgress() {
+    return this.firmwareProgress.percent;
+  }
+
+  _fwStatus(msg) {
+    this.log(`Firmware: ${msg}`);
+    if (typeof window !== "undefined" && typeof window.logStatus === "function") {
+      window.logStatus(`${this.name || this.devicePrefix}: Firmware - ${msg}`);
+    }
+  }
+
+  _setFirmwareProgress(phase, percent, message = "", extra = {}) {
+    const now = Date.now();
+    const p = {
+      phase,
+      percent: Math.max(0, Math.min(100, Math.round(percent))),
+      message,
+      block: 0,
+      blocks: 0,
+      elapsedMs: this._fwStartTime ? now - this._fwStartTime : 0,
+      etaMs: null,
+      ...extra,
+    };
+    this.firmwareProgress = p;
+    const callbacks = [this.onFirmwareProgress, this._fwProgressOpts && this._fwProgressOpts.onProgress];
+    for (const cb of callbacks) {
+      if (typeof cb === "function") {
+        try { cb({ ...p }); } catch (e) { console.error("onProgress callback error:", e); }
+      }
+    }
+  }
+
+  // Time (ms) needed to push a command through a 2400 baud 8O1 link (11 bits per byte)
+  _irTxTimeMs(cmdLen) {
+    const wireBytes = this.headerBytes.length + cmdLen * 2 + 2;
+    return Math.ceil((wireBytes * 11 * 1000) / 2400);
+  }
+
+  async _fwSleep(ms) {
+    const end = Date.now() + ms;
+    while (Date.now() < end && !this._fwCancel) {
+      await new Promise((r) => setTimeout(r, Math.max(1, Math.min(100, end - Date.now()))));
+    }
+  }
+
+  // Send one firmware-download command. Returns the reply data bytes, or null.
+  async _fwSend(cmd, vblen = 0, o = {}) {
+    if (this._fwCancel) return null;
+    const margin = o.marginMs !== undefined ? o.marginMs : this.firmwareReplyMarginMs;
+    return this.rcxCmd(cmd, vblen, true, {
+      firmware: true,
+      timeoutMs: this._irTxTimeMs(cmd.length) + margin,
+      attempts: o.attempts || 5,
+      retryDelayMs: 300,
+      flush: true,
+      shouldAbort: () => this._fwCancel,
+    });
+  }
+
+  _parseVersions(vb) {
+    if (!vb || vb.length < 8) return null;
+    const romMajor = (vb[0] << 8) | vb[1];
+    const romMinor = (vb[2] << 8) | vb[3];
+    const fwMajor = (vb[4] << 8) | vb[5];
+    const fwMinor = (vb[6] << 8) | vb[7];
+    const hasFirmware = fwMajor !== 0 || fwMinor !== 0;
+    return {
+      romMajor, romMinor, fwMajor, fwMinor, hasFirmware,
+      romVersion: `${romMajor}.${String(romMinor).padStart(2, "0")}`,
+      fwVersion: hasFirmware ? `${fwMajor}.${String(fwMinor).padStart(2, "0")}` : null,
+    };
+  }
+
+  // Opcode 0x15 "get versions": ROM version + firmware version (0.00 = no firmware loaded).
+  // Best effort: layout taken from the RCX Internals notes, not yet verified on hardware.
+  async getVersions() {
+    if (this.isCM) return null;
+    if (this.isTowerOnly) {
+      console.warn(`[${this.name}] Cannot read versions: RCX brick is offline.`);
+      return null;
+    }
+    const vb = await this.rcxCmd(Uint8Array.from([0x15, ...RCX_FW.KEY]), 8);
+    return this._parseVersions(vb);
+  }
+
+  // true = firmware present, false = boot ROM only (needs a firmware upload), null = no answer
+  async hasFirmware() {
+    const v = await this.getVersions();
+    return v ? v.hasFirmware : null;
+  }
+
+  async _fwGetVersions() {
+    const vb = await this.rcxCmd(Uint8Array.from([0x15, ...RCX_FW.KEY]), 8, true, {
+      firmware: true,
+      timeoutMs: this._irTxTimeMs(6) + this.firmwareReplyMarginMs,
+      attempts: 2,
+      retryDelayMs: 300,
+      flush: true,
+      shouldAbort: () => this._fwCancel,
+    });
+    return this._parseVersions(vb);
+  }
+
+  /**
+   * Download a firmware (.lgo / S-record) to the RCX.
+   * @param {File|Blob|ArrayBuffer|Uint8Array|string|object|null} source
+   *        null -> the firmware already loaded with LegoRcx.loadFirmware(), else
+   *                LegoRcx.defaultFirmwareUrl, else a file picker is shown.
+   * @param {object} options { onProgress(p), signal, blockSize=200, restarts=1, verify=true }
+   * @returns {Promise<boolean>} true when the firmware is installed and unlocked.
+   *          Details (error text, version, duration) are in this.lastFirmwareResult.
+   */
+  async uploadFirmware(source = null, options = {}) {
+    const o = { restarts: 1, verify: true, signal: null, onProgress: null, ...options };
+    o.blockSize = Math.max(16, Math.min(RCX_FW.BLOCK, Math.floor(Number(o.blockSize) || RCX_FW.BLOCK)));
+    o.restarts = Math.max(0, Math.floor(Number(o.restarts) || 0));
+
+    const t0 = Date.now();
+    const result = { ok: false, error: null, cancelled: false, version: null, blocks: 0, durationMs: 0, restarts: 0 };
+    this.lastFirmwareResult = result;
+
+    const finish = (ok, error = null) => {
+      result.ok = ok;
+      result.error = ok ? null : error;
+      result.durationMs = Date.now() - t0;
+      if (ok) {
+        this._setFirmwareProgress("done", 100, "Firmware installed.");
+        this._fwStatus(
+          `installed${result.version ? ` (version ${result.version})` : ""} in ${Math.round(result.durationMs / 1000)} s.`
+        );
+      } else {
+        this._setFirmwareProgress("error", this.firmwareProgress.percent, error || "failed");
+        this._fwStatus(`FAILED - ${error}`);
+      }
+      return ok;
+    };
+
+    if (this.isCM) return finish(false, "CyberMaster (radio) firmware download is not supported.");
+    if (!this.writer && !this.usbDevice) return finish(false, "Not connected to an IR tower.");
+    if (this._firmwareBusy) return finish(false, "A firmware upload is already running.");
+
+    let image;
+    try {
+      image = await LegoRcx.loadFirmware(source);
+    } catch (e) {
+      return finish(false, `Could not load the firmware file: ${e && e.message ? e.message : e}`);
+    }
+    result.blocks = Math.ceil(image.length / o.blockSize);
+
+    // ---- take exclusive control of the IR link
+    this._firmwareBusy = true;
+    this._fwCancel = false;
+    this._fwStartTime = Date.now();
+    this._fwProgressOpts = o;
+    const prevAutoKeepAlive = this.enableAutoKeepAlive;
+    this.enableAutoKeepAlive = false;
+    this.stopRemoteKeepAlive();
+
+    let abortHandler = null;
+    if (o.signal) {
+      if (o.signal.aborted) this._fwCancel = true;
+      else {
+        abortHandler = () => { this._fwCancel = true; };
+        o.signal.addEventListener("abort", abortHandler, { once: true });
+      }
+    }
+
+    // keep the screen awake: the download takes minutes
+    let wakeLock = null;
+    try {
+      if (typeof navigator !== "undefined" && navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen");
+    } catch { /* optional */ }
+
+    let ok = false;
+    let error = "Unknown error.";
+    try {
+      this._fwStatus(
+        `downloading ${image.length} bytes (${result.blocks} blocks, checksum 0x${image.checksum.toString(16).toUpperCase().padStart(4, "0")}). ` +
+        `This takes about ${Math.max(1, Math.round((result.blocks * (this._irTxTimeMs(o.blockSize + 6) + 100)) / 60000))} min - keep the RCX close to the tower.`
+      );
+      this._setFirmwareProgress("probe", 0, "Starting...");
+
+      for (let run = 0; run <= o.restarts; run++) {
+        result.restarts = run;
+        const res = await this._firmwareDownloadOnce(image, o);
+        if (res.ok) {
+          ok = true;
+          result.version = res.version || null;
+          break;
+        }
+        error = res.error;
+        if (res.cancelled) { result.cancelled = true; break; }
+        if (!res.retryable || run === o.restarts) break;
+        this._fwStatus(`${res.error} Restarting the download (${run + 1}/${o.restarts})...`);
+        await this._fwSleep(1500);
+        if (this._fwCancel) { result.cancelled = true; error = "Firmware upload cancelled."; break; }
+      }
+    } catch (e) {
+      error = e && e.message ? e.message : String(e);
+    } finally {
+      this._firmwareBusy = false;
+      this.enableAutoKeepAlive = prevAutoKeepAlive;
+      if (abortHandler) { try { o.signal.removeEventListener("abort", abortHandler); } catch {} }
+      try { if (wakeLock) await wakeLock.release(); } catch {}
+      // The RCX has rebooted: forget everything we believed about its state
+      this.readBuffer = new Uint8Array(0);
+      this.lastOpCode = 0;
+      this.pendingReply = null;
+      this.portState = {};
+      for (let p = 1; p <= 3; p++) this.portState[p] = { mode: "off", power: 7 };
+    }
+
+    if (ok) {
+      // The brick answers now: upgrade "RcxIRn" -> "Rcxn" if we were in Tower-Only mode
+      try { await this.checkBrickOnline(); } catch {}
+    }
+    return finish(ok, error);
+  }
+
+  // One complete download attempt. Returns { ok, error, retryable, cancelled, version }.
+  async _firmwareDownloadOnce(image, o) {
+    const fail = (error, retryable = true) => ({ ok: false, error, retryable });
+    const cancelled = () => ({ ok: false, error: "Firmware upload cancelled.", cancelled: true, retryable: false });
+    const progress = (phase, percent, message, extra) => this._setFirmwareProgress(phase, percent, message, extra);
+
+    // 1. Is the RCX there?
+    progress("probe", 1, "Looking for the RCX...");
+    let r = await this._fwSend(Uint8Array.from([0x10]), 0, { attempts: 3 });
+    if (this._fwCancel) return cancelled();
+    if (!r) {
+      return fail(
+        "The RCX does not answer. Turn it on (On-Off), put it 10-20 cm in front of the IR tower, facing it, and try again.",
+        false
+      );
+    }
+
+    // 2. Delete firmware -> boot ROM mode (a running firmware resets itself and may not answer: not fatal)
+    progress("delete", 3, "Putting the RCX in boot mode...");
+    r = await this._fwSend(Uint8Array.from([0x65, ...RCX_FW.KEY]), 0, { attempts: 5 });
+    if (this._fwCancel) return cancelled();
+
+    // 3. Wait until the boot ROM answers
+    progress("boot", 5, "Waiting for the RCX boot ROM...");
+    await this._fwSleep(r ? 800 : 1500);
+    let up = false;
+    for (let i = 0; i < 6 && !up && !this._fwCancel; i++) {
+      up = !!(await this._fwSend(Uint8Array.from([0x10]), 0, { attempts: 2 }));
+      if (!up) await this._fwSleep(500);
+    }
+    if (this._fwCancel) return cancelled();
+    if (!up) return fail("The RCX stopped answering after the old firmware was deleted. Press On-Off on the RCX and try again.");
+
+    // 4. Start firmware download (entry address, image checksum)
+    progress("start", 6, "Starting the download...");
+    const startCmd = Uint8Array.from([
+      0x75, image.entry & 0xFF, (image.entry >> 8) & 0xFF,
+      image.checksum & 0xFF, (image.checksum >> 8) & 0xFF, 0x00,
+    ]);
+    r = await this._fwSend(startCmd, 1, { attempts: 5 });
+    if (this._fwCancel) return cancelled();
+    if (!r) return fail("No answer to \"start firmware download\".");
+    if (r[0] !== 0) return fail(`The RCX refused to start the download (error ${r[0]}).`);
+
+    // 5. Transfer the image in blocks; the last block carries index 0
+    const data = image.data;
+    const total = data.length;
+    const bs = o.blockSize;
+    const blocks = Math.ceil(total / bs);
+    const tTransfer = Date.now();
+    let offset = 0;
+    let index = 1;
+    let blockNo = 0;
+    let lastLoggedPct = -10;
+
+    while (offset < total) {
+      if (this._fwCancel) return cancelled();
+      const n = Math.min(bs, total - offset);
+      const isLast = offset + n >= total;
+      const idx = isLast ? 0 : index;
+
+      const body = new Uint8Array(6 + n);
+      body[0] = 0x45;
+      body[1] = idx & 0xFF;
+      body[2] = (idx >> 8) & 0xFF;
+      body[3] = n & 0xFF;
+      body[4] = (n >> 8) & 0xFF;
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const b = data[offset + i];
+        body[5 + i] = b;
+        sum += b;
+      }
+      body[5 + n] = sum & 0xFF;
+
+      r = await this._fwSend(body, 1, { attempts: 5 });
+      if (this._fwCancel) return cancelled();
+      if (!r) {
+        return fail(`No answer from the RCX for block ${blockNo + 1}/${blocks}. Move the RCX closer to the tower and avoid bright light.`);
+      }
+      if (r[0] !== 0) {
+        const why = r[0] === 3 ? "block checksum error (IR noise)" : r[0] === 4 ? "image checksum mismatch" : "unknown error";
+        return fail(`The RCX rejected block ${blockNo + 1}/${blocks}: ${why} (code ${r[0]}).`);
+      }
+
+      offset += n;
+      index++;
+      blockNo++;
+
+      const done = offset / total;
+      const elapsed = Date.now() - tTransfer;
+      const pct = 6 + 91 * done;
+      progress("transfer", pct, `Block ${blockNo}/${blocks}`, {
+        block: blockNo,
+        blocks,
+        etaMs: done > 0 ? Math.round((elapsed / done) * (1 - done)) : null,
+      });
+      if (pct - lastLoggedPct >= 10) {
+        lastLoggedPct = pct;
+        this.log(`Firmware: ${Math.round(pct)}% (block ${blockNo}/${blocks})`);
+      }
+    }
+
+    // 6. Unlock firmware: the ROM verifies the image checksum and the unlock string, then starts it
+    progress("unlock", 98, "Unlocking the firmware...");
+    r = await this._fwSend(Uint8Array.from([0xA5, ...RCX_FW.UNLOCK_KEY]), 25, { attempts: 5, marginMs: 3000 });
+    if (this._fwCancel) return cancelled();
+    let version = null;
+    if (!r) {
+      // the reply may simply have been lost while the firmware already started
+      await this._fwSleep(2000);
+      const v = await this._fwGetVersions();
+      if (!(v && v.hasFirmware)) {
+        return fail("The RCX did not unlock the firmware (image checksum error?).");
+      }
+      version = v.fwVersion;
+    }
+
+    // 7. Optional: ask the new firmware for its version (informational only, never fatal)
+    if (o.verify && !version) {
+      progress("verify", 99, "Checking the new firmware...");
+      await this._fwSleep(1500);
+      for (let i = 0; i < 5 && !version && !this._fwCancel; i++) {
+        const v = await this._fwGetVersions();
+        if (v && v.hasFirmware) version = v.fwVersion;
+        else await this._fwSleep(1000);
+      }
+    }
+
+    return { ok: true, version };
+  }
+
   mot(mask) {
     return new RcxMotor(this, mask);
   }
@@ -1454,6 +1889,165 @@ export class LegoRcx {
     return new RcxSensor(this, port);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Firmware image helpers (static, shared by every LegoRcx instance)
+// ---------------------------------------------------------------------------
+LegoRcx.firmwareImage = null;        // last firmware loaded with LegoRcx.loadFirmware()
+LegoRcx.defaultFirmwareUrl = null;   // e.g. "firmware/firm0332.lgo" (set by the web app)
+
+/**
+ * Parse a firmware file (.lgo / .srec = Motorola S-records, as shipped by LEGO) into the image
+ * the RCX boot ROM expects. Also accepts a raw binary image.
+ * Returns { data, length, entry, checksum, header, format, records, blocks }.
+ */
+LegoRcx.parseFirmwareImage = function (input, options = {}) {
+  let bytes;
+  if (typeof input === "string") bytes = new TextEncoder().encode(input);
+  else if (input instanceof ArrayBuffer) bytes = new Uint8Array(input);
+  else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+  else throw new Error("Unsupported firmware data (expected text, ArrayBuffer or Uint8Array).");
+
+  const { START, LEN, END } = RCX_FW;
+  const image = new Uint8Array(LEN);
+  let length = 0;
+  let entry = START;
+  let header = "";
+  let format = "srec";
+  let records = 0;
+
+  const text = new TextDecoder("latin1").decode(bytes);
+  const first = text.replace(/^[\s\uFEFF]+/, "").charAt(0);
+
+  if (first === "S" || first === "s") {
+    // address field length in hex characters, per record type
+    const alenTab = { 0: 4, 1: 4, 2: 6, 3: 8, 5: 4, 7: 8, 8: 6, 9: 4 };
+    const lines = text.split(/\r\n|\n|\r/);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const where = `line ${i + 1}`;
+      if (!/^[Ss][0-9][0-9A-Fa-f]{2}(?:[0-9A-Fa-f]{2})*$/.test(line)) {
+        throw new Error(`Invalid S-record on ${where}.`);
+      }
+      const type = line.charCodeAt(1) - 48;
+      const count = parseInt(line.substr(2, 2), 16);
+      if (line.length !== 4 + count * 2) throw new Error(`S-record length mismatch on ${where}.`);
+      const alen = alenTab[type];
+      if (!alen) continue; // S4 / S6: reserved
+      if (line.length < 4 + alen + 2) throw new Error(`S-record too short on ${where}.`);
+
+      const addr = parseInt(line.substr(4, alen), 16);
+      const dataHex = line.substr(4 + alen, line.length - 4 - alen - 2); // without the checksum byte
+      // NOTE: the S-record checksum is deliberately NOT enforced. LEGO's own .lgo files contain
+      // records with a bad checksum and Kekoa Proudfoot's reference downloader (firmdl.c) ignores
+      // it too. The transfer itself is protected by the per-block and whole-image checksums.
+
+      if (type === 0) {
+        for (let k = 0; k < dataHex.length; k += 2) header += String.fromCharCode(parseInt(dataHex.substr(k, 2), 16));
+      } else if (type === 1) {
+        const n = dataHex.length / 2;
+        if (addr < START || addr + n > END) {
+          throw new Error(`S-record data outside the RCX firmware area (0x8000-0xCBFF) on ${where}.`);
+        }
+        for (let k = 0; k < n; k++) image[addr - START + k] = parseInt(dataHex.substr(k * 2, 2), 16);
+        length = Math.max(length, addr - START + n);
+        records++;
+      } else if (type === 9) {
+        if (addr !== 0) {
+          if (addr < START || addr > END) throw new Error(`S-record start address 0x${addr.toString(16)} is outside the RCX firmware area.`);
+          entry = addr;
+        }
+      }
+    }
+  } else {
+    format = "binary";
+    if (bytes.length > LEN) throw new Error(`Binary firmware image is larger than ${LEN} bytes.`);
+    image.set(bytes);
+    length = bytes.length;
+  }
+
+  // The boot ROM clears 0x8000-0xCBFF when the download starts, so trailing zeros need not be sent
+  while (length > 0 && image[length - 1] === 0) length--;
+  if (length === 0) throw new Error("The firmware file contains no data.");
+  if (options.entry !== undefined && options.entry !== null) entry = options.entry & 0xFFFF;
+
+  const data = image.slice(0, length);
+
+  // The ROM refuses to unlock an image that does not contain this string: fail early instead of
+  // after three minutes of transfer.
+  if (!options.skipValidation) {
+    const needle = Array.from(RCX_FW.UNLOCK_STRING, (c) => c.charCodeAt(0));
+    let found = false;
+    for (let i = 0; i + needle.length <= data.length && !found; i++) {
+      let j = 0;
+      while (j < needle.length && data[i + j] === needle[j]) j++;
+      found = j === needle.length;
+    }
+    if (!found) {
+      throw new Error(`This does not look like RCX firmware (the unlock string "${RCX_FW.UNLOCK_STRING}" is missing).`);
+    }
+  }
+
+  let checksum = 0;
+  for (let i = 0; i < data.length; i++) checksum = (checksum + data[i]) & 0xFFFF;
+
+  return { data, length: data.length, entry, checksum, header, format, records, blocks: Math.ceil(data.length / RCX_FW.BLOCK) };
+};
+
+/** Let the user choose a firmware file (needs a user gesture such as a button click). */
+LegoRcx.pickFirmwareFile = async function () {
+  if (typeof window !== "undefined" && typeof window.showOpenFilePicker === "function") {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{ description: "RCX firmware (.lgo, .srec)", accept: { "application/octet-stream": [".lgo", ".srec", ".s19"] } }],
+      });
+      return await handle.getFile();
+    } catch (e) {
+      if (e && e.name === "AbortError") throw new Error("Firmware file selection cancelled.");
+      throw e;
+    }
+  }
+  if (typeof document === "undefined") throw new Error("No file picker available.");
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".lgo,.srec,.s19";
+    input.onchange = () => (input.files && input.files[0] ? resolve(input.files[0]) : reject(new Error("No firmware file selected.")));
+    input.oncancel = () => reject(new Error("Firmware file selection cancelled."));
+    input.click();
+  });
+};
+
+/**
+ * Load (and cache) a firmware image.
+ * source: File/Blob | ArrayBuffer/Uint8Array | URL string | S-record text | already parsed image | null
+ * null -> cached image, else LegoRcx.defaultFirmwareUrl, else a file picker.
+ */
+LegoRcx.loadFirmware = async function (source = null) {
+  let input = source;
+  if (input === null || input === undefined) {
+    if (LegoRcx.firmwareImage) return LegoRcx.firmwareImage;
+    input = LegoRcx.defaultFirmwareUrl ? LegoRcx.defaultFirmwareUrl : await LegoRcx.pickFirmwareFile();
+  }
+
+  let image;
+  if (input && input.data instanceof Uint8Array && typeof input.checksum === "number") {
+    image = input; // already parsed
+  } else if (typeof Blob !== "undefined" && input instanceof Blob) {
+    image = LegoRcx.parseFirmwareImage(await input.arrayBuffer());
+  } else if (typeof input === "string" && !/^\s*S[0-9]/i.test(input)) {
+    const resp = await fetch(input);
+    if (!resp.ok) throw new Error(`Could not download ${input} (HTTP ${resp.status}).`);
+    image = LegoRcx.parseFirmwareImage(await resp.arrayBuffer());
+  } else {
+    image = LegoRcx.parseFirmwareImage(input);
+  }
+
+  LegoRcx.firmwareImage = image;
+  return image;
+};
 
 class RcxMotor {
   constructor(rcx, motors) {
