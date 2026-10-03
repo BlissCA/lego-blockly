@@ -5002,6 +5002,112 @@ Blockly.Blocks['rcx_getval'] = {
   }
 };
 
+// ---------------- RCX firmware upload blocks ----------------
+// The file picker needs a real user click, so the "Choose firmware file" button lives ON the block.
+// The chosen file is cached in LegoRcx.firmwareImage and used when the program reaches the block.
+
+const RCX_FW_CHOOSE_BTN = "data:image/svg+xml;utf8," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="156" height="24">' +
+  '<rect x="0.5" y="0.5" width="155" height="23" rx="6" fill="#F4D800" stroke="#C4A000"/>' +
+  '<text x="78" y="16" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#000">Choose firmware file...</text>' +
+  '</svg>'
+);
+
+function rcxFirmwareFileLabel() {
+  const rcx = window.LegoRcx;
+  const img = rcx && rcx.firmwareImage;
+  if (img) return (img.fileName || "firmware") + " (" + img.length + " bytes)";
+  if (rcx && rcx.defaultFirmwareUrl) return "(built-in firmware file)";
+  return "(no file chosen)";
+}
+
+async function rcxChooseFirmwareFile(sourceBlock) {
+  try {
+    const rcx = window.LegoRcx;
+    if (!rcx) throw new Error("RCX driver not loaded.");
+    const file = await rcx.pickFirmwareFile();
+    const img = await rcx.loadFirmware(file);
+    window.logStatus?.("Firmware file loaded: " + (img.fileName || "firmware") + " (" + img.length + " bytes, " + img.blocks + " blocks)");
+    const ws = sourceBlock && sourceBlock.workspace;
+    if (ws) ws.getBlocksByType("rcx_fw_upload", false).forEach(b => b.updateFirmwareLabel());
+  } catch (err) {
+    window.logStatus?.("Firmware file: " + (err && err.message ? err.message : err));
+  }
+}
+
+Blockly.Blocks['rcx_fw_upload'] = {
+  init: function () {
+    this.appendDummyInput("HEAD")
+      .appendField(new Blockly.FieldDropdown(getRcxIrDropdown), "DEVICE")
+      .appendField("upload firmware (takes about 4 min)");
+    this.appendDummyInput("FILE")
+      .appendField(
+        new Blockly.FieldImage(
+          RCX_FW_CHOOSE_BTN, 156, 24, "Choose firmware file",
+          (field) => rcxChooseFirmwareFile(field.getSourceBlock())
+        ),
+        "CHOOSE"
+      )
+      .appendField(new Blockly.FieldLabel(rcxFirmwareFileLabel()), "FILE_NAME");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(20);
+    this.setTooltip(
+      "Installs the RCX firmware (.lgo) - needed after every battery change. " +
+      "Turn the RCX on and keep it 10-20 cm in front of the IR tower. " +
+      "The program stops with an error if the upload fails; the Stop button cancels it."
+    );
+  },
+  updateFirmwareLabel: function () {
+    this.setFieldValue(rcxFirmwareFileLabel(), "FILE_NAME");
+  }
+};
+
+Blockly.Blocks['rcx_fw_installed'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 firmware installed?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 20
+    });
+    this.setTooltip("True when the RCX has a firmware. False for a blank RCX (batteries were removed) or when the RCX does not answer.");
+  }
+};
+
+Blockly.Blocks['rcx_fw_version'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 firmware version",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 20
+    });
+    this.setTooltip("Installed firmware version, e.g. 3.3.2 (firm0332.lgo). Empty text when there is no firmware or no answer.");
+  }
+};
+
+Blockly.Blocks['rcx_fw_progress'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 firmware upload progress %",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 20
+    });
+    this.setTooltip("Progress of a running firmware upload, 0 to 100 (read it from a parallel task).");
+  }
+};
+
 /*
     # TypeRaw = 0
     # TypeTouch = 1

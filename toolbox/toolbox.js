@@ -1151,6 +1151,13 @@ const toolbox = {
               "type": "rcx_ishandsetkeypressed"
             }                                
           ]
+        },
+        { "kind": "category", "name": "Firmware", "colour": 20, "contents": [
+            { "kind": "block", "type": "rcx_fw_upload" },
+            { "kind": "block", "type": "rcx_fw_installed" },
+            { "kind": "block", "type": "rcx_fw_version" },
+            { "kind": "block", "type": "rcx_fw_progress" }
+          ]
         }
       ]
     },

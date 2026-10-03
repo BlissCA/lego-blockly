@@ -2061,17 +2061,21 @@ LegoRcx.loadFirmware = async function (source = null) {
   }
 
   let image;
+  let fileName = null;
   if (input && input.data instanceof Uint8Array && typeof input.checksum === "number") {
     image = input; // already parsed
   } else if (typeof Blob !== "undefined" && input instanceof Blob) {
     image = LegoRcx.parseFirmwareImage(await input.arrayBuffer());
+    fileName = input.name || null;
   } else if (typeof input === "string" && !/^\s*S[0-9]/i.test(input)) {
     const resp = await fetch(input);
     if (!resp.ok) throw new Error(`Could not download ${input} (HTTP ${resp.status}).`);
     image = LegoRcx.parseFirmwareImage(await resp.arrayBuffer());
+    fileName = input.split("?")[0].split("/").pop() || null;
   } else {
     image = LegoRcx.parseFirmwareImage(input);
   }
+  if (fileName && !image.fileName) image.fileName = fileName; // shown on the Blockly upload block
 
   LegoRcx.firmwareImage = image;
   return image;

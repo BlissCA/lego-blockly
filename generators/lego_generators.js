@@ -715,6 +715,69 @@ javascriptGenerator.forBlock["rcx_ishandsetkeypressed"] = function (block) {
   ];
 };
 
+// ---------------- RCX firmware upload ----------------
+// (RCX firmware upload begin)
+javascriptGenerator.forBlock["rcx_fw_upload"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  if (!window.LegoRcx || (!window.LegoRcx.firmwareImage && !window.LegoRcx.defaultFirmwareUrl)) {
+    throw new Error("No firmware file chosen. Click 'Choose firmware file...' on the upload block first.");
+  }
+  let nextLog = 0;
+  // The Stop button sets window.stopRequested: turn that into a cancel of the running upload
+  const stopWatch = setInterval(() => { if (window.stopRequested) dev.cancelFirmwareUpload(); }, 200);
+  let ok = false;
+  try {
+    ok = await dev.uploadFirmware(null, {
+      onProgress: (p) => {
+        if (p.phase === "transfer" && p.percent >= nextLog) {
+          window.logStatus?.(dev.name + ": firmware " + p.percent + "% (block " + p.block + "/" + p.blocks + ")");
+          nextLog = Math.floor(p.percent / 10) * 10 + 10;
+        }
+      }
+    });
+  } finally {
+    clearInterval(stopWatch);
+  }
+  shouldStop();
+  if (!ok) throw new Error("Firmware upload failed: " + ((dev.lastFirmwareResult && dev.lastFirmwareResult.error) || "unknown error"));
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_fw_installed"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `((await deviceManager.getDeviceByName("${dev}").hasFirmware()) === true)`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["rcx_fw_version"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `((await deviceManager.getDeviceByName("${dev}").getVersions())?.fwVersion || "")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["rcx_fw_progress"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `deviceManager.getDeviceByName("${dev}").getFirmwareProgress()`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+// (RCX firmware upload end)
+
 javascriptGenerator.forBlock["rcx_sensortype"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
