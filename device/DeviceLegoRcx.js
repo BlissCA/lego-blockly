@@ -1591,22 +1591,37 @@ export class LegoRcx {
     });
   }
 
+  // Reply of opcode 0x15 = 8 bytes: ROM version, then firmware version.
+  // Each version is  major (16-bit)  +  minor (1 byte)  +  build (1 byte):
+  //   ROM            00 03 00 01  -> 3.0.1
+  //   firm0332.lgo   00 03 03 02  -> 3.3.2   (firm0309 = 3.0.9, firm0328 = 3.2.8)
+  //   no firmware    00 00 00 00  -> hasFirmware = false
+  // (verified on a real RCX, with and without firmware)
   _parseVersions(vb) {
     if (!vb || vb.length < 8) return null;
     const romMajor = (vb[0] << 8) | vb[1];
-    const romMinor = (vb[2] << 8) | vb[3];
+    const romMinor = vb[2];
+    const romBuild = vb[3];
     const fwMajor = (vb[4] << 8) | vb[5];
-    const fwMinor = (vb[6] << 8) | vb[7];
-    const hasFirmware = fwMajor !== 0 || fwMinor !== 0;
+    const fwMinor = vb[6];
+    const fwBuild = vb[7];
+    const hasFirmware = fwMajor !== 0 || fwMinor !== 0 || fwBuild !== 0;
+    // "0332"-style code that matches the LEGO file name (firm0332.lgo), when it can be expressed that way
+    const fwCode = hasFirmware && fwMinor <= 9 && fwBuild <= 9
+      ? String(fwMajor * 100 + fwMinor * 10 + fwBuild).padStart(4, "0")
+      : null;
     return {
-      romMajor, romMinor, fwMajor, fwMinor, hasFirmware,
-      romVersion: `${romMajor}.${String(romMinor).padStart(2, "0")}`,
-      fwVersion: hasFirmware ? `${fwMajor}.${String(fwMinor).padStart(2, "0")}` : null,
+      romMajor, romMinor, romBuild,
+      fwMajor, fwMinor, fwBuild,
+      hasFirmware,
+      romVersion: `${romMajor}.${romMinor}.${romBuild}`,
+      fwVersion: hasFirmware ? `${fwMajor}.${fwMinor}.${fwBuild}` : null,
+      fwCode,
+      raw: Array.from(vb.slice(0, 8)),
     };
   }
 
-  // Opcode 0x15 "get versions": ROM version + firmware version (0.00 = no firmware loaded).
-  // Best effort: layout taken from the RCX Internals notes, not yet verified on hardware.
+  // Opcode 0x15 "get versions": ROM version + firmware version (fwVersion null = no firmware loaded).
   async getVersions() {
     if (this.isCM) return null;
     if (this.isTowerOnly) {
