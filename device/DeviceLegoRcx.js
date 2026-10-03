@@ -112,8 +112,10 @@ export const REMOTE_KEY_DROPDOWN_OPTIONS_NUMERIC = [
 // ---------------------------------------------------------------------------
 const RCX_FW = {
   START: 0x8000,                 // the boot ROM always loads the image at 0x8000
-  LEN: 0x4C00,                   // 0x8000..0xCBFF (19456 bytes max)
-  END: 0xCC00,
+  LEN: 0x4C00,                   // 0x8000..0xCBFF: the part the ROM clears and CHECKSUMS (19456 bytes)
+  END: 0xCC00,                   // end of the checksummed part
+  MAX_END: 0xEE5E,               // the image may continue above 0xCC00 (firm0332 ends at 0xE170);
+                                 // 0xEE5E+ holds the boot ROM's own variables
   BLOCK: 200,                    // max data bytes per 0x45 "transfer data" block
   KEY: [0x01, 0x03, 0x05, 0x07, 0x0B],            // key for delete firmware / get versions
   UNLOCK_KEY: [0x4C, 0x45, 0x47, 0x4F, 0xAE],     // "LEGO" + 0xAE (the registered mark)
@@ -1899,7 +1901,8 @@ LegoRcx.defaultFirmwareUrl = null;   // e.g. "firmware/firm0332.lgo" (set by the
 /**
  * Parse a firmware file (.lgo / .srec = Motorola S-records, as shipped by LEGO) into the image
  * the RCX boot ROM expects. Also accepts a raw binary image.
- * Returns { data, length, entry, checksum, header, format, records, blocks }.
+ * Returns { data, length, entry, checksum, checksumLength, header, format, records, blocks }.
+ * The checksum covers only the first 0x4C00 bytes (what the boot ROM verifies); the whole image is sent.
  */
 LegoRcx.parseFirmwareImage = function (input, options = {}) {
   let bytes;
@@ -1908,8 +1911,8 @@ LegoRcx.parseFirmwareImage = function (input, options = {}) {
   else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   else throw new Error("Unsupported firmware data (expected text, ArrayBuffer or Uint8Array).");
 
-  const { START, LEN, END } = RCX_FW;
-  const image = new Uint8Array(LEN);
+  const { START, LEN, MAX_END } = RCX_FW;
+  const image = new Uint8Array(MAX_END - START);
   let length = 0;
   let entry = START;
   let header = "";
@@ -1947,39 +1950,49 @@ LegoRcx.parseFirmwareImage = function (input, options = {}) {
         for (let k = 0; k < dataHex.length; k += 2) header += String.fromCharCode(parseInt(dataHex.substr(k, 2), 16));
       } else if (type === 1) {
         const n = dataHex.length / 2;
-        if (addr < START || addr + n > END) {
-          throw new Error(`S-record data outside the RCX firmware area (0x8000-0xCBFF) on ${where}.`);
+        // The image may be larger than the 0x4C00 bytes the ROM checksums: firm0332.lgo continues
+        // up to 0xE170. Only data the ROM cannot place at all is an error.
+        if (addr < START || addr + n > MAX_END) {
+          throw new Error(
+            `S-record data at 0x${addr.toString(16)} on ${where} is outside the RCX firmware area ` +
+            `(0x${START.toString(16)}-0x${(MAX_END - 1).toString(16)}).`
+          );
         }
         for (let k = 0; k < n; k++) image[addr - START + k] = parseInt(dataHex.substr(k * 2, 2), 16);
         length = Math.max(length, addr - START + n);
         records++;
       } else if (type === 9) {
         if (addr !== 0) {
-          if (addr < START || addr > END) throw new Error(`S-record start address 0x${addr.toString(16)} is outside the RCX firmware area.`);
+          if (addr < START || addr >= MAX_END) throw new Error(`S-record start address 0x${addr.toString(16)} is outside the RCX firmware area.`);
           entry = addr;
         }
       }
     }
   } else {
     format = "binary";
-    if (bytes.length > LEN) throw new Error(`Binary firmware image is larger than ${LEN} bytes.`);
+    if (bytes.length > MAX_END - START) throw new Error(`Binary firmware image is larger than ${MAX_END - START} bytes.`);
     image.set(bytes);
     length = bytes.length;
   }
 
   // The boot ROM clears 0x8000-0xCBFF when the download starts, so trailing zeros need not be sent
-  while (length > 0 && image[length - 1] === 0) length--;
+  // (only when the image ends inside that cleared area; above 0xCC00 the ROM clears nothing).
+  if (length <= LEN) while (length > 0 && image[length - 1] === 0) length--;
   if (length === 0) throw new Error("The firmware file contains no data.");
   if (options.entry !== undefined && options.entry !== null) entry = options.entry & 0xFFFF;
 
   const data = image.slice(0, length);
 
+  // The ROM verifies a 16-bit sum of the first 0x4C00 bytes only (0x8000-0xCBFF), and looks for the
+  // unlock string in that same window (firmdl3.c: cksumlen = min(len, 0xCC00 - start)).
+  const ckLen = Math.min(data.length, LEN);
+
   // The ROM refuses to unlock an image that does not contain this string: fail early instead of
-  // after three minutes of transfer.
+  // after minutes of transfer.
   if (!options.skipValidation) {
     const needle = Array.from(RCX_FW.UNLOCK_STRING, (c) => c.charCodeAt(0));
     let found = false;
-    for (let i = 0; i + needle.length <= data.length && !found; i++) {
+    for (let i = 0; i + needle.length <= ckLen && !found; i++) {
       let j = 0;
       while (j < needle.length && data[i + j] === needle[j]) j++;
       found = j === needle.length;
@@ -1990,9 +2003,9 @@ LegoRcx.parseFirmwareImage = function (input, options = {}) {
   }
 
   let checksum = 0;
-  for (let i = 0; i < data.length; i++) checksum = (checksum + data[i]) & 0xFFFF;
+  for (let i = 0; i < ckLen; i++) checksum = (checksum + data[i]) & 0xFFFF;
 
-  return { data, length: data.length, entry, checksum, header, format, records, blocks: Math.ceil(data.length / RCX_FW.BLOCK) };
+  return { data, length: data.length, entry, checksum, checksumLength: ckLen, header, format, records, blocks: Math.ceil(data.length / RCX_FW.BLOCK) };
 };
 
 /** Let the user choose a firmware file (needs a user gesture such as a button click). */
