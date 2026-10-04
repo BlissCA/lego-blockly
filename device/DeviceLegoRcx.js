@@ -2319,7 +2319,7 @@ export class LegoRcx {
    * Returns true when everything was sent; otherwise false and this.lastTowerError says why.
    */
   async sendVLLCodes(input, options = {}) {
-    const o = { packet: true, packetSize: null, gapMs: 0, restoreMode: true, ...options };
+    const o = { packet: true, packetSize: null, gapMs: 150, restoreMode: true, ...options };
     this.lastTowerError = null;
     if (!this.usbDevice) return this._towerErr("VLL needs the LEGO USB IR Tower (WebUSB).");
     if (this._firmwareBusy) return this._towerErr("A firmware download is running.");
@@ -2358,7 +2358,7 @@ export class LegoRcx {
 
       //for (let i = 0; i < groups.length; i++) {
       for (let i = 0; i < list.length; i++) {
-        //if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
+        if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
         const rawCode = Number(list[i]) & 0x7F; // 7-bit VLL code
         const packet = encodeVllPacket(rawCode);
         //const bytes = Uint8Array.from(groups[i].flatMap((c) => this._vllEncode(c)));
@@ -2374,11 +2374,11 @@ export class LegoRcx {
         //   fallbackMs: groups[i].length * this.vllCodeMs,
         // });
 
-        const delayMs = 150;
-        const pause = delayMs !== undefined ? delayMs : 150;
-        if (pause > 0 && i < list.length - 1) {
-          await new Promise((r) => setTimeout(r, pause));
-        }
+        // const delayMs = 150;
+        // const pause = delayMs !== undefined ? delayMs : 150;
+        // if (pause > 0 && i < list.length - 1) {
+        //   await new Promise((r) => setTimeout(r, pause));
+        // }
 
       }
 
