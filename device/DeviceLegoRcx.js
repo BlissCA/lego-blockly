@@ -2374,6 +2374,7 @@ export class LegoRcx {
         //   fallbackMs: groups[i].length * this.vllCodeMs,
         // });
 
+        const delayMs = 150;
         const pause = delayMs !== undefined ? delayMs : 150;
         if (pause > 0 && i < list.length - 1) {
           await new Promise((r) => setTimeout(r, pause));
