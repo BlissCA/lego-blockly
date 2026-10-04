@@ -150,6 +150,66 @@ const LTW = {
     0x04: "WRONGMODE", 0xFE: "INTERNAL_ERROR", 0xFF: "BADREQUEST",
   },
 };
+/**
+ * Encode a 7-bit VLL code (0..127) into the 25-byte optical waveform packet
+ * required by the LEGO USB IR Tower firmware when in VLL mode.
+ *
+ * Reverse-engineered from LEGO Mindstorms SDK 2.5 USB traffic by hangrydave
+ * (https://github.com/hangrydave/InfraredBrickTower/blob/master/PBrickLogic/VLL.h).
+ *
+ * Packet format (25 bytes total):
+ *   - Start header:  0x51, 0x0A
+ *   - 3 Checksum bits: bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
+ *     Checksum formula: 7 - ((code + (code >> 2) + (code >> 4)) & 7)
+ *   - 7 Data bits:    bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
+ *   - Stop trailer:   0x0B, 0x0B, 0x00
+ *
+ * Pulse width encoding:
+ *   - 0x0B, 0x14 (11 high, 20 low = 1 bit)
+ *   - 0x15, 0x0A (21 high, 10 low = 0 bit)
+ *
+ * @param {number} code - 7-bit VLL command code (0..127)
+ * @returns {Uint8Array} 25-byte packet ready for USB OUT endpoint 1
+ */
+export function encodeVllPacket(code) {
+  const n = (Number(code) || 0) & 0x7F;
+  const cs = (7 - ((n + (n >> 2) + (n >> 4)) & 7)) & 7;
+  const packet = new Uint8Array(25);
+  let idx = 0;
+
+  // Start pattern
+  packet[idx++] = 0x51;
+  packet[idx++] = 0x0A;
+
+  // 3 Checksum bits (MSB down to LSB: bit 2, bit 1, bit 0)
+  for (let b = 2; b >= 0; b--) {
+    if ((cs >> b) & 1) {
+      packet[idx++] = 0x0B;
+      packet[idx++] = 0x14;
+    } else {
+      packet[idx++] = 0x15;
+      packet[idx++] = 0x0A;
+    }
+  }
+
+  // 7 Data bits (MSB down to LSB: bit 6 down to bit 0)
+  for (let b = 6; b >= 0; b--) {
+    if ((n >> b) & 1) {
+      packet[idx++] = 0x0B;
+      packet[idx++] = 0x14;
+    } else {
+      packet[idx++] = 0x15;
+      packet[idx++] = 0x0A;
+    }
+  }
+
+  // Stop pattern
+  packet[idx++] = 0x0B;
+  packet[idx++] = 0x0B;
+  packet[idx++] = 0x00;
+
+  return packet;
+}
 
 export class LegoRcx {
   constructor(name = null, manager = null) {
@@ -2294,16 +2354,31 @@ export class LegoRcx {
       else for (const c of codes) groups.push([c]);
 
       for (let i = 0; i < groups.length; i++) {
-        if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
-        const bytes = Uint8Array.from(groups[i].flatMap((c) => this._vllEncode(c)));
-        if (this.onPacketLogged) this.onPacketLogged("tx", bytes, `VLL ${groups[i].join(",")}`);
-        await this.usbDevice.transferOut(this._usbOutEpNum || 1, bytes);
-        await this.waitTowerTxReady({
-          minMs: groups[i].length * this.vllMinCodeMs,
-          timeoutMs: groups[i].length * this.vllCodeMs + 4000,
-          fallbackMs: groups[i].length * this.vllCodeMs,
-        });
+        //if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
+        const rawCode = Number(list[i]) & 0x7F; // 7-bit VLL code
+        const packet = encodeVllPacket(rawCode);
+        //const bytes = Uint8Array.from(groups[i].flatMap((c) => this._vllEncode(c)));
+        //if (this.onPacketLogged) this.onPacketLogged("tx", packet, `VLL ${groups[i].join(",")}`);
+        if (this.onPacketLogged) {
+          this.onPacketLogged("vll", packet, `VLL Code: ${rawCode} (25-byte optical waveform)`);
+        }
+        this.log(`Sending VLL Code: ${rawCode} (0x${rawCode.toString(16).toUpperCase()}) [25-byte waveform]`);
+        await this.usbDevice.transferOut(this._usbOutEpNum || 1, packet);
+        // await this.waitTowerTxReady({
+        //   minMs: groups[i].length * this.vllMinCodeMs,
+        //   timeoutMs: groups[i].length * this.vllCodeMs + 4000,
+        //   fallbackMs: groups[i].length * this.vllCodeMs,
+        // });
+
+        const pause = delayMs !== undefined ? delayMs : 150;
+        if (pause > 0 && i < list.length - 1) {
+          await new Promise((r) => setTimeout(r, pause));
+        }
+
       }
+
+      await new Promise((r) => setTimeout(r, 40));
+
       ok = true;
       this.log(`VLL sent: ${codes.join(",")}`);
     } catch (e) {
@@ -2601,4 +2676,5 @@ class RcxSensor {
 if (typeof window !== "undefined") {
   window.LegoRcx = LegoRcx;
   window.REMOTE_KEYS = REMOTE_KEYS;
+  window.encodeVllPacket = encodeVllPacket;
 }
