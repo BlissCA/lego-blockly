@@ -2366,19 +2366,13 @@ export class LegoRcx {
         if (this.onPacketLogged) {
           this.onPacketLogged("vll", packet, `VLL Code: ${rawCode} (25-byte optical waveform)`);
         }
-        this.log(`Sending VLL Code: ${rawCode} (0x${rawCode.toString(16).toUpperCase()}) [25-byte waveform]`);
+        //this.log(`Sending VLL Code: ${rawCode} (0x${rawCode.toString(16).toUpperCase()}) [25-byte waveform]`);
         await this.usbDevice.transferOut(this._usbOutEpNum || 1, packet);
         // await this.waitTowerTxReady({
         //   minMs: groups[i].length * this.vllMinCodeMs,
         //   timeoutMs: groups[i].length * this.vllCodeMs + 4000,
         //   fallbackMs: groups[i].length * this.vllCodeMs,
         // });
-
-        // const delayMs = 150;
-        // const pause = delayMs !== undefined ? delayMs : 150;
-        // if (pause > 0 && i < list.length - 1) {
-        //   await new Promise((r) => setTimeout(r, pause));
-        // }
 
       }
 
