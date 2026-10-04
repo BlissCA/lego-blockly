@@ -122,6 +122,35 @@ const RCX_FW = {
   UNLOCK_STRING: "Do you byte, when I knock?",    // must be present inside the image
 };
 
+// ---------------------------------------------------------------------------
+// LEGO USB Tower vendor requests (from "LEGO USB Tower Interface Reference", VendReq.h)
+// ---------------------------------------------------------------------------
+const LTW = {
+  REQ: {
+    GET_PARM: 0x01, SET_PARM: 0x02, FLUSH: 0x03, RESET: 0x04, GET_POWER: 0x06,
+    GET_LED: 0x08, SET_LED: 0x09, GET_TX_STATE: 0xF2, GET_CAPS: 0xFC, GET_VERSION: 0xFD,
+  },
+  PARM_MODE: 0x01,
+  PARM_RANGE: 0x02,
+  PARM_ID_LED_MODE: 0x98,
+  MODE: { vll: 0x01, ir: 0x02, irc: 0x04 },          // LTW_MODE_*
+  RANGE: { short: 0x01, medium: 0x02, long: 0x03 },  // LTW_RANGE_*
+  LED: { id: 0x01, vll: 0x02 },                      // LTW_LED_ID (green) / LTW_LED_VLL (red)
+  LED_ON: 0xFF,
+  LED_OFF: 0x00,
+  LED_MODE: { firmware: 0x01, host: 0x02 },          // LTW_ID_LED_HW_CTRL / SW_CTRL
+  CAPS_LINK: { vll: 0x01, ir: 0x02, irc: 0x04 },     // LTW_CAPS_*
+  TX_READY: 0x01,
+  TX_BUSY: 0x02,
+  FLUSH_TX: 0x01,
+  FLUSH_RX: 0x02,
+  BAUDS: { 0x04: 1200, 0x08: 2400, 0x10: 4800, 0x20: 9600, 0x40: 19200 },
+  ERR_NAMES: {
+    0x00: "SUCCESS", 0x01: "BADPARM", 0x02: "BUSY", 0x03: "NOPOWER",
+    0x04: "WRONGMODE", 0xFE: "INTERNAL_ERROR", 0xFF: "BADREQUEST",
+  },
+};
+
 export class LegoRcx {
   constructor(name = null, manager = null) {
     this.name = name;
@@ -207,6 +236,15 @@ export class LegoRcx {
     this.firmwareProgress = { phase: "idle", percent: 0, message: "", block: 0, blocks: 0, elapsedMs: 0, etaMs: null };
     this.onFirmwareProgress = null;      // optional callback(progress)
     this.lastFirmwareResult = null;      // { ok, error, cancelled, version, blocks, durationMs, restarts }
+
+    // USB tower control / VLL state (see "LEGO USB TOWER CONTROL" section)
+    this._towerMode = null;              // "ir" | "vll" | "irc" (null = not read yet, treated as IR)
+    this._towerRange = null;             // "short" | "medium" | "long"
+    this.lastTowerError = null;          // text of the last failed tower request
+    this.vllMinCodeMs = 1200;            // a VLL code is never finished sooner than this (preamble + bits)
+    this.vllCodeMs = 1800;               // time allowed per VLL code when the TX state cannot be read
+    this.vllPacketSize = null;           // max VLL codes per USB packet (null = from GET_CAPS, else 16)
+    this.vllEncoder = null;              // optional (code) => number[] : how a VLL code is written to the tower
   }
 
   log(msg) {
@@ -653,6 +691,11 @@ export class LegoRcx {
 
       this.isUsbTower = true;
       this.queueActive = true;
+
+      // The tower keeps its mode between page loads: a previous VLL session would make every
+      // RCX command time out. Read the mode and force IR (never fatal for the connection).
+      try { await this._syncTowerState(); } catch (syncErr) { console.warn("USB tower state sync failed:", syncErr); }
+
       this._startUsbReaderLoop();
 
       // Direct tower-only connection requested (Remote Handset only, no handshake)
@@ -757,6 +800,7 @@ export class LegoRcx {
   async checkBrickOnline() {
     // During a firmware download the brick must not be probed (and must not be "downgraded")
     if (this._firmwareBusy) return this.hasBrick;
+    if (this.usbDevice && this._towerMode && this._towerMode !== "ir") return this.hasBrick; // tower not in IR mode
 
     const serialReady = !!(this.port && this.port.readable);
     const usbReady = !!(this.usbDevice && this.usbDevice.opened);
@@ -1275,6 +1319,15 @@ export class LegoRcx {
       return null;
     }
 
+    // The USB tower can only send VLL (and cannot receive) while in VLL mode, and IRC mode is a
+    // different protocol: RCX commands would only time out. Fail fast with a hint instead.
+    if (this.usbDevice && this._towerMode && this._towerMode !== "ir") {
+      console.warn(
+        `[${this.devicePrefix} ${this.name || ""}] Skipped command 0x${cmd[0].toString(16)}: the USB tower is in ${this._towerMode.toUpperCase()} mode. Switch it back to IR first.`
+      );
+      return null;
+    }
+
     if (this.isTowerOnly && !forceCheck && !this.NoReply && !this.opCodeEx.has(cmd[0])) {
       console.warn(
         `[${this.devicePrefix} ${this.name || ""}] Skipped command 0x${cmd[0].toString(16)}: RCX brick is offline (Tower-Only mode).`
@@ -1391,6 +1444,8 @@ export class LegoRcx {
     this.port = null;
     this.usbDevice = null;
     this.isUsbTower = false;
+    this._towerMode = null;
+    this._towerRange = null;
     this.readBuffer = new Uint8Array(0);
 
     this.portState = {};
@@ -1687,6 +1742,9 @@ export class LegoRcx {
     if (this.isCM) return finish(false, "CyberMaster (radio) firmware download is not supported.");
     if (!this.writer && !this.usbDevice) return finish(false, "Not connected to an IR tower.");
     if (this._firmwareBusy) return finish(false, "A firmware upload is already running.");
+    if (this.usbDevice && this._towerMode && this._towerMode !== "ir") {
+      if (!(await this.setTowerMode("ir"))) return finish(false, `Could not switch the USB tower back to IR mode: ${this.lastTowerError}`);
+    }
 
     let image;
     try {
@@ -1896,6 +1954,364 @@ export class LegoRcx {
     }
 
     return { ok: true, version };
+  }
+
+  // =========================================================================
+  // LEGO USB TOWER CONTROL + VLL (Visible Light Link)          (USB tower only)
+  // =========================================================================
+  // Source: "LEGO USB Tower Interface Reference" (LEGO Technology Center, 1999-2000).
+  // The tower is configured with USB vendor requests on endpoint 0 (control transfers):
+  //   SET_PARM / GET_PARM   mode (VLL / IR / IRC), range (short / medium / long), ID-LED mode
+  //   RESET, FLUSH, GET_POWER, GET_VERSION, GET_CAPS, GET_TX_STATE, SET_LED / GET_LED
+  // In VLL mode the TOWER FIRMWARE generates the light pulses (the VLL speed is fixed and the
+  // tower can only transmit VLL, never receive it): the host only writes the VLL code(s) to the
+  // OUT endpoint, like for IR data. No pulse timing is done in JavaScript.
+  //
+  // !! NOT VERIFIED ON HARDWARE: the manual does not document the exact byte(s) the tower expects
+  // !! for a VLL code. The default is one raw byte per code (0-127, the Scout SDK's 7-bit VLL
+  // !! command). If your tower wants something else, set rcx.vllEncoder = (code) => [byte, ...].
+  //
+  // Methods return true/false (or a value / null); on failure the reason is in this.lastTowerError.
+  //
+  //   await rcx.setTowerMode("vll")         // or "ir" / "irc"
+  //   await rcx.setTowerRange("medium")     // "short" | "medium" | "long" (long needs high power)
+  //   await rcx.resetTower()                // back to the default parameters
+  //   await rcx.sendVLL(4)                  // one VLL code (MicroScout: Beep 1)
+  //   await rcx.sendVLLCodes("4, 5, 0x0A")  // several codes, comma separated, as ONE packet
+
+  _towerErr(msg) {
+    this.lastTowerError = msg;
+    console.warn(`[${this.name || this.devicePrefix}] USB Tower: ${msg}`);
+    return false;
+  }
+
+  // Resolve "vll" / "VLL" / 1 against a { name: value } table -> [name, value] or null
+  _towerLookup(table, v) {
+    if (typeof v === "number") {
+      const name = Object.keys(table).find((k) => table[k] === v);
+      return name ? [name, v] : null;
+    }
+    const name = String(v).trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(table, name) ? [name, table[name]] : null;
+  }
+
+  /**
+   * Raw vendor request (control transfer IN). Returns
+   * { ok, errCode, errName, size, value, bytes, error } - never throws.
+   * All tower replies start with: wNoOfBytes (LE16), bErrCode, bValue.
+   */
+  async usbTowerRequest(request, value = 0, index = 0, length = 32) {
+    if (!this.usbDevice) return { ok: false, error: "Not connected to a USB IR tower." };
+    const hex = `0x${request.toString(16).toUpperCase()}`;
+    let res;
+    try {
+      res = await this.usbDevice.controlTransferIn(
+        { requestType: "vendor", recipient: "device", request, value, index },
+        length
+      );
+    } catch (e) {
+      return { ok: false, error: `USB tower request ${hex} failed: ${e && e.message ? e.message : e}` };
+    }
+    if (!res || res.status !== "ok" || !res.data) {
+      return { ok: false, error: `USB tower request ${hex} returned status "${res && res.status}".` };
+    }
+    const bytes = new Uint8Array(res.data.buffer, res.data.byteOffset, res.data.byteLength);
+    if (bytes.length < 4) return { ok: false, error: `USB tower request ${hex}: reply too short (${bytes.length} bytes).` };
+    const errCode = bytes[2];
+    const errName = LTW.ERR_NAMES[errCode] || `0x${errCode.toString(16)}`;
+    return {
+      ok: errCode === 0,
+      errCode,
+      errName,
+      size: bytes[0] | (bytes[1] << 8),
+      value: bytes[3],
+      bytes,
+      error: errCode === 0 ? null : `USB tower request ${hex}: ${errName}`,
+    };
+  }
+
+  async _towerSetParm(parm, value) {
+    return this.usbTowerRequest(LTW.REQ.SET_PARM, (parm & 0xFF) | ((value & 0xFF) << 8), 0, 8);
+  }
+
+  async _towerGetParm(parm) {
+    return this.usbTowerRequest(LTW.REQ.GET_PARM, parm & 0xFF, 0, 8);
+  }
+
+  // ---------------- mode: VLL / IR / IRC ----------------
+
+  async setTowerMode(mode) {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("Tower mode needs the LEGO USB IR Tower.");
+    const m = this._towerLookup(LTW.MODE, mode);
+    if (!m) return this._towerErr(`Unknown tower mode "${mode}" (use "vll", "ir" or "irc").`);
+    const r = await this._towerSetParm(LTW.PARM_MODE, m[1]);
+    if (!r.ok) return this._towerErr(r.error);
+    if (r.value !== m[1]) return this._towerErr(`The tower did not accept ${m[0].toUpperCase()} mode.`);
+    const changed = this._towerMode !== m[0];
+    this._towerMode = m[0];
+    if (m[0] === "ir" && changed) this.readBuffer = new Uint8Array(0); // drop anything stale
+    this.log(`USB tower mode: ${m[0].toUpperCase()}`);
+    return true;
+  }
+
+  async getTowerMode() {
+    const r = await this._towerGetParm(LTW.PARM_MODE);
+    if (!r.ok) { this._towerErr(r.error); return null; }
+    const m = this._towerLookup(LTW.MODE, r.value);
+    if (!m) { this._towerErr(`Unknown tower mode value ${r.value}.`); return null; }
+    this._towerMode = m[0];
+    return m[0];
+  }
+
+  // ---------------- range: short / medium / long ----------------
+
+  async setTowerRange(range) {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("Tower range needs the LEGO USB IR Tower.");
+    const g = this._towerLookup(LTW.RANGE, range);
+    if (!g) return this._towerErr(`Unknown tower range "${range}" (use "short", "medium" or "long").`);
+    const r = await this._towerSetParm(LTW.PARM_RANGE, g[1]);
+    if (!r.ok) {
+      if (r.errCode === 0x03) {
+        return this._towerErr(
+          `${g[0]} range was refused (NOPOWER): the tower is in its low-power USB configuration, ` +
+          "which only allows short and medium range."
+        );
+      }
+      return this._towerErr(r.error);
+    }
+    this._towerRange = g[0];
+    this.log(`USB tower range: ${g[0]}`);
+    return true;
+  }
+
+  async getTowerRange() {
+    const r = await this._towerGetParm(LTW.PARM_RANGE);
+    if (!r.ok) { this._towerErr(r.error); return null; }
+    const g = this._towerLookup(LTW.RANGE, r.value);
+    if (!g) { this._towerErr(`Unknown tower range value ${r.value}.`); return null; }
+    this._towerRange = g[0];
+    return g[0];
+  }
+
+  // ---------------- reset / flush / info ----------------
+
+  // Back to the tower's default parameters (mode, range, speed...). Also clears its buffers.
+  async resetTower() {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("Reset needs the LEGO USB IR Tower.");
+    const r = await this.usbTowerRequest(LTW.REQ.RESET, 0, 0, 8);
+    if (!r.ok) return this._towerErr(r.error);
+    this.readBuffer = new Uint8Array(0);
+    this._towerMode = null;
+    this._towerRange = null;
+    await this.getTowerMode();   // learn what the defaults are
+    await this.getTowerRange();
+    this.log(`USB tower reset (mode ${this._towerMode || "?"}, range ${this._towerRange || "?"}).`);
+    return true;
+  }
+
+  async flushTower(tx = true, rx = true) {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("Flush needs the LEGO USB IR Tower.");
+    const r = await this.usbTowerRequest(LTW.REQ.FLUSH, (tx ? LTW.FLUSH_TX : 0) | (rx ? LTW.FLUSH_RX : 0), 0, 8);
+    if (!r.ok) return this._towerErr(r.error);
+    if (rx) this.readBuffer = new Uint8Array(0);
+    return true;
+  }
+
+  // "low" (100 mA) or "high" (500 mA) USB power configuration; null on error.
+  // Long range only works in the high-power configuration.
+  async getTowerPower() {
+    const r = await this.usbTowerRequest(LTW.REQ.GET_POWER, 0, 0, 8);
+    if (!r.ok || r.bytes.length < 5) { this._towerErr(r.error || "GET_POWER: reply too short"); return null; }
+    return r.bytes[4] === 0x02 ? "high" : r.bytes[4] === 0x01 ? "low" : null;
+  }
+
+  async getTowerVersion() {
+    const r = await this.usbTowerRequest(LTW.REQ.GET_VERSION, 0, 0, 16);
+    if (!r.ok || r.bytes.length < 8) { this._towerErr(r.error || "GET_VERSION: reply too short"); return null; }
+    const major = r.bytes[4];
+    const minor = r.bytes[5];
+    const build = r.bytes[6] | (r.bytes[7] << 8);
+    return { major, minor, build, text: `${major}.${minor} build ${build}` };
+  }
+
+  // Capabilities of a link type: "ir" | "vll" | "irc"
+  async getTowerCaps(link = "ir") {
+    const l = this._towerLookup(LTW.CAPS_LINK, link);
+    if (!l) { this._towerErr(`Unknown link type "${link}".`); return null; }
+    const r = await this.usbTowerRequest(LTW.REQ.GET_CAPS, l[1], 0, 32);
+    if (!r.ok || r.bytes.length < 18) { this._towerErr(r.error || "GET_CAPS: reply too short"); return null; }
+    const b = r.bytes;
+    const rates = (mask) => Object.keys(LTW.BAUDS).filter((k) => mask & Number(k)).map((k) => LTW.BAUDS[k]);
+    return {
+      transmit: !!(b[4] & 0x01),
+      receive: !!(b[4] & 0x02),
+      ranges: { short: !!(b[5] & 0x01), medium: !!(b[5] & 0x02), long: !!(b[5] & 0x04) },
+      txBauds: rates(b[6] | (b[7] << 8)),
+      rxBauds: rates(b[8] | (b[9] << 8)),
+      minCarrierKHz: b[10],
+      maxCarrierKHz: b[11],
+      txBufferSize: b[16],
+      rxBufferSize: b[17],
+    };
+  }
+
+  // ---------------- LEDs ----------------
+
+  // "firmware" (default: green LED shows IR activity) or "host" (you switch the green LED)
+  async setTowerLedMode(mode) {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("LED mode needs the LEGO USB IR Tower.");
+    const m = this._towerLookup(LTW.LED_MODE, mode);
+    if (!m) return this._towerErr(`Unknown LED mode "${mode}" (use "firmware" or "host").`);
+    const r = await this._towerSetParm(LTW.PARM_ID_LED_MODE, m[1]);
+    return r.ok ? true : this._towerErr(r.error);
+  }
+
+  // led: "id" (green) | "vll" (red). The green ID LED needs setTowerLedMode("host") first.
+  async setTowerLed(led, on = true) {
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("LEDs need the LEGO USB IR Tower.");
+    const l = this._towerLookup(LTW.LED, led);
+    if (!l) return this._towerErr(`Unknown LED "${led}" (use "id" or "vll").`);
+    const r = await this.usbTowerRequest(LTW.REQ.SET_LED, l[1] | ((on ? LTW.LED_ON : LTW.LED_OFF) << 8), 0, 8);
+    return r.ok ? true : this._towerErr(r.error);
+  }
+
+  // Read the tower's mode at connect time and force IR (a previous VLL session leaves it in VLL)
+  async _syncTowerState() {
+    const m = await this.getTowerMode();
+    if (m && m !== "ir") {
+      this.log(`USB tower was left in ${m.toUpperCase()} mode: switching to IR.`);
+      await this.setTowerMode("ir");
+    }
+  }
+
+  // ---------------- VLL ----------------
+
+  /**
+   * Parse VLL codes: a number, an array, or text such as "4, 5,0x0A 10" (separators: comma,
+   * semicolon, space). Each code is 0-127 (decimal or 0x hex). -> { codes:[...], error:null|text }
+   */
+  static parseVLLCodes(input) {
+    let items;
+    if (Array.isArray(input)) items = input;
+    else if (typeof input === "number") items = [input];
+    else if (typeof input === "string") items = input.split(/[\s,;]+/).filter((t) => t.length > 0);
+    else return { codes: [], error: "No VLL code given." };
+    if (items.length === 0) return { codes: [], error: "No VLL code given." };
+
+    const codes = [];
+    for (const it of items) {
+      let n;
+      if (typeof it === "number") n = it;
+      else if (/^0x[0-9a-f]+$/i.test(String(it).trim())) n = parseInt(String(it).trim(), 16);
+      else if (/^\d+$/.test(String(it).trim())) n = parseInt(String(it).trim(), 10);
+      else return { codes: [], error: `"${it}" is not a VLL code (use numbers 0-127, e.g. 4, 5, 0x0A).` };
+      if (!Number.isInteger(n) || n < 0 || n > 127) {
+        return { codes: [], error: `VLL code ${it} is out of range (0-127).` };
+      }
+      codes.push(n);
+    }
+    return { codes, error: null };
+  }
+
+  // How one VLL code is written to the tower (default: the raw 7-bit value as one byte)
+  _vllEncode(code) {
+    if (typeof this.vllEncoder === "function") return this.vllEncoder(code);
+    return [code & 0x7F];
+  }
+
+  // Wait until the tower reports its transmitter READY (GET_TX_STATE).
+  // minMs: never return sooner. fallbackMs: if the state cannot be read, just wait this long.
+  async waitTowerTxReady({ minMs = 0, timeoutMs = 5000, pollMs = 40, fallbackMs = 0 } = {}) {
+    const t0 = Date.now();
+    await new Promise((r) => setTimeout(r, 60)); // let the tower pick up the data first
+    for (;;) {
+      const r = await this.usbTowerRequest(LTW.REQ.GET_TX_STATE, 0, 0, 8);
+      if (!r.ok || r.bytes.length < 5) {
+        const rest = Math.max(0, Math.max(fallbackMs, minMs) - (Date.now() - t0));
+        if (rest > 0) await new Promise((res) => setTimeout(res, rest));
+        return false; // state unknown: waited a fixed time instead
+      }
+      if (r.bytes[4] === LTW.TX_READY && Date.now() - t0 >= minMs) return true;
+      if (Date.now() - t0 >= timeoutMs) return false;
+      await new Promise((res) => setTimeout(res, pollMs));
+    }
+  }
+
+  // One VLL code (0-127).  options: see sendVLLCodes
+  async sendVLL(code, options = {}) {
+    return this.sendVLLCodes([code], options);
+  }
+
+  /**
+   * Send one or several VLL codes through the USB tower.
+   * input:   number | array | "4, 5, 0x0A"
+   * options: packet      true  -> codes go to the tower in packets (default), false -> one at a time
+   *          packetSize  max codes per packet (default: vllPacketSize, else the tower's VLL TX buffer, else 16)
+   *          gapMs       extra pause between packets/codes
+   *          restoreMode true  -> if this call had to switch the tower to VLL, switch back afterwards (default)
+   * The tower is switched to VLL mode automatically when needed (like WinVLL does).
+   * Returns true when everything was sent; otherwise false and this.lastTowerError says why.
+   */
+  async sendVLLCodes(input, options = {}) {
+    const o = { packet: true, packetSize: null, gapMs: 0, restoreMode: true, ...options };
+    this.lastTowerError = null;
+    if (!this.usbDevice) return this._towerErr("VLL needs the LEGO USB IR Tower (WebUSB).");
+    if (this._firmwareBusy) return this._towerErr("A firmware download is running.");
+    const parsed = LegoRcx.parseVLLCodes(input);
+    if (parsed.error) return this._towerErr(parsed.error);
+
+    let ok = false;
+    await this.enqueue(async () => {
+      ok = await this._sendVLLNow(parsed.codes, o);
+    });
+    return ok;
+  }
+
+  async _sendVLLNow(codes, o) {
+    const before = this._towerMode || "ir";
+    let switched = false;
+    if (before !== "vll") {
+      if (!(await this.setTowerMode("vll"))) return false;
+      switched = true;
+    }
+
+    let ok = false;
+    try {
+      let size = o.packetSize || this.vllPacketSize;
+      if (!size) {
+        const caps = await this.getTowerCaps("vll");
+        this.lastTowerError = null;
+        size = caps && caps.txBufferSize > 0 ? Math.min(caps.txBufferSize, 16) : 16;
+      }
+      const groups = [];
+      if (o.packet) for (let i = 0; i < codes.length; i += size) groups.push(codes.slice(i, i + size));
+      else for (const c of codes) groups.push([c]);
+
+      for (let i = 0; i < groups.length; i++) {
+        if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
+        const bytes = Uint8Array.from(groups[i].flatMap((c) => this._vllEncode(c)));
+        if (this.onPacketLogged) this.onPacketLogged("tx", bytes, `VLL ${groups[i].join(",")}`);
+        await this.usbDevice.transferOut(this._usbOutEpNum || 1, bytes);
+        await this.waitTowerTxReady({
+          minMs: groups[i].length * this.vllMinCodeMs,
+          timeoutMs: groups[i].length * this.vllCodeMs + 4000,
+          fallbackMs: groups[i].length * this.vllCodeMs,
+        });
+      }
+      ok = true;
+      this.log(`VLL sent: ${codes.join(",")}`);
+    } catch (e) {
+      this._towerErr(`VLL send failed: ${e && e.message ? e.message : e}`);
+    } finally {
+      if (switched && o.restoreMode) await this.setTowerMode(before);
+    }
+    return ok;
   }
 
   mot(mask) {
