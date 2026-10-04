@@ -2349,11 +2349,15 @@ export class LegoRcx {
         this.lastTowerError = null;
         size = caps && caps.txBufferSize > 0 ? Math.min(caps.txBufferSize, 16) : 16;
       }
-      const groups = [];
-      if (o.packet) for (let i = 0; i < codes.length; i += size) groups.push(codes.slice(i, i + size));
-      else for (const c of codes) groups.push([c]);
 
-      for (let i = 0; i < groups.length; i++) {
+      const list = Array.isArray(codes) ? codes : Array.from(codes || []);
+      if (list.length === 0) return true;
+      // const groups = [];
+      // if (o.packet) for (let i = 0; i < codes.length; i += size) groups.push(codes.slice(i, i + size));
+      // else for (const c of codes) groups.push([c]);
+
+      //for (let i = 0; i < groups.length; i++) {
+      for (let i = 0; i < list.length; i++) {
         //if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
         const rawCode = Number(list[i]) & 0x7F; // 7-bit VLL code
         const packet = encodeVllPacket(rawCode);
