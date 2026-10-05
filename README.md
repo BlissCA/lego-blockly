@@ -14,18 +14,21 @@ This is a web application that will work only in chromium based browsers like Ch
 
 Lego Blockly supports for now:
 
-- Lego Interface B
-- Lego Interface A with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
-- Lego Power Function with the IR Receiver 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
-- Lego RCX / ControlMaster (RCX with Serial or USB IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.  Also support the RCX IR Remote Handset.
-- Lego NXT (BT or USB)
-- VLL : Virtal Light Link for Code Pilot and MicroScout brick
-- Wedo 1.0 (using the 2 ports USB hub)
-- WeDo 2.0 (BLE)
-- LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)
-- Lego Dimensions Toypad USB.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
-- Lego Power Function IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png).  Arduino Sketches are available for ESP-WROOM-32 (LegoPFIR_BLE_ESP_WROOM_32_V3) and ESP32-C3 (LegoPFIR_BLE_ESP32_C3_V1) in the [folder SketchArduino](SketchArduino).
-- Lego Power Function IR TX only with the use of a RCX Serial IR tower.
+- **Lego Interface B**
+- **Lego Interface A** with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
+- **Lego RCX / ControlMaster** (RCX with Serial or USB IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.  Also support the RCX IR Remote Handset.
+- **Lego NXT** (BT or USB)
+- **VLL : Virtal Light Link** for Code Pilot and MicroScout brick.  Using an USB-Serial FTDI adapter and a Led + Resistor connected to DTR Pin and GND (or +3.3V depending) OR you can use the RCX USB Tower which has VLL capabilities. (Category RCX/CM in Lego Blockly) 
+- **Wedo 1.0** (using the 2 ports USB hub)
+- **WeDo 2.0** (BLE)
+- **LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)**
+- **Lego Dimensions Toypad USB**.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
+- **Lego Power Function** with the IR Receiver 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
+- **Lego Power Function** IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, Generic IR RX (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png).  Arduino Sketches are available for ESP-WROOM-32 (LegoPFIR_BLE_ESP_WROOM_32_V3) and ESP32-C3 (LegoPFIR_BLE_ESP32_C3_V1) in the [folder SketchArduino](SketchArduino).
+- **Lego Power Function** IR TX only with the use of a RCX Serial IR tower.
+- **Circuit Cubes Bluetooth Cube** (3 outputs).  To use the Cube in Lego Blockly, you must use an ESP32 Bridge.  Take the CCubesESP32BLEBridge_V2 sketch in the [folder SketchArduino](SketchArduino).  The Bridge support 2 Cubes!\
+You must know the MAC address of each Cubes.  There is a blockly block to help you find out the MAC of your cubes or you can use tools on your phone like "nRF Connect".
+
 
 For some devices, you need access to serial ports:
 - Through the use of USB to RS232 adapters (qty depends how many Lego Interface B you want to try at the same time)
@@ -43,7 +46,8 @@ This will NOT work on a phone or tablet for the moment.  This will work only on 
 
 ## Forum
 Go to the following thread on Eurobricks forum for more informations: [Eurobricks Forum](https://www.eurobricks.com/forum/forums/topic/200778-project-programs-to-allow-interactions-between-old-lego-control-interfaces-rcx-lego-interface-b-others/page/4/#comment-3821464).\
-Special thanks to people who participate in this forum thread.  They give precious support, suggestions, testing etc.  (Toastie, Gunners TekZone, Wapata to name a few)
+And the new Lego Blockly dedicated thread: [Eurobricks Forum - Lego Blockly](https://www.eurobricks.com/forum/forums/topic/214097-lego-blockly-graphical-common-programming-environment-web-app-using-intuitive-blockly-for-all-lego-robotic-platforms/).\
+Special thanks to people who participate in these forum threads.  They give precious support, suggestions, testing etc.  (Toastie, Gunners TekZone, Wapata to name a few)
 
 
 ## Notes:
