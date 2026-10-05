@@ -1779,7 +1779,7 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "VLLCODE",
-          "check": "Number, String, Array"
+          "check": ["Number", "String", "Array"]
         },
         {
           "type": "input_value",

@@ -1166,12 +1166,13 @@ const toolbox = {
               "inputs": {
                 "VLLCODE": {
                   "shadow": {
-                    "type": "math_number",
-                    "fields": { "NUM": 4 },
-                    "min": 0,
-                    "max": 127,
-                    "precision": 1
-                     
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 127,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 4 }
                   }
                 },
                 "DELAY": {
