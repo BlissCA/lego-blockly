@@ -1772,6 +1772,33 @@ window.addEventListener("load", () => {
       "tooltip": "Power must be from 0 to 7"
     },
     {
+      "type": "rcx_send_vll",
+      "message0": "%1 send vll code(s) %2 delay (ms) %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        {
+          "type": "input_value",
+          "name": "VLLCODE",
+          "check": "Number, String, Array",
+        },
+        {
+          "type": "input_value",
+          "name": "DELAY",
+          "check": "Number",
+          // "shadow": {
+          //   "type": "math_number",
+          //   "fields": { "NUM": 150 }
+          // }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20,
+      "tooltip": "VLL code input can be one number, a string with comma delimited numbers, or a list of numbers. Delay between codes is in milliseconds."
+    },
+
+    {
       "type": "logic_is_between",
       "message0": "%1 %2 %3 %4 %5",
       "args0": [

@@ -715,6 +715,22 @@ javascriptGenerator.forBlock["rcx_ishandsetkeypressed"] = function (block) {
   ];
 };
 
+// --------------- RCX USB Tower specific block: send VLL code with optional delay ----------------
+javascriptGenerator.forBlock["rcx_send_vll"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const vllCode = javascriptGenerator.valueToCode(block, "VLLCODE", javascriptGenerator.ORDER_NONE) || "4";
+  const delay  = javascriptGenerator.valueToCode(block, "DELAY",  javascriptGenerator.ORDER_NONE) || "150";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sendVLLCodes(${vllCode}, ${delay});
+}
+`;
+};
+
 // ---------------- RCX firmware upload ----------------
 // (RCX firmware upload begin)
 javascriptGenerator.forBlock["rcx_fw_upload"] = function (block) {

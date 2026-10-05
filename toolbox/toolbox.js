@@ -1158,7 +1158,39 @@ const toolbox = {
             { "kind": "block", "type": "rcx_fw_version" },
             { "kind": "block", "type": "rcx_fw_progress" }
           ]
+        },
+        { "kind": "category", "name": "VLL", "colour": 20, "contents": [
+            {
+              "kind": "block",
+              "type": "rcx_send_vll",
+              "inputs": {
+                "VLLCODE": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 127,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 4 }
+                  }
+                },
+                "DELAY": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 10000,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 150 }
+                  }
+                }
+              }
+            }
+          ]
         }
+
       ]
     },
     {
