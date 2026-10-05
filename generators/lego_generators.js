@@ -726,7 +726,7 @@ javascriptGenerator.forBlock["rcx_send_vll"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.sendVLLCodes(${vllCode}, ${delay});
+  await dev.sendVLLCodes(${vllCode}, { gapMs: ${delay} });
 }
 `;
 };
