@@ -157,16 +157,25 @@ const LTW = {
  * Reverse-engineered from LEGO Mindstorms SDK 2.5 USB traffic by hangrydave
  * (https://github.com/hangrydave/InfraredBrickTower/blob/master/PBrickLogic/VLL.h).
  *
+ * HOW THE TOWER READS THESE BYTES  (byte = (ticks << 1) | level)
+ *   Bit 0 is the LED level (1 = light on, 0 = dark) and bits 1-7 are how long that level lasts,
+ *   in tower ticks (the tower plays the stream by itself; no timing is needed on the host).
+ *   - 0x51 is light for 40 ticks (the preamble), and 0x0A is dark for 5 ticks (the start bit).
+ *   - A "1" bit is 0x0B 0x14: 5 ticks light, then 10 ticks dark.
+ *   - A "0" bit is 0x15 0x0A: 10 ticks light, then 5 ticks dark.
+ *   - One VLL unit is 5 ticks, and one code is about 205 ticks.
+ *   (0x0B 0x0B 0x00 ends the packet: 0x00 = dark for 0 ticks, i.e. the LED is left off.)
+ *   Measured on a real tower (firmware 1.0 build 134): one tick is about 1 ms, so a code takes
+ *   about 0.2 s. The tower's FIFO holds 16 bytes, so transferOut() returns after roughly half of
+ *   the code has been played: wait for GET_TX_STATE = READY before leaving VLL mode.
+ *   (A single byte such as 0x01 therefore means "light on, 0 ticks": the LED just stays on.)
+ *
  * Packet format (25 bytes total):
  *   - Start header:  0x51, 0x0A
- *   - 3 Checksum bits: bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
+ *   - 3 Checksum bits (MSB first): bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
  *     Checksum formula: 7 - ((code + (code >> 2) + (code >> 4)) & 7)
- *   - 7 Data bits:    bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
- *   - Stop trailer:   0x0B, 0x0B, 0x00
- *
- * Pulse width encoding:
- *   - 0x0B, 0x14 (11 high, 20 low = 1 bit)
- *   - 0x15, 0x0A (21 high, 10 low = 0 bit)
+ *   - 7 Data bits (MSB first):     bit 1 = [0x0B, 0x14], bit 0 = [0x15, 0x0A]
+ *   - Stop trailer:  0x0B, 0x0B, 0x00
  *
  * @param {number} code - 7-bit VLL command code (0..127)
  * @returns {Uint8Array} 25-byte packet ready for USB OUT endpoint 1
@@ -301,10 +310,7 @@ export class LegoRcx {
     this._towerMode = null;              // "ir" | "vll" | "irc" (null = not read yet, treated as IR)
     this._towerRange = null;             // "short" | "medium" | "long"
     this.lastTowerError = null;          // text of the last failed tower request
-    this.vllMinCodeMs = 1200;            // a VLL code is never finished sooner than this (preamble + bits)
-    this.vllCodeMs = 1800;               // time allowed per VLL code when the TX state cannot be read
-    this.vllPacketSize = null;           // max VLL codes per USB packet (null = from GET_CAPS, else 16)
-    this.vllEncoder = null;              // optional (code) => number[] : how a VLL code is written to the tower
+    this.vllCodeMs = 400;                // time allowed per VLL code if the TX state cannot be read (measured: ~210-230 ms)
   }
 
   log(msg) {
@@ -2023,13 +2029,12 @@ export class LegoRcx {
   // The tower is configured with USB vendor requests on endpoint 0 (control transfers):
   //   SET_PARM / GET_PARM   mode (VLL / IR / IRC), range (short / medium / long), ID-LED mode
   //   RESET, FLUSH, GET_POWER, GET_VERSION, GET_CAPS, GET_TX_STATE, SET_LED / GET_LED
-  // In VLL mode the TOWER FIRMWARE generates the light pulses (the VLL speed is fixed and the
-  // tower can only transmit VLL, never receive it): the host only writes the VLL code(s) to the
-  // OUT endpoint, like for IR data. No pulse timing is done in JavaScript.
-  //
-  // !! NOT VERIFIED ON HARDWARE: the manual does not document the exact byte(s) the tower expects
-  // !! for a VLL code. The default is one raw byte per code (0-127, the Scout SDK's 7-bit VLL
-  // !! command). If your tower wants something else, set rcx.vllEncoder = (code) => [byte, ...].
+  // In VLL mode the TOWER FIRMWARE plays the light pulses (the tower can only transmit VLL, never
+  // receive it), but it does not build the VLL frame from a code: it plays a stream of
+  // (duration, level) bytes, 25 of them per code. encodeVllPacket() builds that packet; see its
+  // comment for the "byte = (ticks << 1) | level" format (reverse-engineered by hangrydave).
+  // Verified on a real tower with a Code Pilot. The packet is written to the OUT endpoint like
+  // IR data and no pulse timing is done in JavaScript.
   //
   // Methods return true/false (or a value / null); on failure the reason is in this.lastTowerError.
   //
@@ -2279,17 +2284,12 @@ export class LegoRcx {
     return { codes, error: null };
   }
 
-  // How one VLL code is written to the tower (default: the raw 7-bit value as one byte)
-  _vllEncode(code) {
-    if (typeof this.vllEncoder === "function") return this.vllEncoder(code);
-    return [code & 0x7F];
-  }
-
   // Wait until the tower reports its transmitter READY (GET_TX_STATE).
   // minMs: never return sooner. fallbackMs: if the state cannot be read, just wait this long.
-  async waitTowerTxReady({ minMs = 0, timeoutMs = 5000, pollMs = 40, fallbackMs = 0 } = {}) {
+  // settleMs: pause before the first poll (the tower needs a moment to start after a write).
+  async waitTowerTxReady({ minMs = 0, timeoutMs = 5000, pollMs = 40, fallbackMs = 0, settleMs = 60 } = {}) {
     const t0 = Date.now();
-    await new Promise((r) => setTimeout(r, 60)); // let the tower pick up the data first
+    if (settleMs > 0) await new Promise((r) => setTimeout(r, settleMs));
     for (;;) {
       const r = await this.usbTowerRequest(LTW.REQ.GET_TX_STATE, 0, 0, 8);
       if (!r.ok || r.bytes.length < 5) {
@@ -2311,15 +2311,13 @@ export class LegoRcx {
   /**
    * Send one or several VLL codes through the USB tower.
    * input:   number | array | "4, 5, 0x0A"
-   * options: packet      true  -> codes go to the tower in packets (default), false -> one at a time
-   *          packetSize  max codes per packet (default: vllPacketSize, else the tower's VLL TX buffer, else 16)
-   *          gapMs       extra pause between packets/codes
+   * options: gapMs       pause between two codes, counted from the end of the previous one (default 150)
    *          restoreMode true  -> if this call had to switch the tower to VLL, switch back afterwards (default)
    * The tower is switched to VLL mode automatically when needed (like WinVLL does).
    * Returns true when everything was sent; otherwise false and this.lastTowerError says why.
    */
   async sendVLLCodes(input, options = {}) {
-    const o = { packet: true, packetSize: null, gapMs: 150, restoreMode: true, ...options };
+    const o = { gapMs: 150, restoreMode: true, ...options };
     this.lastTowerError = null;
     if (!this.usbDevice) return this._towerErr("VLL needs the LEGO USB IR Tower (WebUSB).");
     if (this._firmwareBusy) return this._towerErr("A firmware download is running.");
@@ -2343,37 +2341,18 @@ export class LegoRcx {
 
     let ok = false;
     try {
-      let size = o.packetSize || this.vllPacketSize;
-      if (!size) {
-        const caps = await this.getTowerCaps("vll");
-        this.lastTowerError = null;
-        size = caps && caps.txBufferSize > 0 ? Math.min(caps.txBufferSize, 16) : 16;
-      }
-
-      const list = Array.isArray(codes) ? codes : Array.from(codes || []);
-      if (list.length === 0) return true;
-      // const groups = [];
-      // if (o.packet) for (let i = 0; i < codes.length; i += size) groups.push(codes.slice(i, i + size));
-      // else for (const c of codes) groups.push([c]);
-
-      //for (let i = 0; i < groups.length; i++) {
-      for (let i = 0; i < list.length; i++) {
-        if (i > 0 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
-        const rawCode = Number(list[i]) & 0x7F; // 7-bit VLL code
-        const packet = encodeVllPacket(rawCode);
-        //const bytes = Uint8Array.from(groups[i].flatMap((c) => this._vllEncode(c)));
-        //if (this.onPacketLogged) this.onPacketLogged("tx", packet, `VLL ${groups[i].join(",")}`);
+      for (let i = 0; i < codes.length; i++) {
+        const code = Number(codes[i]) & 0x7F; // 7-bit VLL code
+        const packet = encodeVllPacket(code);
         if (this.onPacketLogged) {
-          this.onPacketLogged("vll", packet, `VLL Code: ${rawCode} (25-byte optical waveform)`);
+          this.onPacketLogged("vll", packet, `VLL Code: ${code} (25-byte optical waveform)`);
         }
-        //this.log(`Sending VLL Code: ${rawCode} (0x${rawCode.toString(16).toUpperCase()}) [25-byte waveform]`);
+        // The tower plays the packet while it is being written (16-byte FIFO), so this returns
+        // after about half of the code (~100 ms of ~210 ms)...
         await this.usbDevice.transferOut(this._usbOutEpNum || 1, packet);
-        // await this.waitTowerTxReady({
-        //   minMs: groups[i].length * this.vllMinCodeMs,
-        //   timeoutMs: groups[i].length * this.vllCodeMs + 4000,
-        //   fallbackMs: groups[i].length * this.vllCodeMs,
-        // });
-
+        // ...so wait for READY: switching the tower back to IR earlier would cut the code short.
+        await this.waitTowerTxReady({ settleMs: 0, timeoutMs: this.vllCodeMs + 2000, fallbackMs: this.vllCodeMs });
+        if (i < codes.length - 1 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
       }
 
       await new Promise((r) => setTimeout(r, 40));
