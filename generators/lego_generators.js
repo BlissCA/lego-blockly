@@ -487,6 +487,77 @@ javascriptGenerator.forBlock["Rcx_VllCodePilot"] = function (block) {
 };
 // (VLL named codes end)
 
+// ---------------- USB Tower blocks (mode / range / reset / power) ----------------
+// (USB tower blocks begin)
+javascriptGenerator.forBlock["rcx_tower_setmode"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const mode = block.getFieldValue("MODE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  if (!(await dev.setTowerMode("${mode}"))) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the mode"));
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_tower_setrange"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const range = block.getFieldValue("RANGE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  if (!(await dev.setTowerRange("${range}"))) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the range"));
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_tower_reset"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  if (!(await dev.resetTower())) throw new Error("USB tower: " + (dev.lastTowerError || "reset failed"));
+}
+`;
+};
+
+javascriptGenerator.forBlock["rcx_tower_getmode"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `((await deviceManager.getDeviceByName("${dev}")?.getTowerMode()) || "")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["rcx_tower_getrange"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `((await deviceManager.getDeviceByName("${dev}")?.getTowerRange()) || "")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
+javascriptGenerator.forBlock["rcx_tower_power"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+
+  return [
+    `((await deviceManager.getDeviceByName("${dev}")?.getTowerPower()) || "")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+// (USB tower blocks end)
+
 javascriptGenerator.forBlock["Rcx_InpPort"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('INPPORT');

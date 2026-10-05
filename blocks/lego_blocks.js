@@ -4876,6 +4876,129 @@ Blockly.Blocks['Rcx_VllCodePilot'] = {
 };
 // (VLL named codes end)
 
+// ---------------- USB Tower blocks (mode / range / reset / power) ----------------
+// (USB tower blocks begin)
+// These only work with the LEGO USB IR Tower (WebUSB); with a serial tower the blocks stop the
+// program with an explanatory error (action blocks) or return empty text (value blocks).
+Blockly.Blocks['rcx_tower_setmode'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 USB tower mode %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            ["IR (RCX)", "ir"],
+            ["VLL (MicroScout, Code Pilot)", "vll"],
+            ["IRC (Technic cars)", "irc"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+    this.setTooltip(
+      "Sets the mode of the LEGO USB IR Tower. IR = RCX communication (the default). " +
+      "VLL = Visible Light Link: the tower can only transmit. IRC = Technic car remote protocol. " +
+      "RCX blocks are skipped while the tower is not in IR mode. 'send vll code(s)' switches to VLL by itself and back to IR afterwards."
+    );
+  }
+};
+
+Blockly.Blocks['rcx_tower_setrange'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 USB tower range %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        {
+          "type": "field_dropdown",
+          "name": "RANGE",
+          "options": [
+            ["short", "short"],
+            ["medium", "medium"],
+            ["long (needs high power)", "long"]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+    this.setTooltip(
+      "Sets the transmission range of the LEGO USB IR Tower. Long range only works when the tower " +
+      "is in its high-power USB configuration: otherwise the program stops with an explanatory error."
+    );
+  }
+};
+
+Blockly.Blocks['rcx_tower_reset'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "reset %1 USB tower",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20
+    });
+    this.setTooltip("Resets the LEGO USB IR Tower to its default settings (IR mode, default range) and clears its buffers.");
+  }
+};
+
+Blockly.Blocks['rcx_tower_getmode'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 USB tower mode",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 20
+    });
+    this.setTooltip("Current mode of the LEGO USB IR Tower: ir, vll or irc. Empty text when it cannot be read.");
+  }
+};
+
+Blockly.Blocks['rcx_tower_getrange'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 USB tower range",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 20
+    });
+    this.setTooltip("Current range of the LEGO USB IR Tower: short, medium or long. Empty text when it cannot be read.");
+  }
+};
+
+Blockly.Blocks['rcx_tower_power'] = {
+  init: function () {
+    this.jsonInit({
+      "message0": "%1 USB tower power",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 20
+    });
+    this.setTooltip("USB power configuration of the LEGO USB IR Tower: low (100 mA) or high (500 mA). Long range needs high. Empty text when it cannot be read.");
+  }
+};
+// (USB tower blocks end)
+
 Blockly.Blocks['Nxt_MotPort'] = {
   init: function() {
     this.appendDummyInput()

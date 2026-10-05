@@ -1159,6 +1159,15 @@ const toolbox = {
             { "kind": "block", "type": "rcx_fw_progress" }
           ]
         },
+        { "kind": "category", "name": "USB Tower", "colour": 20, "contents": [
+            { "kind": "block", "type": "rcx_tower_setmode" },
+            { "kind": "block", "type": "rcx_tower_setrange" },
+            { "kind": "block", "type": "rcx_tower_reset" },
+            { "kind": "block", "type": "rcx_tower_getmode" },
+            { "kind": "block", "type": "rcx_tower_getrange" },
+            { "kind": "block", "type": "rcx_tower_power" }
+          ]
+        },
         { "kind": "category", "name": "VLL", "colour": 20, "contents": [
             {
               "kind": "block",
