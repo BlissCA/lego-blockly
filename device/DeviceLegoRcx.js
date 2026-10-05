@@ -311,6 +311,10 @@ export class LegoRcx {
     this._towerRange = null;             // "short" | "medium" | "long"
     this.lastTowerError = null;          // text of the last failed tower request
     this.vllCodeMs = 400;                // time allowed per VLL code if the TX state cannot be read (measured: ~210-230 ms)
+    this._vllEpoch = 0;                  // cancelVLL() bumps it: every VLL send started before that is cancelled
+    this._vllPending = 0;                // VLL sends running or still waiting in the queue
+    this._vllRunning = false;            // a VLL packet is being played right now
+    this.lastVllCancelled = false;       // true when the last sendVLLCodes() ended because of cancelVLL()
   }
 
   log(msg) {
@@ -2287,19 +2291,25 @@ export class LegoRcx {
   // Wait until the tower reports its transmitter READY (GET_TX_STATE).
   // minMs: never return sooner. fallbackMs: if the state cannot be read, just wait this long.
   // settleMs: pause before the first poll (the tower needs a moment to start after a write).
-  async waitTowerTxReady({ minMs = 0, timeoutMs = 5000, pollMs = 40, fallbackMs = 0, settleMs = 60 } = {}) {
+  // shouldAbort: optional () => boolean, polled while waiting; true ends the wait at once (returns false).
+  async waitTowerTxReady({ minMs = 0, timeoutMs = 5000, pollMs = 40, fallbackMs = 0, settleMs = 60, shouldAbort = null } = {}) {
     const t0 = Date.now();
-    if (settleMs > 0) await new Promise((r) => setTimeout(r, settleMs));
+    const aborted = () => typeof shouldAbort === "function" && shouldAbort();
+    const nap = async (ms) => {
+      const end = Date.now() + ms;
+      while (Date.now() < end && !aborted()) await new Promise((r) => setTimeout(r, Math.max(1, Math.min(25, end - Date.now()))));
+    };
+    if (settleMs > 0) await nap(settleMs);
     for (;;) {
+      if (aborted()) return false;
       const r = await this.usbTowerRequest(LTW.REQ.GET_TX_STATE, 0, 0, 8);
       if (!r.ok || r.bytes.length < 5) {
-        const rest = Math.max(0, Math.max(fallbackMs, minMs) - (Date.now() - t0));
-        if (rest > 0) await new Promise((res) => setTimeout(res, rest));
+        await nap(Math.max(0, Math.max(fallbackMs, minMs) - (Date.now() - t0)));
         return false; // state unknown: waited a fixed time instead
       }
       if (r.bytes[4] === LTW.TX_READY && Date.now() - t0 >= minMs) return true;
       if (Date.now() - t0 >= timeoutMs) return false;
-      await new Promise((res) => setTimeout(res, pollMs));
+      await nap(pollMs);
     }
   }
 
@@ -2315,23 +2325,85 @@ export class LegoRcx {
    *          restoreMode true  -> if this call had to switch the tower to VLL, switch back afterwards (default)
    * The tower is switched to VLL mode automatically when needed (like WinVLL does).
    * Returns true when everything was sent; otherwise false and this.lastTowerError says why.
+   * cancelVLL() stops it: it then returns false with lastVllCancelled === true (not an error).
    */
   async sendVLLCodes(input, options = {}) {
     const o = { gapMs: 150, restoreMode: true, ...options };
     this.lastTowerError = null;
+    this.lastVllCancelled = false;
     if (!this.usbDevice) return this._towerErr("VLL needs the LEGO USB IR Tower (WebUSB).");
     if (this._firmwareBusy) return this._towerErr("A firmware download is running.");
     const parsed = LegoRcx.parseVLLCodes(input);
     if (parsed.error) return this._towerErr(parsed.error);
 
+    // cancelVLL() bumps the epoch: a send that was started (or queued) before that is cancelled
+    const epoch = this._vllEpoch;
+    this._vllPending++;
     let ok = false;
-    await this.enqueue(async () => {
-      ok = await this._sendVLLNow(parsed.codes, o);
-    });
+    try {
+      await this.enqueue(async () => {
+        ok = await this._sendVLLNow(parsed.codes, o, epoch);
+      });
+    } finally {
+      this._vllPending--;
+    }
     return ok;
   }
 
-  async _sendVLLNow(codes, o) {
+  /**
+   * Stop the VLL transmission that is running (and drop the VLL sends still waiting in the queue).
+   * The tower is flushed, its VLL LED is switched off and, when sendVLLCodes() had switched the
+   * tower to VLL mode, it is put back in IR mode before this returns, so RCX commands work again.
+   *
+   * Safe to call at ANY time - from the Stop button even when no VLL block is running, with a serial
+   * tower, or with no tower at all: it then does nothing, sends nothing, never throws, and leaves
+   * nothing behind that could cancel a LATER send.
+   * Returns true when a VLL send was cancelled, false when there was nothing to cancel.
+   * The cancelled sendVLLCodes() returns false with lastVllCancelled === true.
+   */
+  async cancelVLL() {
+    const hadWork = this._vllPending > 0;
+    this._vllEpoch++;                 // cancels what is running / queued now, never what starts later
+    if (!hadWork) return false;
+    try {
+      if (this._vllRunning && this.usbDevice) {
+        // stop the transmission right away (FLUSH tx buffer); the sending loop finishes the clean-up
+        await this.usbTowerRequest(LTW.REQ.FLUSH, LTW.FLUSH_TX, 0, 8);
+      }
+      const t0 = Date.now();
+      while (this._vllPending > 0 && Date.now() - t0 < 3000) await new Promise((r) => setTimeout(r, 20));
+    } catch (e) { /* best effort: cancelling must never throw */ }
+    return true;
+  }
+
+  // sleep that ends early when the VLL send of this epoch was cancelled
+  async _vllSleep(ms, epoch) {
+    const end = Date.now() + ms;
+    while (Date.now() < end && this._vllEpoch === epoch) {
+      await new Promise((r) => setTimeout(r, Math.max(1, Math.min(25, end - Date.now()))));
+    }
+  }
+
+  // Stop the tower now: flush its TX buffer, then a 0x00 byte (light off, 0 ticks) so the LED is left
+  // off even when the flush hit the middle of a light pulse. Best effort.
+  async _vllStopTower() {
+    try {
+      await this.usbTowerRequest(LTW.REQ.FLUSH, LTW.FLUSH_TX, 0, 8);
+      await this.usbDevice.transferOut(this._usbOutEpNum || 1, Uint8Array.of(0x00));
+      await this.waitTowerTxReady({ settleMs: 0, timeoutMs: 400, fallbackMs: 60 });
+    } catch (e) { /* best effort */ }
+  }
+
+  async _sendVLLNow(codes, o, epoch = this._vllEpoch) {
+    const cancelled = () => this._vllEpoch !== epoch;
+
+    // cancelled while still waiting in the queue: do not touch the tower at all
+    if (cancelled()) {
+      this.lastVllCancelled = true;
+      this.lastTowerError = "VLL send cancelled.";
+      return false;
+    }
+
     const before = this._towerMode || "ir";
     let switched = false;
     if (before !== "vll") {
@@ -2340,8 +2412,11 @@ export class LegoRcx {
     }
 
     let ok = false;
+    let wasCancelled = false;
+    this._vllRunning = true;
     try {
       for (let i = 0; i < codes.length; i++) {
+        if (cancelled()) { wasCancelled = true; break; }
         const code = Number(codes[i]) & 0x7F; // 7-bit VLL code
         const packet = encodeVllPacket(code);
         if (this.onPacketLogged) {
@@ -2351,18 +2426,30 @@ export class LegoRcx {
         // after about half of the code (~100 ms of ~210 ms)...
         await this.usbDevice.transferOut(this._usbOutEpNum || 1, packet);
         // ...so wait for READY: switching the tower back to IR earlier would cut the code short.
-        await this.waitTowerTxReady({ settleMs: 0, timeoutMs: this.vllCodeMs + 2000, fallbackMs: this.vllCodeMs });
-        if (i < codes.length - 1 && o.gapMs > 0) await new Promise((r) => setTimeout(r, o.gapMs));
+        await this.waitTowerTxReady({
+          settleMs: 0, timeoutMs: this.vllCodeMs + 2000, fallbackMs: this.vllCodeMs, shouldAbort: cancelled,
+        });
+        if (cancelled()) { wasCancelled = true; break; }
+        if (i < codes.length - 1 && o.gapMs > 0) await this._vllSleep(o.gapMs, epoch);
       }
 
-      await new Promise((r) => setTimeout(r, 40));
-
-      ok = true;
-      this.log(`VLL sent: ${codes.join(",")}`);
+      if (wasCancelled) {
+        await this._vllStopTower();
+        this.log("VLL send cancelled.");
+      } else {
+        await new Promise((r) => setTimeout(r, 40));
+        ok = true;
+        this.log(`VLL sent: ${codes.join(",")}`);
+      }
     } catch (e) {
       this._towerErr(`VLL send failed: ${e && e.message ? e.message : e}`);
     } finally {
+      this._vllRunning = false;
       if (switched && o.restoreMode) await this.setTowerMode(before);
+    }
+    if (wasCancelled) { // set after the mode restore, which clears lastTowerError
+      this.lastVllCancelled = true;
+      this.lastTowerError = "VLL send cancelled.";
     }
     return ok;
   }

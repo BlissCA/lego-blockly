@@ -4818,6 +4818,64 @@ Blockly.Blocks['Rcx_InpPort'] = {
 };
 
 
+// ---------------- VLL named codes (LEGO Scout SDK, "VLL Command Set" table) ----------------
+// (VLL named codes begin)
+// Each option VALUE is the 7-bit VLL code (0-127); the label shows the SDK name and the code.
+// Use these as blocks of their own, or as the (shadow) input of "send vll code(s)" (rcx_send_vll).
+// MicroScout: "D:" = Direct command, "S:" = Scripting command.
+const RCX_VLL_MICROSCOUT_CODES = [
+  [0, "D: Motor Forward"], [1, "D: Motor Reverse"],
+  [4, "D: Beep 1"], [5, "D: Beep 2"], [6, "D: Beep 3"], [7, "D: Beep 4"], [8, "D: Beep 5"],
+  [10, "D: Motor Stop"],
+  [16, "S: Motor Forward 0.5"], [17, "S: Motor Forward 1.0"], [18, "S: Motor Forward 2.0"], [19, "S: Motor Forward 5.0"],
+  [20, "S: Motor Reverse 0.5"], [21, "S: Motor Reverse 1.0"], [22, "S: Motor Reverse 2.0"], [23, "S: Motor Reverse 5.0"],
+  [24, "S: Beep 1"], [25, "S: Beep 2"], [26, "S: Beep 3"], [27, "S: Beep 4"], [28, "S: Beep 5"],
+  [29, "S: Wait for Light"], [30, "S: Seek Light"], [31, "S: Code"], [32, "S: Keep Alive"],
+  [33, "D: Run"], [34, "D: Delete Script"],
+  [70, "D: Next"], [71, "D: Reset"]
+];
+
+const RCX_VLL_CODEPILOT_CODES = [
+  [0, "Motor Forward"], [1, "Motor Reverse"],
+  [4, "Sound (Valve)"], [5, "Sound (Helicopter)"], [6, "Sound (Truck)"], [7, "Sound (Robot)"], [8, "Sound (Machine)"],
+  [9, "Sound Mute"], [10, "Motor Stop"], [11, "Motor & Sound"],
+  [12, "Fixed Prgm Truck"], [13, "Fixed Prgm Wheel Driver"], [14, "Fixed Prgm Crash Buggy"], [15, "Fixed Prgm Robot"],
+  [96, "Touch In"], [97, "Touch Out"],
+  [99, "Tone C"], [100, "Tone C#"], [101, "Tone D"], [102, "Tone D#"], [103, "Tone E"], [104, "Tone F"],
+  [105, "Tone F#"], [106, "Tone G"], [107, "Tone G#"], [108, "Tone A"], [109, "Tone A#"], [110, "Tone H (B)"],
+  [111, "Tone C (high)"],
+  [112, "Number 0"], [113, "Number 1"], [114, "Number 2"], [115, "Number 3"], [116, "Number 4"],
+  [117, "Number 5"], [118, "Number 6"], [119, "Number 7"], [120, "Number 8"], [121, "Number 9"],
+  [122, "Decimal dot"], [123, "Random"],
+  [124, "Speed/Torque Low (20)"], [125, "Speed/Torque Med (40)"], [126, "Speed/Torque High (60)"], [127, "Tacho"]
+];
+
+// [label, value] pairs for FieldDropdown, e.g. ["D: Beep 1 [4]", "4"]
+const rcxVllOptions = (list) => list.map(([code, name]) => [name + " [" + code + "]", String(code)]);
+
+Blockly.Blocks['Rcx_VllMicroScout'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown(rcxVllOptions(RCX_VLL_MICROSCOUT_CODES)), "CODE");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns the VLL code number of a MicroScout command (LEGO Scout SDK table). D = Direct command, S = Scripting command.");
+  }
+};
+
+Blockly.Blocks['Rcx_VllCodePilot'] = {
+  init: function() {
+    this.appendDummyInput()
+      .appendField(new Blockly.FieldDropdown(rcxVllOptions(RCX_VLL_CODEPILOT_CODES)), "CODE");
+
+    this.setOutput(true, "Number");
+    this.setColour(230);
+    this.setTooltip("Returns the VLL code number of a Code Pilot command (LEGO Scout SDK table).");
+  }
+};
+// (VLL named codes end)
+
 Blockly.Blocks['Nxt_MotPort'] = {
   init: function() {
     this.appendDummyInput()

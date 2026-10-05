@@ -473,6 +473,20 @@ javascriptGenerator.forBlock["Rcx_MotPort"] = function (block) {
   return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };
 
+// ---------------- VLL named codes (MicroScout / Code Pilot dropdown blocks) ----------------
+// (VLL named codes begin)
+javascriptGenerator.forBlock["Rcx_VllMicroScout"] = function (block) {
+  // The dropdown value is the 7-bit VLL code
+  const code = block.getFieldValue('CODE');
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["Rcx_VllCodePilot"] = function (block) {
+  const code = block.getFieldValue('CODE');
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
+};
+// (VLL named codes end)
+
 javascriptGenerator.forBlock["Rcx_InpPort"] = function (block) {
   // Get the numerical value mapped to the selected letter
   var code = block.getFieldValue('INPPORT');
@@ -726,7 +740,17 @@ javascriptGenerator.forBlock["rcx_send_vll"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  await dev.sendVLLCodes(${vllCode}, { gapMs: ${delay} });
+  // The Stop button sets window.stopRequested: turn that into a cancel of the VLL transmission
+  const stopWatch = setInterval(() => { if (window.stopRequested) dev.cancelVLL?.(); }, 100);
+  let ok = false;
+  try {
+    ok = await dev.sendVLLCodes(${vllCode}, { gapMs: ${delay} });
+  } finally {
+    clearInterval(stopWatch);
+  }
+  shouldStop();
+  // A cancelled send is not an error (Stop button); anything else that failed is reported
+  if (!ok && !dev.lastVllCancelled) throw new Error("VLL: " + (dev.lastTowerError || "send failed"));
 }
 `;
 };

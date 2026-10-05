@@ -1166,13 +1166,8 @@ const toolbox = {
               "inputs": {
                 "VLLCODE": {
                   "shadow": {
-                    "type": "math_number_constrained",
-                    "extraState": {
-                      "min": 0,
-                      "max": 127,
-                      "precision": 1
-                    },
-                    "fields": { "NUM": 4 }
+                    "type": "Rcx_VllMicroScout",
+                    "fields": { "CODE": "4" }
                   }
                 },
                 "DELAY": {
@@ -1187,7 +1182,9 @@ const toolbox = {
                   }
                 }
               }
-            }
+            },
+            { "kind": "block", "type": "Rcx_VllMicroScout" },
+            { "kind": "block", "type": "Rcx_VllCodePilot" }
           ]
         }
 
