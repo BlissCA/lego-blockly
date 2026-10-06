@@ -762,10 +762,10 @@ function getLegoBDropdown() {
 function getRcxDropdown() {
   const devices = window.deviceManager?.devices || [];
 
-  // Accept "Rcx" and "CM" prefixes, but exclude "RcxIR"
+  // Accept "Rcx" and "CM" prefixes, but exclude "RcxTw"
   const list = devices.filter(d =>
     (d.name.startsWith("Rcx") || d.name.startsWith("CM")) &&
-    !d.name.startsWith("RcxIR")
+    !d.name.startsWith("RcxTw")
   );
 
   return list.length
@@ -774,13 +774,13 @@ function getRcxDropdown() {
 }
 
 // RCX (Serial or USB) devices
-function getRcxIrDropdown() {
+function getRcxTwDropdown() {
   const devices = window.deviceManager?.devices || [];
 
-  // Accept both "Rcx" and "RcxIR" prefixes
+  // Accept both "Rcx" and "RcxTw" prefixes
   const list = devices.filter(d =>
     d.name.startsWith("Rcx") ||
-    d.name.startsWith("RcxIR")
+    d.name.startsWith("RcxTw")
   );
 
   return list.length
@@ -1615,7 +1615,7 @@ window.addEventListener("load", () => {
       "type": "rcx_ishandsetkeypressed",
       "message0": "%1 handset %2 pressed?",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown },
         { "type": "field_dropdown", "name": "RCXKEY", "options": [
           ["Msg1", "Msg1"],
           ["Msg2", "Msg2"],
@@ -1775,7 +1775,7 @@ window.addEventListener("load", () => {
       "type": "rcx_send_vll",
       "message0": "%1 send vll code(s) %2 delay (ms) %3",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown },
         {
           "type": "input_value",
           "name": "VLLCODE",
@@ -4885,7 +4885,7 @@ Blockly.Blocks['rcx_tower_setmode'] = {
     this.jsonInit({
       "message0": "%1 USB tower mode %2",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown },
         {
           "type": "field_dropdown",
           "name": "MODE",
@@ -4914,7 +4914,7 @@ Blockly.Blocks['rcx_tower_setrange'] = {
     this.jsonInit({
       "message0": "%1 USB tower range %2",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown },
         {
           "type": "field_dropdown",
           "name": "RANGE",
@@ -4942,7 +4942,7 @@ Blockly.Blocks['rcx_tower_reset'] = {
     this.jsonInit({
       "message0": "reset %1 USB tower",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "previousStatement": null,
@@ -4958,7 +4958,7 @@ Blockly.Blocks['rcx_tower_getmode'] = {
     this.jsonInit({
       "message0": "%1 USB tower mode",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "String",
@@ -4973,7 +4973,7 @@ Blockly.Blocks['rcx_tower_getrange'] = {
     this.jsonInit({
       "message0": "%1 USB tower range",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "String",
@@ -4988,7 +4988,7 @@ Blockly.Blocks['rcx_tower_power'] = {
     this.jsonInit({
       "message0": "%1 USB tower power",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "String",
@@ -5246,7 +5246,7 @@ async function rcxChooseFirmwareFile(sourceBlock) {
 Blockly.Blocks['rcx_fw_upload'] = {
   init: function () {
     this.appendDummyInput("HEAD")
-      .appendField(new Blockly.FieldDropdown(getRcxIrDropdown), "DEVICE")
+      .appendField(new Blockly.FieldDropdown(getRcxTwDropdown), "DEVICE")
       .appendField("upload firmware (takes about 4 min)");
     this.appendDummyInput("FILE")
       .appendField(
@@ -5276,7 +5276,7 @@ Blockly.Blocks['rcx_fw_installed'] = {
     this.jsonInit({
       "message0": "%1 firmware installed?",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "Boolean",
@@ -5291,7 +5291,7 @@ Blockly.Blocks['rcx_fw_version'] = {
     this.jsonInit({
       "message0": "%1 firmware version",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "String",
@@ -5306,7 +5306,7 @@ Blockly.Blocks['rcx_fw_progress'] = {
     this.jsonInit({
       "message0": "%1 firmware upload progress %",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxIrDropdown }
+        { "type": "field_dropdown", "name": "DEVICE", "options": getRcxTwDropdown }
       ],
       "inputsInline": true,
       "output": "Number",

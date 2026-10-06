@@ -1,6 +1,6 @@
 // device/DeviceLegoRcx.js
 // Upgraded LegoRcx driver with Mindstorms RCX Remote Handset IR Decoding support
-// Supports both Full Brick Mode ("Rcx1" / "CM1") and Tower-Only Remote Mode ("RcxIR1" / "CM_IR1")
+// Supports both Full Brick Mode ("Rcx1" / "CM1") and Tower-Only Remote Mode ("RcxTw1" / "CM_Tw1")
 
 /**
  * LEGO Mindstorms RCX Remote Handset key definitions and mappings.
@@ -643,7 +643,7 @@ export class LegoRcx {
     if (options && options.towerOnly && !this.isCM) {
       this.hasBrick = false;
       this.isTowerOnly = true;
-      this.devicePrefix = "RcxIR";
+      this.devicePrefix = "RcxTw";
 
       if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
@@ -693,7 +693,7 @@ export class LegoRcx {
       }
     } else {
       // 🌟 TOWER-ONLY / REMOTE HANDSET MODE: No brick responded, but IR Serial Tower is open!
-      // DO NOT disconnect! Use prefix "RcxIR"
+      // DO NOT disconnect! Use prefix "RcxTw"
       // BUT IS isCM? Disconnect!.
       if (this.isCM) {
           this.devicePrefix = "CM";
@@ -703,7 +703,7 @@ export class LegoRcx {
       }      
       this.hasBrick = false;
       this.isTowerOnly = true;
-      this.devicePrefix = "RcxIR";
+      this.devicePrefix = "RcxTw";
 
       if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
@@ -821,7 +821,7 @@ export class LegoRcx {
   _applyUsbTowerOnly(reason) {
     this.hasBrick = false;
     this.isTowerOnly = true;
-    this.devicePrefix = "RcxIR";
+    this.devicePrefix = "RcxTw";
 
     if (!this.name && this.manager && typeof this.manager._allocateName === "function") {
       this.name = this.manager._allocateName(this.devicePrefix);
@@ -865,7 +865,7 @@ export class LegoRcx {
 
   /**
    * Re-checks if the RCX brick has been powered on without having to reconnect the serial port.
-   * If brick answers, automatically upgrades from "RcxIR1" to "Rcx1" (or "CM_IR1" to "CM1").
+   * If brick answers, automatically upgrades from "RcxTw1" to "Rcx1" (or "CM_Tw1" to "CM1").
    */
   async checkBrickOnline() {
     // During a firmware download the brick must not be probed (and must not be "downgraded")
@@ -918,7 +918,7 @@ export class LegoRcx {
         this.manager._removeDevice(this);
       }
 
-      this.devicePrefix = this.isCM ? "CM_IR" : "RcxIR";
+      this.devicePrefix = this.isCM ? "CM_Tw" : "RcxTw";
       if (this.manager && typeof this.manager._allocateName === "function") {
         this.name = this.manager._allocateName(this.devicePrefix);
       } else {
@@ -1888,7 +1888,7 @@ export class LegoRcx {
     }
 
     if (ok) {
-      // The brick answers now: upgrade "RcxIRn" -> "Rcxn" if we were in Tower-Only mode
+      // The brick answers now: upgrade "RcxTwn" -> "Rcxn" if we were in Tower-Only mode
       try { await this.checkBrickOnline(); } catch {}
     }
     return finish(ok, error);
