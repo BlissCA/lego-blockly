@@ -2198,6 +2198,165 @@ export class LegoRcx {
     return r.bytes[4] === 0x02 ? "high" : r.bytes[4] === 0x01 ? "low" : null;
   }
 
+  // ---------------- USB configurations (power level) ----------------
+  // The tower has no "set power" vendor request: the power level is the USB *configuration* it is
+  // running with (low power, high power, and the same two with an 8 ms polling interval). On
+  // Windows the LEGO control panel / 32-bit driver used to pick it with the standard USB
+  // SET_CONFIGURATION request, which WebUSB exposes as device.selectConfiguration(n).
+  // The document does not give the configuration numbers, so list them first.
+
+  /**
+   * List the USB configurations the tower offers (read from the descriptors, no request is sent).
+   * Returns [{ value, name, active, interfaces, endpoints:[{number, direction, type, packetSize}] }]
+   * or null when no USB tower is connected. WebUSB does not expose the MaxPower field, so which
+   * configuration is "high power" has to be found with setTowerPowerConfig() + getTowerPower().
+   */
+  listTowerConfigurations() {
+    this.lastTowerError = null;
+    const dev = this.usbDevice;
+    if (!dev) { this._towerErr("Configurations need the LEGO USB IR Tower."); return null; }
+    const activeValue = dev.configuration ? dev.configuration.configurationValue : null;
+    const list = (dev.configurations || []).map((c) => ({
+      value: c.configurationValue,
+      name: c.configurationName || null,
+      active: c.configurationValue === activeValue,
+      interfaces: c.interfaces.length,
+      endpoints: c.interfaces.flatMap((i) =>
+        (i.alternates[0] ? i.alternates[0].endpoints : []).map((ep) => ({
+          number: ep.endpointNumber,
+          direction: ep.direction,
+          type: ep.type,
+          packetSize: ep.packetSize,
+        }))
+      ),
+    }));
+    this.log(
+      `USB tower configurations: ${list.map((c) => `#${c.value}${c.active ? "*" : ""}`).join(", ") || "none"} ` +
+      `(* = active; ${activeValue === null ? "no active configuration" : "active #" + activeValue})`
+    );
+    return list;
+  }
+
+  // Re-read the endpoint numbers after a configuration change
+  _refreshUsbEndpoints() {
+    const alt = this.usbDevice && this.usbDevice.configuration
+      ? this.usbDevice.configuration.interfaces[0]?.alternates[0]
+      : null;
+    const inEp = alt && alt.endpoints.find((ep) => ep.direction === "in");
+    const outEp = alt && alt.endpoints.find((ep) => ep.direction === "out");
+    this._usbInEpNum = inEp ? inEp.endpointNumber : 2;
+    this._usbInEpSize = inEp ? inEp.packetSize : 64;
+    this._usbOutEpNum = outEp ? outEp.endpointNumber : 1;
+  }
+
+  /**
+   * Switch the tower to another USB configuration (= power level) with SET_CONFIGURATION.
+   * target: a configuration number from listTowerConfigurations(), or
+   *         "high" / "low": try each configuration in turn and keep the first one for which
+   *         GET_POWER reports that level.
+   * The mode and range revert to the tower defaults on a configuration change: the IR mode is
+   * restored and the previous range is re-applied when the new power level allows it.
+   * Returns true when the switch worked (for "high"/"low": when that level is now active);
+   * otherwise false and this.lastTowerError says why. Check the result with getTowerPower().
+   *
+   * Notes: with Windows' WinUSB driver (Zadig) SET_CONFIGURATION is often refused for anything
+   * but the first configuration. A high-power configuration needs a port that supplies 500 mA
+   * (plug the tower straight into the PC, not into an unpowered hub).
+   */
+  async setTowerPowerConfig(target) {
+    this.lastTowerError = null;
+    const dev = this.usbDevice;
+    if (!dev) return this._towerErr("Power configuration needs the LEGO USB IR Tower (WebUSB).");
+    if (this._firmwareBusy) return this._towerErr("A firmware download is running.");
+    if (this._vllPending > 0) return this._towerErr("A VLL send is running.");
+
+    const wantLevel = typeof target === "string" && /^(high|low)$/i.test(target.trim()) ? target.trim().toLowerCase() : null;
+    let candidates;
+    if (wantLevel) {
+      const current = dev.configuration ? dev.configuration.configurationValue : null;
+      candidates = (dev.configurations || []).map((c) => c.configurationValue);
+      // try the current one last: it is only useful if it already is the wanted level
+      candidates = candidates.filter((v) => v !== current).concat(current === null ? [] : [current]);
+      if (!candidates.length) return this._towerErr("The tower reports no USB configurations.");
+    } else {
+      const n = Number(target);
+      if (!Number.isInteger(n) || n < 1) {
+        return this._towerErr(`Unknown configuration "${target}" (use a number from listTowerConfigurations(), "high" or "low").`);
+      }
+      if (!(dev.configurations || []).some((c) => c.configurationValue === n)) {
+        return this._towerErr(`The tower has no USB configuration ${n}.`);
+      }
+      candidates = [n];
+    }
+
+    const prevRange = this._towerRange;
+    let ok = false;
+
+    await this.enqueue(async () => {
+      this.log(`USB tower: switching USB configuration (${wantLevel ? "looking for " + wantLevel + " power" : "#" + candidates[0]})...`);
+      for (const value of candidates) {
+        // stop the reader loop: releasing the interface aborts its pending transferIn()
+        this.isReading = false;
+        try { await dev.releaseInterface(0); } catch { /* may not be claimed */ }
+        await new Promise((r) => setTimeout(r, 150)); // let the old reader loop exit
+
+        let switchErr = null;
+        try {
+          if (!dev.configuration || dev.configuration.configurationValue !== value) {
+            await dev.selectConfiguration(value);
+          }
+        } catch (e) {
+          switchErr = e && e.message ? e.message : String(e);
+        }
+
+        // always get the tower back into a working state, whatever happened
+        try {
+          await dev.claimInterface(0);
+          this._refreshUsbEndpoints();
+          this.readBuffer = new Uint8Array(0);
+          this.pendingReply = null;
+          this._towerMode = null;
+          this._towerRange = null;
+          this._startUsbReaderLoop();
+          await this._syncTowerState(); // reads the mode, forces IR
+        } catch (e) {
+          this._towerErr(`Could not claim the tower after the configuration change: ${e && e.message ? e.message : e}`);
+          return;
+        }
+
+        if (switchErr) {
+          this._towerErr(
+            `Could not select USB configuration ${value}: ${switchErr}. ` +
+            "With the WinUSB driver (Zadig) Windows often only allows the first configuration."
+          );
+          if (!wantLevel) return;
+          continue; // "high"/"low": try the next one
+        }
+
+        const power = await this.getTowerPower();
+        this.log(`USB tower: configuration ${value} active, power = ${power || "unknown"}.`);
+        if (!wantLevel || power === wantLevel) {
+          ok = true;
+          this.lastTowerError = null;
+          // the mode / range were reset by the tower: put the range back when allowed
+          if (prevRange && prevRange !== "medium") await this.setTowerRange(prevRange);
+          else await this.getTowerRange();
+          return;
+        }
+      }
+      this._towerErr(
+        `No USB configuration gave ${wantLevel} power. ` +
+        (this.lastTowerError ? "Last error: " + this.lastTowerError : "The tower, port or driver only offers the other level.")
+      );
+    });
+
+    if (ok && this.lastTowerError && /range/i.test(this.lastTowerError)) {
+      // the range could not be restored; the switch itself worked, so keep the note but report success
+      console.warn(`[${this.name || this.devicePrefix}] USB Tower: ${this.lastTowerError}`);
+    }
+    return ok;
+  }
+
   async getTowerVersion() {
     const r = await this.usbTowerRequest(LTW.REQ.GET_VERSION, 0, 0, 16);
     if (!r.ok || r.bytes.length < 8) { this._towerErr(r.error || "GET_VERSION: reply too short"); return null; }
