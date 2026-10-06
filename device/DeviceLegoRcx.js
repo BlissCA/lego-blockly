@@ -738,14 +738,8 @@ export class LegoRcx {
       }
 
       await this.usbDevice.open();
-      // Select High Power configuration (500 mA, config 2) required for Long range
-      const wantHighPower = options.highPower !== false && options.power !== "low";
-      try {
-        await this.usbDevice.selectConfiguration(wantHighPower ? 2 : 1);
-      } catch {
-        if (this.usbDevice.configuration === null) {
-          await this.usbDevice.selectConfiguration(1);
-        }
+      if (this.usbDevice.configuration === null) {
+        await this.usbDevice.selectConfiguration(1);
       }
       await this.usbDevice.claimInterface(0);
 
@@ -2139,21 +2133,6 @@ export class LegoRcx {
     return m[0];
   }
 
-  async setTowerPower(power = "high") {
-    if (!this.usbDevice) return this._towerErr("Tower power needs the LEGO USB IR Tower.");
-    const targetConfig = (power === "high" || power === 2) ? 2 : 1;
-    try {
-      if (this.usbDevice.configuration?.configurationValue !== targetConfig) {
-        try { await this.usbDevice.releaseInterface(0); } catch {}
-        await this.usbDevice.selectConfiguration(targetConfig);
-        await this.usbDevice.claimInterface(0);
-      }
-      return true;
-    } catch (e) {
-      return this._towerErr(`Failed to set tower power: ${e && e.message ? e.message : e}`);
-    }
-  }
-
   // ---------------- range: short / medium / long ----------------
 
   async setTowerRange(range) {
@@ -2161,21 +2140,7 @@ export class LegoRcx {
     if (!this.usbDevice) return this._towerErr("Tower range needs the LEGO USB IR Tower.");
     const g = this._towerLookup(LTW.RANGE, range);
     if (!g) return this._towerErr(`Unknown tower range "${range}" (use "short", "medium" or "long").`);
-
-    // Long range requires High Power USB configuration (500 mA, config 2)
-    if (g[1] === LTW.RANGE.long) {
-      const p = await this.getTowerPower();
-      if (p !== "high") await this.setTowerPower("high");
-    }
-
-    let r = await this._towerSetParm(LTW.PARM_RANGE, g[1]);
-
-    // If refused with NOPOWER (0x03), switch to High Power and retry
-    if (!r.ok && r.errCode === 0x03 && g[1] === LTW.RANGE.long) {
-      await this.setTowerPower("high");
-      r = await this._towerSetParm(LTW.PARM_RANGE, g[1]);
-    }
-
+    const r = await this._towerSetParm(LTW.PARM_RANGE, g[1]);
     if (!r.ok) {
       if (r.errCode === 0x03) {
         return this._towerErr(
@@ -2188,6 +2153,15 @@ export class LegoRcx {
     this._towerRange = g[0];
     this.log(`USB tower range: ${g[0]}`);
     return true;
+  }
+
+  async getTowerRange() {
+    const r = await this._towerGetParm(LTW.PARM_RANGE);
+    if (!r.ok) { this._towerErr(r.error); return null; }
+    const g = this._towerLookup(LTW.RANGE, r.value);
+    if (!g) { this._towerErr(`Unknown tower range value ${r.value}.`); return null; }
+    this._towerRange = g[0];
+    return g[0];
   }
 
   // ---------------- reset / flush / info ----------------
