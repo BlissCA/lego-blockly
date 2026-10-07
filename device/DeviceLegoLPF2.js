@@ -19,6 +19,7 @@ const BRAKE_HOLD  = 0x7E;
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
   traffic: false,  // logs for every notification/frame/message
+  remote: false,   // raw bytes of handset button notifications
 };
 
 function _formatProfileForDictionary(ioType, profile) {
@@ -256,6 +257,14 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [0,1092616192],
         percentRange: [0,1120403456],
         siRange: [0,1092616192]
+      },
+      1: {
+        name: "RGB O",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,255],
+        percentRange: [0,100],
+        siRange: [0,255]
       }
     }
   },
@@ -758,7 +767,7 @@ export class LegoLPF2 {
 				if (!info) continue;
 
 				// Skip motors
-				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature") {
+				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rssi") {
 						continue;
 				}
 				switch (info.type) {
@@ -775,6 +784,10 @@ export class LegoLPF2 {
 				await new Promise(r => setTimeout(r, 20));
 		}
 
+
+		if (this.hubType === 0x42) {
+			await this._initRemote();
+		}
 
 		this.log("LPF2 initialization complete.");
 	}
@@ -804,36 +817,27 @@ export class LegoLPF2 {
 		const infoType = msg[4];
 
 		const info = this.portInfo[port];
-		let maxMode = 0;
-		
 		if (!info) return;
-		
+
 		switch (infoType) {
 
-			// 0x02 — Possible Modes (input/output bitmasks)
-			case 0x02: {
-				
-				if (msg.length >= 7) {
-					const inputMask  = msg[5] | (msg[6] << 8);
-					const outputMask = (msg.length >= 9)
-						? (msg[7] | (msg[8] << 8))
-						: 0;
+			// 0x01 — MODE INFO
+			// [len][hub][0x43][port][0x01][capabilities][totalModes][inMask lo,hi][outMask lo,hi]
+			case 0x01: {
+				if (msg.length < 11) return;
+				if (info.modeInfoRequested) return;   // avoid asking twice
+				info.modeInfoRequested = true;
 
-					info.inputModesMask  = inputMask;
-					info.outputModesMask = outputMask;
+				info.capabilities    = msg[5];
+				info.totalModes      = msg[6];
+				info.inputModesMask  = msg[7] | (msg[8] << 8);
+				info.outputModesMask = msg[9] | (msg[10] << 8);
 
-					// Determine max mode index from masks
-					  maxMode = Math.max(
-						Math.floor(Math.log2(inputMask || 1)),
-						Math.floor(Math.log2(outputMask || 1))
-					);
-
-				}
-
+				const maxMode = Math.max(0, info.totalModes - 1);
 				const ioType = info.ioType;
 				info.maxMode = maxMode;
 
-				// ⭐ If we have a profile → load it and skip 0x22 requests
+				// Known device → load cached profile, skip 0x22 requests
 				if (LPF2_DEVICE_PROFILES[ioType]) {
 					const profile = LPF2_DEVICE_PROFILES[ioType];
 					info.modes = profile.modes;
@@ -843,40 +847,22 @@ export class LegoLPF2 {
 					return;
 				}
 
-        // ⭐ Unknown device → request mode info for all modes				
+				// Unknown device → request full mode info for every mode
 				info.modes = {};
-				
+
 				console.warn(
-					`LPF2: Unknown ioType ${ioType}. Requesting mode info for ${maxMode + 1} modes.`
+					`LPF2: Unknown ioType ${ioType} on port ${port}. Requesting mode info for ${maxMode + 1} modes.`
 				);
 
 				for (let mode = 0; mode <= maxMode; mode++) {
-					// For each mode, request detailed Mode Information via 0x22
 					this._requestModeInfo(port, mode);
 				}
 				break;
 			}
 
-			// 0x03 — Input Modes
-			case 0x03: {
-				if (msg.length < 7) return;
-				info.inputModesMask = msg[5] | (msg[6] << 8);
+			// 0x02 — Possible mode combinations (list of u16 masks): not needed here
+			case 0x02:
 				break;
-			}
-
-			// 0x04 — Output Modes
-			case 0x04: {
-				if (msg.length < 7) return;
-				info.outputModesMask = msg[5] | (msg[6] << 8);
-				break;
-			}
-
-			// 0x01 — Mode Info (high‑level, optional)
-			case 0x01: {
-				// You can ignore this or store it if you want.
-				// The detailed stuff comes from 0x44.
-				break;
-			}
 		}
 	}
 
@@ -1020,10 +1006,9 @@ export class LegoLPF2 {
 	}
 
 	_parseRange(payload) {
-			const dv = new DataView(payload.buffer);
-			const min = dv.getInt32(0, true);
-			const max = dv.getInt32(4, true);
-			return [min, max];
+			// LWP3: RAW/PCT/SI ranges are two Float32 (LE): min, max
+			const dv = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+			return [dv.getFloat32(0, true), dv.getFloat32(4, true)];
 	}
 
 	_parseValueFormat(payload) {
@@ -1335,6 +1320,12 @@ export class LegoLPF2 {
 		const property = msg[3];
 		const op = msg[4];
 
+		// Hub Property 0x02 = Button (green button on the handset): update = 0x06
+		if (property === 0x02 && op === 0x06) {
+			this._handleRemoteGreen(msg[5] !== 0);
+			return;
+		}
+
 		if (LPF2_DEBUG.traffic) {
 			console.log("[LPF2] Hub Properties:",
 				"property=0x" + property.toString(16),
@@ -1370,9 +1361,9 @@ export class LegoLPF2 {
     if (event === 0x01) {
       const ioType = msg[5] | (msg[6] << 8);
       this._registerPort(portId, ioType);
-			// ⭐ FIX: request possible modes again
+			// Port Information Request, info type 0x01 = MODE INFO (mode count + in/out masks)
 			this._write(new Uint8Array([
-					0x05, this.hubId, 0x21, portId, 0x02
+					0x05, this.hubId, 0x21, portId, 0x01
 			]));
 
     } else if (event === 0x00) {
@@ -1569,6 +1560,11 @@ export class LegoLPF2 {
 
 			const info = this.portInfo[port];
 			if (!info) return;
+
+			// Remote handset buttons: decode raw bytes (works even without a cached profile)
+			if (info.type === "buttons") {
+					this._handleRemoteButtonValue(port, payload);
+			}
 
 			// No active mode yet → ignore early values
 			const mode = this.activeMode[port];
@@ -1940,7 +1936,14 @@ export class LegoLPF2 {
 			// REMOTE (0x42) – handheld remote, usually buttons only
 			// ------------------------------------------------------------
 			if (type === 0x42) {
-					// You may later map LEFT/RIGHT buttons here if needed
+					if (this.portInfo[0]) this.userPortMap.A = 0;   // left  + / red / -
+					if (this.portInfo[1]) this.userPortMap.B = 1;   // right + / red / -
+
+					for (const [id, info] of Object.entries(this.portInfo)) {
+							if (info.type === "rgb")  this.userPortMap.LED  = Number(id);  // usually 52
+							if (info.type === "volt") this.userPortMap.VOLT = Number(id);  // usually 59
+							if (info.type === "rssi") this.userPortMap.RSSI = Number(id);  // usually 60
+					}
 					return;
 			}
 
@@ -2305,6 +2308,216 @@ export class LegoLPF2 {
 			this._sendMotorCommand(port, payload, { waitFbk: false });
 		}
 	}
+
+
+	// =====================================================================
+	//  REMOTE HANDSET (hub type 0x42, LEGO part 88010) + hub LED
+	//  Port 0 = left side  = "A"  (ioType 55, buttons + / red / -)
+	//  Port 1 = right side = "B"  (ioType 55, buttons + / red / -)
+	//  Green button        = Hub Property 0x02 (Button)
+	//  LED                 = ioType 23 (RGB light), mode 0 = color index, mode 1 = RGB
+	//  Button ids: A_PLUS A_RED A_MINUS B_PLUS B_RED B_MINUS GREEN
+	// =====================================================================
+
+	_ensureRemoteState() {
+		if (this.remoteButtons) return;
+		this.remoteButtons = {
+			A_PLUS: false, A_RED: false, A_MINUS: false,
+			B_PLUS: false, B_RED: false, B_MINUS: false,
+			GREEN: false
+		};
+		this._remoteCallbacks = [];
+	}
+
+	async _initRemote() {
+		this._ensureRemoteState();
+
+		// Hub Property "Button" (0x02): Enable Updates (0x02) + Request Update (0x05)
+		await this._write(new Uint8Array([0x05, this.hubId, 0x01, 0x02, 0x02]));
+		await this._write(new Uint8Array([0x05, this.hubId, 0x01, 0x02, 0x05]));
+	}
+
+	_setRemoteButton(id, pressed) {
+		this._ensureRemoteState();
+		if (this.remoteButtons[id] === pressed) return;
+		this.remoteButtons[id] = pressed;
+
+		for (const cb of this._remoteCallbacks) {
+			try { cb(id, pressed); }
+			catch (e) { this.log("Remote callback error: " + (e?.message || e)); }
+		}
+		document.dispatchEvent(new CustomEvent("remote-button", {
+			detail: { device: this, button: id, pressed }
+		}));
+	}
+
+	// Called from _handleHubProperties (green button)
+	_handleRemoteGreen(pressed) {
+		this._setRemoteButton("GREEN", !!pressed);
+	}
+
+	// Called from _handlePortValueSingle for ports of type "buttons"
+	// (works even if the ioType profile is not known yet: it decodes raw bytes)
+	_handleRemoteButtonValue(port, payload) {
+		this._ensureRemoteState();
+
+		let side = null;
+		if (port === this.userPortMap.A) side = "A";
+		else if (port === this.userPortMap.B) side = "B";
+		if (!side) return;
+
+		const mode = this.activeMode[port] ?? 0;
+
+		if (LPF2_DEBUG.remote) {
+			console.log(`[LPF2] Remote ${side} mode ${mode} raw:`,
+				Array.from(payload).map(b => b.toString(16).padStart(2, "0")).join(" "));
+		}
+
+		let plus, red, minus;
+
+		if (mode !== 0 && payload.length >= 3) {
+			// UNVERIFIED: multi-value modes assumed to be [plus, red, minus] (non-zero = pressed).
+			// Turn on LPF2_DEBUG.remote and check the raw bytes for your handset.
+			plus  = payload[0] !== 0;
+			red   = payload[1] !== 0;
+			minus = payload[2] !== 0;
+		} else {
+			// Mode 0 (RCKEY): one signed byte per side
+			//   0 = released, 1 = plus, -1 (0xFF) = minus, 127 (0x7F) = red
+			// Only ONE button per side can be reported in this mode.
+			const v = (payload[0] << 24) >> 24;
+			plus  = (v === 1);
+			red   = (v === 127);
+			minus = (v === -1);
+		}
+
+		this._setRemoteButton(side + "_PLUS",  plus);
+		this._setRemoteButton(side + "_RED",   red);
+		this._setRemoteButton(side + "_MINUS", minus);
+	}
+
+	/** true/false for one button id: "A_PLUS","A_RED","A_MINUS","B_PLUS","B_RED","B_MINUS","GREEN" */
+	isRemoteButton(id) {
+		this._ensureRemoteState();
+		const key = String(id).toUpperCase();
+		if (!(key in this.remoteButtons)) throw new Error("Unknown remote button: " + id);
+		return this.remoteButtons[key];
+	}
+
+	/** Convenience: side "A"/"B", button "plus"/"red"/"minus" */
+	isRemoteSideButton(side, button) {
+		return this.isRemoteButton(`${String(side).toUpperCase()}_${String(button).toUpperCase()}`);
+	}
+
+	/** Copy of the full button state (all 7 buttons) */
+	getRemoteButtons() {
+		this._ensureRemoteState();
+		return { ...this.remoteButtons };
+	}
+
+	/** List of ids currently pressed, e.g. ["A_PLUS","B_RED"] */
+	getRemotePressed() {
+		this._ensureRemoteState();
+		return Object.keys(this.remoteButtons).filter(k => this.remoteButtons[k]);
+	}
+
+	/** Subscribe: cb(id, pressed). Returns an unsubscribe function. */
+	onRemoteButton(cb) {
+		this._ensureRemoteState();
+		this._remoteCallbacks.push(cb);
+		return () => {
+			this._remoteCallbacks = this._remoteCallbacks.filter(f => f !== cb);
+		};
+	}
+
+	/** Wait until a button is pressed (or released). Resolves false if STOP was requested. */
+	waitRemoteButton(id, pressed = true, timeoutMs = 600000) {
+		return new Promise((resolve, reject) => {
+			const start = performance.now();
+			const check = () => {
+				if (window.stopRequested) return resolve(false);
+				if (this.isRemoteButton(id) === !!pressed) return resolve(true);
+				if (performance.now() - start > timeoutMs) {
+					return reject(new Error(`Timeout waiting for remote button ${id}`));
+				}
+				requestAnimationFrame(check);
+			};
+			check();
+		});
+	}
+
+	/**
+	 * Change the report mode of the A or B button sensor (mode number or mode name).
+	 * Default is mode 0 (RCKEY). Use dumpRemoteModes() to see what your handset offers.
+	 */
+	async setRemoteButtonMode(side, mode) {
+		const port = this._resolvePort(side);
+		const modes = this.portInfo[port]?.modes || {};
+
+		if (typeof mode === "string") {
+			const found = Object.keys(modes).find(
+				m => (modes[m].name || "").toLowerCase() === mode.toLowerCase()
+			);
+			if (found == null) throw new Error(`Unknown mode "${mode}" on port ${side}`);
+			mode = Number(found);
+		}
+
+		await this._setInputFormat(port, mode, 1, 1);
+		const s = String(side).toUpperCase();
+		for (const b of ["PLUS", "RED", "MINUS"]) this._setRemoteButton(`${s}_${b}`, false);
+	}
+
+	/** Console table of the modes known for a port (default: A) */
+	dumpRemoteModes(side = "A") {
+		const port = this._resolvePort(side);
+		console.log(`[LPF2] Modes on port ${side} (${port}), active = ${this.activeMode[port]}`);
+		console.table(this.portInfo[port]?.modes || {});
+	}
+
+	// ---------------- Hub LED (ioType 23, "rgb") ----------------
+
+	_ledPort() {
+		if (this.userPortMap.LED != null) return this.userPortMap.LED;
+		for (const id of Object.keys(this.portInfo)) {
+			if (this.portInfo[id].type === "rgb") return Number(id);
+		}
+		throw new Error("No LED port found on this hub");
+	}
+
+	/**
+	 * Set the LED to a color index or color name.
+	 * 0 off, 1 pink, 2 purple, 3 blue, 4 lightblue, 5 cyan, 6 green,
+	 * 7 yellow, 8 orange, 9 red, 10 white
+	 */
+	async setLedColor(color) {
+		const names = {
+			off: 0, black: 0, pink: 1, purple: 2, blue: 3, lightblue: 4, cyan: 5,
+			green: 6, yellow: 7, orange: 8, red: 9, white: 10
+		};
+		let idx = color;
+		if (typeof color === "string") {
+			idx = names[color.toLowerCase().replace(/[\s_-]/g, "")];
+			if (idx == null) throw new Error("Unknown LED color: " + color);
+		}
+		idx = Math.max(0, Math.min(10, idx | 0));
+
+		const port = this._ledPort();
+		await this._setInputFormat(port, 0, 1, 0);   // mode 0 = COL O, no notifications
+		await this._sendMotorCommand(port, new Uint8Array([0x51, 0x00, idx]), { waitFbk: false });
+	}
+
+	/** Set the LED to an RGB color (0-255 each) */
+	async setLedRGB(r, g, b) {
+		const c = v => Math.max(0, Math.min(255, v | 0));
+		const port = this._ledPort();
+		await this._setInputFormat(port, 1, 1, 0);   // mode 1 = RGB O, no notifications
+		await this._sendMotorCommand(port, new Uint8Array([0x51, 0x01, c(r), c(g), c(b)]), { waitFbk: false });
+	}
+
+	async ledOff() {
+		await this.setLedColor(0);
+	}
+
 
 
   // Convenience mapping for Blockly (string → brake mode)
