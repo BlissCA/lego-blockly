@@ -2443,6 +2443,13 @@ export class LegoLPF2 {
 			plus  = payload[0] !== 0;
 			red   = payload[1] !== 0;
 			minus = payload[2] !== 0;
+		} else if (mode == 3 && payload.length == 1) {
+			// Mode 3 (KEYD): one unsigned byte per side
+			//   0 = released, 1 = plus, 2 = red, 4 = minus
+			const v = payload[0];
+			plus  = (v | 1);
+			red   = (v | 2);
+			minus = (v | 4);
 		} else {
 			// Mode 0 (RCKEY): one signed byte per side
 			//   0 = released, 1 = plus, -1 (0xFF) = minus, 127 (0x7F) = red
