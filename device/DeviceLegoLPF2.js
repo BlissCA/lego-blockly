@@ -497,6 +497,68 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1011613696,1135869952]
       }
     }
+  },
+  55: {
+    name: "ioType 55",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "RCKEY",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1,1],
+        percentRange: [-100,100],
+        siRange: [-1,1]
+      },
+      1: {
+        name: "KEYA ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1,1],
+        percentRange: [-100,100],
+        siRange: [-1,1]
+      },
+      2: {
+        name: "KEYR ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1,1],
+        percentRange: [-100,100],
+        siRange: [-1,1]
+      },
+      3: {
+        name: "KEYD ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,7],
+        percentRange: [0,100],
+        siRange: [0,7]
+      },
+      4: {
+        name: "KEYSD",
+        symbol: "btn",
+        valueFormat: {"count":3,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1],
+        percentRange: [0,100],
+        siRange: [0,1]
+      }
+    }
+  },
+  56: {
+    name: "ioType 56",
+    defaultMode: 0,
+    modes: {
+
+      0: {
+        name: "RSSI ",
+        symbol: "dbm",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-80,-30],
+        percentRange: [0,100],
+        siRange: [-80,-30]
+      }
+    }
   }
 };
 
