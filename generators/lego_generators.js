@@ -2185,7 +2185,7 @@ javascriptGenerator.forBlock["lpf2_ishandsetkeypressed"] = function (block) {
   const key = block.getFieldValue("LPF2KEY");
 
   return [
-    `await deviceManager.getDeviceByName("${dev}").isRemoteButton("${key}")`,
+    `await deviceManager.getDeviceByName("${dev}").isButtonPressed("${key}")`,
     javascriptGenerator.ORDER_NONE
   ];
 };
