@@ -213,40 +213,53 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   21: {
-    name: "ioType 21",
+    name: "Hub Current",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "CUR L",
         symbol: "mA",
         valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
         rawRange: [0,1166012416],
         percentRange: [0,1120403456],
-        siRange: [0,1159249920]
+        siRange: [0,1166178304]
+      },
+      1: {
+        name: "CUR S",
+        symbol: "mA",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1166012416],
+        percentRange: [0,1120403456],
+        siRange: [0,1166178304]
       }
     }
   },
   20: {
-    name: "ioType 20",
+    name: "Hub Voltage",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "VLT L",
-        symbol: "mV",
+        symbol: "mv",
         valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
-        rawRange: [0,1165185024],
+        rawRange: [0,1162346496],
         percentRange: [0,1120403456],
-        siRange: [0,1175846912]
+        siRange: [0,1170735104]
+      },
+      1: {
+        name: "VLT S",
+        symbol: "mv",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1162346496],
+        percentRange: [0,1120403456],
+        siRange: [0,1170735104]
       }
     }
   },
   34: {
-    name: "ioType 34",
+    name: "WeDo2 Tilt Sensor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "LPF2-ANGLE",
         symbol: "DEG",
@@ -254,14 +267,37 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1036779520,1110704128],
         percentRange: [-1027080192,1120403456],
         siRange: [-1036779520,1110704128]
+      },
+      1: {
+        name: "LPF2-TILT",
+        symbol: "DIR",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      2: {
+        name: "LPF2-CRASH",
+        symbol: "CNT",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      3: {
+        name: "LPF2-CAL",
+        symbol: "CAL",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-1036779520,1110704128],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1036779520,1110704128]
       }
     }
   },
   35: {
-    name: "ioType 35",
+    name: "WeDo2 Motion Sensor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "LPF2-DETECT",
         symbol: "",
@@ -269,21 +305,44 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [0,1092616192],
         percentRange: [0,1120403456],
         siRange: [0,1092616192]
+      },
+      1: {
+        name: "LPF2-COUNT",
+        symbol: "CNT",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      2: {
+        name: "LPF2-CAL",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [0,1149222912],
+        percentRange: [0,1120403456],
+        siRange: [0,1149222912]
       }
     }
   },
   23: {
-    name: "ioType 23",
+    name: "Hub RGB LED",
     defaultMode: 0,
     modes: {
-
       0: {
-        name: "COL O",
-        symbol: "",
-        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        name: "COL 0",
+        symbol: "idx",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
         rawRange: [0,1092616192],
         percentRange: [0,1120403456],
         siRange: [0,1092616192]
+      },
+      1: {
+        name: "RGB 0",
+        symbol: "rgb",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
       }
     }
   },
@@ -380,10 +439,9 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   57: {
-    name: "ioType 57",
+    name: "Hub Accelerometer",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "GRV",
         symbol: "mG",
@@ -391,6 +449,14 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-956301312,1191182336],
         percentRange: [-1027080192,1120403456],
         siRange: [-973471744,1174011904]
+      },
+      1: {
+        name: "CAL",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":0,"decimals":0},
+        rawRange: [1065353216,1065353216],
+        percentRange: [-1027080192,1120403456],
+        siRange: [1065353216,1065353216]
       }
     }
   },
@@ -410,10 +476,9 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   59: {
-    name: "ioType 59",
+    name: "Hub Tilt Position",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "POS",
         symbol: "DEG",
@@ -421,6 +486,22 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1020002304,1127481344],
         percentRange: [-1027080192,1120403456],
         siRange: [-1020002304,1127481344]
+      },
+      1: {
+        name: "IMP",
+        symbol: "CNT",
+        valueFormat: {"count":1,"type":"Int32","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      2: {
+        name: "CFG",
+        symbol: "",
+        valueFormat: {"count":2,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
       }
     }
   },
@@ -440,10 +521,9 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   46: {
-    name: "ioType 46",
+    name: "Technic Large Motor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "POWER",
         symbol: "PCT",
@@ -475,14 +555,29 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1011613696,1135869952],
         percentRange: [-1027080192,1120403456],
         siRange: [-1011613696,1135869952]
+      },
+      4: {
+        name: "LOAD",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1123942400],
+        percentRange: [0,1120403456],
+        siRange: [0,1123942400]
+      },
+      5: {
+        name: "CALIB",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [0,1140850688],
+        percentRange: [0,1120403456],
+        siRange: [0,1140850688]
       }
     }
   },
   47: {
-    name: "ioType 47",
+    name: "Technic XL Motor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "POWER",
         symbol: "PCT",
@@ -514,6 +609,82 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1011613696,1135869952],
         percentRange: [-1027080192,1120403456],
         siRange: [-1011613696,1135869952]
+      },
+      4: {
+        name: "LOAD",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1123942400],
+        percentRange: [0,1120403456],
+        siRange: [0,1123942400]
+      },
+      5: {
+        name: "CALIB",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [0,1140850688],
+        percentRange: [0,1120403456],
+        siRange: [0,1140850688]
+      }
+    }
+  },
+  55: {
+    name: "Handset Buttons",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "RCKEY",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1082130432,1065353216],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1082130432,1065353216]
+      },
+      1: {
+        name: "KEYA ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1082130432,1065353216],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1082130432,1065353216]
+      },
+      2: {
+        name: "KEYR ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [-1082130432,1065353216],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1082130432,1065353216]
+      },
+      3: {
+        name: "KEYD ",
+        symbol: "btn",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1088421888],
+        percentRange: [0,1120403456],
+        siRange: [0,1088421888]
+      },
+      4: {
+        name: "KEYSD",
+        symbol: "btn",
+        valueFormat: {"count":3,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1065353216],
+        percentRange: [0,1120403456],
+        siRange: [0,1065353216]
+      }
+    }
+  },
+  56: {
+    name: "Handset RSSI",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "RSSI ",
+        symbol: "dbm",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [-1029701632,-1041235968],
+        percentRange: [0,1120403456],
+        siRange: [-1029701632,-1041235968]
       }
     }
   }
