@@ -2447,9 +2447,9 @@ export class LegoLPF2 {
 			// Mode 3 (KEYD): one unsigned byte per side
 			//   0 = released, 1 = plus, 2 = red, 4 = minus
 			const v = payload[0];
-			plus  = (v | 1);
-			red   = (v | 2);
-			minus = (v | 4);
+			plus  = ((v & 1) === 1);
+			red   = (((v >> 1) & 1) === 1);
+			minus = (((v >> 2) & 1) === 1);
 		} else {
 			// Mode 0 (RCKEY): one signed byte per side
 			//   0 = released, 1 = plus, -1 (0xFF) = minus, 127 (0x7F) = red
