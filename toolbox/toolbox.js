@@ -206,7 +206,8 @@ const toolbox = {
                   }
                 }
               }
-            }
+            },
+            { "kind": "block", "type": "keyboard_key" }
           ]
         },
 

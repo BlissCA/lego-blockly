@@ -14,6 +14,7 @@ const ASSETS = [
 
   // Blocks
   "./blocks/lego_blocks.js",
+  "./blocks/keyboard_blocks.js",
 
   // Generators
   "./generators/lego_generators.js",

@@ -9,6 +9,7 @@ import "./blocks/lego_blocks.js";
 //import "./blocks/hmi_blocks.js";
 import "./generators/lego_generators.js";
 //import "./generators/hmi_generators.js";
+import "./blocks/keyboard_blocks.js";
 
 // Toolbox
 import toolbox from "./toolbox/toolbox.js";
