@@ -2012,6 +2012,18 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_hubled",
+              "inputs": {
+                "COLOR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 10 }
+                  }
+                }
+              }
             }
           ]
         }

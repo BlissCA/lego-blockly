@@ -2312,6 +2312,21 @@ javascriptGenerator.forBlock["lpf2_mot_time"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["lpf2_hubled"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const color = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLedColor(${color});
+}
+`;
+};
+
+
 
 // ---------------- LEGO WeDo 2.0 GENERATORS ------------------
 

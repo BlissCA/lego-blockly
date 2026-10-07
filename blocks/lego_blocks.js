@@ -2666,7 +2666,28 @@ window.addEventListener("load", () => {
       ],
       "inputsInline": true,
       "output": "Boolean",
-      "colour": 20
+      "colour": 80
+    },
+    {
+      "type": "lpf2_hubled",
+      "message0": "%1 Hub LED Color %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        {
+          "type": "input_value",
+          "name": "COLOR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 10 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Hub LED Color: 0 off, 1 pink, 2 purple, 3 blue, 4 lightblue, 5 cyan, 6 green, 7 yellow, 8 orange, 9 red, 10 white)"
     }
 
   ]);  
