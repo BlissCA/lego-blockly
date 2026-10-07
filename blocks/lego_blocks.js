@@ -2647,6 +2647,26 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "run motor for specified time in milliseconds"
+    },
+    {
+      "type": "lpf2_ishandsetkeypressed",
+      "message0": "%1 handset %2 pressed?",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
+        { "type": "field_dropdown", "name": "LPF2KEY", "options": [
+          ["A +", "A_PLUS"],
+          ["A Red", "A_RED"],
+          ["A -", "A_MINUS"],
+          ["B +", "B_PLUS"],
+          ["B Red", "B_RED"],
+          ["B -", "B_MINUS"],
+          ["Green", "GREEN"]
+          ]
+        },
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 20
     }
 
   ]);  

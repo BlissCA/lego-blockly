@@ -1834,7 +1834,11 @@ const toolbox = {
                   }
 
               }
-            }             
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_ishandsetkeypressed"
+            }               
           ]
         },
         {

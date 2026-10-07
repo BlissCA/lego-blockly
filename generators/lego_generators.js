@@ -2180,6 +2180,16 @@ javascriptGenerator.forBlock["lpf2_get_tilt"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["lpf2_ishandsetkeypressed"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const key = block.getFieldValue("LPF2KEY");
+
+  return [
+    `await deviceManager.getDeviceByName("${dev}").isRemoteButton("${key}")`,
+    javascriptGenerator.ORDER_NONE
+  ];
+};
+
 javascriptGenerator.forBlock["lpf2_get_rot"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
