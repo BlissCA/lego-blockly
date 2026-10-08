@@ -2183,9 +2183,10 @@ javascriptGenerator.forBlock["lpf2_get_tilt"] = function (block) {
 javascriptGenerator.forBlock["lpf2_ishandsetkeypressed"] = function (block) {
   const dev = block.getFieldValue("DEVICE");
   const key = block.getFieldValue("LPF2KEY");
+  const fn = block.getFieldValue("MODE") === "PRESSED" ? "wasButtonPressed" : "isButtonPressed";
 
   return [
-    `await deviceManager.getDeviceByName("${dev}").isButtonPressed("${key}")`,
+    `await deviceManager.getDeviceByName("${dev}").${fn}("${key}")`,
     javascriptGenerator.ORDER_NONE
   ];
 };

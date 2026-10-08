@@ -2650,7 +2650,7 @@ window.addEventListener("load", () => {
     },
     {
       "type": "lpf2_ishandsetkeypressed",
-      "message0": "%1 handset %2 pressed?",
+      "message0": "%1 handset %2 %3 ?",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
         { "type": "field_dropdown", "name": "LPF2KEY", "options": [
@@ -2663,6 +2663,14 @@ window.addEventListener("load", () => {
           ["Green", "GREEN"]
           ]
         },
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            ["is held", "HELD"],
+            ["was pressed", "PRESSED"]
+          ]
+        }
       ],
       "inputsInline": true,
       "output": "Boolean",
