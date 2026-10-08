@@ -103,10 +103,9 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   37: {
-    name: "ioType 37",
+    name: "Boost Color & Distance Sensor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "COLOR",
         symbol: "IDX",
@@ -162,14 +161,45 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [0,1149222912],
         percentRange: [0,1120403456],
         siRange: [0,1149222912]
+      },
+      7: {
+        name: "IR Tx",
+        symbol: "N/A",
+        valueFormat: {"count":1,"type":"Int16","figures":5,"decimals":0},
+        rawRange: [0,1199570688],
+        percentRange: [0,1120403456],
+        siRange: [0,1199570688]
+      },
+      8: {
+        name: "SPEC 1",
+        symbol: "N/A",
+        valueFormat: {"count":4,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
+      },
+      9: {
+        name: "DEBUG",
+        symbol: "N/A",
+        valueFormat: {"count":2,"type":"Int16","figures":5,"decimals":0},
+        rawRange: [0,1149222912],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      10: {
+        name: "CALIB",
+        symbol: "N/A",
+        valueFormat: {"count":8,"type":"Int16","figures":5,"decimals":0},
+        rawRange: [0,1199570688],
+        percentRange: [0,1120403456],
+        siRange: [0,1199570688]
       }
-    }		
+    }
   },
   40: {
-    name: "ioType 40",
+    name: "Boost Internal Tilt",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "ANGLE",
         symbol: "DEG",
@@ -209,6 +239,30 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1031667712,1115815936],
         percentRange: [-1027080192,1120403456],
         siRange: [-1031667712,1115815936]
+      },
+      5: {
+        name: "OR_CF",
+        symbol: "SID",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1086324736],
+        percentRange: [0,1120403456],
+        siRange: [0,1086324736]
+      },
+      6: {
+        name: "IM_CF",
+        symbol: "SEN",
+        valueFormat: {"count":2,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
+      },
+      7: {
+        name: "CALIB",
+        symbol: "CAL",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
       }
     }
   },
@@ -393,10 +447,9 @@ export const LPF2_DEVICE_PROFILES = {
     }
   },
   38: {
-    name: "ioType 38",
+    name: "Boost External Motor",
     defaultMode: 0,
     modes: {
-
       0: {
         name: "POWER",
         symbol: "PCT",
@@ -420,9 +473,18 @@ export const LPF2_DEVICE_PROFILES = {
         rawRange: [-1011613696,1135869952],
         percentRange: [-1027080192,1120403456],
         siRange: [-1011613696,1135869952]
+      },
+      3: {
+        name: "TEST",
+        symbol: "TST",
+        valueFormat: {"count":5,"type":"Int16","figures":6,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
       }
     }
   },
+
   60: {
     name: "ioType 60",
     defaultMode: 0,
