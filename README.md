@@ -19,9 +19,9 @@ Lego Blockly supports these devices:
 - **Lego RCX / ControlMaster** (RCX with Serial or USB IR Tower).  Lego Blockly does not create RCX programs to upload into the brick.  Only for inter communication.  Most Practical use: Send recieve message.  Also support the RCX IR Remote Handset.
 - **Lego NXT** (BT or USB)
 - **VLL : Visual Light Link** for Code Pilot and MicroScout brick.  
-	- Using an USB-Serial FTDI adapter and a Led + Resistor connected to DTR Pin and GND (or +3.3V depending)
+	- Using a USB-Serial FTDI adapter and a Led + Resistor connected to DTR Pin and GND (or +3.3V depending)
 	- Using the RCX USB Tower which has VLL capabilities. (Category RCX/CM in Lego Blockly)
-	- Using Interface B with 9V bulbs or 9V led spin block with fiber. (Category Int.B in Lego Blockly) 
+	- Using Interface B with 9V bulbs (6035c01) or 9V fiber optics Element (6637c01). (Category Int.B in Lego Blockly) 
 - **Wedo 1.0** (using the 2 ports USB hub)
 - **WeDo 2.0** (BLE)
 - **LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)**
