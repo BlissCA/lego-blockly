@@ -51,6 +51,12 @@ export class LegoInterfaceB {
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
 
+    // ---------------- LEGO VLL (Visible Light Link) ----------------
+    this.vllPreambleMs = 1000;
+    this.vllUnitMs = 20;
+    this.vllGapMs = 100; // pause between consecutive codes in one call
+    this.vllQueue = Promise.resolve(); // serializes sendVLL calls
+
   }
 
   // ---------------- Command Queueing helper ----------------
@@ -587,12 +593,137 @@ export class LegoInterfaceB {
     if (!this.shouldSendMulti(mask, "R")) return;
     await this.writeBytes(cmd);
   }
-async multiOutPower(level, mask) {
-  const cmd = new Uint8Array([0xB0 + (level & 0x07), mask]);
-  if (!this.shouldSendMulti(mask, "pow", level)) return;
-  await this.writeBytes(cmd);
-}
+  async multiOutPower(level, mask) {
+    const cmd = new Uint8Array([0xB0 + (level & 0x07), mask]);
+    if (!this.shouldSendMulti(mask, "pow", level)) return;
+    await this.writeBytes(cmd);
+  }
 
+
+  // ---------------- LEGO VLL (Visible Light Link) ----------------
+
+  // Wait without freezing the page (the reader and packet monitor keep running):
+  // coarse setTimeout, then a short busy-wait on the last stretch for precision.
+  async vllSleepUntil(deadline) {
+    const coarse = deadline - performance.now() - 3;
+    if (coarse > 0) {
+      await new Promise(r => setTimeout(r, coarse));
+    }
+    while (performance.now() < deadline) {
+      // Busy wait (a few ms at most)
+    }
+  }
+
+  // Set the lamp on/off, then hold until `durationMs` has elapsed since the
+  // pulse started. The serial write time counts toward the duration, so it
+  // doesn't stretch the pulse.
+  async vllPulse(port, on, durationMs) {
+    const start = performance.now();
+    if (on) {
+      await this.outOn(port);
+    } else {
+      await this.outOff(port);
+    }
+    await this.vllSleepUntil(start + durationMs);
+  }
+
+  // Turn the `codes` argument into a validated array of integers 0-127.
+  // Accepts: a number, an array of numbers, or a comma-separated string ("1, 2, 3").
+  parseVLLCodes(codes) {
+    let items;
+    if (typeof codes === "number") {
+      items = [codes];
+    } else if (typeof codes === "string") {
+      items = codes.split(",").map(s => s.trim()).filter(s => s !== "");
+    } else if (Array.isArray(codes)) {
+      items = codes;
+    } else {
+      throw new TypeError("VLL codes must be a number, an array or a comma-separated string");
+    }
+
+    if (items.length === 0) {
+      throw new RangeError("No VLL code provided");
+    }
+
+    return items.map(item => {
+      const n = typeof item === "string" ? Number(item.trim()) : item;
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > 127) {
+        throw new RangeError(`VLL code must be an integer from 0 to 127, got ${JSON.stringify(item)}`);
+      }
+      return n;
+    });
+  }
+
+  // Send one or more VLL codes through the LED connected to `port` (1 to 8).
+  //   codes: a number 0-127, an array of codes, or a comma-separated string.
+  // Everything is validated before anything is sent.
+  sendVLL(port, codes) {
+    if (!Number.isInteger(port) || port < 1 || port > 8) {
+      return Promise.reject(new RangeError(`VLL port must be 1 to 8, got ${port}`));
+    }
+
+    let list;
+    try {
+      list = this.parseVLLCodes(codes);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+
+    // Chain calls so two transmissions never overlap on the same device
+    const run = async () => {
+      for (let i = 0; i < list.length; i++) {
+        await this._sendVLLCode(port, list[i]);
+        if (i < list.length - 1) {
+          await this.vllSleepUntil(performance.now() + this.vllGapMs);
+        }
+      }
+    };
+    this.vllQueue = this.vllQueue.then(run, run);
+    return this.vllQueue;
+  }
+
+  // Send a single 7-bit code (frame: preamble, start, checksum, data, stop).
+  async _sendVLLCode(port, data7) {
+    const unit = this.vllUnitMs;
+
+    const bit0 = async () => {
+      await this.vllPulse(port, true, 2 * unit);
+      await this.vllPulse(port, false, 1 * unit);
+    };
+
+    const bit1 = async () => {
+      await this.vllPulse(port, true, 1 * unit);
+      await this.vllPulse(port, false, 2 * unit);
+    };
+
+    const checksum = (n) => 7 - ((n + (n >> 2) + (n >> 4)) & 7);
+
+    try {
+      // 1. Preamble
+      await this.vllPulse(port, true, this.vllPreambleMs);
+
+      // 2. Start bit
+      await this.vllPulse(port, false, unit);
+
+      // 3. Checksum (3 bits, MSB first)
+      const c = checksum(data7);
+      for (let i = 2; i >= 0; i--) {
+        if ((c >> i) & 1) await bit1(); else await bit0();
+      }
+
+      // 4. Data (7 bits, MSB first)
+      for (let i = 6; i >= 0; i--) {
+        if ((data7 >> i) & 1) await bit1(); else await bit0();
+      }
+
+      // 5. Stop bit
+      await this.vllPulse(port, true, unit);
+      await this.vllPulse(port, false, 3 * unit);
+    } finally {
+      // Never leave the lamp lit if the transmission is interrupted
+      try { await this.outOff(port); } catch {}
+    }
+  }
 
   // ---------------- Inputs ----------------
 
