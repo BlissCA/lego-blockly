@@ -970,6 +970,7 @@ document.getElementById("stopBtn").onclick = async () => {
         for (let port = 1; port <= 8; port++) {
           await dev.outOff(port);
         }
+        dev.cancelVLL(); // Cancel any ongoing VLL command
       } else if (dev.mot) {
         // RCX: stop all motors A, B, C
         await dev.mot(0x01).off();

@@ -190,6 +190,53 @@ javascriptGenerator.forBlock["lego_inp_count_reset"] = function (block) {
 `;
 };
 
+
+// ------------------ LEGO VLL Serial GENERATORS ----------------
+javascriptGenerator.forBlock["legob_vll_senddata"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port  = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "0";
+  const vllCode = javascriptGenerator.valueToCode(block, "DATA", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sendVLL(${port}, ${vllCode});
+}
+`;
+};
+
+javascriptGenerator.forBlock["legob_vll_preamblems"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.vllPreambleMs = ${ms};
+}
+`;
+};
+
+javascriptGenerator.forBlock["legob_vll_unitms"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "0";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.vllUnitMs = ${ms};
+}
+`;
+};
+
+
+// MISC Blocks
 javascriptGenerator.forBlock["lego_wait_until"] = function (block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
 

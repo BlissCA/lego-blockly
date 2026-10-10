@@ -779,6 +779,56 @@ const toolbox = {
         },
         {
           "kind": "category",
+          "name": "VLL",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "legob_vll_senddata",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Legob_outportalpha",
+                    "fields": { "LETTER": "1" }
+                  }
+                },
+                "DATA": {
+                  "shadow": {
+                    "type": "Rcx_VllMicroScout",
+                    "fields": { "CODE": "4" }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legob_vll_preamblems",
+              "inputs": {
+                "MS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 1000 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "legob_vll_unitms",
+              "inputs": {
+                "MS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": { "NUM": 20 }
+                  }
+                }
+              }
+            },
+            { "kind": "block", "type": "Rcx_VllMicroScout" },
+            { "kind": "block", "type": "Rcx_VllCodePilot" }
+          ]
+        },        
+        {
+          "kind": "category",
           "name": "Obsolete",
           "contents": [
             {

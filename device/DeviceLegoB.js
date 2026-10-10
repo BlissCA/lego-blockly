@@ -3,6 +3,9 @@
 // Only change: exported, and `manager` is expected to provide
 // updateDeviceEntry(device) and appendLog(device, message).
 
+// Sentinel thrown inside a VLL frame when cancelVLL({ immediate: true }) interrupts it
+const VLL_ABORT = Symbol("VLL_ABORT");
+
 export class LegoInterfaceB {
   constructor(name, manager) {
     this.name = name;
@@ -56,6 +59,9 @@ export class LegoInterfaceB {
     this.vllUnitMs = 20;
     this.vllGapMs = 100; // pause between consecutive codes in one call
     this.vllQueue = Promise.resolve(); // serializes sendVLL calls
+    this.vllCancelGen = 0;  // bumped by cancelVLL(): skips codes not yet started
+    this.vllAbortGen = 0;   // bumped by cancelVLL({ immediate: true }): interrupts the frame in flight
+    this._vllWake = null;   // wakes the current wait early when a cancel happens
 
   }
 
@@ -341,6 +347,7 @@ export class LegoInterfaceB {
   // ---------------- Disconnect ----------------
 
   async disconnect() {
+    this.cancelVLL(); // stop any VLL transmission in progress
     this.queueActive = false;
     this.log("Disconnecting...");
     this.setStatus("disconnected", "Disconnecting...");
@@ -407,6 +414,7 @@ export class LegoInterfaceB {
 
   // ---------------- force disconnect, a minimal cleanup if handshake times out ----------------
   async forceDisconnect() {
+    this.cancelVLL(); // stop any VLL transmission in progress
     this.queueActive = false;
     this.commandQueue = Promise.resolve(); // Drop pending commands    
     this.stopKeepAlive();
@@ -604,10 +612,21 @@ export class LegoInterfaceB {
 
   // Wait without freezing the page (the reader and packet monitor keep running):
   // coarse setTimeout, then a short busy-wait on the last stretch for precision.
+  // cancelVLL() can wake the coarse wait early, in which case we return at once.
   async vllSleepUntil(deadline) {
     const coarse = deadline - performance.now() - 3;
     if (coarse > 0) {
-      await new Promise(r => setTimeout(r, coarse));
+      const interrupted = await new Promise(resolve => {
+        let timer;
+        const finish = (wasInterrupted) => {
+          clearTimeout(timer);
+          if (this._vllWake === finish) this._vllWake = null;
+          resolve(wasInterrupted === true);
+        };
+        timer = setTimeout(finish, coarse);
+        this._vllWake = finish;
+      });
+      if (interrupted) return;
     }
     while (performance.now() < deadline) {
       // Busy wait (a few ms at most)
@@ -617,7 +636,10 @@ export class LegoInterfaceB {
   // Set the lamp on/off, then hold until `durationMs` has elapsed since the
   // pulse started. The serial write time counts toward the duration, so it
   // doesn't stretch the pulse.
-  async vllPulse(port, on, durationMs) {
+  // `gen` is the abort generation of the frame being sent: if cancelVLL({ immediate })
+  // has bumped it since, the pulse is dropped by throwing VLL_ABORT.
+  async vllPulse(port, on, durationMs, gen = this.vllAbortGen) {
+    if (gen !== this.vllAbortGen) throw VLL_ABORT;
     const start = performance.now();
     if (on) {
       await this.outOn(port);
@@ -625,6 +647,22 @@ export class LegoInterfaceB {
       await this.outOff(port);
     }
     await this.vllSleepUntil(start + durationMs);
+    if (gen !== this.vllAbortGen) throw VLL_ABORT;
+  }
+
+  // Cancel VLL transmissions on this device.
+  //   - Calls queued behind the current one are dropped.
+  //   - Codes of the current call that have not started are dropped.
+  //   - immediate = true (default): the frame being sent is interrupted at once.
+  //     immediate = false: that one frame is finished first.
+  // The lamp is switched off. Resolves once the VLL queue is idle again.
+  cancelVLL({ immediate = true } = {}) {
+    this.vllCancelGen++;
+    if (immediate) {
+      this.vllAbortGen++;
+      if (this._vllWake) this._vllWake(true);
+    }
+    return this.vllQueue.then(() => {}, () => {});
   }
 
   // Turn the `codes` argument into a validated array of integers 0-127.
@@ -669,41 +707,54 @@ export class LegoInterfaceB {
       return Promise.reject(err);
     }
 
-    // Chain calls so two transmissions never overlap on the same device
+    // A cancelVLL() issued after this call bumps the generation and skips this call
+    const cancelGen = this.vllCancelGen;
+
+    // Chain calls so two transmissions never overlap on the same device.
+    // Resolves to { sent, total, cancelled }.
     const run = async () => {
+      let sent = 0;
       for (let i = 0; i < list.length; i++) {
-        await this._sendVLLCode(port, list[i]);
+        if (this.vllCancelGen !== cancelGen) break;
+
+        const completed = await this._sendVLLCode(port, list[i]);
+        if (!completed) break;
+        sent++;
+
         if (i < list.length - 1) {
           await this.vllSleepUntil(performance.now() + this.vllGapMs);
         }
       }
+      return { sent, total: list.length, cancelled: sent < list.length };
     };
     this.vllQueue = this.vllQueue.then(run, run);
     return this.vllQueue;
   }
 
   // Send a single 7-bit code (frame: preamble, start, checksum, data, stop).
+  // Resolves true if the whole frame was sent, false if it was interrupted by cancelVLL().
   async _sendVLLCode(port, data7) {
     const unit = this.vllUnitMs;
+    const gen = this.vllAbortGen;
 
     const bit0 = async () => {
-      await this.vllPulse(port, true, 2 * unit);
-      await this.vllPulse(port, false, 1 * unit);
+      await this.vllPulse(port, true, 2 * unit, gen);
+      await this.vllPulse(port, false, 1 * unit, gen);
     };
 
     const bit1 = async () => {
-      await this.vllPulse(port, true, 1 * unit);
-      await this.vllPulse(port, false, 2 * unit);
+      await this.vllPulse(port, true, 1 * unit, gen);
+      await this.vllPulse(port, false, 2 * unit, gen);
     };
 
     const checksum = (n) => 7 - ((n + (n >> 2) + (n >> 4)) & 7);
 
     try {
       // 1. Preamble
-      await this.vllPulse(port, true, this.vllPreambleMs);
+      await this.vllPulse(port, true, this.vllPreambleMs, gen);
 
       // 2. Start bit
-      await this.vllPulse(port, false, unit);
+      await this.vllPulse(port, false, unit, gen);
 
       // 3. Checksum (3 bits, MSB first)
       const c = checksum(data7);
@@ -717,8 +768,12 @@ export class LegoInterfaceB {
       }
 
       // 5. Stop bit
-      await this.vllPulse(port, true, unit);
-      await this.vllPulse(port, false, 3 * unit);
+      await this.vllPulse(port, true, unit, gen);
+      await this.vllPulse(port, false, 3 * unit, gen);
+      return true;
+    } catch (err) {
+      if (err === VLL_ABORT) return false; // cancelled: not an error
+      throw err;
     } finally {
       // Never leave the lamp lit if the transmission is interrupted
       try { await this.outOff(port); } catch {}

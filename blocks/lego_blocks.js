@@ -1292,6 +1292,65 @@ window.addEventListener("load", () => {
       "colour": 20
     },
   
+// Lego Interface B VLL blocks
+    {
+      "type": "legob_vll_senddata",
+      "message0": "%1 out %2 send VLL code(s) %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": "Number",
+        },
+        {
+          "type": "input_value",
+          "name": "DATA",
+          "check": ["Number", "String", "Array"],
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20,
+      "tooltip": "VLL code input can be one number, a string with comma delimited numbers, or a list of numbers."
+    },
+    {
+      "type": "legob_vll_preamblems",
+      "message0": "%1 VLL set preamble (ms) %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "MS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20,
+      "tooltip": "Set the preamble duration in milliseconds for the VLL code input. The preamble is the time the signal is held high before sending the data. The default preamble duration is 1000 ms."
+    },
+    {
+      "type": "legob_vll_unitms",
+      "message0": "%1 VLL set unit (ms) %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLegoBDropdown },
+        {
+          "type": "input_value",
+          "name": "MS",
+          "check": "Number",
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 20,
+      "tooltip": "Set the unit duration for VLL minimum pulse width."
+    },
+
+
     {
       "type": "lego_wait_until",
       "message0": "wait until %1",
