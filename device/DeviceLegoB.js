@@ -50,6 +50,8 @@ export class LegoInterfaceB {
     this.HANDSHAKE_REPLY = "###Just a bit off the block!$$$";
 
     this.KEEP_ALIVE = new Uint8Array([0x02]);
+    this.keepAliveMs = 1900;   // send a keep-alive only after this much write silence
+    this.lastWriteTime = 0;    // performance.now() of the last write to the port
     
     this.commandQueue = Promise.resolve();
     this.queueActive = true;
@@ -57,7 +59,13 @@ export class LegoInterfaceB {
     // ---------------- LEGO VLL (Visible Light Link) ----------------
     this.vllPreambleMs = 1000;
     this.vllUnitMs = 20;
-    this.vllGapMs = 100; // pause between consecutive codes in one call
+    // Last stretch of every pulse that is busy-waited instead of using setTimeout.
+    // Larger = more robust against timer throttling/jitter (e.g. installed app window),
+    // at the cost of CPU. 25 or more spins whole 20 ms pulses; the 1000 ms preamble
+    // still uses setTimeout for most of its length.
+    this.vllSpinMs = 3;
+    this.vllDebug = false;  // true: log per-code timing overshoot (see vllPulse)
+    this._vllStats = null;
     this.vllQueue = Promise.resolve(); // serializes sendVLL calls
     this.vllCancelGen = 0;  // bumped by cancelVLL(): skips codes not yet started
     this.vllAbortGen = 0;   // bumped by cancelVLL({ immediate: true }): interrupts the frame in flight
@@ -316,31 +324,41 @@ export class LegoInterfaceB {
 
   // ---------------- Keep-Alive ----------------
 
+  // The keep-alive byte is only sent when nothing else has been written for
+  // `keepAliveMs`. Any other write (outputs, VLL pulses...) already keeps the
+  // interface awake, so it just pushes the next keep-alive back.
   startKeepAlive() {
     this.log("Starting keep-alive...");
-    this.keepAliveTimer = setInterval(async () => {
-      try {
-        this.enqueueCommand(async () => {
-          if (!this.port || !this.port.writable) return;
-          const w = this.port.writable.getWriter();
-          try {
-            await w.write(this.KEEP_ALIVE);
-          } finally {
-            w.releaseLock();
-          }
-        });
-        // this.log("Keep-alive sent");
-      } catch (err) {
-        this.log(`Keep-alive error: ${err.message || err}`);
+    this.stopKeepAlive(true);
+    this.lastWriteTime = performance.now();
+
+    const schedule = () => {
+      if (!this.queueActive) return;
+      const wait = Math.max(10, this.lastWriteTime + this.keepAliveMs - performance.now());
+      this.keepAliveTimer = setTimeout(tick, wait);
+    };
+
+    const tick = async () => {
+      this.keepAliveTimer = null;
+      if (!this.queueActive) return;
+
+      const idle = performance.now() - this.lastWriteTime;
+      if (idle >= this.keepAliveMs - 5) {
+        // Written through the queue so it can't interleave with another write.
+        // lastWriteTime is refreshed by the write itself (even if it is skipped).
+        await this.enqueueCommand(() => this.rawWrite(this.KEEP_ALIVE));
       }
-    }, 1900);
+      schedule();
+    };
+
+    schedule();
   }
 
-  stopKeepAlive() {
+  stopKeepAlive(silent = false) {
     if (this.keepAliveTimer) {
-      clearInterval(this.keepAliveTimer);
+      clearTimeout(this.keepAliveTimer);
       this.keepAliveTimer = null;
-      this.log("Keep-alive stopped.");
+      if (!silent) this.log("Keep-alive stopped.");
     }
   }
 
@@ -488,8 +506,10 @@ export class LegoInterfaceB {
 
   // ---------------- Outputs Processing ----------------
 
-  async writeBytes(bytes) {
-    return this.enqueueCommand(async () => {
+  // Writes to the port. Must only run inside the command queue.
+  // Records the time of the last write so the keep-alive can stay silent.
+  async rawWrite(bytes) {
+    try {
       if (!this.port || !this.port.writable) return;
 
       const writer = this.port.writable.getWriter();
@@ -498,7 +518,13 @@ export class LegoInterfaceB {
       } finally {
         writer.releaseLock();
       }
-    });
+    } finally {
+      this.lastWriteTime = performance.now();
+    }
+  }
+
+  async writeBytes(bytes) {
+    return this.enqueueCommand(() => this.rawWrite(bytes));
   }
 
   async sendCmdByte(base, port) {
@@ -614,7 +640,7 @@ export class LegoInterfaceB {
   // coarse setTimeout, then a short busy-wait on the last stretch for precision.
   // cancelVLL() can wake the coarse wait early, in which case we return at once.
   async vllSleepUntil(deadline) {
-    const coarse = deadline - performance.now() - 3;
+    const coarse = deadline - performance.now() - this.vllSpinMs;
     if (coarse > 0) {
       const interrupted = await new Promise(resolve => {
         let timer;
@@ -648,6 +674,16 @@ export class LegoInterfaceB {
     }
     await this.vllSleepUntil(start + durationMs);
     if (gen !== this.vllAbortGen) throw VLL_ABORT;
+
+    if (this._vllStats && durationMs < 100) { // the long preamble is not timing-critical
+      // How much longer than requested the pulse really was (includes the write time
+      // when the write itself was slow). Anything above ~3 ms on a 20 ms unit is a risk.
+      const over = performance.now() - (start + durationMs);
+      const s = this._vllStats;
+      s.pulses++;
+      if (over > s.maxOver) s.maxOver = over;
+      if (over > 3) s.late++;
+    }
   }
 
   // Cancel VLL transmissions on this device.
@@ -720,10 +756,6 @@ export class LegoInterfaceB {
         const completed = await this._sendVLLCode(port, list[i]);
         if (!completed) break;
         sent++;
-
-        if (i < list.length - 1) {
-          await this.vllSleepUntil(performance.now() + this.vllGapMs);
-        }
       }
       return { sent, total: list.length, cancelled: sent < list.length };
     };
@@ -748,6 +780,8 @@ export class LegoInterfaceB {
     };
 
     const checksum = (n) => 7 - ((n + (n >> 2) + (n >> 4)) & 7);
+
+    this._vllStats = this.vllDebug ? { pulses: 0, late: 0, maxOver: 0 } : null;
 
     try {
       // 1. Preamble
@@ -777,6 +811,12 @@ export class LegoInterfaceB {
     } finally {
       // Never leave the lamp lit if the transmission is interrupted
       try { await this.outOff(port); } catch {}
+
+      if (this._vllStats) {
+        const s = this._vllStats;
+        this.log(`VLL ${data7}: ${s.pulses} pulses, ${s.late} over by >3 ms, worst +${s.maxOver.toFixed(1)} ms (spin ${this.vllSpinMs} ms)`);
+        this._vllStats = null;
+      }
     }
   }
 
