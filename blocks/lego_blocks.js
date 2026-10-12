@@ -5634,10 +5634,10 @@ Blockly.Blocks['wedo1_motorstop'] = {
 Blockly.Blocks['vll_senddata'] = {
   init: function() {
     this.jsonInit({
-      "message0": "%1 VLL send data %2",
+      "message0": "%1 send VLL code(s) %2",
       "args0": [
         { "type": "field_dropdown", "name": "DEVICE", "options": getVLLDropdown },
-        { "type": "input_value", "name": "DATA", "check": "Number" }
+        { "type": "input_value", "name": "DATA", "check": ["Number", "String", "Array"] }
       ],
       "inputsInline": true,
       "previousStatement": null,
@@ -5645,7 +5645,7 @@ Blockly.Blocks['vll_senddata'] = {
       "colour": 50,
      });
 
-    this.setTooltip("Send data via VLL serial connection DTR pin");
+    this.setTooltip("Send data via VLL serial connection DTR pin, VLL code input can be one number, a string with comma delimited numbers, or a list of numbers.");
   }
 };
 Blockly.Blocks['vll_preamblems'] = {

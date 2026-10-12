@@ -1001,6 +1001,9 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.name.startsWith("Cubesp")) {
         // Circuit Cubes: stop all motors / Lights
         await dev.motorStopAll();
+      } else if (dev.name.startsWith("VLL")) {
+        // VLL (FTDI DTR Pin)
+        dev.cancelVLL(); // Cancel any ongoing VLL command
       }
 
     } catch (err) {

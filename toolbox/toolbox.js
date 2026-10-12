@@ -1821,7 +1821,9 @@ const toolbox = {
               }
             }
           }
-        }        
+        },
+        { "kind": "block", "type": "Rcx_VllMicroScout" },
+        { "kind": "block", "type": "Rcx_VllCodePilot" }        
       ]
     },
 
