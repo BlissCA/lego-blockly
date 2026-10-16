@@ -12,7 +12,7 @@ This is a web application that will work only in chromium based browsers like Ch
 
 ## Supported Lego Interfaces/Bricks
 
-Lego Blockly supports these devices:
+Lego Blockly supports these devices:  *See also [LEGO_BLOCKLY_CONNECTIONS](LEGO_BLOCKLY_CONNECTIONS.md)*
 
 - **Lego Interface B**
 - **Lego Interface A** with an Arduino (Uno/Nano or ESP32(BT, ESP-WROOM-32, 30Pin prefered) sketch provided).
