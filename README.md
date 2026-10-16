@@ -30,8 +30,8 @@ Lego Blockly supports these devices:  *See also [LEGO_BLOCKLY_CONNECTIONS](LEGO_
 - **Lego Power Function** IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, **Generic IR RX** (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png).  Arduino Sketches are available for ESP-WROOM-32 (LegoPFIR_BLE_ESP_WROOM_32_V3) and ESP32-C3 (LegoPFIR_BLE_ESP32_C3_V1) in the [folder SketchArduino](SketchArduino).
 - **Lego Power Function** IR TX only with the use of a RCX Serial IR tower.
 - **Circuit Cubes Bluetooth Cube** (3 outputs).  To use the Cube in Lego Blockly, you must use an ESP32 Bridge.  Take the CCubesESP32BLEBridge_V2 sketch in the [folder SketchArduino](SketchArduino).  The Bridge support 2 Cubes!\
-You must know the MAC address of each Cubes.  There is a blockly block to help you find out the MAC of your cubes or you can use tools on your phone like "nRF Connect".
-(You will also need to install the NimBLE-Arduino by h2zero in Arduino IDE)
+You must know the MAC address of each Cubes.  There is a blockly block to help you find out the MAC of your cubes or you can use tools on your phone like "nRF Connect".\
+(You will also need to install the NimBLE-Arduino library by h2zero in Arduino IDE)
 
 
 For some devices, you need access to serial ports:
