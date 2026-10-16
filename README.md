@@ -31,6 +31,7 @@ Lego Blockly supports these devices:  *See also [LEGO_BLOCKLY_CONNECTIONS](LEGO_
 - **Lego Power Function** IR TX only with the use of a RCX Serial IR tower.
 - **Circuit Cubes Bluetooth Cube** (3 outputs).  To use the Cube in Lego Blockly, you must use an ESP32 Bridge.  Take the CCubesESP32BLEBridge_V2 sketch in the [folder SketchArduino](SketchArduino).  The Bridge support 2 Cubes!\
 You must know the MAC address of each Cubes.  There is a blockly block to help you find out the MAC of your cubes or you can use tools on your phone like "nRF Connect".
+(You will also need to install the NimBLE-Arduino by h2zero in Arduino IDE)
 
 
 For some devices, you need access to serial ports:
