@@ -1,4 +1,4 @@
-# LEGO Blockly Hardware & Connections Guide
+# LEGO Blockly Hardware & Connections Guide (By Thorsten: @Toastie on Eurobricks)
 
 This document contains the connection and microcontroller reference tables for LEGO Blockly.
 
