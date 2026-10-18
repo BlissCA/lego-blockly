@@ -11,6 +11,17 @@ const SUBCMD_START_SPEED_FOR_DEGREES  = 0x0B; // angle-based movement
 const SUBCMD_GOTO_ABS_POS             = 0x0D; // absolute position
 
 
+// LPF2 BLE UUIDs + connection tuning
+const LPF2_SERVICE_UUID = "00001623-1212-efde-1623-785feabcd123";
+const LPF2_CHAR_UUID    = "00001624-1212-efde-1623-785feabcd123";
+const LPF2_CONNECT = {
+  attempts: 4,          // full connect sequences before giving up
+  retryDelayMs: 1500,   // pause between attempts (lets the BLE stack release the old link)
+  settleFirstMs: 2500,  // wait after the 1st gatt.connect() (pairing prompt / service changed)
+  settleMs: 800         // wait after later attempts
+};
+const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
 // Brake modes
 const BRAKE_FLOAT = 0x00;
 const BRAKE_BRAKE = 0x7F;
@@ -899,6 +910,47 @@ export class LegoLPF2 {
 
 	// ---------------- Connect ----------------
 
+	/**
+	 * Connect the GATT server, find the LPF2 service/characteristic and start notifications,
+	 * retrying the whole sequence if the hub drops the link (typical when the hub wants
+	 * pairing/encryption and the OS is still negotiating it).
+	 */
+	async _connectGatt(device) {
+		let lastErr;
+
+		for (let attempt = 1; attempt <= LPF2_CONNECT.attempts; attempt++) {
+			try {
+				// Make sure no half-open link from the previous attempt is still around
+				if (device.gatt.connected) {
+					try { device.gatt.disconnect(); } catch {}
+				}
+				if (attempt > 1) await _sleep(LPF2_CONNECT.retryDelayMs);
+
+				this.setStatus("connecting", `Connecting via BLE (attempt ${attempt}/${LPF2_CONNECT.attempts})...`);
+				const server = await device.gatt.connect();
+
+				// The hub may reshuffle its GATT table right after connecting
+				// (and a pairing prompt may be showing), so give it time first.
+				await _sleep(attempt === 1 ? LPF2_CONNECT.settleFirstMs : LPF2_CONNECT.settleMs);
+
+				const service = await server.getPrimaryService(LPF2_SERVICE_UUID);
+				const char    = await service.getCharacteristic(LPF2_CHAR_UUID);
+
+				// Insufficient Authentication surfaces here → triggers OS pairing
+				await char.startNotifications();
+
+				if (!device.gatt.connected) throw new Error("GATT link dropped after notifications started");
+
+				return { server, service, char };
+			} catch (err) {
+				lastErr = err;
+				this.log(`GATT attempt ${attempt}/${LPF2_CONNECT.attempts} failed: ${err?.message || err}`);
+			}
+		}
+
+		throw lastErr || new Error("Could not connect to the LPF2 hub");
+	}
+
 	async connect() {
 		this.setStatus("connecting", "Requesting LPF2 hub...");
 		this.log("Connecting to LPF2 hub...");
@@ -921,26 +973,59 @@ export class LegoLPF2 {
 
 		this.device = device;
 
-		// Lost-device detection
-		this.device.addEventListener("gattserverdisconnected", () => {
-			this.log("GATT server disconnected — device lost.");
-			this.manager?.handleDeviceLost?.(this);
-			this.forceDisconnect().catch(() => {});
-		});
+		// Fresh state for this attempt (a previous failed attempt may have left these off)
+		this.queueActive = true;
+		this.commandQueue = Promise.resolve();
+		this._rxBuffer = [];
+		this._connecting = true;
+
+		// Lost-device detection. Registered once per device object, and ignored while
+		// connect() is still running so a drop during pairing doesn't wipe the state
+		// and cause the misleading "Cannot retrieve services" error.
+		if (!this._onGattDisc) {
+			this._onGattDisc = () => {
+				if (this._connecting) {
+					this.log("GATT link dropped during connect (retrying if attempts remain).");
+					return;
+				}
+				this.log("GATT server disconnected — device lost.");
+				this.manager?.handleDeviceLost?.(this);
+				this.forceDisconnect().catch(() => {});
+			};
+		}
+		device.removeEventListener("gattserverdisconnected", this._onGattDisc);
+		device.addEventListener("gattserverdisconnected", this._onGattDisc);
 
 		this.setStatus("connecting", "Connecting via BLE...");
 		this.log(`Connecting to GATT server on ${device.name || "LPF2 hub"}...`);
 
-		// Connect
-		this.server = await device.gatt.connect();
+		try {
+			// Connect + discover service/characteristic + start notifications (with retries).
+			// startNotifications() is where an Insufficient Authentication / pairing request
+			// gets triggered, so it is part of the retried block.
+			const link = await this._connectGatt(device);
+			this.server  = link.server;
+			this.service = link.service;
+			this.char    = link.char;
 
-		// LPF2 service + characteristic
-		this.service = await this.server.getPrimaryService("00001623-1212-efde-1623-785feabcd123");
-		this.char    = await this.service.getCharacteristic("00001624-1212-efde-1623-785feabcd123");
+			this.char.removeEventListener("characteristicvaluechanged", this._notifyBound);
+			this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
+			this._connecting = false;
+		} catch (err) {
+			this._connecting = false;
+			this.log("Connection failed: " + (err?.message || err));
+			this.setStatus("idle", "Connection failed");
 
-		// Notifications
-		await this.char.startNotifications();
-		this.char.addEventListener("characteristicvaluechanged", this._notifyBound);
+			// Release the link so the next click doesn't hit "Connection already in progress"
+			try { if (device.gatt?.connected) device.gatt.disconnect(); } catch {}
+			device.removeEventListener("gattserverdisconnected", this._onGattDisc);
+
+			this.device = null;
+			this.server = null;
+			this.service = null;
+			this.char = null;
+			throw err;
+		}
 
 		this.ready = false;
 		this._readyTrackingActive = false;
@@ -959,8 +1044,14 @@ export class LegoLPF2 {
 
 		this.readingActive = true;
 
-		// Hub type detection 
-		await this._waitForHubType();
+		// Hub type detection (if the hub never answers, release the link so a retry can start clean)
+		try {
+			await this._waitForHubType();
+		} catch (err) {
+			await this.forceDisconnect().catch(() => {});
+			this.setStatus("idle", "Connection failed");
+			throw err;
+		}
 
 		// Allocate name
 		if (!this.name) {
@@ -1727,7 +1818,9 @@ export class LegoLPF2 {
 				return;
 			}
 
-			// Format B (Boost/PoweredUp): hubType is op byte
+			// Format B (Boost/PoweredUp): hubType is op byte.
+			// op 0x06 means "Update" (not a hub type), so ignore it.
+			if (op === 0x06) return;
 			if (LPF2_DEBUG.traffic) {
 				console.log("[LPF2] Hub Type (Format B):", op);
 			}
