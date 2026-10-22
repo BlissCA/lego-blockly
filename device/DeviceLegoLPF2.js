@@ -22,6 +22,17 @@ const LPF2_CONNECT = {
 };
 const _sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Technic Move Hub: minimum notification delta per ioType when a sensor is subscribed on demand.
+// A delta of 1 on an IMU reports almost every change and floods the link when the hub is moved.
+// These are STARTING VALUES (the real scale of each ioType is not verified): raise them if the link
+// still drops while the hub moves, lower them if sensor readings feel too coarse.
+const MOVEHUB_MIN_DELTA = {
+  57: 50,   // accelerometer
+  58: 50,   // gyro
+  59: 2,    // position (tilt angles)
+  93: 300   // orientation (quaternion, 16-bit)
+};
+
 // Brake modes
 const BRAKE_FLOAT = 0x00;
 const BRAKE_BRAKE = 0x7F;
@@ -1333,6 +1344,12 @@ export class LegoLPF2 {
 
 				if (!info) continue;
 
+				// Technic Move Hub: every device on it is internal (IMU, gesture, drive VM, lights...).
+				// Subscribing to all of them at connect time with delta 1 makes the hub flood the link
+				// as soon as it is moved, and the connection drops. Subscribe on demand instead
+				// (_ensureMode / setSensorMode), where _setInputFormat applies safe deltas.
+				if (this.hubType === 0x84) continue;
+
 				// Skip motors
 				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rgb" || info.type === "rssi") {
 						continue;
@@ -1371,6 +1388,18 @@ export class LegoLPF2 {
 	}
 
 	async _setInputFormat(port, mode, delta = 1, notifications = 1) {
+			// Technic Move Hub protection
+			if (this.hubType === 0x84) {
+					const io = this.portInfo[port]?.ioType;
+					// 88 = LED state (read-only), 89 = drive VM: never subscribe to these
+					if (io === 88 || io === 89) {
+							this.log(`Not subscribing to port ${port} (ioType ${io}) on the Technic Move hub.`);
+							return;
+					}
+					// Never delta 0 (notification storm); IMU ports get a coarser minimum delta
+					delta = Math.max(delta | 0, 1, MOVEHUB_MIN_DELTA[io] || 1);
+			}
+
 			this.activeMode[port] = mode;
 			const d = delta >>> 0;
 
