@@ -760,6 +760,206 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [-1029701632,-1041235968]
       }
     }
+  },
+  86: {
+    name: "ioType 86",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      },
+      3: {
+        name: "GOPOS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [-1020002304,1127415808],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1020002304,1127415808]
+      },
+      4: {
+        name: "STATS",
+        symbol: "DEG",
+        valueFormat: {"count":3,"type":"Int32","figures":10,"decimals":0},
+        rawRange: [0,1333788672],
+        percentRange: [0,0],
+        siRange: [0,1333788672]
+      }
+    }
+  },
+  87: {
+    name: "ioType 87",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "POWER",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      1: {
+        name: "SPEED",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      },
+      2: {
+        name: "POS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [-1011613696,1135869952],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1011613696,1135869952]
+      },
+      3: {
+        name: "GOPOS",
+        symbol: "DEG",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [-1020002304,1127415808],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1020002304,1127415808]
+      },
+      4: {
+        name: "STATS",
+        symbol: "DEG",
+        valueFormat: {"count":3,"type":"Int32","figures":10,"decimals":0},
+        rawRange: [0,1333788672],
+        percentRange: [0,0],
+        siRange: [0,1333788672]
+      }
+    }
+  },
+  88: {
+    name: "ioType 88",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "6LEDS",
+        symbol: "BIN",
+        valueFormat: {"count":2,"type":"Int8","figures":8,"decimals":0},
+        rawRange: [0,1115422720],
+        percentRange: [0,0],
+        siRange: [0,1115422720]
+      }
+    }
+  },
+  89: {
+    name: "ioType 89",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "PLAYVM",
+        symbol: "na",
+        valueFormat: {"count":8,"type":"Int8","figures":4,"decimals":0},
+        rawRange: [-1027080192,1120403456],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1027080192,1120403456]
+      }
+    }
+  },
+  93: {
+    name: "ioType 93",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "ORINT",
+        symbol: "QUA",
+        valueFormat: {"count":4,"type":"Int16","figures":3,"decimals":0},
+        rawRange: [-998637568,1148846080],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1082130432,1065353216]
+      }
+    }
+  },
+  92: {
+    name: "ioType 92",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "ChgAct",
+        symbol: "Var",
+        valueFormat: {"count":4,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,0],
+        percentRange: [0,0],
+        siRange: [0,0]
+      },
+      1: {
+        name: "PlyAct",
+        symbol: "Var",
+        valueFormat: {"count":4,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,0],
+        percentRange: [0,0],
+        siRange: [0,0]
+      },
+      2: {
+        name: "Last",
+        symbol: "Var",
+        valueFormat: {"count":3,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,0],
+        percentRange: [0,0],
+        siRange: [0,0]
+      },
+      3: {
+        name: "Total",
+        symbol: "Var",
+        valueFormat: {"count":3,"type":"Int32","figures":4,"decimals":0},
+        rawRange: [0,0],
+        percentRange: [0,0],
+        siRange: [0,0]
+      }
+    }
+  },
+  94: {
+    name: "ioType 94",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "GEST_BITMAP",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
+      }
+    }
+  },
+  95: {
+    name: "ioType 95",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "GEN_GEST",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
+      }
+    }
   }
 };
 
@@ -915,40 +1115,35 @@ export class LegoLPF2 {
 	 * retrying the whole sequence if the hub drops the link (typical when the hub wants
 	 * pairing/encryption and the OS is still negotiating it).
 	 */
+	// Replace lines 1120-1135 in DeviceLegoLPF2.js with:
 	async _connectGatt(device) {
 		let lastErr;
 
+		this.setStatus("connecting", "Connecting via BLE...");
+		const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+
+		// Settle delay for Windows 11 encryption negotiation
+		await _sleep(LPF2_CONNECT.settleFirstMs);
+
+		const service = await server.getPrimaryService(LPF2_SERVICE_UUID);
+		const char    = await service.getCharacteristic(LPF2_CHAR_UUID);
+
+		// Retry startNotifications WITHOUT disconnecting the GATT link
 		for (let attempt = 1; attempt <= LPF2_CONNECT.attempts; attempt++) {
 			try {
-				// Make sure no half-open link from the previous attempt is still around
-				if (device.gatt.connected) {
-					try { device.gatt.disconnect(); } catch {}
-				}
-				if (attempt > 1) await _sleep(LPF2_CONNECT.retryDelayMs);
-
-				this.setStatus("connecting", `Connecting via BLE (attempt ${attempt}/${LPF2_CONNECT.attempts})...`);
-				const server = await device.gatt.connect();
-
-				// The hub may reshuffle its GATT table right after connecting
-				// (and a pairing prompt may be showing), so give it time first.
-				await _sleep(attempt === 1 ? LPF2_CONNECT.settleFirstMs : LPF2_CONNECT.settleMs);
-
-				const service = await server.getPrimaryService(LPF2_SERVICE_UUID);
-				const char    = await service.getCharacteristic(LPF2_CHAR_UUID);
-
-				// Insufficient Authentication surfaces here → triggers OS pairing
 				await char.startNotifications();
-
-				if (!device.gatt.connected) throw new Error("GATT link dropped after notifications started");
-
+				if (!device.gatt.connected) throw new Error("GATT link dropped");
 				return { server, service, char };
 			} catch (err) {
 				lastErr = err;
-				this.log(`GATT attempt ${attempt}/${LPF2_CONNECT.attempts} failed: ${err?.message || err}`);
+				this.log(`GATT notification attempt ${attempt}/${LPF2_CONNECT.attempts} notice: ${err?.message || err}`);
+				if (attempt < LPF2_CONNECT.attempts) {
+					await _sleep(LPF2_CONNECT.retryDelayMs);
+				}
 			}
 		}
 
-		throw lastErr || new Error("Could not connect to the LPF2 hub");
+		throw lastErr || new Error("Could not subscribe to LPF2 notifications");
 	}
 
 	async connect() {
@@ -1572,24 +1767,33 @@ export class LegoLPF2 {
 							this.namePrefix = "TechS";  // Technic Small Hub
 							break;
 
+					case 0x46:
+							this.namePrefix = "Luigi";  // Technic Small Hub
+							break;
+
+					case 0x47:
+							this.namePrefix = "Peach";  // Technic Small Hub
+							break;
+
 					case 0x80:
 							this.namePrefix = "Tech";  // Technic Large Hub
+							break;
+
+					case 0x82:
+							this.namePrefix = "SpkP";  // Spike Prime
 							break;
 
 					case 0x81:
 							this.namePrefix = "Invent";  // MindstormsInventor Hub
 							break;
 
+
 					case 0x83:
-							this.namePrefix = "SpkP";  // Spike Prime
+							this.namePrefix = "SpkE";  // Spike Essential
 							break;
 
 					case 0x84:
-							this.namePrefix = "SpkE"; // Spike Essential
-							break;
-
-					case 0x8A:
-							this.namePrefix = "Tech3m"; // Technic integrated 3 motors 6 leds hub
+							this.namePrefix = "TechM"; // Technic Move Hub
 							break;
 
 					case 0x64:
@@ -1911,6 +2115,8 @@ export class LegoLPF2 {
 					case 0x0041: // 65 Technic Small Angular Motor
 					case 0x004B: // 75 Technic Medium Angular Motor, gray
 					case 0x004C: // 76 Technic Large Angular motor, gray
+					case 0x0056: // 86 Technic Move Hub 88019 Integrated Motor A/B
+					case 0x0057: // 87 Technic Move Hub 88019 Integrated Motor C
 							type = "motorTacho";
 							break;
 
@@ -1935,6 +2141,7 @@ export class LegoLPF2 {
 							break;
 
 					case 0x0008: // LED Light (88005)
+					case 0x0058: // 88 Technic Move Hub (88019) 6-LED Head/Tail Lights (Port 3)
 							type = "light";
 							break;
 
@@ -2156,7 +2363,7 @@ export class LegoLPF2 {
 			}
 
 			// Hubs that do NOT support combined mode
-			if (hub === 0x84) {
+			if (hub === 0x83) {
 					this.log("Spike Essential does not support combined ports.");
 					return null;
 			}
@@ -2478,7 +2685,7 @@ export class LegoLPF2 {
 			}
 
 			// ------------------------------------------------------------
-			// SPIKE PRIME (0x83) – 6-port
+			// SPIKE PRIME (0x82) – 6-port
 			// ------------------------------------------------------------
 			if (type === 0x83) {
 					if (this.portInfo[0]) this.userPortMap.A = 0;
@@ -2494,7 +2701,7 @@ export class LegoLPF2 {
 			}
 
 			// ------------------------------------------------------------
-			// SPIKE ESSENTIAL (0x84) – 4-port
+			// SPIKE ESSENTIAL (0x83) – 4-port
 			// ------------------------------------------------------------
 			if (type === 0x84) {
 					if (this.portInfo[0]) this.userPortMap.A = 0;
@@ -2505,6 +2712,20 @@ export class LegoLPF2 {
 					if (this.portInfo[98]) this.userPortMap.IMU = 98;
 
 					return;
+			}
+
+			// ------------------------------------------------------------
+			// Technic Move Hub (0x84) – 3-motor ports, 6 LEDs, IMU etc
+			// ------------------------------------------------------------
+			if (type === 0x8A) { // Technic Move Hub 88019 (3 integrated motors, 6 LEDs, IMU)
+				if (this.portInfo[0]) this.userPortMap.A = 0;  // Drive Motor Left
+				if (this.portInfo[1]) this.userPortMap.B = 1;  // Drive Motor Right
+				if (this.portInfo[2]) this.userPortMap.C = 2;  // Steering Motor
+				if (this.portInfo[3]) this.userPortMap.LEDS = 3; // 6-LED Bar (ioType 88)
+				if (this.portInfo[4]) this.userPortMap.IMU = 4;  // Orientation / Gyro (ioType 93)
+
+				if (this.portInfo[0x10]) this.userPortMap.AB = 0x10; // Virtual paired drive motors
+				return;
 			}
 
 			// ------------------------------------------------------------
@@ -2541,7 +2762,7 @@ export class LegoLPF2 {
 			combined: !!(this.userPortMap.AB || this.userPortMap.CD)
 		};
 
-		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100) {
+		if (type === 0x41 || type === 0x44 || type === 0x43 || type === 100 || type === 0x80 || type === 0x84) {
 			this.motorCaps.angle = true;
 			this.motorCaps.goto  = true;
 			this.motorCaps.time  = true;
