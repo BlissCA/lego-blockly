@@ -60,6 +60,16 @@
 #define IR_RECEIVE_PIN 5
 
 // ------------------------------------------------------
+// Compile-time feature switches (1 = enabled, 0 = removed from the build)
+// ------------------------------------------------------
+// IR transmitter: PF IR frames sent from the BLE commands.
+#define IR_TX_ENABLED 1
+// IR receiver: decoding IR on IR_RECEIVE_PIN and notifying it over BLE.
+// Set to 0 if you only need to send (no receive interrupt / decoding work).
+#define IR_RX_ENABLED 1
+// The unmodulated RF output has its own switch, RF_TX_ENABLED, further below.
+
+// ------------------------------------------------------
 // Repeat count (applies to every command, all commands are treated equally)
 // ------------------------------------------------------
 // Number of EXTRA frames sent after the first one, for each command.
@@ -101,9 +111,13 @@ static const uint32_t PF_LOW_SPACE_US   = 263;   // 10 cycles (bit = 0)
 static const uint32_t PF_HIGH_SPACE_US  = 553;   // 21 cycles (bit = 1)
 static const uint32_t PF_MIN_MSG_US     = 16000; // maximum / minimum start-to-start message length
 
+#if IR_TX_ENABLED
 IRsend irsend(IR_SEND_PIN);
+#endif
+#if IR_RX_ENABLED
 IRrecv irrecv(IR_RECEIVE_PIN);
 decode_results results;
+#endif
 
 // ------------------------------------------------------
 // BLE UUIDs (Service + TX + RX)
@@ -311,10 +325,18 @@ void setup() {
   Serial.printf("[PF] IR repeat count: %d (%d frames) | RF repeat count: %d (%d frames)\n",
                 PF_REPEAT_COUNT, PF_REPEAT_COUNT + 1,
                 PF_RF_REPEAT_COUNT, PF_RF_REPEAT_COUNT + 1);
+  Serial.printf("[PF] IR TX: %s | IR RX: %s | RF TX: %s\n",
+                IR_TX_ENABLED ? "on" : "off",
+                IR_RX_ENABLED ? "on" : "off",
+                RF_TX_ENABLED ? "on" : "off");
 
   // Initialize IR hardware
+#if IR_TX_ENABLED
   irsend.begin();
+#endif
+#if IR_RX_ENABLED
   irrecv.enableIRIn();
+#endif
 
 #if RF_TX_ENABLED
   pinMode(RF_SEND_PIN, OUTPUT);
@@ -366,12 +388,15 @@ void loop() {
   uint16_t outFrame;
   if (irQueue != nullptr && xQueueReceive(irQueue, &outFrame, 0) == pdTRUE) {
     // IR: (1 + PF_REPEAT_COUNT) frames, every command is treated equally
+#if IR_TX_ENABLED
     irsend.sendLegoPf(outFrame, 16, PF_REPEAT_COUNT);
+#endif
 
     // RF: same frame, unmodulated, (1 + PF_RF_REPEAT_COUNT) frames
     sendLegoPFUnmodulated(outFrame, PF_RF_REPEAT_COUNT);
   }
 
+#if IR_RX_ENABLED
   if (irrecv.decode(&results)) {
     if (results.decode_type == LEGOPF) {
       notifyPfFrame((uint16_t)results.value);
@@ -385,6 +410,7 @@ void loop() {
 
     irrecv.resume();
   }
+#endif
 
   // CRITICAL FOR ESP32-C3 SINGLE-CORE:
   // Yield to FreeRTOS IDLE task to service BLE background stack & prevent Watchdog resets
