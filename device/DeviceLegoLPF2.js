@@ -2723,6 +2723,8 @@ export class LegoLPF2 {
 				if (this.portInfo[52]) this.userPortMap.C = 2;  // Steering Motor
 				if (this.portInfo[54]) this.userPortMap.LEDS = 3; // 6-LED Bar (ioType 88)
 				if (this.portInfo[57]) this.userPortMap.IMU = 4;  // Orientation / Gyro (ioType 93)
+				if (this.portInfo[63]) this.userPortMap.LED = 63;  // rdg LED (ioType 23)
+
 
 				if (this.portInfo[0x10]) this.userPortMap.AB = 0x10; // Virtual paired drive motors
 				return;
