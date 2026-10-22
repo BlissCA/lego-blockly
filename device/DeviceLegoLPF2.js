@@ -30,6 +30,7 @@ const BRAKE_HOLD  = 0x7E;
 const LPF2_DEBUG = {
   connect: true,   // logs during connect()
   traffic: false,  // logs for every notification/frame/message
+  motors: true,    // logs every motor frame sent + hub errors for motor commands (set false when everything works)
 
   // Device discovery (prints copy/paste profiles to the console)
   autoRelearn: true, // re-learn a cached profile when the hub reports MORE modes than the cached entry has
@@ -1219,6 +1220,18 @@ export class LegoLPF2 {
 			this.server = null;
 			this.service = null;
 			this.char = null;
+
+			// Typical symptom of a hub that needs an encrypted (bonded) link that the OS has not set up
+			const text = String(err?.message || err);
+			if (/already in progress|authentication|authoriz|encrypt|GATT Server is disconnected/i.test(text)) {
+				const hint = "The hub needs a paired (encrypted) Bluetooth link, and a web page cannot create it. " +
+					"Pair it once in the operating system first (Windows: Settings > Bluetooth & devices > Add device, " +
+					"hub LED blinking), then click Connect again.";
+				this.log(hint);
+				const wrapped = new Error(`${text} — ${hint}`);
+				wrapped.cause = err;
+				throw wrapped;
+			}
 			throw err;
 		}
 
@@ -1662,9 +1675,15 @@ export class LegoLPF2 {
 			0x01: "ACK", 0x02: "MACK", 0x03: "buffer overflow", 0x04: "timeout",
 			0x05: "command not recognized", 0x06: "invalid use", 0x07: "overcurrent", 0x08: "internal error"
 		};
-		// Discovery-related commands are worth showing, the rest only in traffic mode
-		if (cmd === 0x21 || cmd === 0x22 || cmd === 0x41 || LPF2_DEBUG.traffic) {
-			this.log(`Hub error for command 0x${cmd.toString(16)}: ${names[code] || "code 0x" + code.toString(16)}`);
+		// Discovery-related commands are worth showing, the rest only in traffic mode.
+		// Port output commands (0x81) are shown too: a refused motor command is otherwise invisible.
+		if (cmd === 0x21 || cmd === 0x22 || cmd === 0x41 || (cmd === 0x81 && LPF2_DEBUG.motors) || LPF2_DEBUG.traffic) {
+			let extra = "";
+			if (cmd === 0x81 && this._lastOut) {
+				const ago = Math.round(performance.now() - this._lastOut.t);
+				extra = ` (last motor command: port ${this._lastOut.port}, subcommand 0x${this._lastOut.sub.toString(16)}, ${ago} ms ago)`;
+			}
+			this.log(`Hub error for command 0x${cmd.toString(16)}: ${names[code] || "code 0x" + code.toString(16)}${extra}`);
 		}
 	}
 
@@ -1819,6 +1838,23 @@ export class LegoLPF2 {
     try {
       await this.commandQueue;
     } catch {}
+
+    // Technic Move Hub: stop the motors and end the session with the LWP3 "Disconnect" hub action
+    // before dropping the BLE link. Community drivers report that dropping the link without it can
+    // leave the hub refusing drive commands in the next session.
+    if (this.hubType === 0x84 && this.char && this.device?.gatt?.connected) {
+      try {
+        for (const key of ["A", "B", "C"]) {
+          const p = this.userPortMap?.[key];
+          if (p == null) continue;
+          await this.char.writeValue(new Uint8Array([0x07, this.hubId || 0x00, MSG_PORT_OUTPUT_COMMAND, p & 0xFF, 0x10, SUBCMD_START_POWER, 0x00]));
+        }
+        await this.char.writeValue(new Uint8Array([0x04, this.hubId || 0x00, 0x02, 0x02])); // Hub Action: Disconnect
+        await new Promise(r => setTimeout(r, 150));
+      } catch (err) {
+        this.log(`Hub disconnect action failed: ${err.message || err}`);
+      }
+    }
 
     try {
       if (this.char) {
@@ -2060,6 +2096,7 @@ export class LegoLPF2 {
 		if (event === 0x02 && this.hubType !== 0x40) {
 				if (!this.userPortMap) this.userPortMap = {};
 
+				(this._virtualPorts ||= {})[portId] = true;
 				if (portId === 0x10) {
 						this.userPortMap.AB = 0x10;
 						this.log("Virtual port AB detected");
@@ -2718,15 +2755,29 @@ export class LegoLPF2 {
 			// Technic Move Hub (0x84) – 3-motor ports, 6 LEDs, IMU etc
 			// ------------------------------------------------------------
 			if (type === 0x84) { // Technic Move Hub 88019 (3 integrated motors, 6 LEDs, IMU)
-				if (this.portInfo[50]) this.userPortMap.A = 0;  // Drive Motor Left
-				if (this.portInfo[51]) this.userPortMap.B = 1;  // Drive Motor Right
-				if (this.portInfo[52]) this.userPortMap.C = 2;  // Steering Motor
-				if (this.portInfo[54]) this.userPortMap.LEDS = 3; // 6-LED Bar (ioType 88)
-				if (this.portInfo[57]) this.userPortMap.IMU = 4;  // Orientation / Gyro (ioType 93)
-				if (this.portInfo[63]) this.userPortMap.LED = 63;  // rdg LED (ioType 23)
+				// Map by what the hub really announced (ioType) and store the REAL port id.
+				// (The old code tested portInfo[50..57] but stored 0..4, so B and C were
+				//  only mapped if unrelated ports happened to exist.)
+				const portsOf = (io) => Object.keys(this.portInfo)
+					.map(Number)
+					.filter(p => this.portInfo[p].ioType === io)
+					.sort((a, b) => a - b);
 
+				const drive    = portsOf(0x56); // 86: integrated motor A/B (drive)
+				const steering = portsOf(0x57); // 87: integrated motor C (steering servo)
+				const leds     = portsOf(0x58); // 88: 6-LED head/tail lights
+				const imu      = portsOf(0x5D); // 93: orientation (IMU)
+				const playVm   = portsOf(0x59); // 89: drive VM (needs an encrypted link; do not poke)
 
-				if (this.portInfo[0x10]) this.userPortMap.AB = 0x10; // Virtual paired drive motors
+				if (drive[0]    != null) this.userPortMap.A = drive[0];
+				if (drive[1]    != null) this.userPortMap.B = drive[1];
+				if (steering[0] != null) this.userPortMap.C = steering[0];
+				if (leds[0]     != null) this.userPortMap.LEDS = leds[0];
+				if (imu[0]      != null) this.userPortMap.IMU = imu[0];
+				if (playVm[0]   != null) this.userPortMap.DRIVEVM = playVm[0];
+
+				// Combined AB only exists if the hub announced a virtual port for it
+				if (this._virtualPorts?.[0x10]) this.userPortMap.AB = 0x10;
 				return;
 			}
 
@@ -2774,6 +2825,12 @@ export class LegoLPF2 {
 			this.motorCaps.angle = false;
 			this.motorCaps.goto  = false;
 			this.motorCaps.time  = false;
+		}
+
+		// Technic Move Hub: power control is known to work; "go to absolute position" is reported
+		// to be rejected or even crash the hub (Pybricks discussion #1733), so it is switched off.
+		if (type === 0x84) {
+			this.motorCaps.goto = false;
 		}
 	}
 
@@ -2844,6 +2901,14 @@ export class LegoLPF2 {
 
 		msg.set(payload, 5);
 
+		// Remember the last output command so a hub error can be matched to it
+		this._lastOut = { port: port & 0xFF, sub: payload[0], t: performance.now() };
+		if (LPF2_DEBUG.motors) {
+			const portName = Object.keys(this.userPortMap || {}).find(k => this.userPortMap[k] === port);
+			this.log(`TX motor port ${port}${portName ? ` (${portName})` : ""}: ` +
+				Array.from(msg).map(b => b.toString(16).padStart(2, "0")).join(" "));
+		}
+
 		await this._write(msg);
 
 		if (waitFbk) {
@@ -2857,11 +2922,11 @@ export class LegoLPF2 {
 	async motorPower(port, power) {
 		power = Math.max(-127, Math.min(127, power | 0));
 
-		const payload = new Uint8Array([
-			SUBCMD_START_POWER,
-			power & 0xFF,
-			0x00 // profile
-		]);
+		// StartPower (0x01) takes ONE value byte in the LWP3 spec. The extra "profile" byte below is
+		// tolerated by older hubs, but the Technic Move hub is strict, so send the exact form there.
+		const payload = this.hubType === 0x84
+			? new Uint8Array([SUBCMD_START_POWER, power & 0xFF])
+			: new Uint8Array([SUBCMD_START_POWER, power & 0xFF, 0x00 /* profile */]);
 
 		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
@@ -2903,6 +2968,13 @@ export class LegoLPF2 {
 	}
 
 	async motorGoto(port, position, speed, endState = 0x7F, useProfile = 0x00, waitFbk = true) {
+		// Technic Move Hub: GotoAbsolutePosition is reported to be rejected or to crash the hub
+		// (Pybricks discussion #1733). Refuse it with a clear message instead of risking a freeze.
+		if (this.hubType === 0x84 && !this.allowMoveHubGoto) {
+			throw new Error("Go-to-position is not supported on the Technic Move hub (it can crash the hub). " +
+				"Use motor power / speed instead, or set hub.allowMoveHubGoto = true to try it anyway.");
+		}
+
 		// LPF3 spec: Speed must be 1..100
 		if (speed <= 0) {
 			return this.motorStop(port, endState === 0x7F);
@@ -2968,17 +3040,32 @@ export class LegoLPF2 {
 	async motorStop(port, brake = 0) {
 		const value = brake ? 0x7F : 0x00;
 
-		const payload = new Uint8Array([
-			0x51,  // WriteDirectModeData
-			0x00,  // Mode 0 = speed
-			value  // 0 = float, 127 = brake
-		]);
+		// Technic Move Hub: use StartPower (0 = float, 127 = brake); power control is reported to work on it
+		const payload = this.hubType === 0x84
+			? new Uint8Array([SUBCMD_START_POWER, value])
+			: new Uint8Array([
+				0x51,  // WriteDirectModeData
+				0x00,  // Mode 0 = speed
+				value  // 0 = float, 127 = brake
+			]);
 
 		await this._sendMotorCommand(port, payload, { waitFbk: false });
 	}
 
 	stopAllMotors() {
 		const hubId = this.hubId || 0x00;
+
+		// Technic Move Hub: only the three integrated motors, with StartPower 0 (float).
+		// Never write to the LED / IMU / drive-VM ports (writes to internal ports can freeze this hub).
+		if (this.hubType === 0x84) {
+			for (const key of ["A", "B", "C"]) {
+				const port = this.userPortMap[key];
+				if (port == null || !this.portInfo[port]) continue;
+				this._sendMotorCommand(port, new Uint8Array([SUBCMD_START_POWER, 0x00]), { waitFbk: false })
+					.catch(() => {});
+			}
+			return;
+		}
 
 		for (const key of Object.keys(this.userPortMap)) {
 			const port = this.userPortMap[key];
