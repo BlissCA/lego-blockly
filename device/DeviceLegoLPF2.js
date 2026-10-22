@@ -2687,7 +2687,7 @@ export class LegoLPF2 {
 			// ------------------------------------------------------------
 			// SPIKE PRIME (0x82) – 6-port
 			// ------------------------------------------------------------
-			if (type === 0x83) {
+			if (type === 0x82) {
 					if (this.portInfo[0]) this.userPortMap.A = 0;
 					if (this.portInfo[1]) this.userPortMap.B = 1;
 					if (this.portInfo[2]) this.userPortMap.C = 2;
@@ -2703,7 +2703,7 @@ export class LegoLPF2 {
 			// ------------------------------------------------------------
 			// SPIKE ESSENTIAL (0x83) – 4-port
 			// ------------------------------------------------------------
-			if (type === 0x84) {
+			if (type === 0x83) {
 					if (this.portInfo[0]) this.userPortMap.A = 0;
 					if (this.portInfo[1]) this.userPortMap.B = 1;
 					if (this.portInfo[2]) this.userPortMap.C = 2;
@@ -2718,11 +2718,11 @@ export class LegoLPF2 {
 			// Technic Move Hub (0x84) – 3-motor ports, 6 LEDs, IMU etc
 			// ------------------------------------------------------------
 			if (type === 0x84) { // Technic Move Hub 88019 (3 integrated motors, 6 LEDs, IMU)
-				if (this.portInfo[0]) this.userPortMap.A = 0;  // Drive Motor Left
-				if (this.portInfo[1]) this.userPortMap.B = 1;  // Drive Motor Right
-				if (this.portInfo[2]) this.userPortMap.C = 2;  // Steering Motor
-				if (this.portInfo[3]) this.userPortMap.LEDS = 3; // 6-LED Bar (ioType 88)
-				if (this.portInfo[4]) this.userPortMap.IMU = 4;  // Orientation / Gyro (ioType 93)
+				if (this.portInfo[50]) this.userPortMap.A = 0;  // Drive Motor Left
+				if (this.portInfo[51]) this.userPortMap.B = 1;  // Drive Motor Right
+				if (this.portInfo[52]) this.userPortMap.C = 2;  // Steering Motor
+				if (this.portInfo[54]) this.userPortMap.LEDS = 3; // 6-LED Bar (ioType 88)
+				if (this.portInfo[57]) this.userPortMap.IMU = 4;  // Orientation / Gyro (ioType 93)
 
 				if (this.portInfo[0x10]) this.userPortMap.AB = 0x10; // Virtual paired drive motors
 				return;
