@@ -104,6 +104,28 @@
 #error "PF_REPEAT_COUNT and PF_RF_REPEAT_COUNT must be >= 0"
 #endif
 
+// ------------------------------------------------------
+// Frame scheduler (round-robin interleaving of pending commands)
+// ------------------------------------------------------
+// 1 = interleave the frames of all pending commands:
+//       Cmd1 f1, Cmd2 f1, Cmd3 f1, Cmd1 f2, Cmd2 f2, Cmd3 f2, ...
+//     Every command still gets the same number of frames, but a command
+//     no longer waits for the previous ones to finish all their repeats.
+//     NOTE: avoid this for toggle-verified commands (single output
+//     "increment/decrement/toggle", extended mode) sent on the same channel,
+//     because the receiver sees the toggle bit flip between interleaved
+//     frames and may execute them more than once. Combo direct, combo PWM and
+//     single output PWM commands are safe.
+// 0 = sequential: all frames of Cmd1, then all frames of Cmd2, ...
+#define PF_INTERLEAVE 1
+
+// Max number of commands that can be pending at the same time
+#define PF_MAX_PENDING 8
+
+// Minimum start-to-start time between two consecutive frames (any command).
+// The PF spec's maximum message length is 16 ms.
+#define PF_MIN_FRAME_GAP_US 16000UL
+
 // LEGO PF timings at 38 kHz (1 cycle = 26.3 us), per LEGO PF RC spec v1.20
 static const uint32_t PF_MARK_US        = 158;   //  6 cycles (start, stop and every bit)
 static const uint32_t PF_START_SPACE_US = 1026;  // 39 cycles (start and stop bit)
@@ -137,7 +159,7 @@ bool bleClientConnected = false;
 esp_bd_addr_t connectedBda;
 
 // ------------------------------------------------------
-// Outgoing IR queue
+// Incoming command queue (filled by BLE, drained by pfService)
 // ------------------------------------------------------
 static QueueHandle_t irQueue = nullptr;
 
@@ -206,13 +228,97 @@ static void rfSendOneFrame(uint16_t data) {
 #endif
 }
 
-// Sends the frame (1 + repeat) times, like irsend.sendLegoPf(data, 16, repeat)
-void sendLegoPFUnmodulated(uint16_t data, uint16_t repeat) {
-#if RF_TX_ENABLED
-  for (uint16_t i = 0; i <= repeat; i++) {
-    rfSendOneFrame(data);
-  }
+// ------------------------------------------------------
+// Frame scheduler: round-robin interleaving of pending commands
+// ------------------------------------------------------
+// Frames are sent one at a time (irsend repeat = 0 and one RF frame), so loop()
+// stays responsive and new commands can join the rotation immediately.
+//  - Frame number k (0-based) of a command is sent on IR if k <= PF_REPEAT_COUNT
+//    and on RF if k <= PF_RF_REPEAT_COUNT.
+//  - A command with the exact same 16-bit word that is already pending just
+//    restarts its repeats (no duplicate entry).
+#if IR_TX_ENABLED && RF_TX_ENABLED
+  #define PF_LAST_FRAME_INDEX ((PF_REPEAT_COUNT > PF_RF_REPEAT_COUNT) ? PF_REPEAT_COUNT : PF_RF_REPEAT_COUNT)
+#elif IR_TX_ENABLED
+  #define PF_LAST_FRAME_INDEX PF_REPEAT_COUNT
+#elif RF_TX_ENABLED
+  #define PF_LAST_FRAME_INDEX PF_RF_REPEAT_COUNT
+#else
+  #define PF_LAST_FRAME_INDEX 0
 #endif
+
+struct PfPending {
+  uint16_t frame;
+  uint8_t  sent;   // frames already sent for this command
+};
+
+static PfPending pfPend[PF_MAX_PENDING];
+static uint8_t   pfCount = 0;          // number of pending commands
+static uint8_t   pfRR = 0;             // round-robin position
+static uint32_t  pfNextAllowedUs = 0;  // earliest start of the next frame
+
+static inline bool pfTimeReached(uint32_t now, uint32_t due) {
+  return (int32_t)(now - due) >= 0;    // wrap-safe
+}
+
+static void pfAdd(uint16_t frame) {
+  for (uint8_t i = 0; i < pfCount; i++) {
+    if (pfPend[i].frame == frame) {    // identical command: restart its repeats
+      pfPend[i].sent = 0;
+      return;
+    }
+  }
+  if (pfCount >= PF_MAX_PENDING) {
+    Serial.println("[PF] pending list full, command dropped");
+    return;
+  }
+  pfPend[pfCount].frame = frame;
+  pfPend[pfCount].sent  = 0;
+  pfCount++;
+}
+
+// Sends ONE frame (number k of its command) on IR and/or RF
+static void pfSendFrame(uint16_t frame, uint8_t k) {
+#if IR_TX_ENABLED
+  if (k <= PF_REPEAT_COUNT) irsend.sendLegoPf(frame, 16, 0);
+#endif
+#if RF_TX_ENABLED
+  if (k <= PF_RF_REPEAT_COUNT) rfSendOneFrame(frame);
+#endif
+  (void)frame; (void)k;
+}
+
+static void pfService() {
+  // 1. Move newly received commands from the BLE queue into the pending list
+  if (irQueue != nullptr) {
+    uint16_t f;
+    while (xQueueReceive(irQueue, &f, 0) == pdTRUE) pfAdd(f);
+  }
+
+  if (pfCount == 0) return;
+  if (!pfTimeReached(micros(), pfNextAllowedUs)) return;
+
+  // 2. Pick the next command (round-robin, or always the oldest if sequential)
+#if PF_INTERLEAVE
+  uint8_t idx = (pfRR < pfCount) ? pfRR : 0;
+#else
+  uint8_t idx = 0;
+#endif
+
+  uint32_t t0 = micros();
+  pfSendFrame(pfPend[idx].frame, pfPend[idx].sent);
+  pfNextAllowedUs = t0 + PF_MIN_FRAME_GAP_US;
+  pfPend[idx].sent++;
+
+  // 3. Finished command leaves the list, otherwise move on to the next one
+  if (pfPend[idx].sent > PF_LAST_FRAME_INDEX) {
+    for (uint8_t j = idx; j + 1 < pfCount; j++) pfPend[j] = pfPend[j + 1];
+    pfCount--;
+    pfRR = idx;
+  } else {
+    pfRR = idx + 1;
+  }
+  if (pfRR >= pfCount) pfRR = 0;
 }
 
 // ------------------------------------------------------
@@ -385,16 +491,8 @@ void setup() {
 // Main Loop
 // ------------------------------------------------------
 void loop() {
-  uint16_t outFrame;
-  if (irQueue != nullptr && xQueueReceive(irQueue, &outFrame, 0) == pdTRUE) {
-    // IR: (1 + PF_REPEAT_COUNT) frames, every command is treated equally
-#if IR_TX_ENABLED
-    irsend.sendLegoPf(outFrame, 16, PF_REPEAT_COUNT);
-#endif
-
-    // RF: same frame, unmodulated, (1 + PF_RF_REPEAT_COUNT) frames
-    sendLegoPFUnmodulated(outFrame, PF_RF_REPEAT_COUNT);
-  }
+  // Round-robin PF scheduler: sends at most one frame per call
+  pfService();
 
 #if IR_RX_ENABLED
   if (irrecv.decode(&results)) {
