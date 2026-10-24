@@ -27,10 +27,10 @@ const _sleep = ms => new Promise(r => setTimeout(r, ms));
 // These are STARTING VALUES (the real scale of each ioType is not verified): raise them if the link
 // still drops while the hub moves, lower them if sensor readings feel too coarse.
 const MOVEHUB_MIN_DELTA = {
-  57: 50,   // accelerometer
-  58: 50,   // gyro
+  57: 10,   // accelerometer was 50
+  58: 10,   // gyro was 50
   59: 2,    // position (tilt angles)
-  93: 300   // orientation (quaternion, 16-bit)
+  93: 10    // orientation (quaternion, 16-bit) was 300
 };
 
 // Brake modes
@@ -2797,6 +2797,8 @@ export class LegoLPF2 {
 				const leds     = portsOf(0x58); // 88: 6-LED head/tail lights
 				const imu      = portsOf(0x5D); // 93: orientation (IMU)
 				const playVm   = portsOf(0x59); // 89: drive VM (needs an encrypted link; do not poke)
+				const tilt     = portsOf(0x3B); // 59: tilt sensor (internal)
+				const gyro	   = portsOf(0x3A); // 58: gyro sensor (internal)
 
 				if (drive[0]    != null) this.userPortMap.A = drive[0];
 				if (drive[1]    != null) this.userPortMap.B = drive[1];
@@ -2804,7 +2806,8 @@ export class LegoLPF2 {
 				if (leds[0]     != null) this.userPortMap.LEDS = leds[0];
 				if (imu[0]      != null) this.userPortMap.IMU = imu[0];
 				if (playVm[0]   != null) this.userPortMap.DRIVEVM = playVm[0];
-
+				if (tilt[0]     != null) this.userPortMap.TILT = tilt[0];
+				if (gyro[0]     != null) this.userPortMap.GYRO = gyro[0];
 				// Combined AB only exists if the hub announced a virtual port for it
 				if (this._virtualPorts?.[0x10]) this.userPortMap.AB = 0x10;
 				return;
