@@ -980,6 +980,20 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [0,1132396544]
       }
     }
+  },
+  8: {
+    name: "Light",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "LPF2-LIGHT",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [-1054867456,1092616192],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1054867456,1092616192]
+      }
+    }
   }
 };
 
@@ -1358,7 +1372,7 @@ export class LegoLPF2 {
 				// Subscribing to all of them at connect time with delta 1 makes the hub flood the link
 				// as soon as it is moved, and the connection drops. Subscribe on demand instead
 				// (_ensureMode / setSensorMode), where _setInputFormat applies safe deltas.
-				if (this.hubType === 0x84) continue;
+				// if (this.hubType === 0x84) continue;
 
 				// Skip motors
 				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rgb" || info.type === "rssi") {
