@@ -2591,6 +2591,19 @@ export class LegoLPF2 {
 	}
 
 	/**
+	 * Does a reading look like real sensor data? A stuck/idle IMU reports all zeros.
+	 * ioType 93 (Technic Move hub orientation) is a unit quaternion scaled by 1000: 4 values whose
+	 * length stays at ~1000 (measured 999.0 .. 1000.1 over 236 real frames). Other types: accepted as is.
+	 */
+	_looksLive(ioType, value) {
+		if (ioType === 93) {
+			if (!Array.isArray(value) || value.length !== 4) return false;
+			return Math.abs(Math.hypot(value[0], value[1], value[2], value[3]) - 1000) <= 100;
+		}
+		return true;
+	}
+
+	/**
 	 * Read a sensor value that really came from the hub.
 	 * Subscribes, then waits for the first notification. If none arrives it asks the hub for the value
 	 * and finally re-subscribes. Fails (console error, and an exception unless
@@ -2623,14 +2636,20 @@ export class LegoLPF2 {
 			await _sleep(50);
 		}
 
-		const fresh = () => this._valueModeOf[port] === mode && this.portValues[port] !== undefined;
+		const ioType = info.ioType;
+		const fresh = () => this._valueModeOf[port] === mode && this.portValues[port] !== undefined &&
+			this._looksLive(ioType, this.portValues[port]);
 		if (fresh()) return this.portValues[port];      // the hub is already streaming this mode
 
 		// Resolves true as soon as a value arrives (or false after ms)
 		const waitValue = (ms) => new Promise((resolve) => {
 			if (fresh()) return resolve(true);
 			let done = false;
-			const wake = () => finish(true);
+			const wake = () => {
+				if (done) return;
+				if (fresh()) finish(true);
+				else (this._valueWaiters[port] ||= []).push(wake);   // implausible data (e.g. zeros): keep waiting
+			};
 			const timer = setTimeout(() => finish(fresh()), Math.max(0, Math.min(ms, left())));
 			function finish(ok) { if (done) return; done = true; clearTimeout(timer); resolve(ok); }
 			(this._valueWaiters[port] ||= []).push(wake);
@@ -2673,6 +2692,10 @@ export class LegoLPF2 {
 				if (i > 0) this.log(`${label}: value arrived after "${stepNames[step]}"`);
 				return this.portValues[port];
 			}
+		}
+		const got = this._valueModeOf[port] === mode ? this.portValues[port] : undefined;
+		if (got !== undefined) {
+			return fail(`the hub only returns invalid data ${JSON.stringify(got)}; its IMU may be stuck, power-cycle the hub`);
 		}
 		return fail("the hub did not send a value");
 	}
