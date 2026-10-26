@@ -37,19 +37,15 @@ const MOVEHUB_MIN_DELTA = {
 // when it never comes. The read first subscribes, then asks for the value, then re-subscribes.
 const LPF2_SENSOR = {
   timeoutMs: 10000,                 // give up after this long (per call)
-  stepMs: [400, 400, 600],          // wait after: subscribe / "send me the value" request / unsubscribe+subscribe
-  pollMs: 600,                      // after those 3 steps: wait this long between retries
-  resubscribeMs: 3000,              // ...and redo "unsubscribe + subscribe" at most this often
-  throwOnTimeout: true,             // false = log the error in the console and return the default value instead
-  // Technic Move Hub: right after connecting, subscribe to these ports (with the safe MOVEHUB_MIN_DELTA)
-  // and keep retrying until the hub's IMU delivers real data, so getIMU/getTilt are instant afterwards.
+  firstWaitMs: 800,                 // after subscribing + the first value request, wait this long for a frame
+  pollMs: 600,                      // then ask again every pollMs
+  throwOnTimeout: true,             // false = log the error in the console and return undefined (callers use a default) instead
+  // Technic Move Hub: right after connecting, subscribe to these ports (safe MOVEHUB_MIN_DELTA) so the
+  // first read finds a running stream. Every extra stream is extra traffic when the hub moves: keep it small.
   prewarm: true,
-  prewarmPorts: { IMU: ["acc", "gyro", "imu"], TILT: ["tilt", "angle", "lpf2-angle"] },
+  prewarmPorts: { IMU: ["acc", "gyro", "imu"] },
   prewarmMs: 30000,                 // stop trying in the background after this long
-  // The IMU orientation (ioType 93) often stays at zero after power-on. Experiment: its fusion may need the
-  // raw sensors running, so subscribe to accelerometer (57) + gyro (58) + tilt (59) ioTypes first.
-  prewarmHelpers: true,
-  freshReads: true                  // every read asks the hub for a NEW value instead of returning the last streamed one
+  prewarmHelpers: false             // experiment: also stream accelerometer+gyro (made the link drop when moving the hub)
 };
 
 // Brake modes
@@ -2658,33 +2654,30 @@ export class LegoLPF2 {
 	}
 
 	/**
-	 * Read a sensor value that really came from the hub.
-	 * Subscribes, then waits for the first notification. If none arrives it asks the hub for the value
-	 * and finally re-subscribes. Fails (console error, and an exception unless
+	 * Read a sensor value that really came from the hub, and only a value that arrived AFTER this call
+	 * started (never the last cached one: a frozen sensor must produce an error, not an old number).
+	 * Subscribes once if needed, then asks the hub for the current value (read-only request) every
+	 * pollMs until a plausible fresh frame arrives. Fails (console error, and an exception unless
 	 * LPF2_SENSOR.throwOnTimeout is false) after LPF2_SENSOR.timeoutMs.
-	 *
-	 * Why not trust activeMode[port]? It is set before the hub confirms anything, so one lost or
-	 * rejected subscribe frame made every later call believe it was subscribed and never retry.
 	 */
 	async _readSensor(port, mode, label = "sensor", opts = {}) {
 		const cfg = { ...LPF2_SENSOR, ...opts };
 		const t0 = performance.now();
 		const left = () => cfg.timeoutMs - (performance.now() - t0);
+		const since = () => Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000);
 
 		const fail = (why) => {
-			const text = `${label}: no value from port ${port} (${why}) after ${Math.round(performance.now() - t0)} ms` +
-				` (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)`;
+			const text = `${label}: no value from port ${port} (${why}) after ${Math.round(performance.now() - t0)} ms (${since()} s since connect)`;
 			console.error(`[LPF2] ${text}`);
 			this.log(text);
 			if (cfg.throwOnTimeout) throw new Error(text);
-			return this.portValues[port];
+			return undefined;
 		};
 
 		const info = this.portInfo[port];
 		if (!info) return fail("port not attached");
 
-		// Values are silently dropped until the mode table (value format) is known,
-		// e.g. while a profile is still being learned.
+		// Values are silently dropped until the mode table (value format) is known
 		while (!this.portInfo[port]?.modes?.[mode]?.valueFormat) {
 			if (!this.portInfo[port]) return fail("port detached");
 			if (left() <= 0) return fail("mode information not available yet");
@@ -2692,83 +2685,44 @@ export class LegoLPF2 {
 		}
 
 		const ioType = info.ioType;
-		const fresh = () => this._valueModeOf[port] === mode && this.portValues[port] !== undefined &&
-			this._looksLive(ioType, this.portValues[port]);
-		const askForValue = () => this._write(new Uint8Array([0x05, this.hubId || 0x00, 0x21, port, 0x00])); // Port Information Request: Port Value
-		if (fresh()) {
-			if (!cfg.freshReads) return this.portValues[port];
-			// streaming already: still ask for a NEW value so a stalled stream is never returned as current
-			const t1 = performance.now();
-			try { await Promise.race([askForValue(), _sleep(Math.max(0, left()))]); } catch (e) {}
-			const until = t1 + 1200;
-			while (performance.now() < until && left() > 0) {
-				if ((this._valueAt?.[port] ?? 0) >= t1 && fresh()) return this.portValues[port];
-				await _sleep(25);
-			}
-			this.log(`${label}: the hub did not answer the fresh-value request, falling back to the retry sequence`);
-		}
+		// A frame newer than `t` that looks like real data?
+		const freshSince = (t) => (this._valueAt?.[port] ?? 0) >= t && this._valueModeOf[port] === mode &&
+			this.portValues[port] !== undefined && this._looksLive(ioType, this.portValues[port]);
 
-		// Resolves true as soon as a value arrives (or false after ms)
-		const waitValue = (ms) => new Promise((resolve) => {
-			if (fresh()) return resolve(true);
-			let done = false;
-			const wake = () => {
-				if (done) return;
-				if (fresh()) finish(true);
-				else (this._valueWaiters[port] ||= []).push(wake);   // implausible data (e.g. zeros): keep waiting
-			};
-			const timer = setTimeout(() => finish(fresh()), Math.max(0, Math.min(ms, left())));
-			function finish(ok) { if (done) return; done = true; clearTimeout(timer); resolve(ok); }
-			(this._valueWaiters[port] ||= []).push(wake);
-			// forget the callback if we time out first
-			setTimeout(() => {
-				if (this._valueWaiters[port]) this._valueWaiters[port] = this._valueWaiters[port].filter(f => f !== wake);
-			}, Math.max(0, Math.min(ms, left())) + 5);
-		});
-
-		const subscribe   = () => this._setInputFormat(port, mode, 1, 1, { wait: true });
-		const resubscribe = async () => {
-			await this._setInputFormat(port, mode, 1, 0, { wait: true });
-			await this._setInputFormat(port, mode, 1, 1, { wait: true });
-		};
-		const stepNames = ["subscribe", "ask the hub for the value", "unsubscribe + subscribe"];
-
-		// Await a promise, but never longer than the time that is left for this read
 		const TIMED_OUT = Symbol("timed out");
 		const bounded = (promise) => new Promise((resolve, reject) => {
 			const timer = setTimeout(() => resolve(TIMED_OUT), Math.max(0, left()));
 			promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
 		});
+		const ask = () => this._write(new Uint8Array([0x05, this.hubId || 0x00, 0x21, port, 0x00])); // Port Information Request: Port Value
 
-		let lastSubAt = 0;
-		for (let i = 0; left() > 0; i++) {
+		// Subscribe once (no-op for the hub if it already is subscribed to this mode)
+		try {
+			if (this._valueModeOf[port] !== mode || this.activeMode[port] !== mode) {
+				if (await bounded(this._setInputFormat(port, mode, 1, 1, { wait: true })) === TIMED_OUT) return fail("the Bluetooth write queue is busy");
+			}
+		} catch (err) { this.log(`${label}: subscribe failed: ${err?.message || err}`); }
+
+		let asked = 0, lastFrame = 0;
+		for (;;) {
 			if (!this.char) return fail("hub disconnected");
-			let step;
-			if (i < 3) step = i;                                                    // subscribe, ask, unsubscribe+subscribe
-			else step = (performance.now() - lastSubAt >= cfg.resubscribeMs) ? 2 : 1; // then mostly ask, re-subscribe now and then
-			if (step === 0 || step === 2) lastSubAt = performance.now();
-			if (i > 0 && (i < 3 || step === 2)) this.log(`${label}: no value yet from port ${port} (${Math.round(performance.now() - t0)} ms), trying: ${stepNames[step]}`);
-			let outcome;
-			try {
-				const action = step === 0 ? subscribe() : step === 1 ? askForValue() : resubscribe();
-				// The timeout also covers a backed-up Bluetooth write queue
-				outcome = await bounded(action);
-			} catch (err) {
-				this.log(`${label}: ${stepNames[step]} failed: ${err?.message || err}`);
-			}
-			if (outcome === TIMED_OUT) return fail("the Bluetooth write queue is busy");
-			const ms = i < cfg.stepMs.length ? cfg.stepMs[i] : cfg.pollMs;
-			if (await waitValue(ms)) {
-				const took = Math.round(performance.now() - t0);
-				this.log(`${label}: value ${JSON.stringify(this.portValues[port])} arrived after ${took} ms (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)` + (i > 0 ? `, after "${stepNames[step]}"` : ""));
-				return this.portValues[port];
+			if (left() <= 0) break;
+			const tAsk = performance.now();
+			try { if (await bounded(ask()) === TIMED_OUT) return fail("the Bluetooth write queue is busy"); asked++; }
+			catch (err) { this.log(`${label}: value request failed: ${err?.message || err}`); }
+			// wait for a frame newer than this request
+			const until = tAsk + (asked === 1 ? cfg.firstWaitMs : cfg.pollMs);
+			while (performance.now() < until && left() > 0) {
+				if (freshSince(tAsk)) {
+					this.log(`${label}: value ${JSON.stringify(this.portValues[port])} arrived after ${Math.round(performance.now() - t0)} ms (${since()} s since connect)`);
+					return this.portValues[port];
+				}
+				await _sleep(15);
 			}
 		}
-		const got = this._valueModeOf[port] === mode ? this.portValues[port] : undefined;
-		if (got !== undefined) {
-			return fail(`the hub only returns invalid data ${JSON.stringify(got)}; its IMU may be stuck, power-cycle the hub`);
-		}
-		return fail("the hub did not send a value");
+		const got = (this._valueAt?.[port] ?? 0) >= t0 && this._valueModeOf[port] === mode ? this.portValues[port] : undefined;
+		if (got !== undefined) return fail(`the hub only returns invalid data ${JSON.stringify(got)} (its IMU is probably still asleep)`);
+		return fail("the hub did not send a fresh value: its sensor stream looks frozen");
 	}
 
 	async getDistance(portName) {
