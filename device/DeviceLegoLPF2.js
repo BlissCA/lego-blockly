@@ -29,8 +29,16 @@ const _sleep = ms => new Promise(r => setTimeout(r, ms));
 const MOVEHUB_MIN_DELTA = {
   57: 10,   // accelerometer was 50
   58: 10,   // gyro was 50
-  59: 2,    // position (tilt angles)
+  59: 1,    // position (tilt angles)
   93: 10    // orientation (quaternion, 16-bit) was 300
+};
+
+// Sensor reads (getIMU, getTilt, ...): how long to wait for the hub's first value, and what to do
+// when it never comes. The read first subscribes, then asks for the value, then re-subscribes.
+const LPF2_SENSOR = {
+  timeoutMs: 2500,                  // give up after this long (per call)
+  stepMs: [350, 350, 500],          // wait after: subscribe / "send me the value" request / unsubscribe+subscribe
+  throwOnTimeout: true              // false = log the error in the console and return the default value instead
 };
 
 // Brake modes
@@ -995,6 +1003,8 @@ export class LegoLPF2 {
 
     this.portInfo = {};      // portId -> { ioType, type, modes }
     this.portValues = {};    // portId -> last numeric value
+    this._valueModeOf = {};  // portId -> mode of the last value actually received from the hub
+    this._valueWaiters = {}; // portId -> callbacks waiting for the next value
     this.lastInputState = {}; // portId -> boolean
     this.countOn = {};       // portId -> rising-edge count
     this.rot = {};           // portId -> rotation (deg or ticks)
@@ -1387,7 +1397,7 @@ export class LegoLPF2 {
 			this.log("LPF2 initialization complete.");
 	}
 
-	async _setInputFormat(port, mode, delta = 1, notifications = 1) {
+	async _setInputFormat(port, mode, delta = 1, notifications = 1, { wait = false } = {}) {
 			// Technic Move Hub protection
 			if (this.hubType === 0x84) {
 					const io = this.portInfo[port]?.ioType;
@@ -1399,6 +1409,9 @@ export class LegoLPF2 {
 					// Never delta 0 (notification storm); IMU ports get a coarser minimum delta
 					delta = Math.max(delta | 0, 1, MOVEHUB_MIN_DELTA[io] || 1);
 			}
+
+			// A new mode means the cached value belongs to another mode: it is not "fresh" any more
+			if (this.activeMode[port] !== mode) delete this._valueModeOf[port];
 
 			this.activeMode[port] = mode;
 			const d = delta >>> 0;
@@ -1416,7 +1429,9 @@ export class LegoLPF2 {
 					notifications ? 0x01 : 0x00	
 			]);
 
-			this._write(msg);
+			// Default stays fire-and-forget (as before); sensor reads pass { wait: true } to know it was sent
+			const sent = this._write(msg);
+			if (wait) await sent;
 	}
 
 	// ---------------- Port Information / Mode discovery ----------------
@@ -2115,6 +2130,7 @@ export class LegoLPF2 {
     } else if (event === 0x00) {
       delete this.portInfo[portId];
       delete this.portValues[portId];
+      delete this._valueModeOf[portId];
       delete this.lastInputState[portId];
       delete this.countOn[portId];
       delete this.rot[portId];
@@ -2385,6 +2401,14 @@ export class LegoLPF2 {
 			// Store parsed values
 			this.portValues[port] = (vf.count === 1 ? values[0] : values);
 
+			// Remember that a real value arrived in this mode and wake up anyone waiting for it
+			this._valueModeOf[port] = mode;
+			const waiting = this._valueWaiters[port];
+			if (waiting && waiting.length) {
+				this._valueWaiters[port] = [];
+				for (const wake of waiting) wake();
+			}
+
 			// Motor encoder convenience
 			if (info.type === "motorTacho" && vf.type === "Int32") {
 					this.rot[port] = values[0];
@@ -2566,6 +2590,93 @@ export class LegoLPF2 {
 			await new Promise(r => setTimeout(r, 20));
 	}
 
+	/**
+	 * Read a sensor value that really came from the hub.
+	 * Subscribes, then waits for the first notification. If none arrives it asks the hub for the value
+	 * and finally re-subscribes. Fails (console error, and an exception unless
+	 * LPF2_SENSOR.throwOnTimeout is false) after LPF2_SENSOR.timeoutMs.
+	 *
+	 * Why not trust activeMode[port]? It is set before the hub confirms anything, so one lost or
+	 * rejected subscribe frame made every later call believe it was subscribed and never retry.
+	 */
+	async _readSensor(port, mode, label = "sensor") {
+		const cfg = LPF2_SENSOR;
+		const t0 = performance.now();
+		const left = () => cfg.timeoutMs - (performance.now() - t0);
+
+		const fail = (why) => {
+			const text = `${label}: no value from port ${port} (${why}) after ${Math.round(performance.now() - t0)} ms`;
+			console.error(`[LPF2] ${text}`);
+			this.log(text);
+			if (cfg.throwOnTimeout) throw new Error(text);
+			return this.portValues[port];
+		};
+
+		const info = this.portInfo[port];
+		if (!info) return fail("port not attached");
+
+		// Values are silently dropped until the mode table (value format) is known,
+		// e.g. while a profile is still being learned.
+		while (!this.portInfo[port]?.modes?.[mode]?.valueFormat) {
+			if (!this.portInfo[port]) return fail("port detached");
+			if (left() <= 0) return fail("mode information not available yet");
+			await _sleep(50);
+		}
+
+		const fresh = () => this._valueModeOf[port] === mode && this.portValues[port] !== undefined;
+		if (fresh()) return this.portValues[port];      // the hub is already streaming this mode
+
+		// Resolves true as soon as a value arrives (or false after ms)
+		const waitValue = (ms) => new Promise((resolve) => {
+			if (fresh()) return resolve(true);
+			let done = false;
+			const wake = () => finish(true);
+			const timer = setTimeout(() => finish(fresh()), Math.max(0, Math.min(ms, left())));
+			function finish(ok) { if (done) return; done = true; clearTimeout(timer); resolve(ok); }
+			(this._valueWaiters[port] ||= []).push(wake);
+			// forget the callback if we time out first
+			setTimeout(() => {
+				if (this._valueWaiters[port]) this._valueWaiters[port] = this._valueWaiters[port].filter(f => f !== wake);
+			}, Math.max(0, Math.min(ms, left())) + 5);
+		});
+
+		const subscribe   = () => this._setInputFormat(port, mode, 1, 1, { wait: true });
+		const askForValue = () => this._write(new Uint8Array([0x05, this.hubId || 0x00, 0x21, port, 0x00])); // Port Information Request: Port Value
+		const resubscribe = async () => {
+			await this._setInputFormat(port, mode, 1, 0, { wait: true });
+			await this._setInputFormat(port, mode, 1, 1, { wait: true });
+		};
+		const stepNames = ["subscribe", "ask the hub for the value", "unsubscribe + subscribe"];
+
+		// Await a promise, but never longer than the time that is left for this read
+		const TIMED_OUT = Symbol("timed out");
+		const bounded = (promise) => new Promise((resolve, reject) => {
+			const timer = setTimeout(() => resolve(TIMED_OUT), Math.max(0, left()));
+			promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
+		});
+
+		for (let i = 0; left() > 0; i++) {
+			if (!this.char) return fail("hub disconnected");
+			const step = i < 3 ? i : 1;               // after the three steps keep asking for the value
+			if (i > 0) this.log(`${label}: no value yet from port ${port}, trying: ${stepNames[step]}`);
+			let outcome;
+			try {
+				const action = step === 0 ? subscribe() : step === 1 ? askForValue() : resubscribe();
+				// The timeout also covers a backed-up Bluetooth write queue
+				outcome = await bounded(action);
+			} catch (err) {
+				this.log(`${label}: ${stepNames[step]} failed: ${err?.message || err}`);
+			}
+			if (outcome === TIMED_OUT) return fail("the Bluetooth write queue is busy");
+			const ms = cfg.stepMs[Math.min(i, cfg.stepMs.length - 1)];
+			if (await waitValue(ms)) {
+				if (i > 0) this.log(`${label}: value arrived after "${stepNames[step]}"`);
+				return this.portValues[port];
+			}
+		}
+		return fail("the hub did not send a value");
+	}
+
 	async getDistance(portName) {
 			const port = this._resolvePort(portName);
 
@@ -2588,18 +2699,18 @@ export class LegoLPF2 {
 			const port = this._resolvePort(portName);
 
 			const mode = this._findMode(port, ["tilt", "angle","lpf2-angle"]);
-			await this._ensureMode(port, mode);
 
-			return this.portValues[port] ?? [0,0];
+			const value = await this._readSensor(port, mode, "getTilt");
+			return value ?? [0,0];
 	}
 
 	async getIMU(portName) {
 			const port = this._resolvePort(portName);
 
 			const mode = this._findMode(port, ["acc", "gyro", "imu"]);
-			await this._ensureMode(port, mode);
 
-			return this.portValues[port] ?? [0,0,0];
+			const value = await this._readSensor(port, mode, "getIMU");
+			return value ?? [0,0,0];
 	}
 
 	async getForce(portName) {
@@ -3325,3 +3436,5 @@ export class LegoLPF2 {
     }
   }
 }
+
+LegoLPF2.SENSOR = LPF2_SENSOR;
