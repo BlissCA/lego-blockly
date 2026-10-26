@@ -45,7 +45,11 @@ const LPF2_SENSOR = {
   // and keep retrying until the hub's IMU delivers real data, so getIMU/getTilt are instant afterwards.
   prewarm: true,
   prewarmPorts: { IMU: ["acc", "gyro", "imu"], TILT: ["tilt", "angle", "lpf2-angle"] },
-  prewarmMs: 30000                  // stop trying in the background after this long
+  prewarmMs: 30000,                 // stop trying in the background after this long
+  // The IMU orientation (ioType 93) often stays at zero after power-on. Experiment: its fusion may need the
+  // raw sensors running, so subscribe to accelerometer (57) + gyro (58) + tilt (59) ioTypes first.
+  prewarmHelpers: true,
+  freshReads: true                  // every read asks the hub for a NEW value instead of returning the last streamed one
 };
 
 // Brake modes
@@ -1146,6 +1150,21 @@ export class LegoLPF2 {
 	async _prewarmMoveHub() {
 		const cfg = LPF2_SENSOR;
 		this._connectedAt ??= performance.now();
+		if (cfg.prewarmHelpers) {
+			for (const [p, i] of Object.entries(this.portInfo)) {
+				if (i.ioType !== 57 && i.ioType !== 58) continue;   // accelerometer, gyro
+				const port = Number(p);
+				const mode = this._findMode(port, ["acc", "gyro", "imu"]);
+				try { await this._setInputFormat(port, mode, 1, 1, { wait: true }); this.log(`prewarm: subscribed helper port ${port} (ioType ${i.ioType}, mode ${mode})`); }
+				catch (e) { this.log(`prewarm helper ${port}: ${e?.message || e}`); }
+			}
+			await _sleep(300);
+		}
+		setTimeout(() => {   // diagnostics: what does each internal sensor deliver?
+			const dump = Object.entries(this.portInfo).filter(([, i]) => [57, 58, 59, 93].includes(i.ioType))
+				.map(([p, i]) => `${p}(io${i.ioType})=${JSON.stringify(this.portValues[p])}`).join(" ");
+			this.log(`prewarm status after 5 s: ${dump}`);
+		}, 5000);
 		for (const [name, keywords] of Object.entries(cfg.prewarmPorts)) {
 			const port = this.userPortMap?.[name];
 			if (port === undefined || !this.portInfo[port]) continue;
@@ -1328,6 +1347,7 @@ export class LegoLPF2 {
 
 	async _initializeLPF2() {
 		this._connectedAt = performance.now();
+		this._imuLive = false;
 		this.log("Initializing LPF2 hub...");
 
     this._readyTrackingActive = false;   // OFF until the initial attach messages are in
@@ -2430,6 +2450,8 @@ export class LegoLPF2 {
 
 			// Remember that a real value arrived in this mode and wake up anyone waiting for it
 			this._valueModeOf[port] = mode;
+			(this._valueAt ||= {})[port] = performance.now();
+			if (info.ioType === 93) this._looksLive(93, this.portValues[port]);   // records that the IMU is awake
 			const waiting = this._valueWaiters[port];
 			if (waiting && waiting.length) {
 				this._valueWaiters[port] = [];
@@ -2625,8 +2647,13 @@ export class LegoLPF2 {
 	_looksLive(ioType, value) {
 		if (ioType === 93) {
 			if (!Array.isArray(value) || value.length !== 4) return false;
-			return Math.abs(Math.hypot(value[0], value[1], value[2], value[3]) - 1000) <= 100;
+			const ok = Math.abs(Math.hypot(value[0], value[1], value[2], value[3]) - 1000) <= 100;
+			if (ok) this._imuLive = true;
+			return ok;
 		}
+		// Tilt (ioType 59) is computed by the same IMU: all zeros while the IMU sleeps. Only believe zeros
+		// once the orientation port has proven the IMU is awake (a flat hub is then genuinely 0,0,0).
+		if (ioType === 59 && Array.isArray(value) && value.every(v => v === 0)) return !!this._imuLive;
 		return true;
 	}
 
@@ -2667,7 +2694,19 @@ export class LegoLPF2 {
 		const ioType = info.ioType;
 		const fresh = () => this._valueModeOf[port] === mode && this.portValues[port] !== undefined &&
 			this._looksLive(ioType, this.portValues[port]);
-		if (fresh()) return this.portValues[port];      // the hub is already streaming this mode
+		const askForValue = () => this._write(new Uint8Array([0x05, this.hubId || 0x00, 0x21, port, 0x00])); // Port Information Request: Port Value
+		if (fresh()) {
+			if (!cfg.freshReads) return this.portValues[port];
+			// streaming already: still ask for a NEW value so a stalled stream is never returned as current
+			const t1 = performance.now();
+			try { await Promise.race([askForValue(), _sleep(Math.max(0, left()))]); } catch (e) {}
+			const until = t1 + 1200;
+			while (performance.now() < until && left() > 0) {
+				if ((this._valueAt?.[port] ?? 0) >= t1 && fresh()) return this.portValues[port];
+				await _sleep(25);
+			}
+			this.log(`${label}: the hub did not answer the fresh-value request, falling back to the retry sequence`);
+		}
 
 		// Resolves true as soon as a value arrives (or false after ms)
 		const waitValue = (ms) => new Promise((resolve) => {
@@ -2688,7 +2727,6 @@ export class LegoLPF2 {
 		});
 
 		const subscribe   = () => this._setInputFormat(port, mode, 1, 1, { wait: true });
-		const askForValue = () => this._write(new Uint8Array([0x05, this.hubId || 0x00, 0x21, port, 0x00])); // Port Information Request: Port Value
 		const resubscribe = async () => {
 			await this._setInputFormat(port, mode, 1, 0, { wait: true });
 			await this._setInputFormat(port, mode, 1, 1, { wait: true });
@@ -2722,7 +2760,7 @@ export class LegoLPF2 {
 			const ms = i < cfg.stepMs.length ? cfg.stepMs[i] : cfg.pollMs;
 			if (await waitValue(ms)) {
 				const took = Math.round(performance.now() - t0);
-				this.log(`${label}: value arrived after ${took} ms (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)` + (i > 0 ? `, after "${stepNames[step]}"` : ""));
+				this.log(`${label}: value ${JSON.stringify(this.portValues[port])} arrived after ${took} ms (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)` + (i > 0 ? `, after "${stepNames[step]}"` : ""));
 				return this.portValues[port];
 			}
 		}
