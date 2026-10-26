@@ -36,9 +36,16 @@ const MOVEHUB_MIN_DELTA = {
 // Sensor reads (getIMU, getTilt, ...): how long to wait for the hub's first value, and what to do
 // when it never comes. The read first subscribes, then asks for the value, then re-subscribes.
 const LPF2_SENSOR = {
-  timeoutMs: 2500,                  // give up after this long (per call)
-  stepMs: [350, 350, 500],          // wait after: subscribe / "send me the value" request / unsubscribe+subscribe
-  throwOnTimeout: true              // false = log the error in the console and return the default value instead
+  timeoutMs: 10000,                 // give up after this long (per call)
+  stepMs: [400, 400, 600],          // wait after: subscribe / "send me the value" request / unsubscribe+subscribe
+  pollMs: 600,                      // after those 3 steps: wait this long between retries
+  resubscribeMs: 3000,              // ...and redo "unsubscribe + subscribe" at most this often
+  throwOnTimeout: true,             // false = log the error in the console and return the default value instead
+  // Technic Move Hub: right after connecting, subscribe to these ports (with the safe MOVEHUB_MIN_DELTA)
+  // and keep retrying until the hub's IMU delivers real data, so getIMU/getTilt are instant afterwards.
+  prewarm: true,
+  prewarmPorts: { IMU: ["acc", "gyro", "imu"], TILT: ["tilt", "angle", "lpf2-angle"] },
+  prewarmMs: 30000                  // stop trying in the background after this long
 };
 
 // Brake modes
@@ -980,20 +987,6 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [0,1132396544]
       }
     }
-  },
-  8: {
-    name: "Light",
-    defaultMode: 0,
-    modes: {
-      0: {
-        name: "LPF2-LIGHT",
-        symbol: "",
-        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
-        rawRange: [-1054867456,1092616192],
-        percentRange: [-1027080192,1120403456],
-        siRange: [-1054867456,1092616192]
-      }
-    }
   }
 };
 
@@ -1141,6 +1134,25 @@ export class LegoLPF2 {
 		document.dispatchEvent(new CustomEvent("serial-ready", {
 			detail: { device: this }
 		}));
+
+		if (this.hubType === 0x84 && LPF2_SENSOR.prewarm) this._prewarmMoveHub();
+	}
+
+	/**
+	 * Technic Move Hub: start the IMU streams right after connecting (like the Control+ app does), so the
+	 * hub's IMU is warmed up and the first getIMU/getTilt is answered from the stream.
+	 * Runs in the background; failures only log.
+	 */
+	async _prewarmMoveHub() {
+		const cfg = LPF2_SENSOR;
+		this._connectedAt ??= performance.now();
+		for (const [name, keywords] of Object.entries(cfg.prewarmPorts)) {
+			const port = this.userPortMap?.[name];
+			if (port === undefined || !this.portInfo[port]) continue;
+			const mode = this._findMode(port, keywords);
+			this._readSensor(port, mode, `prewarm ${name}`, { timeoutMs: cfg.prewarmMs, throwOnTimeout: false })
+				.catch(e => this.log(`prewarm ${name}: ${e?.message || e}`));
+		}
 	}
 
 
@@ -1315,6 +1327,7 @@ export class LegoLPF2 {
 	// ---------------- LPF2 Initialization Sequence ----------------
 
 	async _initializeLPF2() {
+		this._connectedAt = performance.now();
 		this.log("Initializing LPF2 hub...");
 
     this._readyTrackingActive = false;   // OFF until the initial attach messages are in
@@ -1372,7 +1385,7 @@ export class LegoLPF2 {
 				// Subscribing to all of them at connect time with delta 1 makes the hub flood the link
 				// as soon as it is moved, and the connection drops. Subscribe on demand instead
 				// (_ensureMode / setSensorMode), where _setInputFormat applies safe deltas.
-				// if (this.hubType === 0x84) continue;
+				if (this.hubType === 0x84) continue;
 
 				// Skip motors
 				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rgb" || info.type === "rssi") {
@@ -2626,13 +2639,14 @@ export class LegoLPF2 {
 	 * Why not trust activeMode[port]? It is set before the hub confirms anything, so one lost or
 	 * rejected subscribe frame made every later call believe it was subscribed and never retry.
 	 */
-	async _readSensor(port, mode, label = "sensor") {
-		const cfg = LPF2_SENSOR;
+	async _readSensor(port, mode, label = "sensor", opts = {}) {
+		const cfg = { ...LPF2_SENSOR, ...opts };
 		const t0 = performance.now();
 		const left = () => cfg.timeoutMs - (performance.now() - t0);
 
 		const fail = (why) => {
-			const text = `${label}: no value from port ${port} (${why}) after ${Math.round(performance.now() - t0)} ms`;
+			const text = `${label}: no value from port ${port} (${why}) after ${Math.round(performance.now() - t0)} ms` +
+				` (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)`;
 			console.error(`[LPF2] ${text}`);
 			this.log(text);
 			if (cfg.throwOnTimeout) throw new Error(text);
@@ -2688,10 +2702,14 @@ export class LegoLPF2 {
 			promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
 		});
 
+		let lastSubAt = 0;
 		for (let i = 0; left() > 0; i++) {
 			if (!this.char) return fail("hub disconnected");
-			const step = i < 3 ? i : 1;               // after the three steps keep asking for the value
-			if (i > 0) this.log(`${label}: no value yet from port ${port}, trying: ${stepNames[step]}`);
+			let step;
+			if (i < 3) step = i;                                                    // subscribe, ask, unsubscribe+subscribe
+			else step = (performance.now() - lastSubAt >= cfg.resubscribeMs) ? 2 : 1; // then mostly ask, re-subscribe now and then
+			if (step === 0 || step === 2) lastSubAt = performance.now();
+			if (i > 0 && (i < 3 || step === 2)) this.log(`${label}: no value yet from port ${port} (${Math.round(performance.now() - t0)} ms), trying: ${stepNames[step]}`);
 			let outcome;
 			try {
 				const action = step === 0 ? subscribe() : step === 1 ? askForValue() : resubscribe();
@@ -2701,9 +2719,10 @@ export class LegoLPF2 {
 				this.log(`${label}: ${stepNames[step]} failed: ${err?.message || err}`);
 			}
 			if (outcome === TIMED_OUT) return fail("the Bluetooth write queue is busy");
-			const ms = cfg.stepMs[Math.min(i, cfg.stepMs.length - 1)];
+			const ms = i < cfg.stepMs.length ? cfg.stepMs[i] : cfg.pollMs;
 			if (await waitValue(ms)) {
-				if (i > 0) this.log(`${label}: value arrived after "${stepNames[step]}"`);
+				const took = Math.round(performance.now() - t0);
+				this.log(`${label}: value arrived after ${took} ms (${Math.round((performance.now() - (this._connectedAt ?? t0)) / 1000)} s since connect)` + (i > 0 ? `, after "${stepNames[step]}"` : ""));
 				return this.portValues[port];
 			}
 		}
