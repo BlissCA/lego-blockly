@@ -53,6 +53,7 @@ const LPF2_SENSOR = {
 // They make the STEERING motor (port C) sweep to its end stops. EXPERIMENT: maybe the hub's IMU only wakes up
 // after this. Keep false unless the steering can move freely (steering rack mounted, nothing blocking it).
 const LPF2_MOVEHUB = {
+  lightsOffOnConnect: true,         // switch the 6 lights off after connecting (the hub often leaves some on)
   calibrateOnConnect: false,
   initWaitMs: 800,                  // pause between the INIT and CALIBRATE frames
   port: 0x36                        // drive virtual port (used if the port map has no DRIVEVM)
@@ -1145,6 +1146,10 @@ export class LegoLPF2 {
 			detail: { device: this }
 		}));
 
+		if (this.hubType === 0x84 && LPF2_MOVEHUB.lightsOffOnConnect) {
+			this.lightsOff().catch(e => this.log("lightsOff: " + (e?.message || e)));
+			setTimeout(() => { if (this.char) this.lightsOff().catch(() => {}); }, 1500);   // the hub may switch some on again after connecting
+		}
 		if (this.hubType === 0x84 && LPF2_MOVEHUB.calibrateOnConnect) this.calibrateSteering().catch(e => this.log("calibrateSteering: " + (e?.message || e)));
 		if (this.hubType === 0x84 && LPF2_SENSOR.prewarm) this._prewarmMoveHub();
 	}
@@ -3495,6 +3500,54 @@ export class LegoLPF2 {
     if (value && typeof value === "object") return this.setLedRGB(value.r, value.g, value.b);
     return this.setLedColor(value);
   }
+
+  // ---------------- Technic Move Hub: the 6 lights (port 0x35) ----------------
+  // Frame (seen in move-hub.site's log): 09 00 81 <port> 11 51 00 <mask> <brightness>
+  //   mask = one bit per light (bit0 = light 1 ... bit5 = light 6), brightness 0..100 (0x64).
+  // The hub applies the brightness to every light in the mask, so each light can have its own brightness.
+  // Lights 1-4 are at the steering end, 5-6 at the rear (as numbered on move-hub.site). If a light does not
+  // match its number, change LIGHT_BITS below.
+  static LIGHT_BITS = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20];
+
+  _lightsPort() { return this.userPortMap?.LEDS ?? 0x35; }
+
+  async _lightsWrite(mask, brightness) {
+    if (this.hubType !== 0x84) throw new Error("lights: only implemented for the Technic Move Hub");
+    const b = Math.max(0, Math.min(100, Math.round(Number(brightness) || 0)));
+    await this._write(new Uint8Array([0x09, this.hubId || 0x00, 0x81, this._lightsPort(), 0x11, 0x51, 0x00, mask & 0x3f, b]));
+  }
+
+  /** One light: setLight(3, 100). n = 1..6, brightness 0..100 (0 = off). */
+  async setLight(n, brightness = 100) {
+    const i = Number(n) - 1;
+    if (!(i >= 0 && i < 6)) throw new Error("setLight: light number must be 1..6");
+    await this._lightsWrite(LegoLPF2.LIGHT_BITS[i], brightness);
+    (this._lightLevels ||= [0, 0, 0, 0, 0, 0])[i] = Math.max(0, Math.min(100, Number(brightness) || 0));
+  }
+
+  /**
+   * Several lights at once. levels = array of 6 brightness values (index 0 = light 1), or an object
+   * {1: 100, 3: 50}, or an array of light numbers [1,2,5] (= those lights at `brightness`).
+   * Lights that are not mentioned are left as they are.
+   */
+  async setLights(levels, brightness = 100) {
+    const out = {};   // light index -> brightness
+    if (Array.isArray(levels) && levels.length === 6 && levels.some(v => v > 6 || v === 0)) levels.forEach((v, i) => out[i] = v);
+    else if (Array.isArray(levels)) levels.forEach(n => out[Number(n) - 1] = brightness);
+    else if (levels && typeof levels === "object") for (const [n, v] of Object.entries(levels)) out[Number(n) - 1] = v;
+    else throw new Error("setLights: expected an array or an object");
+    const groups = new Map();   // brightness -> mask (one frame per distinct brightness)
+    for (const [i, v] of Object.entries(out)) {
+      if (!(i >= 0 && i < 6)) throw new Error("setLights: light number must be 1..6");
+      const b = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+      groups.set(b, (groups.get(b) || 0) | LegoLPF2.LIGHT_BITS[i]);
+      (this._lightLevels ||= [0, 0, 0, 0, 0, 0])[i] = b;
+    }
+    for (const [b, mask] of groups) await this._lightsWrite(mask, b);
+  }
+
+  async lightsOn(brightness = 100) { await this._lightsWrite(0x3f, brightness); this._lightLevels = Array(6).fill(Math.max(0, Math.min(100, brightness))); }
+  async lightsOff() { await this._lightsWrite(0x3f, 0); this._lightLevels = Array(6).fill(0); }
 
   async ledOff() {
     return this.setLedColor(0);
