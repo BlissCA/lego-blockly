@@ -48,6 +48,16 @@ const LPF2_SENSOR = {
   prewarmHelpers: false             // experiment: also stream accelerometer+gyro (made the link drop when moving the hub)
 };
 
+// Technic Move Hub: the Control+ app sends two "calibration" frames to the drive channel (port 0x36) right
+// after connecting (flags byte 0x10 = INIT, then 0x08 = CALIBRATE; source: maxswinkels/42176-controller).
+// They make the STEERING motor (port C) sweep to its end stops. EXPERIMENT: maybe the hub's IMU only wakes up
+// after this. Keep false unless the steering can move freely (steering rack mounted, nothing blocking it).
+const LPF2_MOVEHUB = {
+  calibrateOnConnect: false,
+  initWaitMs: 800,                  // pause between the INIT and CALIBRATE frames
+  port: 0x36                        // drive virtual port (used if the port map has no DRIVEVM)
+};
+
 // Brake modes
 const BRAKE_FLOAT = 0x00;
 const BRAKE_BRAKE = 0x7F;
@@ -1135,7 +1145,23 @@ export class LegoLPF2 {
 			detail: { device: this }
 		}));
 
+		if (this.hubType === 0x84 && LPF2_MOVEHUB.calibrateOnConnect) this.calibrateSteering().catch(e => this.log("calibrateSteering: " + (e?.message || e)));
 		if (this.hubType === 0x84 && LPF2_SENSOR.prewarm) this._prewarmMoveHub();
+	}
+
+	/**
+	 * Technic Move Hub: the two frames the Control+ app sends after connecting (INIT 0x10, CALIBRATE 0x08 in the
+	 * flags byte of the 13-byte drive frame, speed 0, steering 0, lights on). The steering motor sweeps to its
+	 * end stops, so make sure it can move. Call manually with: await dev.calibrateSteering()
+	 */
+	async calibrateSteering() {
+		if (this.hubType !== 0x84) throw new Error("calibrateSteering: only for the Technic Move Hub");
+		const port = this.userPortMap?.DRIVEVM ?? LPF2_MOVEHUB.port;
+		const frame = (flags) => new Uint8Array([0x0d, this.hubId || 0x00, 0x81, port, 0x11, 0x51, 0x00, 0x03, 0x00, 0x00, 0x00, flags, 0x00]);
+		this.log("calibrateSteering: sending INIT (0x10) then CALIBRATE (0x08) to port " + port);
+		await this._write(frame(0x10));
+		await _sleep(LPF2_MOVEHUB.initWaitMs);
+		await this._write(frame(0x08));
 	}
 
 	/**
@@ -3486,3 +3512,4 @@ export class LegoLPF2 {
 }
 
 LegoLPF2.SENSOR = LPF2_SENSOR;
+LegoLPF2.MOVEHUB = LPF2_MOVEHUB;
