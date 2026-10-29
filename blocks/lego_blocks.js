@@ -2834,7 +2834,7 @@ window.addEventListener("load", () => {
       "type": "lpf2_sethubname",
       "message0": "%1 Set Hub Name %2",
       "args0": [
-        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        { "type": "field_dropdown", "name": "DEVICE", "options": getLPF2Dropdown },
         {
           "type": "input_value",
           "name": "HUBNAME",
