@@ -2774,7 +2774,33 @@ window.addEventListener("load", () => {
         {
           "type": "input_value",
           "name": "PORT",
-          "check": ["Number"]
+          "check": "Number"
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Technic Move Hub Light 1-6, Brightness: 0 off, 1-100 brightness"
+    },
+    {
+      "type": "lpf2_techm_lights",
+      "message0": "%1 Lights %2 Brightness %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTechnicMoveDropdown },
+        {
+          "type": "input_value",
+          "name": "PORTS",
+          "check": "Array"
         },
         {
           "type": "input_value",

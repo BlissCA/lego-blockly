@@ -1,2 +1,2 @@
-// version.js
+// version.2337
 const LEGO_BLOCKLY_VERSION = "2026-10-28-2309"; // YYYY-MM-DD-HHMM

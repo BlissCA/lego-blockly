@@ -1447,21 +1447,21 @@ const toolbox = {
                   }
                 },
                 "RX_LENGTH": {
-                  "shadow": {
-                    "type": "math_number_constrained",
-                    "extraState": {
-                      "min": 0,
-                      "max": 16,
-                      "precision": 1
-                    },
-                    "fields": {"NUM": 1}
-                  }
-                  },
-                  "TX_BYTES": {
-                    "block": {
-                      "type": "lists_create_with",
+                    "shadow": {
+                      "type": "math_number_constrained",
                       "extraState": {
-                      "itemCount": 2
+                        "min": 0,
+                        "max": 16,
+                        "precision": 1
+                      },
+                      "fields": {"NUM": 1}
+                    }
+                  },
+                "TX_BYTES": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "extraState": {
+                    "itemCount": 2
                     },
                     "inputs": {
                       "ADD0": {
@@ -2090,6 +2090,49 @@ const toolbox = {
                       "precision": 1
                     },
                     "fields": { "NUM": 1 }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 100,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 100 }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_techm_lights",
+              "inputs": {
+                "PORTS": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "extraState": {
+                    "itemCount": 2
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "block": {
+                          "type": "math_number",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      },
+                      "ADD1": {
+                        "block": {
+                          "type": "math_number",
+                          "fields": {
+                            "NUM": 4
+                          }
+                        }
+                      }
+                    }
                   }
                 },
                 "PWR": {
