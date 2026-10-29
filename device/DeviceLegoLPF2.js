@@ -1544,6 +1544,10 @@ export class LegoLPF2 {
 			0x05        // Request Update
 		]));
 
+		// Ask the hub for its real advertising name (Hub Property 0x01, Request Update): device.name can be a stale cached name
+		this.hubName = null;
+		await this._write(new Uint8Array([0x05, 0x00, 0x01, 0x01, 0x05]));
+
 		this.readingActive = true;
 
 		// Hub type detection (if the hub never answers, release the link so a retry can start clean)
@@ -1555,11 +1559,14 @@ export class LegoLPF2 {
 			throw err;
 		}
 
-		// Allocate name
+		// Allocate name (use the name the hub reported; wait briefly for it)
+		for (let i = 0; i < 20 && !this.hubName; i++) await _sleep(50);
+		if (!this.hubName) this.log(`Hub did not report its name, using the BLE name "${this.device?.name}"`);
 		if (!this.name) {
-			const base = lpf2BaseName(this.device?.name, this.namePrefix);
+			const base = lpf2BaseName(this.hubName || this.device?.name, this.namePrefix);
 			this.name = this.manager._allocateName(base);
 		}
+
 		// LPF2 initialization
 		await this._initializeLPF2();
 
@@ -2359,6 +2366,13 @@ export class LegoLPF2 {
 				"op=0x" + op.toString(16),
 				"len=" + msg.length
 			);
+		}
+		
+		if (property === 0x01 && op === 0x06) {
+			// Advertising name update: [len][hub][0x01][0x01][0x06][ascii name...]
+			this.hubName = String.fromCharCode(...msg.slice(5)).replace(/\0+$/, "");
+			if (LPF2_DEBUG.connect) console.log(`[LPF2] Hub name = "${this.hubName}"`);
+			return;
 		}
 
 		if (property === 0x02 && op === 0x06) {
