@@ -1,6 +1,7 @@
 // DeviceLegoLPF2.js
 // ES-module LEGO LPF2 (WeDo 2.0, Boost, Powered Up, Spike, etc.) driver.
 // Standalone class, same architecture style as LegoInterfaceA_v2.
+// console access: window.deviceManager.devices[0])
 
 // Port Output Command constants
 const MSG_PORT_OUTPUT_COMMAND = 0x81;
@@ -21,6 +22,28 @@ const LPF2_CONNECT = {
   settleMs: 800         // wait after later attempts
 };
 const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Device-name rules: BLE name -> base name handed to the device manager (which appends 1, 2, 3...)
+const LPF2_NAME = { maxLen: 12 };   // keep Blockly device names short
+// BLE names that mean "never renamed" -> default prefix. Keys are lower-case. Edit/extend freely.
+const LPF2_DEFAULT_BLE_NAMES = {
+  "technic move": "TechM", "technic hub": "Tech", "boost": "Boost", "hub no.4": "City",
+  "handset": "Remote", "lpf2 smart hub": "WeDo2_", "train base": "Duplo",
+  "spike essential": "SpkE", "spike prime": "SpkP", "mindstorms hub": "Invent",
+  "mario": "Mario", "luigi": "Luigi", "peach": "Peach", "move hub": "Boost"
+};
+function lpf2BaseName(bleName, fallback) {
+  const raw = String(bleName ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (!raw) return fallback;
+  const known = LPF2_DEFAULT_BLE_NAMES[raw.toLowerCase().replace(/\s+/g, " ")];
+  if (known) return known;
+  let n = raw.replace(/[^A-Za-z0-9_]/g, "");          // removes spaces and anything odd
+  if (!n) return fallback;
+  if (/^\d/.test(n)) n = "H" + n;                      // a name must not start with a digit
+  n = n.slice(0, LPF2_NAME.maxLen);
+  if (/\d$/.test(n)) n += "_";                         // ends with a digit -> F7_ -> F7_1
+  return n;
+}
 
 // Technic Move Hub: minimum notification delta per ioType when a sensor is subscribed on demand.
 // A delta of 1 on an IMU reports almost every change and floods the link when the hub is moved.
@@ -1534,9 +1557,9 @@ export class LegoLPF2 {
 
 		// Allocate name
 		if (!this.name) {
-			this.name = this.manager._allocateName(this.namePrefix);
+			const base = lpf2BaseName(this.device?.name, this.namePrefix);
+			this.name = this.manager._allocateName(base);
 		}
-
 		// LPF2 initialization
 		await this._initializeLPF2();
 
@@ -3677,6 +3700,17 @@ export class LegoLPF2 {
     if (Array.isArray(value) && value.length >= 3) return this.setLedRGB(value[0], value[1], value[2]);
     if (value && typeof value === "object") return this.setLedRGB(value.r, value.g, value.b);
     return this.setLedColor(value);
+  }
+
+	/** Rename the hub (BLE advertising name). Max 14 ASCII characters. Takes effect the next time the hub advertises:
+	 *  power-cycle or reconnect. Example: await dev.setHubName("Crocodile") */
+  async setHubName(name) {
+    const clean = String(name ?? "").replace(/[^\x20-\x7e]/g, "").slice(0, 14);
+    if (!clean) throw new Error("setHubName: name is empty");
+    const bytes = Array.from(clean, c => c.charCodeAt(0));
+    await this._write(new Uint8Array([5 + bytes.length, this.hubId || 0x00, 0x01, 0x01, 0x01, ...bytes])); // Hub Property 0x01 (name), operation 0x01 (Set)
+    this.log(`Hub name set to "${clean}" (visible after the hub advertises again)`);
+    return clean;
   }
 
   // ---------------- Technic Move Hub: the 6 lights (port 0x35) ----------------

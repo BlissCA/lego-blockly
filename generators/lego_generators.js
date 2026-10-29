@@ -2417,6 +2417,20 @@ javascriptGenerator.forBlock["lpf2_techm_lightsoff"] = function (block) {
 `;
 };
 
+javascriptGenerator.forBlock["lpf2_sethubname"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const hubName = javascriptGenerator.valueToCode(block, "HUBNAME", javascriptGenerator.ORDER_NONE) || "MyLpf2Hub";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setHubName(${hubName});
+}
+`;
+};
+
 
 
 // ---------------- LEGO WeDo 2.0 GENERATORS ------------------

@@ -2152,6 +2152,24 @@ const toolbox = {
               "kind": "block",
               "type": "lpf2_techm_lightsoff"
             }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Misc",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "lpf2_sethubname",
+              "inputs": {
+                "HUBNAME": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": { "TEXT": "MyLpf2Hub" }
+                  }
+                }
+              }            
+            }
 
           ]
         }

@@ -2829,6 +2829,23 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "Technic Move Hub ALL Lights OFF"
+    },
+    {
+      "type": "lpf2_sethubname",
+      "message0": "%1 Set Hub Name %2",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getNxtDropdown },
+        {
+          "type": "input_value",
+          "name": "HUBNAME",
+          "check": "String"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Set the hub's advertising name"
     }
 
   ]);  
