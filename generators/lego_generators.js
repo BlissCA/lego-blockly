@@ -2374,7 +2374,6 @@ javascriptGenerator.forBlock["lpf2_hubled"] = function (block) {
 `;
 };
 
-
 javascriptGenerator.forBlock["lpf2_techm_light"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
@@ -2386,6 +2385,19 @@ javascriptGenerator.forBlock["lpf2_techm_light"] = function (block) {
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
   await dev.setLight(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["lpf2_techm_lightsoff"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.lightsOff();
 }
 `;
 };

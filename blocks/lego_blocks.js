@@ -2791,6 +2791,18 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "Technic Move Hub Light 1-6, Brightness: 0 off, 1-100 brightness"
+    },
+    {
+      "type": "lpf2_techm_lightsoff",
+      "message0": "%1 Lights All OFF",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTechnicMoveDropdown }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Technic Move Hub ALL Lights OFF"
     }
 
   ]);  

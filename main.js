@@ -982,6 +982,7 @@ document.getElementById("stopBtn").onclick = async () => {
       } else if (dev.stopAllMotors) {
         // LPF2: stop all motors
         await dev.stopAllMotors();
+        if (dev.name.startsWith("TechM")) dev.lightsOff(); // Technic Move Hub: turn off lights
       } else if (dev.piezoPlay) {
         // WeDo 2.0: stop all motors
         await dev.motorStop(1);
