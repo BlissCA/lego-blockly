@@ -998,6 +998,184 @@ export const LPF2_DEVICE_PROFILES = {
         siRange: [0,1132396544]
       }
     }
+  },
+  8: {
+    name: "Light",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "LPF2-LIGHT",
+        symbol: "",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [-1054867456,1092616192],
+        percentRange: [-1027080192,1120403456],
+        siRange: [-1054867456,1092616192]
+      }
+    }
+  },
+  61: {
+    name: "Spike Color Sensor",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "COLOR",
+        symbol: "IDX",
+        valueFormat: {"count":1,"type":"Int8","figures":2,"decimals":0},
+        rawRange: [0,1092616192],
+        percentRange: [0,1120403456],
+        siRange: [0,1092616192]
+      },
+      1: {
+        name: "REFLT",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      2: {
+        name: "AMBI",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      3: {
+        name: "LIGHT",
+        symbol: "PCT",
+        valueFormat: {"count":3,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      4: {
+        name: "RREFL",
+        symbol: "RAW",
+        valueFormat: {"count":2,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1149239296],
+        percentRange: [0,1120403456],
+        siRange: [0,1149239296]
+      },
+      5: {
+        name: "RGB I",
+        symbol: "RAW",
+        valueFormat: {"count":4,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1149239296],
+        percentRange: [0,1120403456],
+        siRange: [0,1149239296]
+      },
+      6: {
+        name: "HSV",
+        symbol: "RAW",
+        valueFormat: {"count":3,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1135869952],
+        percentRange: [0,1120403456],
+        siRange: [0,1135869952]
+      },
+      7: {
+        name: "SHSV",
+        symbol: "RAW",
+        valueFormat: {"count":4,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1135869952],
+        percentRange: [0,1120403456],
+        siRange: [0,1135869952]
+      },
+      8: {
+        name: "DEBUG",
+        symbol: "RAW",
+        valueFormat: {"count":4,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1199570688],
+        percentRange: [0,1120403456],
+        siRange: [0,1199570688]
+      },
+      9: {
+        name: "CALIB",
+        symbol: "",
+        valueFormat: {"count":7,"type":"Int16","figures":5,"decimals":0},
+        rawRange: [0,1199570688],
+        percentRange: [0,1120403456],
+        siRange: [0,1199570688]
+      }
+    }
+  },
+  62: {
+    name: "Spike Distance Sensor",
+    defaultMode: 0,
+    modes: {
+      0: {
+        name: "DISTL",
+        symbol: "CM",
+        valueFormat: {"count":1,"type":"Int16","figures":5,"decimals":1},
+        rawRange: [0,1159479296],
+        percentRange: [0,1120403456],
+        siRange: [0,1132068864]
+      },
+      1: {
+        name: "DISTS",
+        symbol: "CM",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":1},
+        rawRange: [0,1134559232],
+        percentRange: [0,1120403456],
+        siRange: [0,1107296256]
+      },
+      2: {
+        name: "SINGL",
+        symbol: "CM",
+        valueFormat: {"count":1,"type":"Int16","figures":5,"decimals":1},
+        rawRange: [0,1159479296],
+        percentRange: [0,1120403456],
+        siRange: [0,1132068864]
+      },
+      3: {
+        name: "LISTN",
+        symbol: "ST",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1065353216],
+        percentRange: [0,1120403456],
+        siRange: [0,1065353216]
+      },
+      4: {
+        name: "TRAW",
+        symbol: "uS",
+        valueFormat: {"count":1,"type":"Int32","figures":5,"decimals":0},
+        rawRange: [0,1180943360],
+        percentRange: [0,1120403456],
+        siRange: [0,1180943360]
+      },
+      5: {
+        name: "LIGHT",
+        symbol: "PCT",
+        valueFormat: {"count":4,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1120403456],
+        percentRange: [0,1120403456],
+        siRange: [0,1120403456]
+      },
+      6: {
+        name: "PING",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int8","figures":1,"decimals":0},
+        rawRange: [0,1065353216],
+        percentRange: [0,1120403456],
+        siRange: [0,1065353216]
+      },
+      7: {
+        name: "ADRAW",
+        symbol: "PCT",
+        valueFormat: {"count":1,"type":"Int16","figures":4,"decimals":0},
+        rawRange: [0,1149239296],
+        percentRange: [0,1120403456],
+        siRange: [0,1149239296]
+      },
+      8: {
+        name: "CALIB",
+        symbol: "PCT",
+        valueFormat: {"count":7,"type":"Int8","figures":3,"decimals":0},
+        rawRange: [0,1132396544],
+        percentRange: [0,1120403456],
+        siRange: [0,1132396544]
+      }
+    }
   }
 };
 

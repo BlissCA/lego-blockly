@@ -2076,7 +2076,36 @@ const toolbox = {
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "lpf2_techm_light",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 1,
+                      "max": 6,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 1 }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number_constrained",
+                    "extraState": {
+                      "min": 0,
+                      "max": 100,
+                      "precision": 1
+                    },
+                    "fields": { "NUM": 100 }
+                  }
+                }
+              }
             }
+
           ]
         }
       ]

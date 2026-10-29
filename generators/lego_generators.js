@@ -2375,6 +2375,22 @@ javascriptGenerator.forBlock["lpf2_hubled"] = function (block) {
 };
 
 
+javascriptGenerator.forBlock["lpf2_techm_light"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || "1";
+  const pwr  = javascriptGenerator.valueToCode(block, "PWR",  javascriptGenerator.ORDER_NONE) || "100";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setLight(${port},${pwr});
+}
+`;
+};
+
+
 
 // ---------------- LEGO WeDo 2.0 GENERATORS ------------------
 

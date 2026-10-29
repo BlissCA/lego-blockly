@@ -800,7 +800,7 @@ function getCMDropdown() {
     : [['No CyberMaster', 'NONE']];
 }
 
-// NXT + CyberMaster devices
+// NXT devices
 function getNxtDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("Nxt"));
@@ -838,6 +838,16 @@ function getLPF2Dropdown() {
   return list.length
     ? list.map(d => [d.name, d.name])
     : [['No LPF2', 'NONE']];
+}
+
+// LPF2 Technic Move devices only
+function getTechnicMoveDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.name.startsWith("TechM"));
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No Technic Move', 'NONE']];
 }
 
 // Only LEGO WeDo 2.0 devices
@@ -2755,6 +2765,32 @@ window.addEventListener("load", () => {
       "nextStatement": null,
       "colour": 80,
       "tooltip": "Hub LED Color: 0 off, 1 pink, 2 purple, 3 blue, 4 lightblue, 5 cyan, 6 green, 7 yellow, 8 orange, 9 red, 10 white)"
+    },
+    {
+      "type": "lpf2_techm_light",
+      "message0": "%1 Light %2 Brightness %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getTechnicMoveDropdown },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": ["Number"]
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": "Number",
+          "shadow": {
+            "type": "math_number",
+            "fields": { "NUM": 100 }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 80,
+      "tooltip": "Technic Move Hub Light 1-6, Brightness: 0 off, 1-100 brightness"
     }
 
   ]);  
