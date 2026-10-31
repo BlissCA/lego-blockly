@@ -1094,6 +1094,26 @@ const toolbox = {
 
           ]
         },
+        { "kind": "category", "name": "Sensors Values", "colour": 20, "contents": [
+            {
+              "kind": "block",
+              "type": "rcx_getval"
+            },
+            {
+              "kind": "block",
+              "type": "rcx_getinpval",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "Rcx_InpPort",
+                    "fields": { "INPPORT": "0" }
+                  }
+                }            
+              }
+            }
+
+          ]
+        },
         { "kind": "category", "name": "Misc", "colour": 20, "contents": [
             {
               "kind": "block",
@@ -1180,22 +1200,6 @@ const toolbox = {
             {
               "kind": "block",
               "type": "rcx_alive"
-            },
-            {
-              "kind": "block",
-              "type": "rcx_getval"
-            },
-            {
-              "kind": "block",
-              "type": "rcx_getinpval",
-              "inputs": {
-                "PORT": {
-                  "shadow": {
-                    "type": "Rcx_InpPort",
-                    "fields": { "INPPORT": "0" }
-                  }
-                }            
-              }
             },
             {
               "kind": "block",
