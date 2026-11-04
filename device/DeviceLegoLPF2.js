@@ -89,12 +89,7 @@ const LPF2_DRIVE = {
   steerScale: 1,          // steering = input * steerScale. 1 = the raw -100..100 used by move-hub.site.
                           // Another community driver reports the mechanical end stops at +-70: if the steering creaks at full lock, use 0.7.
   minIntervalMs: 40,      // never send drive frames faster than this (the latest value always wins)
-  defaultLights: 0x04,    // lights byte used until driveLights() is called (0x04 = off)
-  // How brakeDrive() brakes motors A+B (not yet known which one works on the Move Hub):
-  //   "flag"   = drive frame with speed 0 and the brake bit 0x01 set in the lights byte
-  //   "motors" = StartPower 127 (LWP3 brake) on motors A and B
-  //   "both"   = both, flag frame first
-  brakeMethod: "both"
+  defaultLights: 0x04     // lights byte used until driveLights() is called (0x04 = off)
 };
 // Lights byte values (Blockly dropdown: use these names or the numbers)
 const DRIVE_LIGHTS = { front_rear: 0x00, brake: 0x01, off: 0x04, rear_brake: 0x05 };
@@ -3813,23 +3808,17 @@ export class LegoLPF2 {
   }
 
   /**
-   * Really brake the drive motors A+B (instead of coasting). The steering is left as it is.
-   * The brake is released by the next drive() call. Method: LPF2_DRIVE.brakeMethod ("flag", "motors" or "both").
+   * Really brake the drive motors A+B (instead of coasting): a drive frame with speed 0 and the brake bit (0x01)
+   * set in the lights byte. This also lights the brake lights. The steering is left as it is.
+   * The brake is released by the next drive() call. (StartPower 127 on A/B does NOT brake on this hub: tested.)
    */
   async brakeDrive() {
     if (this.hubType !== 0x84) throw new Error("brakeDrive: only for the Technic Move Hub");
     const d = this._driveState();
-    const method = LPF2_DRIVE.brakeMethod;
     d.speed = 0;
     d.used = true;
-    d.brake = (method === "flag" || method === "both");
-    await this._driveFlush();
-    if (method === "motors" || method === "both") {
-      for (const key of ["A", "B"]) {
-        const port = this.userPortMap?.[key];
-        if (port != null) await this.motorStop(port, 1);      // StartPower 127 = brake
-      }
-    }
+    d.brake = true;
+    return this._driveFlush();
   }
 
   /** Car lights: 0 / "front_rear" = front+rear on, 1 / "brake" = front+rear on braking, 4 / "off" = off, 5 / "rear_brake" = rear on braking. */
