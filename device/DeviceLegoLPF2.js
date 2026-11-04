@@ -89,7 +89,12 @@ const LPF2_DRIVE = {
   steerScale: 1,          // steering = input * steerScale. 1 = the raw -100..100 used by move-hub.site.
                           // Another community driver reports the mechanical end stops at +-70: if the steering creaks at full lock, use 0.7.
   minIntervalMs: 40,      // never send drive frames faster than this (the latest value always wins)
-  defaultLights: 0x04     // lights byte used until driveLights() is called (0x04 = off)
+  defaultLights: 0x04,    // lights byte used until driveLights() is called (0x04 = off)
+  // How brakeDrive() brakes motors A+B (not yet known which one works on the Move Hub):
+  //   "flag"   = drive frame with speed 0 and the brake bit 0x01 set in the lights byte
+  //   "motors" = StartPower 127 (LWP3 brake) on motors A and B
+  //   "both"   = both, flag frame first
+  brakeMethod: "both"
 };
 // Lights byte values (Blockly dropdown: use these names or the numbers)
 const DRIVE_LIGHTS = { front_rear: 0x00, brake: 0x01, off: 0x04, rear_brake: 0x05 };
@@ -3744,14 +3749,14 @@ export class LegoLPF2 {
 
   // ---------------- Technic Move Hub: car drive channel (port 0x36) ----------------
   _driveState() {
-    return (this._drive ||= { speed: 0, steer: 0, lights: LPF2_DRIVE.defaultLights, pending: false, busy: null, used: false, warned: false });
+    return (this._drive ||= { speed: 0, steer: 0, lights: LPF2_DRIVE.defaultLights, pending: false, busy: null, used: false, warned: false, brake: false });
   }
 
   _driveFrame() {
     const d = this._driveState();
     const port = this.userPortMap?.DRIVEVM ?? LPF2_MOVEHUB.port;
     return new Uint8Array([0x0d, this.hubId || 0x00, 0x81, port, 0x11, 0x51, 0x00, 0x03, 0x00,
-      d.speed & 0xff, d.steer & 0xff, d.lights & 0xff, 0x00]);
+      d.speed & 0xff, d.steer & 0xff, (d.lights | (d.brake ? 0x01 : 0)) & 0xff, 0x00]);
   }
 
   // Latest-wins sender: if Blockly calls drive() faster than the link can take, only the newest values are sent.
@@ -3787,6 +3792,7 @@ export class LegoLPF2 {
     if (this.hubType !== 0x84) throw new Error("drive: only for the Technic Move Hub");
     const d = this._driveState();
     d.speed = this._driveNum(speed, "speed");
+    d.brake = false;                                  // any drive() releases the brake
     if (steer !== undefined) d.steer = Math.round(this._driveNum(steer, "steer") * LPF2_DRIVE.steerScale);
     if (d.steer !== 0 && !this._steerCalibrated && !d.warned) {
       d.warned = true;
@@ -3796,9 +3802,34 @@ export class LegoLPF2 {
     return this._driveFlush();
   }
 
-  /** Stop the drive motors and (by default) straighten the steering. Same as drive(0, 0). */
-  async stopDrive({ centerSteering = true } = {}) {
+  /** Stop the drive motors and (by default) straighten the steering. Same as drive(0, 0) = the motors coast.
+   *  stopDrive({ brake: true }) brakes them instead (see brakeDrive). */
+  async stopDrive({ centerSteering = true, brake = false } = {}) {
+    if (brake) {
+      if (centerSteering) this._driveState().steer = 0;
+      return this.brakeDrive();
+    }
     return this.drive(0, centerSteering ? 0 : undefined);
+  }
+
+  /**
+   * Really brake the drive motors A+B (instead of coasting). The steering is left as it is.
+   * The brake is released by the next drive() call. Method: LPF2_DRIVE.brakeMethod ("flag", "motors" or "both").
+   */
+  async brakeDrive() {
+    if (this.hubType !== 0x84) throw new Error("brakeDrive: only for the Technic Move Hub");
+    const d = this._driveState();
+    const method = LPF2_DRIVE.brakeMethod;
+    d.speed = 0;
+    d.used = true;
+    d.brake = (method === "flag" || method === "both");
+    await this._driveFlush();
+    if (method === "motors" || method === "both") {
+      for (const key of ["A", "B"]) {
+        const port = this.userPortMap?.[key];
+        if (port != null) await this.motorStop(port, 1);      // StartPower 127 = brake
+      }
+    }
   }
 
   /** Car lights: 0 / "front_rear" = front+rear on, 1 / "brake" = front+rear on braking, 4 / "off" = off, 5 / "rear_brake" = rear on braking. */
