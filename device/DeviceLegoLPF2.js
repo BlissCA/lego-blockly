@@ -82,6 +82,18 @@ const LPF2_MOVEHUB = {
   port: 0x36                        // drive virtual port (used if the port map has no DRIVEVM)
 };
 
+// Technic Move Hub: car-style drive channel (virtual port 0x36 = DRIVEVM): drives motors A+B together and steers with C.
+// 13-byte frame (move-hub.site): 0d 00 81 36 11 51 00 03 00 <speed> <steer> <lights> 00
+//   speed, steer = signed byte -100..100 ; lights = flags byte (see DRIVE_LIGHTS)
+const LPF2_DRIVE = {
+  steerScale: 1,          // steering = input * steerScale. 1 = the raw -100..100 used by move-hub.site.
+                          // Another community driver reports the mechanical end stops at +-70: if the steering creaks at full lock, use 0.7.
+  minIntervalMs: 40,      // never send drive frames faster than this (the latest value always wins)
+  defaultLights: 0x04     // lights byte used until driveLights() is called (0x04 = off)
+};
+// Lights byte values (Blockly dropdown: use these names or the numbers)
+const DRIVE_LIGHTS = { front_rear: 0x00, brake: 0x01, off: 0x04, rear_brake: 0x05 };
+
 // Brake modes
 const BRAKE_FLOAT = 0x00;
 const BRAKE_BRAKE = 0x7F;
@@ -1368,6 +1380,7 @@ export class LegoLPF2 {
 		await this._write(frame(0x10));
 		await _sleep(LPF2_MOVEHUB.initWaitMs);
 		await this._write(frame(0x08));
+		this._steerCalibrated = true;
 	}
 
 	/**
@@ -2175,6 +2188,7 @@ export class LegoLPF2 {
           if (p == null) continue;
           await this.char.writeValue(new Uint8Array([0x07, this.hubId || 0x00, MSG_PORT_OUTPUT_COMMAND, p & 0xFF, 0x10, SUBCMD_START_POWER, 0x00]));
         }
+        if (this._drive?.used) { this._drive.speed = 0; await this.char.writeValue(this._driveFrame()); }   // stop the drive channel too
         await this.char.writeValue(new Uint8Array([0x04, this.hubId || 0x00, 0x02, 0x02])); // Hub Action: Disconnect
         await new Promise(r => setTimeout(r, 150));
       } catch (err) {
@@ -3501,6 +3515,7 @@ export class LegoLPF2 {
 				this._sendMotorCommand(port, new Uint8Array([SUBCMD_START_POWER, 0x00]), { waitFbk: false })
 					.catch(() => {});
 			}
+			this._driveSafetyStop();
 			return;
 		}
 
@@ -3727,6 +3742,85 @@ export class LegoLPF2 {
     return clean;
   }
 
+  // ---------------- Technic Move Hub: car drive channel (port 0x36) ----------------
+  _driveState() {
+    return (this._drive ||= { speed: 0, steer: 0, lights: LPF2_DRIVE.defaultLights, pending: false, busy: null, used: false, warned: false });
+  }
+
+  _driveFrame() {
+    const d = this._driveState();
+    const port = this.userPortMap?.DRIVEVM ?? LPF2_MOVEHUB.port;
+    return new Uint8Array([0x0d, this.hubId || 0x00, 0x81, port, 0x11, 0x51, 0x00, 0x03, 0x00,
+      d.speed & 0xff, d.steer & 0xff, d.lights & 0xff, 0x00]);
+  }
+
+  // Latest-wins sender: if Blockly calls drive() faster than the link can take, only the newest values are sent.
+  _driveFlush() {
+    const d = this._driveState();
+    d.pending = true;
+    if (d.busy) return d.busy;
+    d.busy = (async () => {
+      try {
+        while (d.pending && this.char) {
+          d.pending = false;
+          await this._write(this._driveFrame());
+          if (d.pending) await _sleep(LPF2_DRIVE.minIntervalMs);
+        }
+      } finally { d.busy = null; }
+    })();
+    return d.busy;
+  }
+
+  _driveNum(v, what) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) throw new Error(`drive: ${what} must be a number`);
+    return Math.max(-100, Math.min(100, Math.round(n)));
+  }
+
+  /**
+   * Drive like a car (Technic Move Hub): speed -100..100 (motors A+B together, negative = reverse, 0 = stop),
+   * steer -100..100 (motor C, negative = left?, 0 = straight; check the direction on your model).
+   * If steer is omitted the steering is left where it is. The lights keep their last driveLights() setting.
+   * Steering needs calibrateSteering() once after connecting (the hub finds the end stops).
+   */
+  async drive(speed, steer) {
+    if (this.hubType !== 0x84) throw new Error("drive: only for the Technic Move Hub");
+    const d = this._driveState();
+    d.speed = this._driveNum(speed, "speed");
+    if (steer !== undefined) d.steer = Math.round(this._driveNum(steer, "steer") * LPF2_DRIVE.steerScale);
+    if (d.steer !== 0 && !this._steerCalibrated && !d.warned) {
+      d.warned = true;
+      console.warn("[LPF2] drive: steering is not calibrated yet. Call await dev.calibrateSteering() once after connecting.");
+    }
+    d.used = true;
+    return this._driveFlush();
+  }
+
+  /** Stop the drive motors and (by default) straighten the steering. Same as drive(0, 0). */
+  async stopDrive({ centerSteering = true } = {}) {
+    return this.drive(0, centerSteering ? 0 : undefined);
+  }
+
+  /** Car lights: 0 / "front_rear" = front+rear on, 1 / "brake" = front+rear on braking, 4 / "off" = off, 5 / "rear_brake" = rear on braking. */
+  async driveLights(mode) {
+    if (this.hubType !== 0x84) throw new Error("driveLights: only for the Technic Move Hub");
+    const key = typeof mode === "string" ? mode.trim().toLowerCase() : mode;
+    const value = typeof key === "string" && key in DRIVE_LIGHTS ? DRIVE_LIGHTS[key] : Number(key);
+    if (!Object.values(DRIVE_LIGHTS).includes(value)) throw new Error(`driveLights: unknown mode "${mode}" (use 0, 1, 4, 5 or ${Object.keys(DRIVE_LIGHTS).join(", ")})`);
+    const d = this._driveState();
+    d.lights = value;
+    d.used = true;
+    return this._driveFlush();
+  }
+
+  /** Safety stop used by stopAllMotors()/disconnect(): speed 0, steering and lights unchanged. Only if drive was ever used. */
+  _driveSafetyStop() {
+    const d = this._drive;
+    if (this.hubType !== 0x84 || !d?.used || !this.char) return;
+    d.speed = 0;
+    this._driveFlush().catch(() => {});
+  }
+
   // ---------------- Technic Move Hub: the 6 lights (port 0x35) ----------------
   // Frame (seen in move-hub.site's log): 09 00 81 <port> 11 51 00 <mask> <brightness>
   //   mask = one bit per light (bit0 = light 1 ... bit5 = light 6), brightness 0..100 (0x64).
@@ -3792,3 +3886,5 @@ export class LegoLPF2 {
 
 LegoLPF2.SENSOR = LPF2_SENSOR;
 LegoLPF2.MOVEHUB = LPF2_MOVEHUB;
+LegoLPF2.DRIVE = LPF2_DRIVE;
+LegoLPF2.DRIVE_LIGHTS = DRIVE_LIGHTS;
