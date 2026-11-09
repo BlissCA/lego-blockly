@@ -139,6 +139,34 @@ const dec = new TextDecoder();
 const hexOf = u8 => Array.from(u8, b => b.toString(16).padStart(2, "0")).join(" ");
 
 // Smallest possible program that uses the tunnel: used by testTunnel() to tell "tunnel problem" from "helper problem".
+// Program for probeProgram(): does things you can SEE and HEAR on the hub, so "did it run?" does not depend on notifications.
+const PROBE_PY = `import time
+print("probe: start")
+try:
+    from hub import light_matrix
+    light_matrix.set_pixel(0, 0, 100)
+    light_matrix.set_pixel(4, 4, 100)
+    light_matrix.set_pixel(2, 2, 100)
+    print("probe: matrix ok")
+except Exception as e:
+    print("probe: matrix err " + repr(e))
+try:
+    from hub import sound
+    sound.beep(880, 400, 100)
+    print("probe: beep ok")
+except Exception as e:
+    print("probe: beep err " + repr(e))
+try:
+    import hub
+    tun = hub.config["module_tunnel"]
+    tun.send(b"probe-tunnel")
+    print("probe: tunnel ok")
+except Exception as e:
+    print("probe: tunnel err " + repr(e))
+time.sleep(4)
+print("probe: end")
+`;
+
 const TUNNEL_TEST_PY = `import hub
 import time
 print("mini start")
@@ -620,7 +648,7 @@ export class LegoSpike3 {
    * Upload Python source into a slot. The hub only runs a file named "program.py", so that is the default name.
    * Flow (official examples): ClearSlot -> StartFileUpload -> TransferChunk... -> (optional) start.
    */
-  async uploadProgram(source, { slot = 0, name = "program.py", start = false } = {}) {
+  async uploadProgram(source, { slot = 0, name = "program.py", start = false, clear = true } = {}) {
     slot = this._slot(slot);
     if (!this.info) throw new Error("Not connected");
     let bytes = typeof source === "string" ? enc.encode(source) : Uint8Array.from(source);
@@ -631,7 +659,7 @@ export class LegoSpike3 {
     if (nameBytes.length > 31) throw new Error("File name too long (max 31 characters)");
 
     this.log(`Uploading ${name} (${bytes.length} bytes) to slot ${slot}...`);
-    await this.clearSlot(slot);
+    if (clear) await this.clearSlot(slot);
 
     const startMsg = new Uint8Array(1 + 32 + 1 + 4);
     startMsg[0] = MSG.START_FILE_REQ; startMsg.set(nameBytes, 1); startMsg[33] = slot;
@@ -708,6 +736,34 @@ export class LegoSpike3 {
   }
 
   // ---------------- Motor helper (resident MicroPython program) ----------------
+  /**
+   * Diagnostic for "the hub acknowledges the start request but nothing seems to run". Uploads a program that lights
+   * three pixels on the hub's matrix, beeps, prints to the console and sends one tunnel message, starts it, and reports
+   * what came back. WATCH AND LISTEN to the hub while it runs (about `seconds` s) and note what you see and hear.
+   * Options: slot; clear (false = skip ClearSlot before uploading); startDelayMs (pause between upload and start).
+   */
+  async probeProgram({ slot = SPIKE3.helperSlot, clear = true, startDelayMs = 0, seconds = 7 } = {}) {
+    if (this.programRunning) { try { await this.stopProgram(); await _sleep(300); } catch {} }
+    this.helperReady = false;
+    this.log(`Probe: slot ${slot}, clear=${clear}, startDelay=${startDelayMs} ms. Watch and listen to the hub now (3 pixels + a beep expected).`);
+    await this.uploadProgram(PROBE_PY, { slot, name: "program.py", clear });
+    if (startDelayMs) await _sleep(startDelayMs);
+    this._rxTrace = [];
+    await this.startProgram(slot);
+    await _sleep(seconds * 1000);
+    const trace = this.getRxTrace();
+    const report = {
+      slot, clear, startDelayMs,
+      flowNotification: trace.some(r => r.what.startsWith("program ")),
+      console: trace.filter(r => r.what.startsWith("console:")).map(r => r.what),
+      tunnel: trace.filter(r => r.what.startsWith("tunnel:")).map(r => r.what),
+      trace
+    };
+    try { await this.stopProgram(slot); } catch {}
+    this.log(`Probe result: flowNotification=${report.flowNotification}, console lines=${report.console.length}, tunnel messages=${report.tunnel.length}. Did the hub light pixels / beep?`);
+    return report;
+  }
+
   /**
    * Smallest end-to-end check of "upload program -> start it -> talk through the tunnel": uploads a tiny echo
    * program, starts it, waits for its hello, sends "ping" and waits for "echo:ping". Returns
@@ -893,3 +949,5 @@ export class LegoSpike3 {
 }
 
 LegoSpike3.CONFIG = SPIKE3;
+LegoSpike3.PROBE_PY = PROBE_PY;
+LegoSpike3.TUNNEL_TEST_PY = TUNNEL_TEST_PY;
