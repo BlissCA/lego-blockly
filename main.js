@@ -25,6 +25,7 @@ import "./device/DeviceLegoWeDo1.js";
 import "./device/DeviceLegoWeDo2.js";
 import "./device/DeviceLegoVLL.js";
 import "./device/DeviceLegoLPF2.js";
+import "./device/DeviceLegoSpike3.js";
 import "./device/DeviceLegoToyPad.js";
 import "./device/DeviceSBrick.js";
 import "./device/DeviceLegoPFIR.js";
@@ -980,9 +981,9 @@ document.getElementById("stopBtn").onclick = async () => {
         // WeDo 1.0: stop all motors
         await dev.stopMotor();
       } else if (dev.stopAllMotors) {
-        // LPF2: stop all motors
+        // LPF2/SPIKE: stop all motors
         await dev.stopAllMotors();
-        if (dev.name.startsWith("TechM")) dev.lightsOff(); // Technic Move Hub: turn off lights
+        if (dev.namePrefix==="TechM") dev.lightsOff(); // Technic Move Hub: turn off lights
       } else if (dev.piezoPlay) {
         // WeDo 2.0: stop all motors
         await dev.motorStop(1);
@@ -1098,6 +1099,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
 
     case "LPF2":
       dev = await window.deviceManager.connectLegoLPF2();   // your unified LPF2 class
+      break;
+
+    case "SPIKE":
+      dev = await window.deviceManager.connectLegoSpike3();   // your unified SPIKE class
       break;
 
     case "ToyPad":

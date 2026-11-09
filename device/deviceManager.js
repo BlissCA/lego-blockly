@@ -10,6 +10,7 @@ import { LegoWeDo1 } from './DeviceLegoWeDo1.js';
 import { LegoWeDo2 } from './DeviceLegoWeDo2.js';
 import { LegoVLL } from './DeviceLegoVLL.js';
 import { LegoLPF2 } from './DeviceLegoLPF2.js';
+import { LegoSpike3 } from './DeviceLegoSpike3.js';
 import { LegoToyPad } from './DeviceLegoToyPad.js';
 import { SBrick } from './DeviceSBrick.js';
 import { LegoPFIR } from './DeviceLegoPFIR.js';
@@ -390,6 +391,26 @@ export class DeviceManager {
 
     } catch (err) {
       console.warn("Lego LPF2 Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+
+  // -------------------------
+  // Connect LEGO SPIKE 3
+  // -------------------------
+
+  async connectLegoSpike3() {
+    const dev = new LegoSpike3(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, SPIKE logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("Lego SPIKE Connection failed:", err);
       await dev.disconnect();
       this._freeName(dev.name);
       return null;

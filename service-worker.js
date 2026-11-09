@@ -32,6 +32,8 @@ const ASSETS = [
   "./device/DeviceLegoWeDo1.js",
   "./device/DeviceLegoVLL.js",
   "./device/DeviceLegoLPF2.js",
+  "./device/DeviceLegoSpike3.js",
+  "./device/SpikeMotorHelper.js",
   "./device/DeviceLegoToyPad.js",
   "./device/DeviceSBrick.js",
   "./device/DeviceLegoPFIR.js",

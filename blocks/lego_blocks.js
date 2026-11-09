@@ -843,7 +843,7 @@ function getLPF2Dropdown() {
 // LPF2 Technic Move devices only
 function getTechnicMoveDropdown() {
   const devices = window.deviceManager?.devices || [];
-  const list = devices.filter(d => d.name.startsWith("TechM"));
+  const list = devices.filter(d => d.namePrefix==="TechM");
 
   return list.length
     ? list.map(d => [d.name, d.name])
