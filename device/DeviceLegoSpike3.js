@@ -36,7 +36,8 @@ const MSG = {
 export const SPIKE3_STOP = { coast: 0, brake: 1, hold: 2, continue: 3, smartcoast: 4, smartbrake: 5, default: 0xFF };
 export const SPIKE3_DIR = { cw: 0, clockwise: 0, ccw: 1, counterclockwise: 1, shortest: 2, longest: 3 };
 const COLOR_NAMES = { 0: "black", 1: "magenta", 2: "purple", 3: "blue", 4: "azure", 5: "turquoise", 6: "green", 7: "yellow", 8: "orange", 9: "red", 10: "white", "-1": "none" };
-const MOTOR_TYPES = { 0x30: "Medium Motor", 0x31: "Large Motor", 0x41: "Small Motor" };
+// 0x30/0x31/0x41 are in LEGO's docs. 0x4B (LPF2 id 75) was seen on a Robot Inventor hub; both names come from the LPF2 device list, 0x4C is by analogy
+const MOTOR_TYPES = { 0x30: "Medium Motor", 0x31: "Large Motor", 0x41: "Small Motor", 0x4B: "Medium Angular Motor", 0x4C: "Large Angular Motor" };
 
 const SPIKE3 = {
   slots: 20,
@@ -490,15 +491,28 @@ export class LegoSpike3 {
     const now = performance.now();
     let o = 3, aligned = true;
     const seen = (port, kind) => { this._seen[port] = now; this.portDevice[port] = kind; };
-    // sizes from the protocol docs; sub-messages are not self-describing, so one wrong size misreads everything after it
-    const LEN = { 0x00: 2, 0x01: 21, 0x02: 26, 0x0A: 12, 0x0B: 4, 0x0C: 9, 0x0D: 4, 0x0E: 11 };
+    // Sub-messages are not self-describing, so one wrong size misreads everything after it. Sizes follow LEGO's docs,
+    // except the colour sensor: the docs say 9 bytes but Hub OS 1.8.149 sends 10 (an extra byte after the colour,
+    // most likely the reflected-light value). Both are accepted; the length that lines up with the next message wins.
+    const LENS = { 0x00: [2], 0x01: [21], 0x02: [26], 0x0A: [12], 0x0B: [4], 0x0C: [10, 9], 0x0D: [4], 0x0E: [11] };
+    const headerOk = p => {
+      const t = msg[p], l = LENS[t];
+      if (!l || p + Math.min(...l) > end) return false;
+      if (t >= 0x0A && msg[p + 1] > 5) return false;                          // port A..F
+      if (t === 0x01 && (msg[p + 1] > 5 || msg[p + 2] > 5)) return false;     // hub faces
+      if (t === 0x00 && msg[p + 1] > 100) return false;                       // battery %
+      return true;
+    };
     while (o < end) {
+      if (!headerOk(o)) { aligned = false; break; }
       const t = msg[o];
-      const len = LEN[t];
-      const portByte = (t >= 0x0A && t <= 0x0E) ? msg[o + 1] : 0;
-      if (len === undefined || o + len > end || portByte > 5 || (t === 0x01 && (msg[o + 1] > 5 || msg[o + 2] > 5))) { aligned = false; break; }
+      // only the colour message has two possible sizes and needs a look-ahead; the others are accepted as soon as they fit
+      const cands = LENS[t];
+      const len = cands.length === 1 ? (o + cands[0] <= end ? cands[0] : undefined)
+                                     : cands.find(l => o + l <= end && (o + l === end || headerOk(o + l)));
+      if (len === undefined) { aligned = false; break; }
       switch (t) {
-        case 0x00: this.battery = msg[o + 1]; o += 2; break;
+        case 0x00: this.battery = msg[o + 1]; break;
         case 0x01:
           this.imu = {
             up: msg[o + 1], yawFace: msg[o + 2],
@@ -506,22 +520,24 @@ export class LegoSpike3 {
             acc: [dv.getInt16(o + 9, true), dv.getInt16(o + 11, true), dv.getInt16(o + 13, true)],
             gyro: [dv.getInt16(o + 15, true), dv.getInt16(o + 17, true), dv.getInt16(o + 19, true)]
           };
-          o += 21; break;
-        case 0x02: this.matrix5x5 = Array.from(msg.slice(o + 1, o + 26)); o += 26; break;
+          break;
+        case 0x02: this.matrix5x5 = Array.from(msg.slice(o + 1, o + 26)); break;
         case 0x0A: {
           const port = msg[o + 1];
           this.motors[port] = { deviceType: msg[o + 2], absPos: dv.getInt16(o + 3, true), power: dv.getInt16(o + 5, true), speed: dv.getInt8(o + 7), pos: dv.getInt32(o + 8, true) };
-          seen(port, "motor"); o += 12; break;
+          seen(port, "motor"); break;
         }
-        case 0x0B: { const port = msg[o + 1]; this.forces[port] = { value: msg[o + 2], pressed: msg[o + 3] === 1 }; seen(port, "force"); o += 4; break; }
+        case 0x0B: { const port = msg[o + 1]; this.forces[port] = { value: msg[o + 2], pressed: msg[o + 3] === 1 }; seen(port, "force"); break; }
         case 0x0C: {
           const port = msg[o + 1];
-          this.colors[port] = { color: dv.getInt8(o + 2), r: dv.getUint16(o + 3, true), g: dv.getUint16(o + 5, true), b: dv.getUint16(o + 7, true) };
-          seen(port, "color"); o += 9; break;
+          const k = len === 10 ? 1 : 0;      // 10-byte layout: type, port, color, reflection, r, g, b
+          this.colors[port] = { color: dv.getInt8(o + 2), reflection: k ? msg[o + 3] : null, r: dv.getUint16(o + 3 + k, true), g: dv.getUint16(o + 5 + k, true), b: dv.getUint16(o + 7 + k, true) };
+          seen(port, "color"); break;
         }
-        case 0x0D: { const port = msg[o + 1]; this.distances[port] = dv.getInt16(o + 2, true); seen(port, "distance"); o += 4; break; }
-        case 0x0E: { const port = msg[o + 1]; this.matrices3x3[port] = Array.from(msg.slice(o + 2, o + 11)); seen(port, "matrix3x3"); o += 11; break; }
+        case 0x0D: { const port = msg[o + 1]; this.distances[port] = dv.getInt16(o + 2, true); seen(port, "distance"); break; }
+        case 0x0E: { const port = msg[o + 1]; this.matrices3x3[port] = Array.from(msg.slice(o + 2, o + 11)); seen(port, "matrix3x3"); break; }
       }
+      o += len;
     }
     if (!aligned) {
       this.parseWarnings++;
@@ -566,6 +582,8 @@ export class LegoSpike3 {
 
   async getColor(portName) { const p = this._resolvePort(portName); return (await this._value(this.colors, p, "Color")).color; }
   async getColorName(portName) { return COLOR_NAMES[await this.getColor(portName)] ?? "unknown"; }
+  /** Extra byte the colour sensor reports on Hub OS 1.8.149 (undocumented, most likely reflected light 0..100). Unverified. */
+  async getReflection(portName) { const c = await this._value(this.colors, this._resolvePort(portName), "Color"); if (c.reflection == null) throw new Error("This hub does not report a reflection value"); return c.reflection; }
   async getColorRGB(portName) { const c = await this._value(this.colors, this._resolvePort(portName), "Color"); return [c.r, c.g, c.b]; }
   /** distance in millimetres (40..2000), -1 = nothing detected */
   async getDistance(portName) { return this._value(this.distances, this._resolvePort(portName), "Distance"); }
