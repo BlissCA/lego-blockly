@@ -42,6 +42,7 @@ const MOTOR_TYPES = { 0x30: "Medium Motor", 0x31: "Large Motor", 0x41: "Small Mo
 const SPIKE3 = {
   slots: 20,
   helperSlot: 19,            // slot used by uploadMotorHelper() (keeps slot 0 free for your own programs)
+  defaultAccel: 10000,       // deg/s2 for motor commands (LEGO's own default is 1000, which feels sluggish); pass accel/decel per call to override
   startNameLayout: "nul",   // "nul" (name + 0x00, like the VS Code extension) or "fixed32" (LEGO docs)
   notifyIntervalMs: 50,      // DeviceNotification period requested after connecting
   requestTimeoutMs: 4000,
@@ -843,7 +844,7 @@ export class LegoSpike3 {
     const c = this._calls.get(id);
     if (!c) { if (f[1] === "err") this.log("Helper error: " + f.slice(2).join(",")); return; }
     if (f[1] === "ok") { if (!c.done) this._finishCall(id, c, f.slice(2).join(",")); }
-    else if (f[1] === "done") { this._finishCall(id, c, Number(f[3])); }
+    else if (f[1] === "done") { const n = Number(f[3]); this._finishCall(id, c, Number.isFinite(n) ? n : (f[3] === "None" || f[3] === undefined ? 0 : f[3])); }
     else if (f[1] === "err") { clearTimeout(c.timer); this._calls.delete(id); c.reject(new Error("Hub: " + f.slice(2).join(","))); }
   }
   _finishCall(id, c, value) { clearTimeout(c.timer); this._calls.delete(id); c.resolve(value); }
@@ -898,35 +899,35 @@ export class LegoSpike3 {
     return this._helperSend(`pw,${p},${this._int(Number(power) * 100, "power", -10000, 10000)}`);
   }
 
-  /** Regulated speed (keeps running). opts: { unit: "pct"|"dps", accel (deg/s2, default 1000), wait } */
-  motorSpeed(port, speed, { unit = "pct", accel = 1000, wait = false } = {}) {
+  /** Regulated speed (keeps running). opts: { unit: "pct"|"dps", accel (deg/s2, default CONFIG.defaultAccel = 10000), wait } */
+  motorSpeed(port, speed, { unit = "pct", accel = SPIKE3.defaultAccel, wait = false } = {}) {
     const p = this._portName(this._resolvePort(port));
     return this._helperSend(`sp,${p},${this._dps(speed, unit)},${this._int(accel, "accel", 1, 100000)}`, { wait: wait ? "ok" : false });
   }
 
-  /** Run for a number of degrees. Resolves when done (opts.wait=false: returns right away). Status code of the hub is returned. */
-  motorAngle(port, degrees, speed, { stop = "brake", accel = 1000, decel = 1000, unit = "pct", wait = true } = {}) {
+  /** Run for a number of degrees. speed defaults to 50 %. Resolves when done (opts.wait=false: returns right away). Status code of the hub is returned. */
+  motorAngle(port, degrees, speed = 50, { stop = "brake", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rd,${p},${this._int(degrees, "degrees", -2147483648, 2147483647)},${this._dps(speed, unit)},${this._stop(stop)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Run for a time in ms. */
-  motorTime(port, ms, speed, { stop = "brake", accel = 1000, decel = 1000, unit = "pct", wait = true } = {}) {
+  motorTime(port, ms, speed = 50, { stop = "brake", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rt,${p},${this._int(ms, "time", 0, 2147483647)},${this._dps(speed, unit)},${this._stop(stop)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Go to an ABSOLUTE position (-180..179 degrees, the motor's own zero mark). direction: shortest | longest | cw | ccw. */
-  motorGoto(port, position, speed, { direction = "shortest", stop = "hold", accel = 1000, decel = 1000, unit = "pct", wait = true } = {}) {
+  motorGoto(port, position, speed = 50, { direction = "shortest", stop = "hold", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `ra,${p},${this._int(position, "position", -360, 359)},${this._dps(Math.abs(Number(speed)), unit)},${this._dir(direction)},${this._stop(stop, SPIKE3_STOP.hold)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Go to a position on the RELATIVE counter (see getRot / resetPosition). */
-  motorGotoRelative(port, position, speed, { stop = "hold", accel = 1000, decel = 1000, unit = "pct", wait = true } = {}) {
+  motorGotoRelative(port, position, speed = 50, { stop = "hold", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rr,${p},${this._int(position, "position", -2147483648, 2147483647)},${this._dps(Math.abs(Number(speed)), unit)},${this._stop(stop, SPIKE3_STOP.hold)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
