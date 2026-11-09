@@ -1,4 +1,4 @@
-// DeviceLegoSpike3.js
+// DeviceSpike3.js
 // LEGO SPIKE Prime / Robot Inventor 88016 driver for Hub OS 3.x (SPIKE App 3 BLE protocol, GATT service fd02).
 // Protocol reference: https://lego.github.io/spike-prime-docs/
 //
@@ -135,6 +135,21 @@ function spikeBaseName(bleName, fallback) {
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+const hexOf = u8 => Array.from(u8, b => b.toString(16).padStart(2, "0")).join(" ");
+
+// Smallest possible program that uses the tunnel: used by testTunnel() to tell "tunnel problem" from "helper problem".
+const TUNNEL_TEST_PY = `import hub
+import time
+print("mini start")
+tun = hub.config["module_tunnel"]
+def cb(d):
+    tun.send(b"echo:" + bytes(d))
+tun.callback(cb)
+tun.send(b"mini-ready")
+print("mini ready")
+while True:
+    time.sleep_ms(50)
+`;
 
 export class LegoSpike3 {
   constructor(name, manager) {
@@ -172,6 +187,12 @@ export class LegoSpike3 {
     this._tunnelListeners = new Set();
     this._consoleListeners = new Set();
     this._lastTunnel = null;
+
+    // diagnostics
+    this._rxTrace = [];               // last 60 messages from the hub other than DeviceNotification
+    this._notifTap = null;
+    this.parseWarnings = 0;           // DeviceNotifications whose layout did not match the documentation
+    this._warnedLayout = false;
 
     // transport
     this._queue = Promise.resolve();
@@ -358,14 +379,42 @@ export class LegoSpike3 {
     try { msg = spikeUnpack(frame); } catch (e) { this.log("Bad frame: " + (e?.message || e)); return; }
     if (!msg.length) return;
     if (SPIKE3.debug.traffic && msg[0] !== MSG.DEVICE_NOTIF) console.log("[SPIKE3] RX", Array.from(msg).map(b => b.toString(16).padStart(2, "0")).join(" "));
-    this._handleMessage(msg);
+    // never let an exception escape into the BLE event handler
+    try { this._handleMessage(msg); }
+    catch (e) { this.log(`Error while handling message 0x${msg[0].toString(16)}: ${e?.message || e}`); }
+  }
+
+  _trace(msg) {
+    const t = msg[0];
+    let what;
+    if (t === MSG.CONSOLE) { let end = msg.indexOf(0, 1); if (end < 0) end = msg.length; what = "console: " + dec.decode(msg.slice(1, end)).trim(); }
+    else if (t === MSG.TUNNEL || t === MSG.TUNNEL_ALT) what = "tunnel: " + dec.decode(msg.slice(3));
+    else if (t === MSG.FLOW_NOTIF) what = "program " + (msg[1] === 0 ? "started" : "stopped");
+    else what = "hex " + hexOf(msg.slice(0, 40));
+    this._rxTrace.push({ t: Math.round(performance.now()), type: "0x" + t.toString(16), what });
+    if (this._rxTrace.length > 60) this._rxTrace.shift();
+  }
+  /** Last messages received from the hub (console output, tunnel, program start/stop, responses). */
+  getRxTrace() { return this._rxTrace.map(r => ({ ...r })); }
+
+  /** Collect the first `count` raw DeviceNotification messages (hex) arriving within `ms`. Paste the result when a sensor is not recognised. */
+  captureNotifications({ ms = 1500, count = 3 } = {}) {
+    return new Promise(resolve => {
+      const out = [];
+      const timer = setTimeout(() => finish(), ms);
+      const finish = () => { this._notifTap = null; clearTimeout(timer); resolve(out); };
+      this._notifTap = msg => { out.push(hexOf(msg)); if (out.length >= count) finish(); };
+    });
   }
 
   _handleMessage(msg) {
     const type = msg[0];
     const dv = new DataView(msg.buffer, msg.byteOffset, msg.byteLength);
+    if (type !== MSG.DEVICE_NOTIF) this._trace(msg);
     switch (type) {
-      case MSG.DEVICE_NOTIF: this._parseDeviceNotification(msg); return;
+      case MSG.DEVICE_NOTIF:
+        if (this._notifTap) this._notifTap(msg);
+        this._parseDeviceNotification(msg); return;
       case MSG.TUNNEL: case MSG.TUNNEL_ALT: {
         const size = msg.length >= 3 ? dv.getUint16(1, true) : 0;
         this._onTunnel(msg.slice(3, 3 + size));
@@ -434,14 +483,20 @@ export class LegoSpike3 {
 
   // ---------------- Device notifications (inputs) ----------------
   _parseDeviceNotification(msg) {
+    if (msg.length < 3) return;
     const dv = new DataView(msg.buffer, msg.byteOffset, msg.byteLength);
     const size = dv.getUint16(1, true);
     const end = Math.min(msg.length, 3 + size);
     const now = performance.now();
-    let o = 3;
+    let o = 3, aligned = true;
     const seen = (port, kind) => { this._seen[port] = now; this.portDevice[port] = kind; };
+    // sizes from the protocol docs; sub-messages are not self-describing, so one wrong size misreads everything after it
+    const LEN = { 0x00: 2, 0x01: 21, 0x02: 26, 0x0A: 12, 0x0B: 4, 0x0C: 9, 0x0D: 4, 0x0E: 11 };
     while (o < end) {
       const t = msg[o];
+      const len = LEN[t];
+      const portByte = (t >= 0x0A && t <= 0x0E) ? msg[o + 1] : 0;
+      if (len === undefined || o + len > end || portByte > 5 || (t === 0x01 && (msg[o + 1] > 5 || msg[o + 2] > 5))) { aligned = false; break; }
       switch (t) {
         case 0x00: this.battery = msg[o + 1]; o += 2; break;
         case 0x01:
@@ -466,7 +521,13 @@ export class LegoSpike3 {
         }
         case 0x0D: { const port = msg[o + 1]; this.distances[port] = dv.getInt16(o + 2, true); seen(port, "distance"); o += 4; break; }
         case 0x0E: { const port = msg[o + 1]; this.matrices3x3[port] = Array.from(msg.slice(o + 2, o + 11)); seen(port, "matrix3x3"); o += 11; break; }
-        default: o = end; break;   // unknown device message: lengths are not self-describing, stop here
+      }
+    }
+    if (!aligned) {
+      this.parseWarnings++;
+      if (!this._warnedLayout) {
+        this._warnedLayout = true;
+        this.log(`Unexpected DeviceNotification layout at byte ${o} of ${end}; the rest of that notification was ignored. Raw: ${hexOf(msg.slice(0, end))}  (repeats are only counted in parseWarnings; use captureNotifications() to grab more)`);
       }
     }
     if (this._waiters.length) { const w = this._waiters; this._waiters = []; for (const f of w) f(); }
@@ -630,6 +691,31 @@ export class LegoSpike3 {
 
   // ---------------- Motor helper (resident MicroPython program) ----------------
   /**
+   * Smallest end-to-end check of "upload program -> start it -> talk through the tunnel": uploads a tiny echo
+   * program, starts it, waits for its hello, sends "ping" and waits for "echo:ping". Returns
+   * { slot, gotReady, gotEcho, trace }. If gotReady is false, paste the report: `trace` shows what the hub did.
+   */
+  async testTunnel({ slot = SPIKE3.helperSlot, timeoutMs = 6000 } = {}) {
+    if (this.programRunning) { try { await this.stopProgram(); await _sleep(300); } catch {} }
+    this.helperReady = false;
+    await this.uploadProgram(TUNNEL_TEST_PY, { slot, name: "program.py" });
+    this._rxTrace = [];
+    const hello = this.waitForTunnelMessage(t => t.startsWith("mini-ready"), timeoutMs);
+    await this.startProgram(slot);
+    const gotReady = !!(await hello);
+    let gotEcho = false;
+    if (gotReady) {
+      const echo = this.waitForTunnelMessage(t => t === "echo:ping", 3000);
+      await this.sendMessage("ping");
+      gotEcho = !!(await echo);
+    }
+    const trace = this.getRxTrace();
+    try { await this.stopProgram(slot); } catch {}
+    this.log(`Tunnel test: hello=${gotReady} echo=${gotEcho}`);
+    return { slot, gotReady, gotEcho, trace };
+  }
+
+  /**
    * Upload the motor helper into a slot and start it. Call it once in your Blockly flow before any motor block.
    * Replaces whatever program is in that slot (default slot 19).
    */
@@ -637,10 +723,16 @@ export class LegoSpike3 {
     if (this.programRunning) { try { await this.stopProgram(); await _sleep(300); } catch {} }
     await this.uploadProgram(SPIKE_MOTOR_HELPER_PY, { slot, name: "program.py" });
     if (!start) return { slot, started: false };
+    this._rxTrace = [];
     const ready = this.waitForTunnelMessage(/^0,rdy,/, SPIKE3.helperReadyTimeoutMs);
     await this.startProgram(slot);
     const text = await ready;
-    if (!text) throw new Error("The motor helper was started but did not answer. Check the hub console output (see the log) and the motor API on this Hub OS.");
+    if (!text) {
+      const seen = this.getRxTrace().map(r => `${r.type} ${r.what}`).join(" | ") || "nothing at all (no console output, no program start/stop notification)";
+      this.log("Motor helper start-up trace: " + seen);
+      throw new Error(`The motor helper did not answer within ${SPIKE3.helperReadyTimeoutMs} ms. What the hub sent meanwhile: ${seen}. ` +
+                      "Run  await dev.testTunnel()  to check the tunnel with a minimal program, and  await dev.stopProgram()  to stop the helper.");
+    }
     this.helperReady = true;
     this.helperVersion = Number(text.split(",")[2]);
     if (this.helperVersion !== SPIKE_MOTOR_HELPER_VERSION) this.log(`Helper version ${this.helperVersion} (driver expects ${SPIKE_MOTOR_HELPER_VERSION})`);
