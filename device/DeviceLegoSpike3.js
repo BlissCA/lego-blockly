@@ -42,6 +42,7 @@ const MOTOR_TYPES = { 0x30: "Medium Motor", 0x31: "Large Motor", 0x41: "Small Mo
 const SPIKE3 = {
   slots: 20,
   helperSlot: 19,            // slot used by uploadMotorHelper() (keeps slot 0 free for your own programs)
+  startNameLayout: "nul",   // "nul" (name + 0x00, like the VS Code extension) or "fixed32" (LEGO docs)
   notifyIntervalMs: 50,      // DeviceNotification period requested after connecting
   requestTimeoutMs: 4000,
   helperReadyTimeoutMs: 8000,
@@ -661,9 +662,14 @@ export class LegoSpike3 {
     this.log(`Uploading ${name} (${bytes.length} bytes) to slot ${slot}...`);
     if (clear) await this.clearSlot(slot);
 
-    const startMsg = new Uint8Array(1 + 32 + 1 + 4);
-    startMsg[0] = MSG.START_FILE_REQ; startMsg.set(nameBytes, 1); startMsg[33] = slot;
-    new DataView(startMsg.buffer).setUint32(34, crc32(bytes), true);
+    // Real hubs (Hub OS 1.8.149, and the working VS Code extension by PeterStaev) read the name as a NUL-terminated string:
+    // name, 0x00, slot, crc32. LEGO's docs show a fixed 32-byte name field; with that layout the hub reads the slot
+    // from the first padding byte (= 0) and the CRC from zeros. "nul" is the default, "fixed32" is the documented layout.
+    const fixed = SPIKE3.startNameLayout === "fixed32";
+    const nl = fixed ? 32 : nameBytes.length + 1;
+    const startMsg = new Uint8Array(1 + nl + 1 + 4);
+    startMsg[0] = MSG.START_FILE_REQ; startMsg.set(nameBytes, 1); startMsg[1 + nl] = slot;
+    new DataView(startMsg.buffer).setUint32(2 + nl, crc32(bytes), true);
     const sr = await this._request(startMsg, MSG.START_FILE_RES);
     if (sr[1] !== 0) throw new Error("The hub refused the upload (StartFileUpload not acknowledged)");
 
