@@ -3,23 +3,27 @@
 registerFieldColour();
 
 // Multi-line text field class, or null when the plugin (@blockly/field-multilineinput, see index.html) is not available.
-// Looks in every place the plugin may expose itself; never throws.
+// Looks in every place the plugin may expose itself; never throws. Checks hasItem() before getClass() because Blockly logs a
+// console warning for every lookup of something that is not registered. A found class is cached.
 function getMultilineFieldClass() {
+  if (typeof getMultilineFieldClass.cache === "function") return getMultilineFieldClass.cache;
+  const found = cls => (getMultilineFieldClass.cache = cls);
   try {
-    if (typeof Blockly.FieldMultilineInput === "function") return Blockly.FieldMultilineInput;
-    const reg = () => Blockly.registry?.getClass?.(Blockly.registry.Type.FIELD, "field_multilinetext", false);
-    let cls = reg();
-    if (typeof cls === "function") return cls;
+    if (typeof Blockly.FieldMultilineInput === "function") return found(Blockly.FieldMultilineInput);
+    const FIELD = Blockly.registry?.Type?.FIELD;
+    const fromRegistry = () => (Blockly.registry?.hasItem?.(FIELD, "field_multilinetext") ? Blockly.registry.getClass(FIELD, "field_multilinetext", false) : null);
+    let cls = fromRegistry();
+    if (typeof cls === "function") return found(cls);
     // the plugin's UMD global: a namespace object (BlocklyFieldMultilineinput...) or a bare registerFieldMultilineInput function
     if (typeof registerFieldMultilineInput === "function") registerFieldMultilineInput();
     for (const k of Object.keys(window)) {
       if (!/^BlocklyField.*Multiline/i.test(k)) continue;
       const m = window[k];
       if (typeof m?.registerFieldMultilineInput === "function") m.registerFieldMultilineInput();
-      if (typeof m?.FieldMultilineInput === "function") return m.FieldMultilineInput;
+      if (typeof m?.FieldMultilineInput === "function") return found(m.FieldMultilineInput);
     }
-    cls = reg();
-    if (typeof cls === "function") return cls;
+    cls = fromRegistry();
+    if (typeof cls === "function") return found(cls);
   } catch (e) { console.warn("Multiline text field not available:", e); }
   return null;
 }
