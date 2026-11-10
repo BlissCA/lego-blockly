@@ -4725,6 +4725,17 @@ window.addEventListener("load", () => {
     }
   };
 
+  // Generic multi-line text (Text category). Same field as spike_code; outputs a normal String, so every text block accepts it.
+  Blockly.Blocks['lego_text_multiline'] = {
+    init: function () {
+      const FieldClass = getMultilineFieldClass() || Blockly.FieldTextInput;
+      this.appendDummyInput().appendField(new FieldClass(""), "TEXT");
+      this.setOutput(true, "String");
+      this.setStyle("text_blocks");
+      this.setTooltip("Multi-line text: press Enter inside it for a new line. Works with all the text blocks.");
+    }
+  };
+
   // ---------------- WeDo 2.0 BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {

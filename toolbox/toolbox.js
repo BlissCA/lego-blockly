@@ -79,6 +79,7 @@ const toolbox = {
       "categorystyle": "text_category",
       "contents": [
         { "kind": "block", "type": "text" },
+        { "kind": "block", "type": "lego_text_multiline" },
         { "kind": "block", "type": "text_join" },
         { "kind": "block", "type": "text_append" },
         { "kind": "block", "type": "text_length" },

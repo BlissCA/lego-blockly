@@ -36,4 +36,9 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 - Sensor values (motors, colour, distance, force, tilt, battery) come from the hub's DeviceNotification stream, no program needed. The colour message is 10 bytes on this firmware (the docs say 9).
 - Programs: StartFileUpload must be `name + 0x00 + slot + crc` (NOT a padded 32-byte name, or the hub silently stores it wrongly). The file name is `program.py`.
 - Motor/matrix/beep output needs the resident MicroPython helper (`SpikeMotorHelper.js`, uploaded on demand with the "Upload Motor Helper" block, default slot 19). It talks over the message tunnel (`hub.config["module_tunnel"]`, undocumented by LEGO). Replies look like `id,ok` / `id,done,X,(0,)` / `id,err,…`. Bump `SPIKE_MOTOR_HELPER_VERSION` and the `VER` in the Python when the helper changes; users must re-upload it.
-- Verified on hardware: connect, notifications, upload + start, tunnel both ways, motorSpeed / motorStop / motorAngle. Written from memory and not yet verified on the hub: matrix text/pixel/image, hub light, goto, time, relative goto, power, watchdog, colour reflection byte.
+- Verified on hardware (owner's tests): connect, notifications, upload + start, tunnel both ways, motor blocks, LED matrix, beep, hub light, set hub name, start/stop slot programs, upload program, message send/read/wait, most input blocks. Not yet verified: force sensor (owner has none), colour 'reflection' (an undocumented extra byte in the colour message), watchdog.
+
+## Blockly 12.4.1 gotchas (loaded from unpkg in index.html)
+- The core build has NO `text_multiline` block and no `Blockly.FieldMultilineInput`. Using `text_multiline` in the toolbox crashes every flyout. Multi-line text comes from the plugin `@blockly/field-multilineinput@6.0.2` (script tag in index.html) through the custom `spike_code` block (`getMultilineFieldClass()` in lego_blocks.js, with a safe single-line fallback).
+- `Blockly.registry.getClass()` logs a console warning for anything not registered: check `hasItem()` first.
+- Never put a block type in the toolbox before checking it is defined: one unknown type empties the whole toolbox.

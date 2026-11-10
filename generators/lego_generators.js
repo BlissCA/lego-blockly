@@ -2465,6 +2465,11 @@ javascriptGenerator.forBlock["spike_colors"] = function (block) {
   return [code, javascriptGenerator.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["lego_text_multiline"] = function (block) {
+  const text = block.getFieldValue("TEXT") || "";
+  return [JSON.stringify(text), javascriptGenerator.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["spike_code"] = function (block) {
   const code = block.getFieldValue("CODE") || "";
   return [JSON.stringify(code), javascriptGenerator.ORDER_ATOMIC];
