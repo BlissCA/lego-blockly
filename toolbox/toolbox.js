@@ -79,7 +79,6 @@ const toolbox = {
       "categorystyle": "text_category",
       "contents": [
         { "kind": "block", "type": "text" },
-        { "kind": "block", "type": "text_multiline" },
         { "kind": "block", "type": "text_join" },
         { "kind": "block", "type": "text_append" },
         { "kind": "block", "type": "text_length" },
@@ -2896,13 +2895,17 @@ const toolbox = {
                 },
                 "CODE": {
                   "shadow": {
-                    "type": "text_multiline",
+                    "type": "spike_code",
                     "fields": {
-                      "TEXT": "print('Hello')"
+                      "CODE": "print('Hello')"
                     }
                   }
                 }
               }
+            },
+            {
+              "kind": "block",
+              "type": "spike_code"
             },
             {
               "kind": "block",

@@ -2465,6 +2465,11 @@ javascriptGenerator.forBlock["spike_colors"] = function (block) {
   return [code, javascriptGenerator.ORDER_ATOMIC];
 };
 
+javascriptGenerator.forBlock["spike_code"] = function (block) {
+  const code = block.getFieldValue("CODE") || "";
+  return [JSON.stringify(code), javascriptGenerator.ORDER_ATOMIC];
+};
+
 javascriptGenerator.forBlock["spike_get_color"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';

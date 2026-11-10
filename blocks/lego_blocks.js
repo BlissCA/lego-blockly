@@ -4687,6 +4687,18 @@ window.addEventListener("load", () => {
     }
   ]);
 
+  // Multi-line text for MicroPython code (the standard text block is single-line). Falls back to a single-line field if this
+  // Blockly build has no multi-line input, so a missing field type can never break the toolbox.
+  Blockly.Blocks['spike_code'] = {
+    init: function () {
+      const FieldClass = (typeof Blockly.FieldMultilineInput === "function") ? Blockly.FieldMultilineInput : Blockly.FieldTextInput;
+      this.appendDummyInput().appendField(new FieldClass("print('Hello')"), "CODE");
+      this.setOutput(true, "String");
+      this.setColour(200);
+      this.setTooltip("Multi-line text, meant for MicroPython code (keeps line breaks and indentation). Plug it into 'upload program'.");
+    }
+  };
+
   // ---------------- WeDo 2.0 BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {
