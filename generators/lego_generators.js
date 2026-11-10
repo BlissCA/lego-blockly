@@ -2433,6 +2433,569 @@ javascriptGenerator.forBlock["lpf2_sethubname"] = function (block) {
 
 
 
+// ---------------- SPIKE (LegoSpike3) GENERATORS ------------------
+
+javascriptGenerator.forBlock["spike_ports"] = function (block) {
+  const code = block.getFieldValue("SPIKEPORTS");
+  return [`"${code}"`, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_stopmode"] = function (block) {
+  const code = block.getFieldValue("SPIKESTOP");
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_direction"] = function (block) {
+  const code = block.getFieldValue("SPIKEDIR");
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_axis"] = function (block) {
+  const code = block.getFieldValue("SPIKEAXIS");
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_tiltaxis"] = function (block) {
+  const code = block.getFieldValue("SPIKETILT");
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_colors"] = function (block) {
+  const code = block.getFieldValue("SPIKECOLOR");
+  return [code, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["spike_get_color"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getColor(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_colorname"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getColorName(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_reflection"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getReflection(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_rgb"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getColorRGB(${port}))[${block.getFieldValue("CHANNEL")}]`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_distance"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getDistance(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_force"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getForce(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_force_pressed"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").isForcePressed(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_rot"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getRot(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_motor"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const fn = { ABS: "getAbsPos", SPEED: "getSpeed", POWER: "getPower" }[block.getFieldValue("QTY")] || "getAbsPos";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").${fn}(${port}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_is_attached"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const kind = block.getFieldValue("KIND");
+  return [
+    `deviceManager.getDeviceByName("${dev}").isAttached(${port}${kind === "ANY" ? "" : `, "${kind}"`})`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_tilt"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getAngle(${axis}))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_accel"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getIMU())[${axis}]`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_gyro"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const axis = javascriptGenerator.valueToCode(block, "AXIS", javascriptGenerator.ORDER_NONE) || "0";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getGyro())[${axis}]`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_get_battery"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").getBattery())`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_helper_upload"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const slot = javascriptGenerator.valueToCode(block, "SLOT", javascriptGenerator.ORDER_NONE) || "19";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.uploadMotorHelper({ slot: Number(${slot}) });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_helper_stop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopMotorHelper();
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_power"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const pwr = javascriptGenerator.valueToCode(block, "PWR", javascriptGenerator.ORDER_NONE) || "50";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorPower(${port},${pwr});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_speed"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorSpeed(${port},${speed});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_angle"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const angle = javascriptGenerator.valueToCode(block, "ANGLE", javascriptGenerator.ORDER_NONE) || "360";
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const stop = javascriptGenerator.valueToCode(block, "STOP", javascriptGenerator.ORDER_NONE) || "1";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorAngle(${port},${angle},${speed},{ stop: Number(${stop}), wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_time"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const time = javascriptGenerator.valueToCode(block, "TIME", javascriptGenerator.ORDER_NONE) || "1000";
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const stop = javascriptGenerator.valueToCode(block, "STOP", javascriptGenerator.ORDER_NONE) || "1";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorTime(${port},${time},${speed},{ stop: Number(${stop}), wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_goto"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const pos = javascriptGenerator.valueToCode(block, "POS", javascriptGenerator.ORDER_NONE) || "0";
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const dir = javascriptGenerator.valueToCode(block, "DIR", javascriptGenerator.ORDER_NONE) || "2";
+  const stop = javascriptGenerator.valueToCode(block, "STOP", javascriptGenerator.ORDER_NONE) || "2";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorGoto(${port},${pos},${speed},{ direction: Number(${dir}), stop: Number(${stop}), wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_gotorel"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const pos = javascriptGenerator.valueToCode(block, "POS", javascriptGenerator.ORDER_NONE) || "0";
+  const speed = javascriptGenerator.valueToCode(block, "SPEED", javascriptGenerator.ORDER_NONE) || "50";
+  const stop = javascriptGenerator.valueToCode(block, "STOP", javascriptGenerator.ORDER_NONE) || "2";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorGotoRelative(${port},${pos},${speed},{ stop: Number(${stop}), wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_stop"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const stop = javascriptGenerator.valueToCode(block, "STOP", javascriptGenerator.ORDER_NONE) || "1";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorStop(${port},Number(${stop}));
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_reset"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const port = javascriptGenerator.valueToCode(block, "PORT", javascriptGenerator.ORDER_NONE) || '"A"';
+  const count = javascriptGenerator.valueToCode(block, "COUNT", javascriptGenerator.ORDER_NONE) || "0";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.resetPosition(${port},${count});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_stopall"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopAllMotors();
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_accel"] = function (block) {
+  const dev   = block.getFieldValue("DEVICE");
+  const accel = javascriptGenerator.valueToCode(block, "ACCEL", javascriptGenerator.ORDER_NONE) || "10000";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.motorAccel = Math.max(1, Number(${accel}));
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_mot_watchdog"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "1000";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.motorWatchdog(${ms});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_matrix_pixel"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const x = javascriptGenerator.valueToCode(block, "X", javascriptGenerator.ORDER_NONE) || "2";
+  const y = javascriptGenerator.valueToCode(block, "Y", javascriptGenerator.ORDER_NONE) || "2";
+  const bright = javascriptGenerator.valueToCode(block, "BRIGHT", javascriptGenerator.ORDER_NONE) || "100";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.matrixPixel(${x},${y},${bright});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_matrix_clear"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.matrixClear();
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_matrix_image"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  const rows = [0, 1, 2, 3, 4].map(i => String(block.getFieldValue("ROW" + i) || "").padEnd(5, "0").slice(0, 5));
+  const values = rows.flatMap(r => r.split("").map(c => Math.round((parseInt(c, 10) || 0) * 100 / 9)));
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.matrixImage([${values.join(",")}]);
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_matrix_text"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const text = javascriptGenerator.valueToCode(block, "TEXT", javascriptGenerator.ORDER_NONE) || '"Hi"';
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.matrixText(String(${text}),{ wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_beep"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const freq = javascriptGenerator.valueToCode(block, "FREQ", javascriptGenerator.ORDER_NONE) || "880";
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "200";
+  const vol = javascriptGenerator.valueToCode(block, "VOL", javascriptGenerator.ORDER_NONE) || "50";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.beep(${freq},${ms},${vol},{ wait: ${block.getFieldValue("WAIT") === "TRUE"} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_hublight"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const color = javascriptGenerator.valueToCode(block, "COLOR", javascriptGenerator.ORDER_NONE) || "6";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.hubLight(${color});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_start_slot"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const slot = javascriptGenerator.valueToCode(block, "SLOT", javascriptGenerator.ORDER_NONE) || "0";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.startProgram(Number(${slot}));
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_stop_slot"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const slot = javascriptGenerator.valueToCode(block, "SLOT", javascriptGenerator.ORDER_NONE) || "0";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.stopProgram(Number(${slot}));
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_msg_send"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const msg = javascriptGenerator.valueToCode(block, "MSG", javascriptGenerator.ORDER_NONE) || '"Ping"';
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.sendMessage(String(${msg}));
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_msg_available"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `(deviceManager.getDeviceByName("${dev}").hasMessage())`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_msg_read"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `(deviceManager.getDeviceByName("${dev}").readMessage())`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_msg_wait"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const prefix = javascriptGenerator.valueToCode(block, "PREFIX", javascriptGenerator.ORDER_NONE) || '""';
+  const timeout = javascriptGenerator.valueToCode(block, "TIMEOUT", javascriptGenerator.ORDER_NONE) || "5";
+  return [
+    `(await deviceManager.getDeviceByName("${dev}").waitMessage(String(${prefix}), Number(${timeout}) * 1000))`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_msg_clear"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  dev.clearMessages();
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_sethubname"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const hubname = javascriptGenerator.valueToCode(block, "HUBNAME", javascriptGenerator.ORDER_NONE) || '"MySpike"';
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setHubName(${hubname});
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_upload_program"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const slot = javascriptGenerator.valueToCode(block, "SLOT", javascriptGenerator.ORDER_NONE) || "1";
+  const code = javascriptGenerator.valueToCode(block, "CODE", javascriptGenerator.ORDER_NONE) || '""';
+  const start = block.getFieldValue("START") === "TRUE";
+
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.uploadProgram(String(${code}), { slot: Number(${slot}), start: ${start} });
+}
+`;
+};
+
+javascriptGenerator.forBlock["spike_program_running"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `(deviceManager.getDeviceByName("${dev}").programRunning)`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_helper_ready"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  return [
+    `(deviceManager.getDeviceByName("${dev}").helperReady)`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
+javascriptGenerator.forBlock["spike_set_interval"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const ms = javascriptGenerator.valueToCode(block, "MS", javascriptGenerator.ORDER_NONE) || "50";
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await dev.setNotificationInterval(Number(${ms}));
+}
+`;
+};
+
+
 // ---------------- LEGO WeDo 2.0 GENERATORS ------------------
 
 // ---------------- WeDo 2.0 Ports ----------------

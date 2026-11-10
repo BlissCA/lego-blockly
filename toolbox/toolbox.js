@@ -2180,6 +2180,756 @@ const toolbox = {
       ]
     },
 
+    {
+      "kind": "category",
+      "name": "Spike",
+      "colour": 200,
+      "contents": [
+        {
+          "kind": "category",
+          "name": "Input",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "spike_get_color",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_colorname",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_reflection",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_rgb",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_distance",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_force",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_force_pressed",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_rot",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_motor",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_is_attached",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_tilt",
+              "inputs": {
+                "AXIS": {
+                  "shadow": {
+                    "type": "spike_tiltaxis",
+                    "fields": {
+                      "SPIKETILT": "0"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_accel",
+              "inputs": {
+                "AXIS": {
+                  "shadow": {
+                    "type": "spike_axis",
+                    "fields": {
+                      "SPIKEAXIS": "0"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_gyro",
+              "inputs": {
+                "AXIS": {
+                  "shadow": {
+                    "type": "spike_axis",
+                    "fields": {
+                      "SPIKEAXIS": "0"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_get_battery"
+            },
+            {
+              "kind": "block",
+              "type": "spike_colors"
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Output",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "spike_helper_upload",
+              "inputs": {
+                "SLOT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 19
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_helper_stop"
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_power",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "PWR": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_speed",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_angle",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "ANGLE": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 360
+                    }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                },
+                "STOP": {
+                  "shadow": {
+                    "type": "spike_stopmode",
+                    "fields": {
+                      "SPIKESTOP": "1"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_time",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "TIME": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 1000
+                    }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                },
+                "STOP": {
+                  "shadow": {
+                    "type": "spike_stopmode",
+                    "fields": {
+                      "SPIKESTOP": "1"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_goto",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "POS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                },
+                "DIR": {
+                  "shadow": {
+                    "type": "spike_direction",
+                    "fields": {
+                      "SPIKEDIR": "2"
+                    }
+                  }
+                },
+                "STOP": {
+                  "shadow": {
+                    "type": "spike_stopmode",
+                    "fields": {
+                      "SPIKESTOP": "2"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_gotorel",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "POS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                },
+                "SPEED": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                },
+                "STOP": {
+                  "shadow": {
+                    "type": "spike_stopmode",
+                    "fields": {
+                      "SPIKESTOP": "2"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_stop",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "STOP": {
+                  "shadow": {
+                    "type": "spike_stopmode",
+                    "fields": {
+                      "SPIKESTOP": "1"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_reset",
+              "inputs": {
+                "PORT": {
+                  "shadow": {
+                    "type": "spike_ports",
+                    "fields": {
+                      "SPIKEPORTS": "A"
+                    }
+                  }
+                },
+                "COUNT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_stopall"
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_accel",
+              "inputs": {
+                "ACCEL": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 10000
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_mot_watchdog",
+              "inputs": {
+                "MS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 1000
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_matrix_pixel",
+              "inputs": {
+                "X": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 2
+                    }
+                  }
+                },
+                "Y": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 2
+                    }
+                  }
+                },
+                "BRIGHT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 100
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_matrix_clear"
+            },
+            {
+              "kind": "block",
+              "type": "spike_matrix_image"
+            },
+            {
+              "kind": "block",
+              "type": "spike_matrix_text",
+              "inputs": {
+                "TEXT": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Hi"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_beep",
+              "inputs": {
+                "FREQ": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 880
+                    }
+                  }
+                },
+                "MS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 200
+                    }
+                  }
+                },
+                "VOL": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_hublight",
+              "inputs": {
+                "COLOR": {
+                  "shadow": {
+                    "type": "spike_colors",
+                    "fields": {
+                      "SPIKECOLOR": "6"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_start_slot",
+              "inputs": {
+                "SLOT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_stop_slot",
+              "inputs": {
+                "SLOT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Message",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "spike_msg_send",
+              "inputs": {
+                "MSG": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "Ping"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_msg_available"
+            },
+            {
+              "kind": "block",
+              "type": "spike_msg_read"
+            },
+            {
+              "kind": "block",
+              "type": "spike_msg_wait",
+              "inputs": {
+                "PREFIX": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": ""
+                    }
+                  }
+                },
+                "TIMEOUT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 5
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_msg_clear"
+            }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Misc",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "spike_sethubname",
+              "inputs": {
+                "HUBNAME": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "MySpike"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_upload_program",
+              "inputs": {
+                "SLOT": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 1
+                    }
+                  }
+                },
+                "CODE": {
+                  "shadow": {
+                    "type": "text",
+                    "fields": {
+                      "TEXT": "print('Hello')"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "kind": "block",
+              "type": "spike_program_running"
+            },
+            {
+              "kind": "block",
+              "type": "spike_helper_ready"
+            },
+            {
+              "kind": "block",
+              "type": "spike_set_interval",
+              "inputs": {
+                "MS": {
+                  "shadow": {
+                    "type": "math_number",
+                    "fields": {
+                      "NUM": 50
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
     {"kind": "category", "name": "ToyPad", "colour": 140, "contents": [
         {
           "kind": "category",

@@ -20,6 +20,12 @@
 //   rt,<port>,<ms>,<dps>,<stop>,<accel>,<decel>             run for time           (reports "done")
 //   ra,<port>,<pos>,<dps>,<dir>,<stop>,<accel>,<decel>      run to absolute pos    (reports "done")
 //   rr,<port>,<pos>,<dps>,<stop>,<accel>,<decel>            run to relative pos    (reports "done")
+//   mp,<x>,<y>,<0-100>           light one pixel of the 5x5 matrix            (v2)
+//   mc                           clear the matrix                              (v2)
+//   mx,<25 values 0-100>         show a whole 5x5 image, row by row            (v2)
+//   mt,<text>                    scroll text on the matrix (reports "done")    (v2)
+//   bp,<hz>,<ms>,<vol>           beep (reports "done")                         (v2)
+//   hl,<color 0-10>              colour of the hub's power-button light        (v2)
 //   wd,<ms>                      watchdog: stop all motors if nothing is received for <ms> (0 = off)
 //   q                            quit the helper program
 //
@@ -27,16 +33,20 @@
 // port interrupts the previous one on that port. Position / speed / power are NOT reported by the helper: the hub
 // already streams them in its DeviceNotification messages.
 
-export const SPIKE_MOTOR_HELPER_VERSION = 1;
+export const SPIKE_MOTOR_HELPER_VERSION = 2;
 
-export const SPIKE_MOTOR_HELPER_PY = String.raw`# SPIKE motor helper v1 (uploaded by DeviceSpike3.js). Do not edit on the hub: it is re-uploaded on demand.
+export const SPIKE_MOTOR_HELPER_PY = String.raw`# SPIKE motor helper v2 (uploaded by DeviceSpike3.js). Do not edit on the hub: it is re-uploaded on demand.
 import hub
 import motor
 import runloop
 import time
 from hub import port as P
+try:
+    from hub import light_matrix, sound, light
+except Exception:
+    light_matrix = sound = light = None
 
-VER = 1
+VER = 2
 LETTERS = "ABCDEF"
 PORTS = {"A": P.A, "B": P.B, "C": P.C, "D": P.D, "E": P.E, "F": P.F}
 tun = hub.config["module_tunnel"]
@@ -44,6 +54,7 @@ tun = hub.config["module_tunnel"]
 run = True
 pend = {}
 busy = {}
+auxq = []
 wd_ms = 0
 last_rx = time.ticks_ms()
 
@@ -56,6 +67,11 @@ def reply(s):
 
 
 def stop_all():
+    del auxq[:]
+    try:
+        sound.stop()
+    except Exception:
+        pass
     for L in LETTERS:
         try:
             motor.stop(PORTS[L], stop=motor.COAST)
@@ -98,6 +114,25 @@ def handle(line):
             # a motion is being awaited on this port: stopping it releases the worker, which then takes the new job
             motor.stop(PORTS[L], stop=motor.COAST)
         pend[L] = (i, c, f[3:])
+        reply(i + ",ok")
+    elif c == "mp":
+        light_matrix.set_pixel(int(f[2]), int(f[3]), int(f[4]))
+        reply(i + ",ok")
+    elif c == "mc":
+        light_matrix.clear()
+        reply(i + ",ok")
+    elif c == "mx":
+        for k in range(25):
+            light_matrix.set_pixel(k % 5, k // 5, int(f[2 + k]))
+        reply(i + ",ok")
+    elif c == "mt":
+        auxq.append((i, c, ",".join(f[2:])))
+        reply(i + ",ok")
+    elif c == "bp":
+        auxq.append((i, c, f[2:5]))
+        reply(i + ",ok")
+    elif c == "hl":
+        light.color(light.POWER, int(f[2]))
         reply(i + ",ok")
     elif c == "wd":
         wd_ms = int(f[2])
@@ -145,6 +180,26 @@ async def worker(L):
         busy[L] = False
 
 
+async def aux():
+    while run:
+        if not auxq:
+            await runloop.sleep_ms(10)
+            continue
+        i, c, a = auxq.pop(0)
+        try:
+            if c == "mt":
+                r = light_matrix.write(a)
+            else:
+                r = sound.beep(int(a[0]), int(a[1]), int(a[2]))
+            try:
+                await r
+            except TypeError:
+                pass
+            reply(i + ",done,X,0")
+        except Exception as e:
+            reply(i + ",err," + repr(e))
+
+
 async def watchdog():
     global last_rx
     while run:
@@ -162,5 +217,5 @@ async def main():
         await runloop.sleep_ms(50)
 
 
-runloop.run(main(), watchdog(), worker("A"), worker("B"), worker("C"), worker("D"), worker("E"), worker("F"))
+runloop.run(main(), watchdog(), aux(), worker("A"), worker("B"), worker("C"), worker("D"), worker("E"), worker("F"))
 `;

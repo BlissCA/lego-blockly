@@ -182,6 +182,9 @@ while True:
     time.sleep_ms(50)
 `;
 
+// replies of the motor helper travel through the same tunnel; they must not end up in the Blockly message inbox
+const HELPER_REPLY_RE = /^\d+,(ok|done|err)\b|^0,rdy,/;
+
 export class LegoSpike3 {
   constructor(name, manager) {
     this.name = name || null;
@@ -218,6 +221,8 @@ export class LegoSpike3 {
     this._tunnelListeners = new Set();
     this._consoleListeners = new Set();
     this._lastTunnel = null;
+    this.motorAccel = SPIKE3.defaultAccel;   // deg/s2 used by motor commands that do not pass accel/decel (Blockly: 'set motor acceleration')
+    this._inbox = [];                 // messages from the hub program that Blockly has not read yet (FIFO)
 
     // diagnostics
     this._rxTrace = [];               // last 60 messages from the hub other than DeviceNotification
@@ -634,6 +639,8 @@ export class LegoSpike3 {
   /** accelerometer [x, y, z] */
   async getIMU() { return (await this._imu()).acc; }
   async getGyro() { return (await this._imu()).gyro; }
+  /** axis 0 = pitch, 1 = roll, 2 = yaw (degrees) */
+  async getAngle(axis) { const i = await this._imu(); const a = Number(axis); return a === 0 ? i.pitch : a === 1 ? i.roll : i.yaw; }
   async getYaw() { return (await this._imu()).yaw; }
   async getBattery() { const t0 = performance.now(); while (this.battery == null && performance.now() - t0 < SPIKE3.valueTimeoutMs) await _sleep(50); return this.battery ?? -1; }
   async _imu() { const t0 = performance.now(); while (!this.imu) { if (performance.now() - t0 > SPIKE3.valueTimeoutMs) throw new Error("IMU: no data from the hub"); await _sleep(30); } return this.imu; }
@@ -722,6 +729,24 @@ export class LegoSpike3 {
   onConsole(cb) { this._consoleListeners.add(cb); return () => this._consoleListeners.delete(cb); }
   getLastTunnelMessage() { return this._lastTunnel; }
 
+  // Inbox: every tunnel message that is not a reply of the motor helper is queued here (max 200), for the Blockly message blocks.
+  hasMessage() { return this._inbox.length > 0; }
+  messageCount() { return this._inbox.length; }
+  /** Oldest unread message, or "" if there is none */
+  readMessage() { return this._inbox.length ? this._inbox.shift() : ""; }
+  clearMessages() { this._inbox.length = 0; }
+  /** Wait for the next unread message that starts with `prefix` ("" = any). Returns "" on timeout, on STOP or when the hub disconnects. */
+  async waitMessage(prefix = "", timeoutMs = 5000) {
+    prefix = String(prefix ?? "");
+    const t0 = performance.now();
+    for (;;) {
+      const i = this._inbox.findIndex(t => t.startsWith(prefix));
+      if (i >= 0) return this._inbox.splice(i, 1)[0];
+      if (window?.stopRequested || !this.rx || (timeoutMs > 0 && performance.now() - t0 > timeoutMs)) return "";
+      await _sleep(20);
+    }
+  }
+
   /** Resolves with the text of the next tunnel message (matching `match`: string prefix, RegExp or function), or null on timeout / STOP. */
   waitForTunnelMessage(match = null, timeoutMs = 5000) {
     const test = match == null ? () => true : typeof match === "function" ? match : match instanceof RegExp ? t => match.test(t) : t => t.startsWith(String(match));
@@ -739,6 +764,7 @@ export class LegoSpike3 {
     this._lastTunnel = text;
     if (SPIKE3.debug.tunnel) console.log("[SPIKE3] tunnel <-", text);
     this._handleHelperReply(text);
+    if (!HELPER_REPLY_RE.test(text)) { this._inbox.push(text); if (this._inbox.length > 200) this._inbox.shift(); }
     for (const cb of this._tunnelListeners) { try { cb(text, bytes); } catch (e) { this.log("Tunnel listener error: " + (e?.message || e)); } }
   }
 
@@ -906,34 +932,34 @@ export class LegoSpike3 {
   }
 
   /** Regulated speed (keeps running). opts: { unit: "pct"|"dps", accel (deg/s2, default CONFIG.defaultAccel = 10000), wait } */
-  motorSpeed(port, speed, { unit = "pct", accel = SPIKE3.defaultAccel, wait = false } = {}) {
+  motorSpeed(port, speed, { unit = "pct", accel = this.motorAccel, wait = false } = {}) {
     const p = this._portName(this._resolvePort(port));
     return this._helperSend(`sp,${p},${this._dps(speed, unit)},${this._int(accel, "accel", 1, 100000)}`, { wait: wait ? "ok" : false });
   }
 
   /** Run for a number of degrees. speed defaults to 50 %. Resolves when done (opts.wait=false: returns right away). Status code of the hub is returned. */
-  motorAngle(port, degrees, speed = 50, { stop = "brake", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
+  motorAngle(port, degrees, speed = 50, { stop = "brake", accel = this.motorAccel, decel = this.motorAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rd,${p},${this._int(degrees, "degrees", -2147483648, 2147483647)},${this._dps(speed, unit)},${this._stop(stop)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Run for a time in ms. */
-  motorTime(port, ms, speed = 50, { stop = "brake", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
+  motorTime(port, ms, speed = 50, { stop = "brake", accel = this.motorAccel, decel = this.motorAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rt,${p},${this._int(ms, "time", 0, 2147483647)},${this._dps(speed, unit)},${this._stop(stop)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Go to an ABSOLUTE position (-180..179 degrees, the motor's own zero mark). direction: shortest | longest | cw | ccw. */
-  motorGoto(port, position, speed = 50, { direction = "shortest", stop = "hold", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
+  motorGoto(port, position, speed = 50, { direction = "shortest", stop = "hold", accel = this.motorAccel, decel = this.motorAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `ra,${p},${this._int(position, "position", -360, 359)},${this._dps(Math.abs(Number(speed)), unit)},${this._dir(direction)},${this._stop(stop, SPIKE3_STOP.hold)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
   }
 
   /** Go to a position on the RELATIVE counter (see getRot / resetPosition). */
-  motorGotoRelative(port, position, speed = 50, { stop = "hold", accel = SPIKE3.defaultAccel, decel = SPIKE3.defaultAccel, unit = "pct", wait = true } = {}) {
+  motorGotoRelative(port, position, speed = 50, { stop = "hold", accel = this.motorAccel, decel = this.motorAccel, unit = "pct", wait = true } = {}) {
     const p = this._portName(this._resolvePort(port));
     const cmd = `rr,${p},${this._int(position, "position", -2147483648, 2147483647)},${this._dps(Math.abs(Number(speed)), unit)},${this._stop(stop, SPIKE3_STOP.hold)},${this._int(accel, "accel", 1, 100000)},${this._int(decel, "decel", 1, 100000)}`;
     return this._helperSend(cmd, { wait: wait ? "done" : "ok" });
@@ -956,9 +982,33 @@ export class LegoSpike3 {
 
   /** Used by the STOP button: stop every motor (coast). Does nothing if the helper is not running. */
   stopAllMotors() {
-    if (!this.helperReady) return;
-    this._helperSend("sa").catch(() => {});
+    if (!this.helperReady) return Promise.resolve();
+    return Promise.resolve(this._helperSend("sa")).catch(() => {});
   }
+
+  // ------------------ Hub outputs (5x5 matrix, speaker, status light; helper v2+) ----------------
+  /** Light one pixel of the 5x5 matrix. x, y = 0..4 (x to the right, y down), brightness 0..100 */
+  matrixPixel(x, y, brightness = 100) {
+    return this._helperSend(`mp,${this._int(x, "x", 0, 4)},${this._int(y, "y", 0, 4)},${this._int(brightness, "brightness", 0, 100)}`);
+  }
+  matrixClear() { return this._helperSend("mc"); }
+  /** values: 25 numbers 0..100, row by row (top-left first) */
+  matrixImage(values) {
+    const v = Array.from(values);
+    if (v.length !== 25) throw new Error("A matrix image needs 25 values");
+    return this._helperSend("mx," + v.map(n => this._int(n, "pixel", 0, 100)).join(","));
+  }
+  /** Scroll text on the matrix. wait=true: resolves when the text has been shown. */
+  matrixText(text, { wait = true } = {}) {
+    const t = String(text ?? "").replace(/[\r\n]+/g, " ").slice(0, 120);
+    return this._helperSend("mt," + t, { wait: wait ? "done" : "ok" });
+  }
+  /** Speaker. freq Hz, ms duration, volume 0..100. wait=true: resolves when the beep is over. */
+  beep(freq = 880, ms = 200, volume = 50, { wait = true } = {}) {
+    return this._helperSend(`bp,${this._int(freq, "freq", 20, 20000)},${this._int(ms, "ms", 1, 60000)},${this._int(volume, "volume", 0, 100)}`, { wait: wait ? "done" : "ok" });
+  }
+  /** Colour of the hub's power-button light: 0 black, 1 magenta, 2 purple, 3 blue, 4 azure, 5 turquoise, 6 green, 7 yellow, 8 orange, 9 red, 10 white */
+  hubLight(color) { return this._helperSend(`hl,${this._int(color, "color", 0, 10)}`); }
 }
 
 LegoSpike3.CONFIG = SPIKE3;

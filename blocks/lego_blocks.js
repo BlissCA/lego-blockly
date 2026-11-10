@@ -840,6 +840,16 @@ function getLPF2Dropdown() {
     : [['No LPF2', 'NONE']];
 }
 
+// Only LEGO SPIKE (LegoSpike3) hubs
+function getSpike3Dropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "LegoSpike3");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No SPIKE', 'NONE']];
+}
+
 // LPF2 Technic Move devices only
 function getTechnicMoveDropdown() {
   const devices = window.deviceManager?.devices || [];
@@ -2849,6 +2859,1833 @@ window.addEventListener("load", () => {
     }
 
   ]);  
+
+  // ---------------- SPIKE (LegoSpike3) BLOCKS ----------------
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "spike_get_color",
+      "message0": "%1 port %2 color",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Color sensor: 0 black, 1 magenta, 2 purple, 3 blue, 4 azure, 5 turquoise, 6 green, 7 yellow, 8 orange, 9 red, 10 white, -1 none."
+    },
+    {
+      "type": "spike_get_colorname",
+      "message0": "%1 port %2 color name",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 200,
+      "tooltip": "Color sensor: the color as a word (black, blue, green, ...)."
+    },
+    {
+      "type": "spike_get_reflection",
+      "message0": "%1 port %2 reflection",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Color sensor: reflected light 0-100. The hub sends it as an extra byte that LEGO does not document, so check it against your sensor."
+    },
+    {
+      "type": "spike_get_rgb",
+      "message0": "%1 port %2 RGB %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL",
+          "options": [
+            [
+              "red",
+              "0"
+            ],
+            [
+              "green",
+              "1"
+            ],
+            [
+              "blue",
+              "2"
+            ]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Color sensor: raw red / green / blue value (0-1024)."
+    },
+    {
+      "type": "spike_get_distance",
+      "message0": "%1 port %2 distance (mm)",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Distance sensor in millimetres. -1 means nothing in range."
+    },
+    {
+      "type": "spike_get_force",
+      "message0": "%1 port %2 force",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Force sensor: the force value reported by the hub."
+    },
+    {
+      "type": "spike_force_pressed",
+      "message0": "%1 port %2 force sensor pressed?",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "Force sensor: true while the button is pressed."
+    },
+    {
+      "type": "spike_get_rot",
+      "message0": "%1 mot %2 rel.Pos",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Motor relative position in degrees since the last reset (use the 'set rel.pos' block to reset it)."
+    },
+    {
+      "type": "spike_get_motor",
+      "message0": "%1 mot %2 %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "field_dropdown",
+          "name": "QTY",
+          "options": [
+            [
+              "abs.Pos (-180..179)",
+              "ABS"
+            ],
+            [
+              "speed (deg/s)",
+              "SPEED"
+            ],
+            [
+              "power",
+              "POWER"
+            ]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Motor: absolute position (-180 to 179, the motor's own zero mark), speed in degrees per second, or power."
+    },
+    {
+      "type": "spike_is_attached",
+      "message0": "%1 port %2 has %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "field_dropdown",
+          "name": "KIND",
+          "options": [
+            [
+              "anything",
+              "ANY"
+            ],
+            [
+              "motor",
+              "motor"
+            ],
+            [
+              "color sensor",
+              "color"
+            ],
+            [
+              "distance sensor",
+              "distance"
+            ],
+            [
+              "force sensor",
+              "force"
+            ],
+            [
+              "3x3 matrix",
+              "matrix3x3"
+            ]
+          ]
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "True if the hub currently reports this kind of device on the port."
+    },
+    {
+      "type": "spike_get_tilt",
+      "message0": "%1 tilt %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "AXIS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_tiltaxis",
+            "fields": {
+              "SPIKETILT": "0"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Hub angle in degrees: Pitch=0, Roll=1, Yaw=2."
+    },
+    {
+      "type": "spike_get_accel",
+      "message0": "%1 acceleration %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "AXIS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_axis",
+            "fields": {
+              "SPIKEAXIS": "0"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Hub accelerometer: X=0, Y=1, Z=2."
+    },
+    {
+      "type": "spike_get_gyro",
+      "message0": "%1 gyro rate %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "AXIS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_axis",
+            "fields": {
+              "SPIKEAXIS": "0"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Hub gyroscope rotation rate: X=0, Y=1, Z=2."
+    },
+    {
+      "type": "spike_get_battery",
+      "message0": "%1 battery %%",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Battery level 0-100 %."
+    },
+    {
+      "type": "spike_helper_upload",
+      "message0": "%1 Upload Motor Helper slot %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "SLOT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 19
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Uploads the motor helper program to a hub slot and starts it. Required once before any motor block (the helper also drives the matrix, speaker and hub light). It replaces whatever program is in that slot."
+    },
+    {
+      "type": "spike_helper_stop",
+      "message0": "%1 Stop Motor Helper",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Stops the motors and the helper program on the hub."
+    },
+    {
+      "type": "spike_mot_power",
+      "message0": "%1 mot %2 pwr %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "PWR",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Raw power -100..100 % (no speed regulation)."
+    },
+    {
+      "type": "spike_mot_speed",
+      "message0": "%1 mot %2 speed %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Run at a regulated speed, -100..100 % (100 % is about 1000 deg/s). Keeps running until another motor block or stop."
+    },
+    {
+      "type": "spike_mot_angle",
+      "message0": "%1 mot %2 angle %3 speed %4 stop %5 wait %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "ANGLE",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 360
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "STOP",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_stopmode",
+            "fields": {
+              "SPIKESTOP": "1"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Turn by a number of degrees (negative = reverse). 'wait' unchecked: continue right away so several motors can move together."
+    },
+    {
+      "type": "spike_mot_time",
+      "message0": "%1 mot %2 ms %3 speed %4 stop %5 wait %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "TIME",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 1000
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "STOP",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_stopmode",
+            "fields": {
+              "SPIKESTOP": "1"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Run for a time in milliseconds. 'wait' unchecked: continue right away."
+    },
+    {
+      "type": "spike_mot_goto",
+      "message0": "%1 mot %2 abs.pos %3 speed %4 dir %5 stop %6 wait %7",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "POS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 0
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "DIR",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_direction",
+            "fields": {
+              "SPIKEDIR": "2"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "STOP",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_stopmode",
+            "fields": {
+              "SPIKESTOP": "2"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Go to an ABSOLUTE position (-180..179, the motor's own zero mark) and hold it."
+    },
+    {
+      "type": "spike_mot_gotorel",
+      "message0": "%1 mot %2 rel.pos %3 speed %4 stop %5 wait %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "POS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 0
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "SPEED",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "STOP",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_stopmode",
+            "fields": {
+              "SPIKESTOP": "2"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Go to a position on the RELATIVE counter (see 'rel.Pos' and 'set rel.pos')."
+    },
+    {
+      "type": "spike_mot_stop",
+      "message0": "%1 mot %2 stop %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "STOP",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_stopmode",
+            "fields": {
+              "SPIKESTOP": "1"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Stop a motor: COAST=0, BRAKE=1, HOLD=2, ..."
+    },
+    {
+      "type": "spike_mot_reset",
+      "message0": "%1 mot %2 set rel.pos to %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PORT",
+          "check": [
+            "Number",
+            "String"
+          ],
+          "shadow": {
+            "type": "spike_ports",
+            "fields": {
+              "SPIKEPORTS": "A"
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "COUNT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 0
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Set the motor's relative position counter (usually 0)."
+    },
+    {
+      "type": "spike_mot_stopall",
+      "message0": "%1 all motors stop",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Stops every motor (coast)."
+    },
+    {
+      "type": "spike_mot_accel",
+      "message0": "%1 motor accel %2 deg/s²",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "ACCEL",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 10000
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Acceleration and deceleration used by the motor blocks that follow (default 10000; LEGO's own default of 1000 feels sluggish)."
+    },
+    {
+      "type": "spike_mot_watchdog",
+      "message0": "%1 motor watchdog %2 ms",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "MS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 1000
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Safety: the helper stops every motor if it receives nothing for this time. 0 switches it off."
+    },
+    {
+      "type": "spike_matrix_pixel",
+      "message0": "%1 matrix x %2 y %3 brightness %4",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "X",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 2
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "Y",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 2
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "BRIGHT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 100
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Light one pixel of the hub's 5x5 matrix. x = 0..4 (left to right), y = 0..4 (top to bottom), brightness 0..100. Needs the motor helper."
+    },
+    {
+      "type": "spike_matrix_clear",
+      "message0": "%1 matrix clear",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Turn all matrix pixels off. Needs the motor helper."
+    },
+    {
+      "type": "spike_matrix_image",
+      "message0": "%1 matrix image %2 %3 %4 %5 %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "field_input",
+          "name": "ROW0",
+          "text": "09090"
+        },
+        {
+          "type": "field_input",
+          "name": "ROW1",
+          "text": "99999"
+        },
+        {
+          "type": "field_input",
+          "name": "ROW2",
+          "text": "99999"
+        },
+        {
+          "type": "field_input",
+          "name": "ROW3",
+          "text": "09990"
+        },
+        {
+          "type": "field_input",
+          "name": "ROW4",
+          "text": "00900"
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Show a 5x5 image. Each row is 5 digits, 0 (off) to 9 (brightest). Needs the motor helper."
+    },
+    {
+      "type": "spike_matrix_text",
+      "message0": "%1 matrix text %2 wait %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "TEXT",
+          "check": [
+            "String",
+            "Number"
+          ],
+          "shadow": {
+            "type": "text",
+            "fields": {
+              "TEXT": "Hi"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Scroll text on the matrix. 'wait' checked: continue when the text is finished. Needs the motor helper."
+    },
+    {
+      "type": "spike_beep",
+      "message0": "%1 beep %2 Hz %3 ms vol %4 wait %5",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "FREQ",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 880
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "MS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 200
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "VOL",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "WAIT",
+          "checked": true
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Play a tone on the hub speaker. Needs the motor helper."
+    },
+    {
+      "type": "spike_hublight",
+      "message0": "%1 hub light color %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "COLOR",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "spike_colors",
+            "fields": {
+              "SPIKECOLOR": "6"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Color of the hub's power-button light: 0 black, 1 magenta, 2 purple, 3 blue, 4 azure, 5 turquoise, 6 green, 7 yellow, 8 orange, 9 red, 10 white. Needs the motor helper."
+    },
+    {
+      "type": "spike_start_slot",
+      "message0": "%1 start program in slot %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "SLOT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 0
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Start the program stored in a hub slot (0-19)."
+    },
+    {
+      "type": "spike_stop_slot",
+      "message0": "%1 stop program in slot %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "SLOT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 0
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Stop the program running in a hub slot (0-19)."
+    },
+    {
+      "type": "spike_msg_send",
+      "message0": "%1 send message %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "MSG",
+          "check": [
+            "String",
+            "Number"
+          ],
+          "shadow": {
+            "type": "text",
+            "fields": {
+              "TEXT": "Ping"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Send a text message to the program running on the hub (numbers are sent as text). The hub program must register a tunnel callback (hub.config[\"module_tunnel\"].callback(fn)). The motor helper does not read messages."
+    },
+    {
+      "type": "spike_msg_available",
+      "message0": "%1 message received?",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "True if the hub program has sent a message that has not been read yet."
+    },
+    {
+      "type": "spike_msg_read",
+      "message0": "%1 read message",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 200,
+      "tooltip": "Returns the oldest unread message from the hub program (text), or an empty text if there is none."
+    },
+    {
+      "type": "spike_msg_wait",
+      "message0": "%1 wait message starting with %2 timeout (s) %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "PREFIX",
+          "check": [
+            "String"
+          ],
+          "shadow": {
+            "type": "text",
+            "fields": {
+              "TEXT": ""
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "TIMEOUT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 5
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "output": "String",
+      "colour": 200,
+      "tooltip": "Waits for the next unread message that starts with the given text (empty text = any message). Returns the message, or an empty text on timeout."
+    },
+    {
+      "type": "spike_msg_clear",
+      "message0": "%1 clear messages",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Forget all unread messages."
+    },
+    {
+      "type": "spike_sethubname",
+      "message0": "%1 Set Hub Name %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "HUBNAME",
+          "check": [
+            "String"
+          ],
+          "shadow": {
+            "type": "text",
+            "fields": {
+              "TEXT": "MySpike"
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Set the hub's Bluetooth name (max 29 characters)."
+    },
+    {
+      "type": "spike_upload_program",
+      "message0": "%1 upload program to slot %2 code %3 start %4",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "SLOT",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 1
+            }
+          }
+        },
+        {
+          "type": "input_value",
+          "name": "CODE",
+          "check": [
+            "String"
+          ],
+          "shadow": {
+            "type": "text",
+            "fields": {
+              "TEXT": "print('Hello')"
+            }
+          }
+        },
+        {
+          "type": "field_checkbox",
+          "name": "START",
+          "checked": false
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "Upload MicroPython source code to a hub slot (it is stored as program.py) and optionally start it. It replaces what is in that slot."
+    },
+    {
+      "type": "spike_program_running",
+      "message0": "%1 hub program running?",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "True while a program is running on the hub."
+    },
+    {
+      "type": "spike_helper_ready",
+      "message0": "%1 motor helper ready?",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "True when the motor helper is running on the hub."
+    },
+    {
+      "type": "spike_set_interval",
+      "message0": "%1 sensor update interval %2 ms",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "DEVICE",
+          "options": getSpike3Dropdown
+        },
+        {
+          "type": "input_value",
+          "name": "MS",
+          "check": [
+            "Number"
+          ],
+          "shadow": {
+            "type": "math_number",
+            "fields": {
+              "NUM": 50
+            }
+          }
+        }
+      ],
+      "inputsInline": true,
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 200,
+      "tooltip": "How often the hub sends its sensor values (default 50 ms). Longer = less Bluetooth traffic."
+    },
+    {
+      "type": "spike_ports",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKEPORTS",
+          "options": [
+            [
+              "A",
+              "A"
+            ],
+            [
+              "B",
+              "B"
+            ],
+            [
+              "C",
+              "C"
+            ],
+            [
+              "D",
+              "D"
+            ],
+            [
+              "E",
+              "E"
+            ],
+            [
+              "F",
+              "F"
+            ]
+          ]
+        }
+      ],
+      "output": "String",
+      "colour": 200,
+      "tooltip": "Returns a SPIKE port letter (A-F)."
+    },
+    {
+      "type": "spike_stopmode",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKESTOP",
+          "options": [
+            [
+              "COAST",
+              "0"
+            ],
+            [
+              "BRAKE",
+              "1"
+            ],
+            [
+              "HOLD",
+              "2"
+            ],
+            [
+              "CONTINUE",
+              "3"
+            ],
+            [
+              "SMART COAST",
+              "4"
+            ],
+            [
+              "SMART BRAKE",
+              "5"
+            ]
+          ]
+        }
+      ],
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Motor stop mode: COAST=0 (free), BRAKE=1, HOLD=2 (actively holds the position), CONTINUE=3 (keep going), SMART COAST=4, SMART BRAKE=5."
+    },
+    {
+      "type": "spike_direction",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKEDIR",
+          "options": [
+            [
+              "SHORTEST",
+              "2"
+            ],
+            [
+              "CLOCKWISE",
+              "0"
+            ],
+            [
+              "COUNTER-CLOCKWISE",
+              "1"
+            ],
+            [
+              "LONGEST",
+              "3"
+            ]
+          ]
+        }
+      ],
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Direction to reach an absolute position: SHORTEST=2, CLOCKWISE=0, COUNTER-CLOCKWISE=1, LONGEST=3."
+    },
+    {
+      "type": "spike_axis",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKEAXIS",
+          "options": [
+            [
+              "X",
+              "0"
+            ],
+            [
+              "Y",
+              "1"
+            ],
+            [
+              "Z",
+              "2"
+            ]
+          ]
+        }
+      ],
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Returns an axis number (X=0, Y=1, Z=2)."
+    },
+    {
+      "type": "spike_tiltaxis",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKETILT",
+          "options": [
+            [
+              "Pitch",
+              "0"
+            ],
+            [
+              "Roll",
+              "1"
+            ],
+            [
+              "Yaw",
+              "2"
+            ]
+          ]
+        }
+      ],
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Returns a hub angle number (Pitch=0, Roll=1, Yaw=2)."
+    },
+    {
+      "type": "spike_colors",
+      "message0": "%1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "SPIKECOLOR",
+          "options": [
+            [
+              "black",
+              "0"
+            ],
+            [
+              "magenta",
+              "1"
+            ],
+            [
+              "purple",
+              "2"
+            ],
+            [
+              "blue",
+              "3"
+            ],
+            [
+              "azure",
+              "4"
+            ],
+            [
+              "turquoise",
+              "5"
+            ],
+            [
+              "green",
+              "6"
+            ],
+            [
+              "yellow",
+              "7"
+            ],
+            [
+              "orange",
+              "8"
+            ],
+            [
+              "red",
+              "9"
+            ],
+            [
+              "white",
+              "10"
+            ]
+          ]
+        }
+      ],
+      "output": "Number",
+      "colour": 200,
+      "tooltip": "Returns a SPIKE color number (0 black, 1 magenta, 2 purple, 3 blue, 4 azure, 5 turquoise, 6 green, 7 yellow, 8 orange, 9 red, 10 white). Use it to compare with the color sensor or to set the hub light."
+    }
+  ]);
 
   // ---------------- WeDo 2.0 BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
