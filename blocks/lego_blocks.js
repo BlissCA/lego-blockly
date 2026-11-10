@@ -2,6 +2,28 @@
 
 registerFieldColour();
 
+// Multi-line text field class, or null when the plugin (@blockly/field-multilineinput, see index.html) is not available.
+// Looks in every place the plugin may expose itself; never throws.
+function getMultilineFieldClass() {
+  try {
+    if (typeof Blockly.FieldMultilineInput === "function") return Blockly.FieldMultilineInput;
+    const reg = () => Blockly.registry?.getClass?.(Blockly.registry.Type.FIELD, "field_multilinetext", false);
+    let cls = reg();
+    if (typeof cls === "function") return cls;
+    // the plugin's UMD global: a namespace object (BlocklyFieldMultilineinput...) or a bare registerFieldMultilineInput function
+    if (typeof registerFieldMultilineInput === "function") registerFieldMultilineInput();
+    for (const k of Object.keys(window)) {
+      if (!/^BlocklyField.*Multiline/i.test(k)) continue;
+      const m = window[k];
+      if (typeof m?.registerFieldMultilineInput === "function") m.registerFieldMultilineInput();
+      if (typeof m?.FieldMultilineInput === "function") return m.FieldMultilineInput;
+    }
+    cls = reg();
+    if (typeof cls === "function") return cls;
+  } catch (e) { console.warn("Multiline text field not available:", e); }
+  return null;
+}
+
 class FieldInteractiveButton extends Blockly.FieldTextInput {
   static TYPE = 'field_interactive_button';
   static SERIALIZABLE = true;
@@ -4687,11 +4709,11 @@ window.addEventListener("load", () => {
     }
   ]);
 
-  // Multi-line text for MicroPython code (the standard text block is single-line). Falls back to a single-line field if this
-  // Blockly build has no multi-line input, so a missing field type can never break the toolbox.
+  // Multi-line text for MicroPython code (the standard text block is single-line). Falls back to a single-line field if the
+  // multi-line field plugin is not loaded, so a missing field type can never break the toolbox.
   Blockly.Blocks['spike_code'] = {
     init: function () {
-      const FieldClass = (typeof Blockly.FieldMultilineInput === "function") ? Blockly.FieldMultilineInput : Blockly.FieldTextInput;
+      const FieldClass = getMultilineFieldClass() || Blockly.FieldTextInput;
       this.appendDummyInput().appendField(new FieldClass("print('Hello')"), "CODE");
       this.setOutput(true, "String");
       this.setColour(200);

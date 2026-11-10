@@ -22,6 +22,10 @@
   <!-- Pin the Color Field to a version compatible with 12.4.1 -->
   <script src="https://unpkg.com/@blockly/field-colour@6.0.12/dist/index.js"></script>
 
+  <!-- Load Multiline Text Field Plugin (Blockly 12 has no multi-line text field in its core build; used by the SPIKE 'code' block).
+       Optional: if this script fails to load, that block simply falls back to a single-line field. -->
+  <script src="https://unpkg.com/@blockly/field-multilineinput@6.0.2/dist/index.js"></script>
+
   <!-- CANCEL Loading MQTT.js for now since it requires WSS secure connection
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   -->
