@@ -79,6 +79,7 @@ const toolbox = {
       "categorystyle": "text_category",
       "contents": [
         { "kind": "block", "type": "text" },
+        { "kind": "block", "type": "text_multiline" },
         { "kind": "block", "type": "text_join" },
         { "kind": "block", "type": "text_append" },
         { "kind": "block", "type": "text_length" },
@@ -2895,7 +2896,7 @@ const toolbox = {
                 },
                 "CODE": {
                   "shadow": {
-                    "type": "text",
+                    "type": "text_multiline",
                     "fields": {
                       "TEXT": "print('Hello')"
                     }
