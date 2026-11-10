@@ -844,7 +844,13 @@ export class LegoSpike3 {
     const c = this._calls.get(id);
     if (!c) { if (f[1] === "err") this.log("Helper error: " + f.slice(2).join(",")); return; }
     if (f[1] === "ok") { if (!c.done) this._finishCall(id, c, f.slice(2).join(",")); }
-    else if (f[1] === "done") { const n = Number(f[3]); this._finishCall(id, c, Number.isFinite(n) ? n : (f[3] === "None" || f[3] === undefined ? 0 : f[3])); }
+    else if (f[1] === "done") {
+      // the hub prints str(result); a Python tuple like "(0, 123)" contains a comma, so the whole tail is re-joined and the first integer is the status
+      const raw = f.slice(3).join(",");
+      this.lastMotorResult = raw;
+      const m = /-?\d+/.exec(raw);
+      this._finishCall(id, c, m ? Number(m[0]) : 0);
+    }
     else if (f[1] === "err") { clearTimeout(c.timer); this._calls.delete(id); c.reject(new Error("Hub: " + f.slice(2).join(","))); }
   }
   _finishCall(id, c, value) { clearTimeout(c.timer); this._calls.delete(id); c.resolve(value); }
