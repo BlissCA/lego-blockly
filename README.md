@@ -24,7 +24,9 @@ Lego Blockly supports these devices:  *See also [LEGO_BLOCKLY_CONNECTIONS](LEGO_
 	- Using Interface B with 9V bulbs (6035c01) or 9V fiber optics Element (6637c01). (Category Int.B in Lego Blockly) 
 - **Wedo 1.0** (using the 2 ports USB hub)
 - **WeDo 2.0** (BLE)
-- **LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)**
+- **LPF2 (Lego Power Function 2 BLE: Boost, Powered UP, Technic Control+, Spike etc...)**\
+Technic Move Hub is supported somehow (Porshe GT4) but it is not perfect.  First you need to pair it in windows Bluetooth, then it will appear in the Lego Blockly Connect window.  Also, the IMU (Tilt, Gyro etc) takes time to get ready...
+- **Lego Spike Prime Hub (Works with the Robot Inventor set Hub but you have to put the spike firmware in this hub (I use the Spike App v3 in windows)).  It might work with the Spike Essential hub.  I don't have it to test.**
 - **Lego Dimensions Toypad USB**.  ONLY SUPPORTED FOR THE WII/PS3/PS4 versions.  (NO XBOX sorry)
 - **Lego Power Function** with the IR Receiver 2-port adapter.  To use PF IR you need to wire a IR Transmitter LED (Like the one in a TV Remote) to the Arduine D2 pin and use the sketch for Interface A above.
 - **Lego Power Function** IR TX (Sends commands to the PF IR Receiver to control Motors) and RX (Reads Commands from PF IR basic and train Handsets) and in bonus, **Generic IR RX** (Reads IR code from many 38 khz IR remotes).  Uses an ESP32 gateway (must flash with Arduino sketch, not the same as Interface A).  In Arduino IDE, you must install the IRremoteESP8266 library by David Conran...  Other components needed: IR Tx Led, Resistors, Transistors like BC337 or equivalent, TSOP 38238 IR receiver. [Diagram](Misc/LEGO_PFIR_ESP_WROOM_32.png).  Arduino Sketches are available for ESP-WROOM-32 (LegoPFIR_BLE_ESP_WROOM_32_V3) and ESP32-C3 (LegoPFIR_BLE_ESP32_C3_V1) in the [folder SketchArduino](SketchArduino).

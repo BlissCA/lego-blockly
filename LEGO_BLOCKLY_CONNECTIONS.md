@@ -19,6 +19,7 @@ This document contains the connection and microcontroller reference tables for L
 | **WeDo 2.0** | None | BLE | n.a. |
 | **VLL Serial** | TTL2USB (FTDI) | USB | TTL signals “DTR” and “3.3V” (or GND) for VIS LED; USB A plug (to computer) |
 | **LPF2** | None | BLE | Connects to LEGO LWP3.0 BLE devices: 4 port Technic hub, BLE Handset |
+| **SPIKE** | None | BLE | Connects to LEGO Spike Prime and maybe Spike Essential hubs and robot Inventor Hub with Spike Firmware |
 | **Toypad** | None | USB | USB A plug (to computer) |
 | **PF IR ESP32** | ESP32 (PF) | USB + BLE | ESP32 (PF): PF TX w/ IR LED; PF RX w/ TSOP IR. IR RX: PF or generic 38 kHz IR remotes |
 | **PF IR RCX Serial** | Serial IR Tower + Ser2USB | USB | PF TX. Null modem cable (full) |
@@ -38,6 +39,7 @@ This document contains the connection and microcontroller reference tables for L
 | **WeDo 2.0** | None | BLE | n.a. |
 | **VLL Serial** | TTL2USB (FTDI) | USB | TTL signals “DTR” and “3.3V” (or GND) for VIS LED; USB A plug (to computer) |
 | **LPF2** | None | BLE | LEGO LWP3.0 BLE devices: 4 port Technic hub; BLE Handset |
+| **Spike** | None | BLE | LEGO Spike Prime and maybe Spike Essential hubs and robot Inventor Hub with Spike Firmware |
 | **Toypad** | None | USB | USB A plug (to computer) |
 | **PF IR** | ESP32 (PF) | USB + BLE | ESP32 (PF): PF TX w/ IR LED; PF RX w/ TSOP IR. IR RX: PF or generic 38 kHz IR remotes |
 | **Cube** | ESP32 (C) | BLE | Tenka’s “Circuit Cubes”; 2 BT Battery Cubes/ESP32 (C) controller |
