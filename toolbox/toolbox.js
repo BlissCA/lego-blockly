@@ -2378,6 +2378,10 @@ const toolbox = {
             },
             {
               "kind": "block",
+              "type": "spike_button"
+            },
+            {
+              "kind": "block",
               "type": "spike_colors"
             }
           ]

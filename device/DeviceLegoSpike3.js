@@ -183,7 +183,7 @@ while True:
 `;
 
 // replies of the motor helper travel through the same tunnel; they must not end up in the Blockly message inbox
-const HELPER_REPLY_RE = /^\d+,(ok|done|err)\b|^0,rdy,/;
+const HELPER_REPLY_RE = /^\d+,(ok|done|err)\b|^0,(rdy|btn),/;
 
 export class LegoSpike3 {
   constructor(name, manager) {
@@ -222,6 +222,7 @@ export class LegoSpike3 {
     this._consoleListeners = new Set();
     this._lastTunnel = null;
     this.motorAccel = SPIKE3.defaultAccel;   // deg/s2 used by motor commands that do not pass accel/decel (Blockly: 'set motor acceleration')
+    this._btn = { L: { held: false, pressed: false, released: false }, R: { held: false, pressed: false, released: false } };   // hub buttons, reported by the motor helper (v3+)
     this._inbox = [];                 // messages from the hub program that Blockly has not read yet (FIFO)
 
     // diagnostics
@@ -763,6 +764,8 @@ export class LegoSpike3 {
     const text = dec.decode(bytes);
     this._lastTunnel = text;
     if (SPIKE3.debug.tunnel) console.log("[SPIKE3] tunnel <-", text);
+    const bm = /^0,btn,([LR]),([01])$/.exec(text);            // button event from the motor helper
+    if (bm) { const b = this._btn[bm[1]]; if (bm[2] === "1") { b.held = true; b.pressed = true; } else { b.held = false; b.released = true; } }
     this._handleHelperReply(text);
     if (!HELPER_REPLY_RE.test(text)) { this._inbox.push(text); if (this._inbox.length > 200) this._inbox.shift(); }
     for (const cb of this._tunnelListeners) { try { cb(text, bytes); } catch (e) { this.log("Tunnel listener error: " + (e?.message || e)); } }
@@ -840,6 +843,7 @@ export class LegoSpike3 {
       throw new Error(`The motor helper did not answer within ${SPIKE3.helperReadyTimeoutMs} ms. What the hub sent meanwhile: ${seen}. ` +
                       "Run  await dev.testTunnel()  to check the tunnel with a minimal program, and  await dev.stopProgram()  to stop the helper.");
     }
+    this._resetButtons();
     this.helperReady = true;
     this.helperVersion = Number(text.split(",")[2]);
     if (this.helperVersion !== SPIKE_MOTOR_HELPER_VERSION) this.log(`Helper version ${this.helperVersion} (driver expects ${SPIKE_MOTOR_HELPER_VERSION})`);
@@ -984,6 +988,31 @@ export class LegoSpike3 {
   stopAllMotors() {
     if (!this.helperReady) return Promise.resolve();
     return Promise.resolve(this._helperSend("sa")).catch(() => {});
+  }
+
+  // ------------------ Hub buttons (left / right; events from the motor helper v3+) ----------------
+  _resetButtons() { for (const k of ["L", "R"]) this._btn[k] = { held: false, pressed: false, released: false }; }
+  _btnSide(side) {
+    const s = String(side).toLowerCase();
+    if (s === "left" || s === "l" || s === "0") return "L";
+    if (s === "right" || s === "r" || s === "1") return "R";
+    throw new Error("Unknown button: " + side + " (left or right)");
+  }
+  /**
+   * side: "left" | "right".  mode: "held" (is down now) | "released" (is up now) | "waspressed" | "wasreleased"
+   * (the last two are true once since the previous check, then reset). Needs the motor helper running on the hub:
+   * the buttons are not part of the hub's Bluetooth sensor stream, the helper watches them and reports the changes.
+   */
+  buttonState(side, mode = "held") {
+    this._requireHelper();
+    const b = this._btn[this._btnSide(side)];
+    switch (String(mode).toLowerCase().replace(/[\s_-]/g, "")) {
+      case "held": return b.held;
+      case "released": return !b.held;
+      case "waspressed": { const v = b.pressed; b.pressed = false; return v; }
+      case "wasreleased": { const v = b.released; b.released = false; return v; }
+      default: throw new Error("Unknown button mode: " + mode + " (held, released, waspressed, wasreleased)");
+    }
   }
 
   // ------------------ Hub outputs (5x5 matrix, speaker, status light; helper v2+) ----------------

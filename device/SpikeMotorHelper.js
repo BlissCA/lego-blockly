@@ -26,6 +26,7 @@
 //   mt,<text>                    scroll text on the matrix (reports "done")    (v2)
 //   bp,<hz>,<ms>,<vol>           beep (reports "done")                         (v2)
 //   hl,<color 0-10>              colour of the hub's power-button light        (v2)
+//   (events)  0,btn,<L|R>,<1|0>  the helper reports every change of the left / right hub button (1 = pressed)   (v3)
 //   wd,<ms>                      watchdog: stop all motors if nothing is received for <ms> (0 = off)
 //   q                            quit the helper program
 //
@@ -33,9 +34,9 @@
 // port interrupts the previous one on that port. Position / speed / power are NOT reported by the helper: the hub
 // already streams them in its DeviceNotification messages.
 
-export const SPIKE_MOTOR_HELPER_VERSION = 2;
+export const SPIKE_MOTOR_HELPER_VERSION = 3;
 
-export const SPIKE_MOTOR_HELPER_PY = String.raw`# SPIKE motor helper v2 (uploaded by DeviceSpike3.js). Do not edit on the hub: it is re-uploaded on demand.
+export const SPIKE_MOTOR_HELPER_PY = String.raw`# SPIKE motor helper v3 (uploaded by DeviceSpike3.js). Do not edit on the hub: it is re-uploaded on demand.
 import hub
 import motor
 import runloop
@@ -45,8 +46,12 @@ try:
     from hub import light_matrix, sound, light
 except Exception:
     light_matrix = sound = light = None
+try:
+    from hub import button
+except Exception:
+    button = None
 
-VER = 2
+VER = 3
 LETTERS = "ABCDEF"
 PORTS = {"A": P.A, "B": P.B, "C": P.C, "D": P.D, "E": P.E, "F": P.F}
 tun = hub.config["module_tunnel"]
@@ -200,6 +205,23 @@ async def aux():
             reply(i + ",err," + repr(e))
 
 
+async def buttons():
+    if button is None:
+        return
+    last = [False, False]
+    sides = (("L", button.LEFT), ("R", button.RIGHT))
+    while run:
+        for k in range(2):
+            try:
+                now = button.pressed(sides[k][1]) > 0
+            except Exception:
+                now = last[k]
+            if now != last[k]:
+                last[k] = now
+                reply("0,btn," + sides[k][0] + "," + ("1" if now else "0"))
+        await runloop.sleep_ms(20)
+
+
 async def watchdog():
     global last_rx
     while run:
@@ -217,5 +239,5 @@ async def main():
         await runloop.sleep_ms(50)
 
 
-runloop.run(main(), watchdog(), aux(), worker("A"), worker("B"), worker("C"), worker("D"), worker("E"), worker("F"))
+runloop.run(main(), watchdog(), aux(), buttons(), worker("A"), worker("B"), worker("C"), worker("D"), worker("E"), worker("F"))
 `;

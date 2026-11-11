@@ -28,7 +28,7 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 - Generated code runs in an async wrapper in `main.js` with `deviceManager`, `getDeviceByName`, `shouldStop`. STOP sets `window.stopRequested`; any long wait inside a driver must poll it and return.
 
 ## File format
-- `blocks/lego_blocks.js`, `generators/lego_generators.js`, `toolbox/toolbox.js`, `main.js` use CRLF line endings; `device/DeviceLegoSpike3.js` and `SpikeMotorHelper.js` use LF. Check with `git ls-files --eol` before patching and keep each file's style.
+- The project's working files use CRLF line endings (blocks, generators, toolbox, main.js, index.html and, since the last checkout, the SPIKE driver and helper). Check with `git ls-files --eol` / `od -c` before patching and keep each file's style.
 - Git stores LF; on a machine without `core.autocrlf`, `git diff` looks like every line changed (use `--ignore-cr-at-eol`).
 
 ## SPIKE hub (88016 Robot Inventor on SPIKE firmware, Hub OS 1.8.x) — `DeviceLegoSpike3.js`
@@ -36,7 +36,8 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 - Sensor values (motors, colour, distance, force, tilt, battery) come from the hub's DeviceNotification stream, no program needed. The colour message is 10 bytes on this firmware (the docs say 9).
 - Programs: StartFileUpload must be `name + 0x00 + slot + crc` (NOT a padded 32-byte name, or the hub silently stores it wrongly). The file name is `program.py`.
 - Motor/matrix/beep output needs the resident MicroPython helper (`SpikeMotorHelper.js`, uploaded on demand with the "Upload Motor Helper" block, default slot 19). It talks over the message tunnel (`hub.config["module_tunnel"]`, undocumented by LEGO). Replies look like `id,ok` / `id,done,X,(0,)` / `id,err,…`. Bump `SPIKE_MOTOR_HELPER_VERSION` and the `VER` in the Python when the helper changes; users must re-upload it.
-- Verified on hardware (owner's tests): connect, notifications, upload + start, tunnel both ways, motor blocks, LED matrix, beep, hub light, set hub name, start/stop slot programs, upload program, message send/read/wait, most input blocks. Not yet verified: force sensor (owner has none), colour 'reflection' (an undocumented extra byte in the colour message), watchdog.
+- Hub buttons (left / right) are NOT in the BLE notification stream. Helper v3 polls `hub.button` and sends `0,btn,<L|R>,<1|0>` events; the driver keeps the state (`buttonState(side, mode)`), the `spike_button` block reads it. Needs the helper running (re-upload it after a driver update: `SPIKE_MOTOR_HELPER_VERSION` is 3).
+- Verified on hardware (owner's tests): connect, notifications, upload + start, tunnel both ways, motor blocks, LED matrix, beep, hub light, set hub name, start/stop slot programs, upload program, message send/read/wait, most input blocks. Not yet verified: hub buttons (helper v3, `button.pressed(button.LEFT)` from the SPIKE 3 docs), force sensor (owner has none), colour 'reflection' (an undocumented extra byte in the colour message), watchdog.
 
 ## Blockly 12.4.1 gotchas (loaded from unpkg in index.html)
 - The core build has NO `text_multiline` block and no `Blockly.FieldMultilineInput`. Using `text_multiline` in the toolbox crashes every flyout. Multi-line text comes from the plugin `@blockly/field-multilineinput@6.0.2` (script tag in index.html) through the custom `spike_code` block (`getMultilineFieldClass()` in lego_blocks.js, with a safe single-line fallback).

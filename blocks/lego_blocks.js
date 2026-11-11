@@ -4736,6 +4736,23 @@ window.addEventListener("load", () => {
     }
   };
 
+  // Hub buttons: reported by the motor helper (v3+), they are not part of the hub's Bluetooth sensor stream.
+  Blockly.defineBlocksWithJsonArray([
+    {
+      "type": "spike_button",
+      "message0": "%1 button %2 %3",
+      "args0": [
+        { "type": "field_dropdown", "name": "DEVICE", "options": getSpike3Dropdown },
+        { "type": "field_dropdown", "name": "SIDE", "options": [["left", "left"], ["right", "right"]] },
+        { "type": "field_dropdown", "name": "MODE", "options": [["is held", "held"], ["is released", "released"], ["was pressed", "waspressed"], ["was released", "wasreleased"]] }
+      ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": 200,
+      "tooltip": "Left or right hub button. NEEDS the motor helper to be uploaded and running on the hub (Spike > Output > Upload Motor Helper): the buttons are not part of the hub's Bluetooth sensor data, the helper watches them. 'is held' / 'is released' = the state right now. 'was pressed' / 'was released' = it happened since the last time this block was checked (then it resets), so a quick tap is not missed."
+    }
+  ]);
+
   // ---------------- WeDo 2.0 BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
     {

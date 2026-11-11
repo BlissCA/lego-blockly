@@ -2602,6 +2602,16 @@ javascriptGenerator.forBlock["spike_get_battery"] = function (block) {
   ];
 };
 
+javascriptGenerator.forBlock["spike_button"] = function (block) {
+  const dev  = block.getFieldValue("DEVICE");
+  const side = block.getFieldValue("SIDE");
+  const mode = block.getFieldValue("MODE");
+  return [
+    `deviceManager.getDeviceByName("${dev}").buttonState("${side}", "${mode}")`,
+    javascriptGenerator.ORDER_ATOMIC
+  ];
+};
+
 javascriptGenerator.forBlock["spike_helper_upload"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   const slot = javascriptGenerator.valueToCode(block, "SLOT", javascriptGenerator.ORDER_NONE) || "19";
