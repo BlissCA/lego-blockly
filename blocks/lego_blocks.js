@@ -936,6 +936,38 @@ function getCCubesESP32Dropdown() {
     : [['No Cube', 'NONE']];
 }
 
+// Only ESP32io boards
+function getESP32ioDropdown() {
+  const devices = window.deviceManager?.devices || [];
+  const list = devices.filter(d => d.constructor.name === "ESP32io");
+
+  return list.length
+    ? list.map(d => [d.name, d.name])
+    : [['No ESP32io', 'NONE']];
+}
+
+// ESP-WROOM-32 pins, same list as PIN_CAPS in SketchArduino/ESP32io/ESP32io.ino
+// (I input, O output, A analog in, D DAC, P internal pull-up/down)
+const ESP32IO_PINS_WROOM32 = [
+  [4, "IOP"], [13, "IOP"], [14, "IOP"], [16, "IOP"], [17, "IOP"], [18, "IOP"], [19, "IOP"],
+  [21, "IOP"], [22, "IOP"], [23, "IOP"], [25, "IODP"], [26, "IODP"], [27, "IOP"],
+  [32, "IOAP"], [33, "IOAP"], [34, "IA"], [35, "IA"], [36, "IA"], [39, "IA"]
+];
+
+// Pin dropdown options. need: "" (any pin), "out", "adc" or "dac"
+function esp32ioPinOptions(need) {
+  const flag = { out: "O", adc: "A", dac: "D" }[need] || "";
+  return ESP32IO_PINS_WROOM32
+    .filter(([, f]) => !flag || f.includes(flag))
+    .map(([pin, f]) => {
+      const notes = [];
+      if (!f.includes("O")) notes.push("input only");
+      if (f.includes("A")) notes.push("analog");
+      if (f.includes("D")) notes.push("DAC");
+      return [`GPIO${pin}${notes.length ? " (" + notes.join(", ") + ")" : ""}`, String(pin)];
+    });
+}
+
 window.addEventListener("load", () => {
 
   Blockly.defineBlocksWithJsonArray([
@@ -5908,6 +5940,272 @@ window.addEventListener("load", () => {
   ]);  
 
   
+  // ---------------- ESP32io BLOCKS ----------------
+  // A port is named by its first pin: H-bridge = IN1 (or EN), encoder = A.
+  const ESP32IO_COLOUR = "#00897b";
+  const espDevice = () => ({ "type": "field_dropdown", "name": "DEVICE", "options": getESP32ioDropdown });
+  const espPin = (name, shadow, pin) => ({ "type": "input_value", "name": name, "check": ["Number", "String"], "shadow": { "type": shadow, "fields": { "ESPPIN": pin } } });
+  const espNum = (name, num) => ({ "type": "input_value", "name": name, "check": "Number", "shadow": { "type": "math_number", "fields": { "NUM": num } } });
+  const espChoice = (name, options) => ({ "type": "field_dropdown", "name": name, "options": options });
+  const espStatement = { "inputsInline": true, "previousStatement": null, "nextStatement": null, "colour": ESP32IO_COLOUR };
+
+  Blockly.defineBlocksWithJsonArray([
+    // Pin constants (toolbox shadows)
+    {
+      "type": "esp32io_pin",
+      "message0": "%1",
+      "args0": [ espChoice("ESPPIN", esp32ioPinOptions("")) ],
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "ESP32 pin. Input-only pins (34, 35, 36, 39) have no internal pull-up/down."
+    },
+    {
+      "type": "esp32io_pin_out",
+      "message0": "%1",
+      "args0": [ espChoice("ESPPIN", esp32ioPinOptions("out")) ],
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "ESP32 pin that can be an output (every output pin can do PWM)."
+    },
+    {
+      "type": "esp32io_pin_adc",
+      "message0": "%1",
+      "args0": [ espChoice("ESPPIN", esp32ioPinOptions("adc")) ],
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "ESP32 pin that can read analog values (ADC1)."
+    },
+    {
+      "type": "esp32io_pin_dac",
+      "message0": "%1",
+      "args0": [ espChoice("ESPPIN", esp32ioPinOptions("dac")) ],
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "ESP32 pin with a true analog output (DAC)."
+    },
+
+    // Config
+    {
+      "type": "esp32io_cfg_input",
+      "message0": "%1 GPIO %2 input %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "4"),
+        espChoice("PRESET", [["switch NO", "switch_no"], ["switch NC", "switch_nc"], ["IR light barrier", "ir_barrier"],
+                             ["TCRT5000 (digital)", "tcrt5000"], ["digital", "digital"]]) ],
+      ...espStatement,
+      "tooltip": "Digital input. Switch NO / NC: contact between the pin and GND (internal pull-up). " +
+                 "IR light barrier: active when the beam is blocked. TCRT5000: active when it sees a reflecting surface. " +
+                 "Power sensors from 3.3 V: ESP32 pins are not 5 V tolerant."
+    },
+    {
+      "type": "esp32io_cfg_din",
+      "message0": "%1 GPIO %2 input pull %3 active %4 debounce %5 ms",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "4"),
+        espChoice("PULL", [["up", "UP"], ["down", "DOWN"], ["none", "NONE"]]),
+        espChoice("ACTIVE", [["LOW", "LOW"], ["HIGH", "HIGH"]]),
+        espNum("DEBOUNCE", 10) ],
+      ...espStatement,
+      "tooltip": "Digital input with your own settings. Active: the level that reads as true. " +
+                 "Input-only pins (34, 35, 36, 39) need pull 'none' and an external resistor."
+    },
+    {
+      "type": "esp32io_cfg_ain",
+      "message0": "%1 GPIO %2 analog input",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_adc", "34") ],
+      ...espStatement,
+      "tooltip": "Analog input 0-3.3 V (potentiometer, TCRT5000 A0...)."
+    },
+    {
+      "type": "esp32io_cfg_dout",
+      "message0": "%1 GPIO %2 digital output %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "13"),
+        espChoice("INVERT", [["normal", "0"], ["inverted", "1"]]) ],
+      ...espStatement,
+      "tooltip": "Digital output (LED, relay, buzzer). Inverted: 'on' drives the pin LOW (active-low relay boards)."
+    },
+    {
+      "type": "esp32io_cfg_pwm",
+      "message0": "%1 GPIO %2 PWM output freq %3 Hz",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "13"), espNum("FREQ", 1000) ],
+      ...espStatement,
+      "tooltip": "PWM output 0-100 % (LED brightness...). Frequency 10-40000 Hz."
+    },
+    {
+      "type": "esp32io_cfg_dac",
+      "message0": "%1 GPIO %2 DAC output",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_dac", "25") ],
+      ...espStatement,
+      "tooltip": "True analog output 0-100 % of 3.3 V (GPIO 25 and 26)."
+    },
+    {
+      "type": "esp32io_cfg_servo",
+      "message0": "%1 GPIO %2 servo %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "14"),
+        espChoice("TYPE", [["180°", "180"], ["360° (continuous)", "360"]]) ],
+      ...espStatement,
+      "tooltip": "Hobby servo (SG90...). 180°: set its angle. 360°: set its speed. The servo stays relaxed until the first angle / speed."
+    },
+    {
+      "type": "esp32io_cfg_hb2",
+      "message0": "%1 H-bridge %2 IN1 %3 IN2 %4",
+      "args0": [ espDevice(), espChoice("BOARD", [["DRV8833", "DRV8833"], ["MX1508", "MX1508"], ["L9110S", "L9110S"]]),
+        espPin("IN1", "esp32io_pin_out", "16"), espPin("IN2", "esp32io_pin_out", "17") ],
+      ...espStatement,
+      "tooltip": "H-bridge with 2 inputs. The motor port is the IN1 pin. The L9110S cannot brake (brake = coast)."
+    },
+    {
+      "type": "esp32io_cfg_hb3",
+      "message0": "%1 H-bridge %2 EN %3 IN1 %4 IN2 %5",
+      "args0": [ espDevice(), espChoice("BOARD", [["L298N", "L298N"], ["TB6612", "TB6612"]]),
+        espPin("EN", "esp32io_pin_out", "25"), espPin("IN1", "esp32io_pin_out", "26"), espPin("IN2", "esp32io_pin_out", "27") ],
+      ...espStatement,
+      "tooltip": "H-bridge with enable (PWM) + 2 direction pins. The motor port is the EN pin. " +
+                 "L298N: remove the ENA/ENB jumper and wire EN to the ESP32."
+    },
+    {
+      "type": "esp32io_cfg_enc",
+      "message0": "%1 encoder A %2 B %3 mode %4 pulses/turn %5 gear %6 reverse %7",
+      "args0": [ espDevice(), espPin("A", "esp32io_pin", "18"), espPin("B", "esp32io_pin", "19"),
+        espChoice("MODE", [["X4", "X4"], ["X2", "X2"], ["X1", "X1"]]),
+        espNum("PPR", 7), espNum("GEAR", 1),
+        { "type": "field_checkbox", "name": "REVERSE", "checked": false } ],
+      ...espStatement,
+      "tooltip": "Quadrature encoder (rotary knob, N20 motor). The port is the A pin. " +
+                 "X4 = 4 counts per pulse (motors), X1 = 1 count per click (knobs). " +
+                 "Pulses/turn: 7 for most N20 encoders, the number of clicks for a knob. Gear: 100 for a 1:100 gearbox."
+    },
+
+    // Input
+    {
+      "type": "esp32io_get_digital",
+      "message0": "%1 GPIO %2 active",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "4") ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "True when the input is active (switch pressed, beam blocked, surface seen)."
+    },
+    {
+      "type": "esp32io_get_analog",
+      "message0": "%1 GPIO %2 analog %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_adc", "34"),
+        espChoice("UNIT", [["raw (0-4095)", "raw"], ["%", "pct"], ["volts", "volts"]]) ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "Analog input value. Volts are approximate (the ESP32 ADC is not linear near 0 and 3.3 V)."
+    },
+    {
+      "type": "esp32io_get_encoder",
+      "message0": "%1 encoder %2 %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "18"),
+        espChoice("UNIT", [["count", "count"], ["degrees", "deg"], ["turns", "turns"]]) ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "Encoder position (port = A pin). Degrees and turns use the pulses/turn and gear of the encoder setup."
+    },
+    {
+      "type": "esp32io_set_encoder",
+      "message0": "%1 set encoder %2 to %3 %4",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "18"), espNum("VALUE", 0),
+        espChoice("UNIT", [["count", "count"], ["degrees", "deg"]]) ],
+      ...espStatement,
+      "tooltip": "Set the encoder position (0 by default)."
+    },
+    {
+      "type": "esp32io_wait_digital",
+      "message0": "%1 wait until GPIO %2 is %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "4"),
+        espChoice("STATE", [["active", "1"], ["inactive", "0"]]) ],
+      ...espStatement,
+      "tooltip": "Wait until a digital input is active / inactive."
+    },
+
+    // Output
+    {
+      "type": "esp32io_dout_set",
+      "message0": "%1 GPIO %2 %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "13"),
+        espChoice("STATE", [["on", "1"], ["off", "0"]]) ],
+      ...espStatement,
+      "tooltip": "Digital output on / off."
+    },
+    {
+      "type": "esp32io_pwm_set",
+      "message0": "%1 GPIO %2 PWM %3 %%",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "13"), espNum("VALUE", 50) ],
+      ...espStatement,
+      "tooltip": "PWM output 0-100 %."
+    },
+    {
+      "type": "esp32io_dac_set",
+      "message0": "%1 GPIO %2 DAC %3 %%",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_dac", "25"), espNum("VALUE", 50) ],
+      ...espStatement,
+      "tooltip": "DAC output 0-100 % of 3.3 V."
+    },
+    {
+      "type": "esp32io_servo_angle",
+      "message0": "%1 servo %2 angle %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "14"), espNum("VALUE", 90) ],
+      ...espStatement,
+      "tooltip": "180° servo: angle 0-180."
+    },
+    {
+      "type": "esp32io_servo_speed",
+      "message0": "%1 servo %2 speed %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "14"), espNum("VALUE", 50) ],
+      ...espStatement,
+      "tooltip": "360° (continuous) servo: speed -100..100, 0 = stop."
+    },
+    {
+      "type": "esp32io_mot_power",
+      "message0": "%1 motor %2 power %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "16"), espNum("PWR", 50) ],
+      ...espStatement,
+      "tooltip": "H-bridge motor power -100..100 (port = IN1 pin, or EN pin for L298N / TB6612)."
+    },
+    {
+      "type": "esp32io_mot_stop",
+      "message0": "%1 motor %2 stop %3",
+      "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "16"),
+        espChoice("MODE", [["coast", "0"], ["brake", "1"]]) ],
+      ...espStatement,
+      "tooltip": "Stop a motor. Brake stops it faster (the motor is not held in place afterwards)."
+    },
+    {
+      "type": "esp32io_stop_all",
+      "message0": "%1 stop all outputs",
+      "args0": [ espDevice() ],
+      ...espStatement,
+      "tooltip": "All outputs off: motors coast, PWM / DAC 0, servos relaxed. The setup is kept."
+    },
+
+    // Misc
+    {
+      "type": "esp32io_reset",
+      "message0": "%1 reset all pins",
+      "args0": [ espDevice() ],
+      ...espStatement,
+      "tooltip": "Release every pin (outputs off). Each device needs its setup block again."
+    },
+    {
+      "type": "esp32io_set_name",
+      "message0": "%1 set board name %2",
+      "args0": [ espDevice(), { "type": "input_value", "name": "NAME", "check": "String", "shadow": { "type": "text", "fields": { "TEXT": "RobotA" } } } ],
+      ...espStatement,
+      "tooltip": "Rename the board (1-20 characters A-Z a-z 0-9 _ -). Visible after the next disconnect / connect."
+    },
+    {
+      "type": "esp32io_watchdog",
+      "message0": "%1 watchdog %2 ms",
+      "args0": [ espDevice(), espNum("MS", 1000) ],
+      ...espStatement,
+      "tooltip": "The board stops all outputs if it hears nothing from the PC for this time (0 = off)."
+    }
+  ]);
+
+
   // ---------------- LEGO SBrick/SBrick+/SBrick Light BLOCKS ----------------
   Blockly.defineBlocksWithJsonArray([
 

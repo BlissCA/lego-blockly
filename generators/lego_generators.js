@@ -3569,6 +3569,173 @@ javascriptGenerator.forBlock["cube_scan"] = function (block) {
 
 
 
+// ---------------- ESP32io GENERATORS ----------------
+
+function esp32ioValue(block, name, fallback) {
+  return javascriptGenerator.valueToCode(block, name, javascriptGenerator.ORDER_NONE) || fallback;
+}
+
+// Statement wrapper shared by all ESP32io statement blocks: `call` uses `dev`
+function esp32ioStatement(block, call) {
+  const dev = block.getFieldValue("DEVICE");
+  return `
+{
+  shouldStop();
+  const dev = deviceManager.getDeviceByName("${dev}");
+  if (!dev) throw new Error("Device lost");
+  await ${call};
+}
+`;
+}
+
+function esp32ioReporter(block, call) {
+  const dev = block.getFieldValue("DEVICE");
+  return [`deviceManager.getDeviceByName("${dev}").${call}`, javascriptGenerator.ORDER_ATOMIC];
+}
+
+for (const type of ["esp32io_pin", "esp32io_pin_out", "esp32io_pin_adc", "esp32io_pin_dac"]) {
+  javascriptGenerator.forBlock[type] = function (block) {
+    return [block.getFieldValue("ESPPIN"), javascriptGenerator.ORDER_ATOMIC];
+  };
+}
+
+// Config
+javascriptGenerator.forBlock["esp32io_cfg_input"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "4");
+  return esp32ioStatement(block, `dev.configInput(${pin}, "${block.getFieldValue("PRESET")}")`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_din"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "4");
+  const debounce = esp32ioValue(block, "DEBOUNCE", "10");
+  return esp32ioStatement(block,
+    `dev.configDigitalIn(${pin}, { pull: "${block.getFieldValue("PULL")}", active: "${block.getFieldValue("ACTIVE")}", debounce: Number(${debounce}) })`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_ain"] = function (block) {
+  return esp32ioStatement(block, `dev.configAnalogIn(${esp32ioValue(block, "PIN", "34")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_dout"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "13");
+  return esp32ioStatement(block, `dev.configDigitalOut(${pin}, ${block.getFieldValue("INVERT") === "1"})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_pwm"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "13");
+  const freq = esp32ioValue(block, "FREQ", "1000");
+  return esp32ioStatement(block, `dev.configPWM(${pin}, Number(${freq}))`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_dac"] = function (block) {
+  return esp32ioStatement(block, `dev.configDAC(${esp32ioValue(block, "PIN", "25")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_servo"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "14");
+  return esp32ioStatement(block, `dev.configServo(${pin}, ${block.getFieldValue("TYPE")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_hb2"] = function (block) {
+  const in1 = esp32ioValue(block, "IN1", "16");
+  const in2 = esp32ioValue(block, "IN2", "17");
+  return esp32ioStatement(block, `dev.configHBridge("${block.getFieldValue("BOARD")}", ${in1}, ${in2})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_hb3"] = function (block) {
+  const en = esp32ioValue(block, "EN", "25");
+  const in1 = esp32ioValue(block, "IN1", "26");
+  const in2 = esp32ioValue(block, "IN2", "27");
+  return esp32ioStatement(block, `dev.configHBridge("${block.getFieldValue("BOARD")}", ${en}, ${in1}, ${in2})`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_enc"] = function (block) {
+  const a = esp32ioValue(block, "A", "18");
+  const b = esp32ioValue(block, "B", "19");
+  const ppr = esp32ioValue(block, "PPR", "7");
+  const gear = esp32ioValue(block, "GEAR", "1");
+  const reverse = block.getFieldValue("REVERSE") === "TRUE";
+  return esp32ioStatement(block,
+    `dev.configEncoder(${a}, ${b}, { mode: "${block.getFieldValue("MODE")}", ppr: Number(${ppr}), gear: Number(${gear}), reverse: ${reverse} })`);
+};
+
+// Input
+javascriptGenerator.forBlock["esp32io_get_digital"] = function (block) {
+  return esp32ioReporter(block, `getDigital(${esp32ioValue(block, "PIN", "4")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_get_analog"] = function (block) {
+  const fn = { raw: "getAnalog", pct: "getAnalogPercent", volts: "getAnalogVolts" }[block.getFieldValue("UNIT")] || "getAnalog";
+  return esp32ioReporter(block, `${fn}(${esp32ioValue(block, "PIN", "34")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_get_encoder"] = function (block) {
+  const fn = { count: "getCount", deg: "getRot", turns: "getRotations" }[block.getFieldValue("UNIT")] || "getCount";
+  return esp32ioReporter(block, `${fn}(${esp32ioValue(block, "PIN", "18")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_set_encoder"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "18");
+  const value = esp32ioValue(block, "VALUE", "0");
+  const fn = block.getFieldValue("UNIT") === "deg" ? "resetPosition" : "resetCount";
+  return esp32ioStatement(block, `dev.${fn}(${pin}, Number(${value}))`);
+};
+
+javascriptGenerator.forBlock["esp32io_wait_digital"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "4");
+  // waitFor returns early on STOP: the shouldStop() of the next block ends the program
+  return esp32ioStatement(block, `dev.waitFor(${pin}, ${block.getFieldValue("STATE")})`);
+};
+
+// Output
+javascriptGenerator.forBlock["esp32io_dout_set"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "13");
+  return esp32ioStatement(block, `dev.digitalWrite(${pin}, ${block.getFieldValue("STATE") === "1"})`);
+};
+
+javascriptGenerator.forBlock["esp32io_pwm_set"] = function (block) {
+  return esp32ioStatement(block, `dev.pwmWrite(${esp32ioValue(block, "PIN", "13")}, ${esp32ioValue(block, "VALUE", "0")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_dac_set"] = function (block) {
+  return esp32ioStatement(block, `dev.dacWrite(${esp32ioValue(block, "PIN", "25")}, ${esp32ioValue(block, "VALUE", "0")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_servo_angle"] = function (block) {
+  return esp32ioStatement(block, `dev.servoAngle(${esp32ioValue(block, "PIN", "14")}, ${esp32ioValue(block, "VALUE", "90")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_servo_speed"] = function (block) {
+  return esp32ioStatement(block, `dev.servoSpeed(${esp32ioValue(block, "PIN", "14")}, ${esp32ioValue(block, "VALUE", "0")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_power"] = function (block) {
+  return esp32ioStatement(block, `dev.motorPower(${esp32ioValue(block, "PIN", "16")}, ${esp32ioValue(block, "PWR", "0")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_stop"] = function (block) {
+  const pin = esp32ioValue(block, "PIN", "16");
+  return esp32ioStatement(block, `dev.motorStop(${pin}, ${block.getFieldValue("MODE") === "1"})`);
+};
+
+javascriptGenerator.forBlock["esp32io_stop_all"] = function (block) {
+  return esp32ioStatement(block, `dev.stopAllMotors()`);
+};
+
+// Misc
+javascriptGenerator.forBlock["esp32io_reset"] = function (block) {
+  return esp32ioStatement(block, `dev.reset()`);
+};
+
+javascriptGenerator.forBlock["esp32io_set_name"] = function (block) {
+  return esp32ioStatement(block, `dev.setHubName(${esp32ioValue(block, "NAME", '"RobotA"')})`);
+};
+
+javascriptGenerator.forBlock["esp32io_watchdog"] = function (block) {
+  return esp32ioStatement(block, `dev.setWatchdog(Number(${esp32ioValue(block, "MS", "0")}))`);
+};
+
+
 // ---------------- SBRICK DEVICE GENERATORS ----------------
 
 // ---------------- Lego SBrick/SBrick+ Output Port Letters A, B, C, D = 0, 2, 1, 3 ----------------
