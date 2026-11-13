@@ -6148,14 +6148,14 @@ window.addEventListener("load", () => {
     },
     {
       "type": "esp32io_servo_angle",
-      "message0": "%1 servo %2 angle %3",
+      "message0": "%1 servo 180° %2 angle %3",
       "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "14"), espNum("VALUE", 90) ],
       ...espStatement,
       "tooltip": "180° servo: angle 0-180."
     },
     {
       "type": "esp32io_servo_speed",
-      "message0": "%1 servo %2 speed %3",
+      "message0": "%1 servo 360° %2 speed %3",
       "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "14"), espNum("VALUE", 50) ],
       ...espStatement,
       "tooltip": "360° (continuous) servo: speed -100..100, 0 = stop."

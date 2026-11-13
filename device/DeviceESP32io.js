@@ -491,8 +491,19 @@ export class ESP32io {
   digitalWrite(pin, on) { return this._set(this._port(pin, ["DOUT"]), on ? 1 : 0); }
   pwmWrite(pin, percent) { return this._set(this._port(pin, ["PWM"]), clamp(Number(percent) || 0, 0, 100)); }
   dacWrite(pin, percent) { return this._set(this._port(pin, ["DAC"]), clamp(Number(percent) || 0, 0, 100)); }
-  servoAngle(pin, angle) { return this._set(this._port(pin, ["SERVO"]), clamp(Number(angle) || 0, 0, 180)); }
-  servoSpeed(pin, speed) { return this._set(this._port(pin, ["SERVO"]), clamp(Number(speed) || 0, -100, 100)); }
+  servoAngle(pin, angle) { return this._set(this._servo(pin, 180), clamp(Number(angle) || 0, 0, 180)); }
+  servoSpeed(pin, speed) { return this._set(this._servo(pin, 360), clamp(Number(speed) || 0, -100, 100)); }
+
+  /** Servo port check: a 180 servo takes an angle, a 360 (continuous) servo a speed. */
+  _servo(pin, range) {
+    const p = this._port(pin, ["SERVO"]);
+    if (this.ports[p].range !== range) {
+      throw new Error(range === 180
+        ? `${this.name}: GPIO${p} is a 360 (continuous) servo: use the "servo speed" block (-100..100)`
+        : `${this.name}: GPIO${p} is a 180 servo: use the "servo angle" block (0..180)`);
+    }
+    return p;
+  }
 
   /** H-bridge power -100..100 (same name as the LPF2 / SPIKE drivers). */
   motorPower(pin, power) { return this._set(this._port(pin, ["HB2", "HB3"]), clamp(Number(power) || 0, -100, 100)); }
