@@ -252,8 +252,9 @@ export class ESP32io {
     });
   }
 
-  /** Send a command and wait for its OK (resolves with the reply data) or ERR (rejects). */
-  request(cmd, timeoutMs = ESP32IO.requestTimeoutMs) {
+  /** Send a command and wait for its OK (resolves with the reply data) or ERR (rejects).
+   *  onOk runs as soon as the OK line is read, before any line that follows it (await resumes later). */
+  request(cmd, timeoutMs = ESP32IO.requestTimeoutMs, onOk = null) {
     if (!this.rx) return Promise.reject(new Error(`${this.name || this.namePrefix}: not connected`));
     const id = this._nextId;
     this._nextId = this._nextId >= 9999 ? 1 : this._nextId + 1;
@@ -262,7 +263,7 @@ export class ESP32io {
         this._pending.delete(id);
         reject(new Error(`ESP32io: no reply to "${cmd}"`));
       }, timeoutMs);
-      this._pending.set(id, { resolve, reject, timer, cmd });
+      this._pending.set(id, { resolve, reject, timer, cmd, onOk });
       this._write(`${id} ${cmd}`);
     });
   }
@@ -305,7 +306,7 @@ export class ESP32io {
     if (!p) return;
     this._pending.delete(id);
     clearTimeout(p.timer);
-    if (m[2] === "OK") p.resolve(data);
+    if (m[2] === "OK") { p.onOk?.(data); p.resolve(data); }
     else p.reject(new Error(`${this.name || this.namePrefix}: ${data}`));
   }
 
@@ -378,9 +379,12 @@ export class ESP32io {
   // ---------------- Setup (one call per wired device) ----------------
   async _cfg(pin, rest, port) {
     const p = pinNum(pin);
-    delete this.values[p];     // before the request: the first value can arrive in the same packet as the OK
-    await this.request(`CFG ${p} ${rest}`);
-    this.ports[p] = port;
+    // The board sends its lines in order: values read before the OK belong to the old setup
+    // (e.g. the count left by the previous run), values after it are fresh
+    await this.request(`CFG ${p} ${rest}`, undefined, () => {
+      delete this.values[p];
+      this.ports[p] = port;
+    });
     delete this._lastSet[p];
     // Inputs: the board pushes the first value right after the OK
     if (["DIN", "AIN", "ENC"].includes(port.type)) {
@@ -547,8 +551,7 @@ export class ESP32io {
   async resetCount(pin, preset = 0) {
     const p = this._port(pin, ["ENC"]);
     const raw = Math.round(Number(preset) || 0) * (this.ports[p].reverse ? -1 : 1);
-    await this.request(`ZERO ${p} ${raw}`);
-    this.values[p] = raw;
+    await this.request(`ZERO ${p} ${raw}`, undefined, () => { this.values[p] = raw; });
   }
 
   /** Set the encoder position in degrees (same name as the LPF2 driver). */
