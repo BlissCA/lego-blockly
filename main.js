@@ -31,6 +31,7 @@ import "./device/DeviceSBrick.js";
 import "./device/DeviceLegoPFIR.js";
 import "./device/DeviceLegoPFIRrcx.js";
 import "./device/DeviceCCubesESP32BLE.js";
+import "./device/DeviceESP32io.js";
 import "./device/deviceManager.js";
 
 let currentProjectName = "lego-project";
@@ -981,7 +982,7 @@ document.getElementById("stopBtn").onclick = async () => {
         // WeDo 1.0: stop all motors
         await dev.stopMotor();
       } else if (dev.stopAllMotors) {
-        // LPF2/SPIKE: stop all motors
+        // LPF2/SPIKE/ESP32io: stop all motors
         await dev.stopAllMotors();
         if (dev.namePrefix==="TechM") dev.lightsOff(); // Technic Move Hub: turn off lights
       } else if (dev.piezoPlay) {
@@ -1123,6 +1124,10 @@ document.getElementById("connectDeviceBtn").onclick = async () => {
     
     case "CUBESP":
       dev = await window.deviceManager.connectCCubesESP32();
+      break;
+    
+    case "ESP32io":
+      dev = await window.deviceManager.connectESP32io();
       break;
 
     default:

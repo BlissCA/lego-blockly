@@ -387,10 +387,17 @@ static bool encCreate(Port& p, int mult, bool pullUp) {
   ca.level_gpio_num = b;
   ok = ok && pcnt_new_channel(p.unit, &ca, &p.chA) == ESP_OK;
   if (ok) {
-    // X1 counts rising edges of A only, X2 both edges of A, X4 both edges of A and B
-    pcnt_channel_set_edge_action(p.chA, PCNT_CHANNEL_EDGE_ACTION_DECREASE,
-                                 mult == 1 ? PCNT_CHANNEL_EDGE_ACTION_HOLD : PCNT_CHANNEL_EDGE_ACTION_INCREASE);
-    pcnt_channel_set_level_action(p.chA, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE);
+    // X2 and X4 count both edges of A (X4 adds channel B below)
+    // (edge actions: rising, falling / level actions: B high, B low)
+    if (mult == 1) {
+      // X1: edges of A only while B is LOW, rising +1, falling -1. Forward, A rises with B LOW;
+      // backward, A falls with B LOW at the same place, so contact bounce and jitter cancel out.
+      pcnt_channel_set_edge_action(p.chA, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE);
+      pcnt_channel_set_level_action(p.chA, PCNT_CHANNEL_LEVEL_ACTION_HOLD, PCNT_CHANNEL_LEVEL_ACTION_KEEP);
+    } else {
+      pcnt_channel_set_edge_action(p.chA, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE);
+      pcnt_channel_set_level_action(p.chA, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE);
+    }
   }
   if (ok && mult == 4) {
     pcnt_chan_config_t cb = {};

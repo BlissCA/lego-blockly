@@ -16,6 +16,7 @@ import { SBrick } from './DeviceSBrick.js';
 import { LegoPFIR } from './DeviceLegoPFIR.js';
 import { LegoPFIRrcx } from './DeviceLegoPFIRrcx.js';
 import { CCubesESP32BLE } from './DeviceCCubesESP32BLE.js';
+import { ESP32io } from './DeviceESP32io.js';
 
 // -------------------------
 // Screen Wake Lock Support
@@ -517,6 +518,27 @@ export class DeviceManager {
       return null;
     }
   }
+
+  // -------------------------
+  // Connect ESP32 Generic IO
+  // -------------------------
+
+  async connectESP32io() {
+    const dev = new ESP32io(null, this);
+
+    try {
+      await dev.connect();
+      this._addDevice(dev, false); // Don't log status here, ESP32io logs its own status
+      return dev;
+
+    } catch (err) {
+      console.warn("ESP32io Connection failed:", err);
+      await dev.disconnect();
+      this._freeName(dev.name);
+      return null;
+    }
+  }
+
   // -------------------------
   // Disconnect All
   // -------------------------
