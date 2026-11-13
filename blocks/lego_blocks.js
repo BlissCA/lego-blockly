@@ -6047,19 +6047,21 @@ window.addEventListener("load", () => {
     {
       "type": "esp32io_cfg_hb2",
       "message0": "%1 H-bridge %2 IN1 %3 IN2 %4",
-      "args0": [ espDevice(), espChoice("BOARD", [["DRV8833", "DRV8833"], ["MX1508", "MX1508"], ["L9110S", "L9110S"]]),
+      "args0": [ espDevice(), espChoice("BOARD", [["DRV8833", "DRV8833"], ["MX1508 / 1508S", "MX1508"], ["L9110S", "L9110S"], ["ZK-5AD", "ZK-5AD"]]),
         espPin("IN1", "esp32io_pin_out", "16"), espPin("IN2", "esp32io_pin_out", "17") ],
       ...espStatement,
-      "tooltip": "H-bridge with 2 inputs. The motor port is the IN1 pin. The L9110S cannot brake (brake = coast)."
+      "tooltip": "H-bridge with 2 inputs. The motor port is the IN1 pin. The L9110S cannot brake (brake = coast). " +
+                 "DRV8833: its sleep pin (nSLEEP / SLP / EEP) must be HIGH."
     },
     {
       "type": "esp32io_cfg_hb3",
       "message0": "%1 H-bridge %2 EN %3 IN1 %4 IN2 %5",
-      "args0": [ espDevice(), espChoice("BOARD", [["L298N", "L298N"], ["TB6612", "TB6612"]]),
+      "args0": [ espDevice(), espChoice("BOARD", [["L298N", "L298N"], ["L293D", "L293D"], ["TB6612", "TB6612"]]),
         espPin("EN", "esp32io_pin_out", "25"), espPin("IN1", "esp32io_pin_out", "26"), espPin("IN2", "esp32io_pin_out", "27") ],
       ...espStatement,
       "tooltip": "H-bridge with enable (PWM) + 2 direction pins. The motor port is the EN pin. " +
-                 "L298N: remove the ENA/ENB jumper and wire EN to the ESP32."
+                 "L298N: remove the ENA/ENB jumper and wire EN to the ESP32. L293D: EN = 1,2EN, IN1 = 1A, IN2 = 2A. " +
+                 "TB6612: EN = PWMA, its STBY pin must be HIGH."
     },
     {
       "type": "esp32io_cfg_enc",
