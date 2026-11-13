@@ -5989,8 +5989,8 @@ window.addEventListener("load", () => {
       "type": "esp32io_cfg_input",
       "message0": "%1 GPIO %2 input %3",
       "args0": [ espDevice(), espPin("PIN", "esp32io_pin", "4"),
-        espChoice("PRESET", [["switch NO", "switch_no"], ["switch NC", "switch_nc"], ["IR light barrier", "ir_barrier"],
-                             ["TCRT5000 (digital)", "tcrt5000"], ["digital", "digital"]]) ],
+        espChoice("PRESET", [["switch NO", "switch_no"], ["switch NC", "switch_nc"], ["IR light barrier / fork (1 = beam blocked)", "ir_barrier"],
+                             ["IR obstacle / TCRT5000 (1 = object seen)", "tcrt5000"], ["digital", "digital"]]) ],
       ...espStatement,
       "tooltip": "Digital input. Switch NO / NC: contact between the pin and GND (internal pull-up). " +
                  "IR light barrier: active when the beam is blocked. TCRT5000: active when it sees a reflecting surface. " +
