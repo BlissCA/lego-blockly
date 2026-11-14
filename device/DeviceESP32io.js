@@ -776,6 +776,17 @@ export class ESP32io {
   /** Measured speed, % of the top speed. */
   async getMotorSpeed(motorPin) { return (await this.motorState(motorPin)).speed; }
 
+  /** Control tuning (not saved, reset by linkMotor): { soft (x loop time, higher = softer), pos (x position stiffness),
+   *  decel (move deceleration x acceleration), kick (true/false) }. Missing fields keep their value. Returns all. */
+  async motorTune(motorPin, { soft, pos, decel, kick } = {}) {
+    const m = this._motor(motorPin);
+    const now = parseKV(await this.request(`MTUNE ${m}`));
+    const v = [soft ?? now.soft, pos ?? now.pos, decel ?? now.decel, kick == null ? now.kick : (kick ? 1 : 0)];
+    const r = parseKV(await this.request(`MTUNE ${m} ${v.join(" ")}`));
+    r.kick = !!r.kick;
+    return r;
+  }
+
   /** Print the motor state in the console every ms (20-1000, 0 = off). For tests and tuning. */
   async motorLog(motorPin, ms = 100) {
     const m = this._motor(motorPin);

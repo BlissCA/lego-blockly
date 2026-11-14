@@ -65,6 +65,10 @@ struct Motor {
   uint32_t settleMs = 0;      // MOVE: when the reference reached the target
   int32_t lastPos = 0;        // stuck detection: last position and when it changed
   uint32_t lastMoveMs = 0;
+  float tSoft = 1.0f;         // MTUNE: x closed-loop time (higher = softer, slower corrections)
+  float tPos = 1.0f;          // MTUNE: x position stiffness
+  float tDecel = 0.5f;        // MTUNE: deceleration of moves, x the acceleration
+  bool tKick = true;          // MTUNE: breakaway kick when stuck
   float integ = 0;            // integral part of the PI, %
   float power = 0;            // last power sent to the H-bridge, %
   float speed = 0;            // measured speed, counts/s (motor direction)

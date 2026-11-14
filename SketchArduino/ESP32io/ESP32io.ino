@@ -84,6 +84,10 @@
     MGET <motor>                 -> OK mode=<OFF|SPEED|CAL|MOVE|HOLD> target=<%> speed=<%> power=<%>
                                        cps=<counts/s> pos=<count> ref=<count> tag=<tag>
     MLOG <motor> <ms>            -> send "M <motor> S ..." (as MGET) every <ms> (20-1000, 0 = off)
+    MTUNE <motor> [soft] [pos] [decel] [kick]
+                                 -> tuning, not saved (back to 1 1 0.5 1 on LINK): soft = x loop time (0.3-5,
+                                    higher = softer), pos = x position stiffness (0-5), decel = move deceleration
+                                    x acceleration (0.1-1), kick = 0|1. Replies the values.
     Counts and positions are in the motor direction (positive power = counts go up, whatever the encoder wiring).
     A new RUN / RUNT / MOVE / HOLD replaces the running one. SET and STOP on the motor port go back to
     open loop (direct power). RUNT and MOVE with a tag end with "M <motor> DONE <tag> pos=<count>",
@@ -152,7 +156,8 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define WRONG_WAY_MS     500    // turning against the setpoint this long = encoder direction wrong
 #define STUCK_MS         40     // no encoder change this long while behind the reference = stuck: kick
 #define SETTLE_MS        500    // a move ends at most this long after its reference reached the target
-#define LEAD_S           0.05f  // the reference stays within 50 ms of top speed of the motor
+#define LEAD_S           0.05f  // MOVE: the reference stays within 50 ms of top speed of the motor
+#define SPEED_WINDOW_S   0.02f  // SPEED: ...within 20 ms of travel (or 2 pulses)
 #define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp up while looking for the start power...
 #define CAL_DOWN_PCT_S   30.0f  // ...and down while looking for the power that keeps it turning
 #define CAL_VERSION      2
@@ -662,18 +667,21 @@ static void motorTrack(Motor& m, float dt, uint32_t now) {
 
   float k = c.top / max(100.0f - c.ks, 10.0f);             // counts/s per % of power
   float tau = max(c.tauMs, 5.0f) / 1000.0f;
-  float lam = max(tau, 0.03f) + SPEED_LAG_MS / 1000.0f;   // closed loop about as fast as the motor itself
-  float kp = tau / (k * lam), ki = 1.0f / (k * lam), kx = 1.0f / (2.0f * lam);
+  float lam = (max(tau, 0.03f) + SPEED_LAG_MS / 1000.0f) * m.tSoft;   // closed loop about as fast as the motor itself
+  float kp = tau / (k * lam), ki = 1.0f / (k * lam), kx = m.tPos / (2.0f * lam);
   float vc = m.vref + kx * ex;
   float err = vc - m.speed;
   float ff = motorFeedforward(m, m.vref) + (100.0f - c.ks) / c.top * tau * m.aref;
   float out = ff + kp * err + m.integ;
+  // The integral sees the speed error only (integrating kx * ex too made the loop swing on the real motor),
+  // plus a slow position integral while the reference stands still (hold, end of a move) for a steady load
+  float ierr = (m.vref - m.speed) + (m.vref == 0 ? kx * 0.25f * ex : 0);
   bool stuck = now - m.lastMoveMs > STUCK_MS;
-  if (m.mode != MM_HOLD && stuck && c.kstart > 0 && fabsf(ex) > tol && (vc > 0) == (ex > 0) && fabsf(out) < c.kstart) {
+  if (m.tKick && m.mode != MM_HOLD && stuck && c.kstart > 0 && fabsf(ex) > tol && (vc > 0) == (ex > 0) && fabsf(out) < c.kstart) {
     out = ex > 0 ? c.kstart : -c.kstart;   // breakaway kick, until it moves
   } else {
-    if (!((out >= 100 && err > 0) || (out <= -100 && err < 0)))   // anti-windup
-      m.integ = constrain(m.integ + ki * err * dt, -100.0f, 100.0f);
+    if (!((out >= 100 && ierr > 0) || (out <= -100 && ierr < 0)))   // anti-windup
+      m.integ = constrain(m.integ + ki * ierr * dt, -100.0f, 100.0f);
     out = ff + kp * err + m.integ;
   }
   motorPowerOut(m, constrain(out, -100.0f, 100.0f));
@@ -724,8 +732,10 @@ static void motorSpeedTick(Motor& m, float dt, uint32_t now) {
   m.aref = (m.sp - sp0) / dt;
   m.vref = m.sp;
   m.ref += m.vref * dt;
-  float lead = c.top * LEAD_S + c.mult;   // blocked motor: no big catch-up afterwards
-  m.ref = constrain(m.ref, m.pos - lead, m.pos + lead);
+  // A speed, not a position: the reference stays within a few pulses (or 20 ms of travel) of the motor,
+  // so an overshoot or a blocked motor is not paid back later. It still averages the low speeds.
+  float window = max(2.0f * c.mult, fabsf(m.vref) * SPEED_WINDOW_S);
+  m.ref = constrain(m.ref, m.pos - window, m.pos + window);
   motorTrack(m, dt, now);
 }
 
@@ -733,10 +743,12 @@ static void motorSpeedTick(Motor& m, float dt, uint32_t now) {
 static void motorMoveTick(Motor& m, float dt, uint32_t now) {
   const MotorCal& c = m.cal;
   float acc = c.top * 1000.0f / ACCEL_MS;
+  float dec = acc * m.tDecel;   // gentler deceleration: less lag (overshoot) at the end
   float dist = m.moveX - m.ref;
-  float vdes = min(m.moveV, sqrtf(2.0f * acc * fabsf(dist)));
+  float vdes = min(m.moveV, sqrtf(2.0f * dec * fabsf(dist)));
   if (dist < 0) vdes = -vdes;
-  float v0 = m.vref, step = acc * dt;
+  bool speedingUp = fabsf(vdes) > fabsf(m.vref) && (vdes > 0) == (m.vref >= 0);
+  float v0 = m.vref, step = (speedingUp ? acc : dec) * dt;
   if (m.vref < vdes) m.vref = min(m.vref + step, vdes);
   else m.vref = max(m.vref - step, vdes);
   m.aref = (m.vref - v0) / dt;
@@ -1270,6 +1282,22 @@ static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
     m->logMs = ms;
     return true;
   }
+  if (is(c, "MTUNE")) {
+    float v[4] = { m->tSoft, m->tPos, m->tDecel, m->tKick ? 1.0f : 0.0f };
+    static const float lo[4] = { 0.3f, 0.0f, 0.1f, 0.0f }, hi[4] = { 5.0f, 5.0f, 1.0f, 1.0f };
+    for (int i = 2; i < n; i++) {
+      float x;
+      if (i - 2 >= 4 || !parseFloat(cmd[i], x) || x < lo[i - 2] || x > hi[i - 2])
+        return fail("MTUNE: [soft 0.3-5] [pos 0-5] [decel 0.1-1] [kick 0|1]");
+      v[i - 2] = x;
+    }
+    m->tSoft = v[0];
+    m->tPos = v[1];
+    m->tDecel = v[2];
+    m->tKick = v[3] >= 0.5f;
+    data = "soft=" + String(m->tSoft, 2) + " pos=" + String(m->tPos, 2) + " decel=" + String(m->tDecel, 2) + " kick=" + String(m->tKick ? 1 : 0);
+    return true;
+  }
 
   // RUN, RUNT, MOVE, HOLD drive the motor: it must be calibrated
   if (m->mode == MM_CAL) return fail(pinName(pin) + " is calibrating");
@@ -1475,7 +1503,7 @@ static void handleLine(char* line, Src src) {
     ok = cmdLink(cmd, n, data);
   } else if (is(c, "MPAR")) {
     ok = cmdMpar(cmd, n, data);
-  } else if (is(c, "CAL") || is(c, "RUN") || is(c, "RUNT") || is(c, "MOVE") || is(c, "HOLD") || is(c, "MGET") || is(c, "MLOG")) {
+  } else if (is(c, "CAL") || is(c, "RUN") || is(c, "RUNT") || is(c, "MOVE") || is(c, "HOLD") || is(c, "MGET") || is(c, "MLOG") || is(c, "MTUNE")) {
     ok = cmdMotor(c, cmd, n, data);
   } else {
     ok = fail(String("unknown command: ") + c);
