@@ -87,10 +87,12 @@
     MGET <motor>                 -> OK mode=<OFF|SPEED|CAL|MOVE|HOLD> target=<%> speed=<%> power=<%>
                                        cps=<counts/s> pos=<count> ref=<count> tag=<tag>
     MLOG <motor> <ms>            -> send "M <motor> S ..." (as MGET) every <ms> (20-1000, 0 = off)
-    MTUNE <motor> [soft] [pos] [decel] [kick]
-                                 -> tuning, not saved (back to 1 1 0.5 1 on LINK): soft = x loop time (0.3-5,
+    MTUNE <motor> [soft] [pos] [decel] [kick] [tol]
+                                 -> tuning, not saved (back to 1 1 0.5 1 0 on LINK): soft = x loop time (0.3-5,
                                     higher = softer), pos = x position stiffness (0-5), decel = move deceleration
-                                    x acceleration (0.1-1), kick = 0|1. Replies the values.
+                                    x acceleration (0.1-1), kick = 0|1, tol = "in place" tolerance in counts
+                                    (0 = 2 encoder pulses; a holding motor stays braked until 2 x tol away).
+                                    Replies the values.
     Counts and positions are in the motor direction (positive power = counts go up, whatever the encoder wiring).
     A new RUN / RUNT / MOVE / HOLD replaces the running one. SET and STOP on the motor port go back to
     open loop (direct power). RUNT and MOVE with a tag end with "M <motor> DONE <tag> pos=<count>",
@@ -669,21 +671,30 @@ static float motorFeedforward(const Motor& m, float sp) {
   return c.ks * constrain(sp / (0.02f * c.top), -1.0f, 1.0f) + (100.0f - c.ks) * sp / c.top;
 }
 
+// "In place" tolerance in counts (MTUNE, the driver sets it from degrees of the output shaft)
+static float motorTol(const Motor& m) { return m.tTol > 0 ? m.tTol : 2.0f * m.cal.mult; }
+
 // Follow ref / vref (all modes but CAL)
 static void motorTrack(Motor& m, float dt, uint32_t now) {
   const MotorCal& c = m.cal;
-  float tol = c.mult;   // one encoder pulse
+  float tol = motorTol(m);
   if (m.pos != m.lastPos) { m.lastPos = m.pos; m.lastMoveMs = now; }
   float ex = m.ref - m.pos;
 
   // Holding and in place: brake (quiet). The integral is dropped: with gearbox friction it only holds
   // what it crept up to while stuck, which would push the wrong way after the next disturbance.
-  if (m.mode == MM_HOLD && fabsf(ex) <= tol) {
-    motorBrake(m);
-    m.integ = 0;
-    m.tapUntil = 0;
-    m.wrongMs = 0;
-    return;
+  // Hysteresis: once in place it stays braked until pushed beyond 2 x the tolerance. With a tolerance
+  // smaller than the gearbox play (the encoder is on the motor shaft) the motor hunted back and forth.
+  if (m.mode == MM_HOLD) {
+    if (fabsf(ex) <= (m.inPlace ? 2.0f * tol : tol)) {
+      m.inPlace = true;
+      motorBrake(m);
+      m.integ = 0;
+      m.tapUntil = 0;
+      m.wrongMs = 0;
+      return;
+    }
+    m.inPlace = false;
   }
   // Holding, out of place and stuck (friction): short taps at the start power, not a slow creep of the integral
   if (m.mode == MM_HOLD && m.tKick && c.kstart > 0) {
@@ -736,6 +747,7 @@ static void motorFinish(Motor& m) {
   motorEndTag(m, "DONE");
   if (m.endAction == END_HOLD) {
     m.mode = MM_HOLD;
+    m.inPlace = false;
     m.ref = holdAt;
     m.vref = m.aref = 0;
     m.target = m.sp = 0;
@@ -797,7 +809,7 @@ static void motorMoveTick(Motor& m, float dt, uint32_t now) {
   if (m.mode != MM_MOVE) return;   // stopped by the wrong-way guard
   if (m.ref == m.moveX && m.vref == 0) {
     if (!m.settleMs) m.settleMs = now ? now : 1;
-    if (fabsf(m.moveX - m.pos) <= c.mult || now - m.settleMs > SETTLE_MS) motorFinish(m);
+    if (fabsf(m.moveX - m.pos) <= motorTol(m) || now - m.settleMs > SETTLE_MS) motorFinish(m);
   }
 }
 
@@ -1324,19 +1336,21 @@ static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
     return true;
   }
   if (is(c, "MTUNE")) {
-    float v[4] = { m->tSoft, m->tPos, m->tDecel, m->tKick ? 1.0f : 0.0f };
-    static const float lo[4] = { 0.3f, 0.0f, 0.1f, 0.0f }, hi[4] = { 5.0f, 5.0f, 1.0f, 1.0f };
+    float v[5] = { m->tSoft, m->tPos, m->tDecel, m->tKick ? 1.0f : 0.0f, m->tTol };
+    static const float lo[5] = { 0.3f, 0.0f, 0.1f, 0.0f, 0.0f }, hi[5] = { 5.0f, 5.0f, 1.0f, 1.0f, 10000.0f };
     for (int i = 2; i < n; i++) {
       float x;
-      if (i - 2 >= 4 || !parseFloat(cmd[i], x) || x < lo[i - 2] || x > hi[i - 2])
-        return fail("MTUNE: [soft 0.3-5] [pos 0-5] [decel 0.1-1] [kick 0|1]");
+      if (i - 2 >= 5 || !parseFloat(cmd[i], x) || x < lo[i - 2] || x > hi[i - 2])
+        return fail("MTUNE: [soft 0.3-5] [pos 0-5] [decel 0.1-1] [kick 0|1] [tol counts, 0 = 2 pulses]");
       v[i - 2] = x;
     }
     m->tSoft = v[0];
     m->tPos = v[1];
     m->tDecel = v[2];
     m->tKick = v[3] >= 0.5f;
-    data = "soft=" + String(m->tSoft, 2) + " pos=" + String(m->tPos, 2) + " decel=" + String(m->tDecel, 2) + " kick=" + String(m->tKick ? 1 : 0);
+    m->tTol = v[4];
+    data = "soft=" + String(m->tSoft, 2) + " pos=" + String(m->tPos, 2) + " decel=" + String(m->tDecel, 2) +
+           " kick=" + String(m->tKick ? 1 : 0) + " tol=" + String(motorTol(*m), 0);
     return true;
   }
 
@@ -1401,6 +1415,7 @@ static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
   if (is(c, "HOLD")) {
     motorTakeOver(*m);
     m->mode = MM_HOLD;
+    m->inPlace = false;
     m->ref = m->pos;
     m->vref = m->aref = 0;
     return true;

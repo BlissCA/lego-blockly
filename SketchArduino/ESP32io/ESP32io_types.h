@@ -71,6 +71,8 @@ struct Motor {
   float tPos = 1.0f;          // MTUNE: x position stiffness
   float tDecel = 0.5f;        // MTUNE: deceleration of moves, x the acceleration
   bool tKick = true;          // MTUNE: breakaway kick when stuck
+  float tTol = 0;             // MTUNE: "in place" tolerance, counts (0 = 2 encoder pulses)
+  bool inPlace = false;       // HOLD: in place (braked) until pushed beyond 2 x the tolerance
   float integ = 0;            // integral part of the PI, %
   float power = 0;            // last power sent to the H-bridge, %
   float speed = 0;            // measured speed, counts/s (motor direction)

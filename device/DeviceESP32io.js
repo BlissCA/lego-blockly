@@ -23,7 +23,8 @@ const ESP32IO = {
   chunk: 20,                 // write size that fits the default BLE MTU
   nameMaxLen: 20,
   adcMax: 4095,
-  adcVolts: 3.3
+  adcVolts: 3.3,
+  holdDeg: 1                 // closed-loop motors: "in place" tolerance, degrees of the output shaft
 };
 
 // Digital input presets (value 1 = pressed / beam blocked / surface seen)
@@ -583,6 +584,9 @@ export class ESP32io {
     this.motors[m] = { enc: e, cal: parseMotorCal(data) };
     delete this._lastSet[m];
     delete this._lastRun[m];
+    // "In place" tolerance in degrees of the output shaft: one encoder pulse on the motor shaft is far
+    // smaller than the gearbox play, and a holding motor hunted inside it
+    await this.motorTune(m, { holdDeg: ESP32IO.holdDeg });
     const cal = this.motorCalibration(m);
     this.log(cal ? `Motor GPIO${m} + encoder GPIO${e}: ${this._calSummary(cal)}`
                  : `Motor GPIO${m} + encoder GPIO${e}: not calibrated yet (calibrateMotor(${m}))`);
@@ -780,13 +784,18 @@ export class ESP32io {
   async getMotorSpeed(motorPin) { return (await this.motorState(motorPin)).speed; }
 
   /** Control tuning (not saved, reset by linkMotor): { soft (x loop time, higher = softer), pos (x position stiffness),
-   *  decel (move deceleration x acceleration), kick (true/false) }. Missing fields keep their value. Returns all. */
-  async motorTune(motorPin, { soft, pos, decel, kick } = {}) {
+   *  decel (move deceleration x acceleration), kick (true/false), holdDeg ("in place" tolerance, degrees of the
+   *  output shaft: a holding motor stays braked until 2 x holdDeg away; moves end within holdDeg) }.
+   *  Missing fields keep their value. Returns all. */
+  async motorTune(motorPin, { soft, pos, decel, kick, holdDeg } = {}) {
     const m = this._motor(motorPin);
+    const cpt = this._motorCountsPerTurn(m);
     const now = parseKV(await this.request(`MTUNE ${m}`));
-    const v = [soft ?? now.soft, pos ?? now.pos, decel ?? now.decel, kick == null ? now.kick : (kick ? 1 : 0)];
+    const tol = holdDeg == null ? now.tol : Math.max(1, Math.round(Number(holdDeg) * cpt / 360));
+    const v = [soft ?? now.soft, pos ?? now.pos, decel ?? now.decel, kick == null ? now.kick : (kick ? 1 : 0), tol];
     const r = parseKV(await this.request(`MTUNE ${m} ${v.join(" ")}`));
     r.kick = !!r.kick;
+    r.holdDeg = round2(r.tol * 360 / cpt);
     return r;
   }
 
