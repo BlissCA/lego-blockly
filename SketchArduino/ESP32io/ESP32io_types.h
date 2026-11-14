@@ -38,10 +38,12 @@ struct MotorCal {
   float ks = 0;               // power (%) that friction eats: the base power of any speed
   float top = 0;              // speed at 100 % power, counts/s
   float tauMs = 0;            // time to reach 63 % of a speed step
+  float kstart = 0;           // power (%) that starts it from rest (breakaway kick when it sticks)
   uint8_t mult = 4;           // encoder mode the speeds were measured with
 };
 
-enum MotorMode : uint8_t { MM_OFF, MM_SPEED, MM_CAL };
+enum MotorMode : uint8_t { MM_OFF, MM_SPEED, MM_CAL, MM_MOVE, MM_HOLD };
+enum MotorEnd : uint8_t { END_BRAKE, END_COAST, END_HOLD };
 
 #define MOTOR_HIST  8         // encoder samples kept for the speed estimate
 #define CAL_SAMPLES 80        // speed samples kept during the calibration step (80 x 5 ms)
@@ -51,8 +53,18 @@ struct Motor {
   int8_t hb = -1, enc = -1;   // first pins of the two ports (-1 = free slot)
   MotorCal cal;
   MotorMode mode = MM_OFF;
-  float target = 0;           // requested speed, counts/s (motor direction)
-  float sp = 0;               // setpoint after the acceleration ramp
+  float target = 0;           // SPEED: requested speed, counts/s (motor direction)
+  float sp = 0;               // SPEED: setpoint after the acceleration ramp
+  float ref = 0;              // reference position the motor follows, counts (motor direction)
+  float vref = 0, aref = 0;   // reference speed (counts/s) and acceleration (counts/s2)
+  float moveX = 0;            // MOVE: target position
+  float moveV = 0;            // MOVE: cruise speed (> 0)
+  MotorEnd endAction = END_BRAKE;   // MOVE / timed RUN: what to do at the end
+  uint16_t tag = 0;           // MOVE / timed RUN: echoed in "M <pin> DONE|CANCEL <tag>" (0 = nothing waits)
+  uint32_t endMs = 0;         // timed RUN: end time (0 = runs until told otherwise)
+  uint32_t settleMs = 0;      // MOVE: when the reference reached the target
+  int32_t lastPos = 0;        // stuck detection: last position and when it changed
+  uint32_t lastMoveMs = 0;
   float integ = 0;            // integral part of the PI, %
   float power = 0;            // last power sent to the H-bridge, %
   float speed = 0;            // measured speed, counts/s (motor direction)

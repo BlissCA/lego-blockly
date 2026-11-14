@@ -127,6 +127,8 @@ export class ESP32io {
     this._lastRun = {};        // motor pin -> last closed-loop speed sent
     this.motors = {};          // motor pin -> { enc, cal } for motors linked to an encoder (closed loop)
     this._motorWaiters = [];   // calibrations waiting for their "M <pin> CAL|ERR" line
+    this._moveWaiters = new Map();   // move tag -> resolve(true = done, false = cancelled)
+    this._nextTag = 1;
 
     this.queueActive = true;
     this._queue = Promise.resolve();
@@ -248,6 +250,8 @@ export class ESP32io {
     this.motors = {};
     for (const w of this._motorWaiters) { clearTimeout(w.timer); w.reject(new Error("disconnected")); }
     this._motorWaiters = [];
+    for (const resolve of this._moveWaiters.values()) resolve(false);
+    this._moveWaiters.clear();
     this._rxBuf = "";
   }
 
@@ -539,12 +543,15 @@ export class ESP32io {
   /** H-bridge power -100..100 (same name as the LPF2 / SPIKE drivers). */
   motorPower(pin, power) { return this._set(this._port(pin, ["HB2", "HB3"]), clamp(Number(power) || 0, -100, 100)); }
 
-  /** Stop one output. H-bridges coast, or brake when brake is true. */
+  /** Stop one output. H-bridges coast, or brake when brake is true (or "brake").
+   *  "hold": a closed-loop motor keeps its position (pushes back when moved). */
   motorStop(pin, brake = false) {
     const p = this._port(pin);
+    const mode = String(brake).toLowerCase();
+    if (mode === "hold" && this.motors[p]?.cal) return this.motorHold(p);
     this._lastSet[p] = 0;
     delete this._lastRun[p];
-    return this.send(`STOP ${p} ${brake ? "BRAKE" : "COAST"}`);
+    return this.send(`STOP ${p} ${brake === true || mode === "brake" || mode === "1" ? "BRAKE" : "COAST"}`);
   }
 
   /** Last value sent to an output. */
@@ -659,7 +666,108 @@ export class ESP32io {
     return this.send(`RUN ${m} ${v}`);
   }
 
-  /** Motor state read from the board: { mode, target (%), speed (%), power (%), cps (counts/s), pos (count) } */
+  /** Run for a number of degrees of the output shaft at speed % (sign of degrees x sign of speed = direction).
+   *  stop: "brake" | "coast" | "hold". wait: resolve when done (true) or cancelled (false); else return at once. */
+  motorAngle(motorPin, degrees, speed = 50, { stop = "brake", wait = true } = {}) {
+    const m = this._motorReady(motorPin);
+    const sign = Math.sign(Number(degrees) || 0) * (Number(speed) < 0 ? -1 : 1);
+    const counts = sign * Math.round(Math.abs(Number(degrees) || 0) * this._motorCountsPerTurn(m) / 360);
+    return this._motorOrder(m, `MOVE ${m} REL ${counts} ${this._movePct(speed)} ${this._endWord(stop)}`, wait);
+  }
+
+  /** Go to a position in degrees (motor position, see motorPosition) at speed %. Default stop: "hold". */
+  motorGoto(motorPin, degrees, speed = 50, { stop = "hold", wait = true } = {}) {
+    const m = this._motorReady(motorPin);
+    const counts = Math.round((Number(degrees) || 0) * this._motorCountsPerTurn(m) / 360);
+    return this._motorOrder(m, `MOVE ${m} ABS ${counts} ${this._movePct(speed)} ${this._endWord(stop)}`, wait);
+  }
+
+  /** Run at speed % (-100..100) for ms, then stop. */
+  motorTime(motorPin, ms, speed = 50, { stop = "brake", wait = true } = {}) {
+    const m = this._motorReady(motorPin);
+    const t = Math.round(clamp(Number(ms) || 0, 1, 3600000));
+    return this._motorOrder(m, `RUNT ${m} ${t} ${round2(clamp(Number(speed) || 0, -100, 100))} ${this._endWord(stop)}`, wait);
+  }
+
+  /** Keep the present position, pushing back when moved. */
+  motorHold(motorPin) {
+    const m = this._motorReady(motorPin);
+    delete this._lastSet[m];
+    delete this._lastRun[m];
+    return this.send(`HOLD ${m}`);
+  }
+
+  /** True when no move / timed run is running on this motor (instant, no BLE round trip). */
+  motorDone(motorPin) { return !this.motors[this._motor(motorPin)].busy; }
+
+  /** Wait until the running move / timed run ends. timeoutMs 0 = no limit. Returns false on STOP or timeout. */
+  async waitMotor(motorPin, timeoutMs = 0) {
+    const m = this._motor(motorPin);
+    const t0 = performance.now();
+    while (this.motors[m]?.busy) {
+      if (window.stopRequested) return false;
+      if (!this.isConnected) throw new Error("Device lost");
+      if (timeoutMs > 0 && performance.now() - t0 > timeoutMs) return false;
+      await _sleep(10);
+    }
+    return true;
+  }
+
+  /** Motor position in degrees of the output shaft, positive = the direction of positive power. Instant. */
+  motorPosition(motorPin) {
+    const m = this._motor(motorPin);
+    const raw = this.values[this.motors[m].enc] ?? 0;
+    return Math.round(raw * this._motorDir(m) * 360 / this._motorCountsPerTurn(m));
+  }
+
+  /** Set the motor position (degrees, default 0). A holding motor stays where it is. */
+  async motorResetPosition(motorPin, degrees = 0) {
+    const m = this._motor(motorPin);
+    const e = this.motors[m].enc;
+    const raw = Math.round((Number(degrees) || 0) * this._motorCountsPerTurn(m) / 360) * this._motorDir(m);
+    await this.request(`ZERO ${e} ${raw}`, undefined, () => { this.values[e] = raw; });
+  }
+
+  _motorReady(pin) {
+    const m = this._motor(pin);
+    if (!this.motors[m].cal) throw new Error(`${this.name}: motor GPIO${m} is not calibrated (calibrateMotor(${m}))`);
+    return m;
+  }
+
+  _motorDir(m) { return this.motors[m].cal?.dir ?? 1; }
+
+  _motorCountsPerTurn(m) {
+    const enc = this.ports[this.motors[m].enc];
+    if (!enc) throw new Error(`${this.name}: motor GPIO${m}: its encoder is not set up`);
+    return this._countsPerTurn(enc);
+  }
+
+  _movePct(speed) { return round2(clamp(Math.abs(Number(speed) || 0), 1, 100)); }
+
+  _endWord(stop) {
+    const w = String(stop).toLowerCase();
+    if (w === "hold" || w === "2") return "HOLD";
+    if (w === "coast" || w === "0" || w === "false") return "COAST";
+    return "BRAKE";
+  }
+
+  // Send a tagged MOVE / RUNT; the board answers "M <pin> DONE|CANCEL <tag>" at the end
+  async _motorOrder(m, cmd, wait) {
+    const tag = this._nextTag;
+    this._nextTag = this._nextTag >= 65535 ? 1 : this._nextTag + 1;
+    const ended = new Promise(resolve => this._moveWaiters.set(tag, resolve));
+    delete this._lastSet[m];
+    delete this._lastRun[m];
+    try {
+      await this.request(`${cmd} ${tag}`, undefined, () => { if (this.motors[m]) this.motors[m].busy = tag; });
+    } catch (err) {
+      this._moveWaiters.delete(tag);
+      throw err;
+    }
+    return wait ? ended : true;
+  }
+
+  /** Motor state read from the board: { mode, target (%), speed (%), power (%), cps (counts/s), pos, ref, tag } */
   async motorState(motorPin) {
     const m = this._motor(motorPin);
     return parseKV(await this.request(`MGET ${m}`));
@@ -698,6 +806,14 @@ export class ESP32io {
     if (!m) { this.log("Unexpected: " + line); return; }
     const pin = Number(m[1]), kind = m[2], data = m[3] ?? "";
     if (kind === "S") { console.log(`[${this.name} motor ${pin}] ${data}`); return; }
+    if (kind === "DONE" || kind === "CANCEL") {
+      const tag = Number(data.split(" ")[0]);
+      if (this.motors[pin]?.busy === tag) this.motors[pin].busy = null;
+      const resolve = this._moveWaiters.get(tag);
+      this._moveWaiters.delete(tag);
+      resolve?.(kind === "DONE");
+      return;
+    }
     const waiters = this._motorWaiters.filter(w => w.pin === pin);
     this._motorWaiters = this._motorWaiters.filter(w => w.pin !== pin);
     for (const w of waiters) {
