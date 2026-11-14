@@ -48,7 +48,10 @@
                                  -> hobby servo (SG90...). 180: SET = angle 0-180.
                                     360 (continuous): SET = speed -100..100.
                                     Defaults: 180 -> 500..2400 us, 360 -> 1000..2000 us
-    CFG <in1> HB2 <in2> [freq]   -> H-bridge with 2 PWM inputs (DRV8833, MX1508, L9110S). Default 20000 Hz
+    CFG <in1> HB2 <in2> [freq] [FAST|SLOW]
+                                 -> H-bridge with 2 PWM inputs (DRV8833, MX1508, L9110S). Default 20000 Hz, FAST.
+                                    SLOW decay brakes between PWM pulses instead of coasting (not on the L9110S,
+                                    which cannot brake): better speed control, needed by the closed loop to slow down.
     CFG <en> HB3 <in1> <in2> [freq]
                                  -> H-bridge with enable + 2 direction pins (L298N, TB6612). Default 1000 Hz
                                     HB2/HB3: SET = power -100..100
@@ -156,6 +159,8 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define WRONG_WAY_MS     500    // turning against the setpoint this long = encoder direction wrong
 #define STUCK_MS         40     // no encoder change this long while behind the reference = stuck: kick
 #define SETTLE_MS        500    // a move ends at most this long after its reference reached the target
+#define HOLD_TAP_EVERY_MS 150   // HOLD, stuck out of place: one tap at the start power every 150 ms...
+#define HOLD_TAP_MS      15     // ...lasting 15 ms
 #define LEAD_S           0.05f  // MOVE: the reference stays within 50 ms of top speed of the motor
 #define SPEED_WINDOW_S   0.02f  // SPEED: ...within 20 ms of travel (or 2 pulses)
 #define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp up while looking for the start power...
@@ -352,9 +357,22 @@ static void hbPower(Port& p, float power) {
   uint32_t duty = (uint32_t)lroundf(fabsf(power) * PWM_MAX / 100.0f);
   bool fwd = power >= 0;
   if (p.kind == K_HB2) {
-    // One input PWM, the other LOW (works the same on DRV8833, MX1508 and L9110S)
-    ledcWrite(p.pins[0], fwd ? duty : 0);
-    ledcWrite(p.pins[1], fwd ? 0 : duty);
+    if (duty == 0) {
+      // Power 0 = coast (both LOW), in both decay modes
+      ledcWrite(p.pins[0], 0);
+      ledcWrite(p.pins[1], 0);
+    } else if (p.slowDecay) {
+      // Slow decay (DRV8833, MX1508, TA6586): one input HIGH, the other LOW for the "on" part of the
+      // period and HIGH (= brake) for the rest. The motor is braked, not left coasting, between pulses:
+      // it slows down as fast as it speeds up, and the speed follows the power more closely.
+      uint32_t inv = PWM_MAX - duty;
+      ledcWrite(p.pins[0], fwd ? PWM_MAX : inv);
+      ledcWrite(p.pins[1], fwd ? inv : PWM_MAX);
+    } else {
+      // Fast decay: one input PWM, the other LOW (coasts between pulses; the only mode of the L9110S)
+      ledcWrite(p.pins[0], fwd ? duty : 0);
+      ledcWrite(p.pins[1], fwd ? 0 : duty);
+    }
   } else {
     // EN = PWM, IN1/IN2 = direction (L298N, TB6612)
     digitalWrite(p.pins[1], fwd ? HIGH : LOW);
@@ -658,11 +676,27 @@ static void motorTrack(Motor& m, float dt, uint32_t now) {
   if (m.pos != m.lastPos) { m.lastPos = m.pos; m.lastMoveMs = now; }
   float ex = m.ref - m.pos;
 
-  // Holding and in place: brake (quiet). The integral is kept for a steady load.
+  // Holding and in place: brake (quiet). The integral is dropped: with gearbox friction it only holds
+  // what it crept up to while stuck, which would push the wrong way after the next disturbance.
   if (m.mode == MM_HOLD && fabsf(ex) <= tol) {
     motorBrake(m);
+    m.integ = 0;
+    m.tapUntil = 0;
     m.wrongMs = 0;
     return;
+  }
+  // Holding, out of place and stuck (friction): short taps at the start power, not a slow creep of the integral
+  if (m.mode == MM_HOLD && m.tKick && c.kstart > 0) {
+    bool tapping = m.tapUntil && (int32_t)(m.tapUntil - now) > 0;
+    if (!tapping && now - m.lastMoveMs > HOLD_TAP_EVERY_MS) {
+      m.tapUntil = now + HOLD_TAP_MS;
+      m.lastMoveMs = now;   // the next tap waits HOLD_TAP_EVERY_MS if this one does not move it
+      tapping = true;
+    }
+    if (tapping) {
+      motorPowerOut(m, ex > 0 ? c.kstart : -c.kstart);
+      return;
+    }
   }
 
   float k = c.top / max(100.0f - c.ks, 10.0f);             // counts/s per % of power
@@ -1074,7 +1108,14 @@ static bool cmdCfg(char** tok, int n) {
     case K_HB2:
     case K_HB3: {
       long freq = (kind == K_HB2) ? HB2_FREQ_DEFAULT : HB3_FREQ_DEFAULT;
-      if (nargs > 0 && (!parseLong(arg[0], freq) || freq < 100 || freq > 40000)) { p = Port{}; return fail(String(type) + ": frequency 100-40000 Hz"); }
+      for (int i = 0; i < nargs; i++) {
+        if (kind == K_HB2 && is(arg[i], "SLOW")) p.slowDecay = true;
+        else if (kind == K_HB2 && is(arg[i], "FAST")) p.slowDecay = false;
+        else if (!parseLong(arg[i], freq) || freq < 100 || freq > 40000) {
+          p = Port{};
+          return fail(String(type) + (kind == K_HB2 ? ": [frequency 100-40000 Hz] [FAST|SLOW]" : ": frequency 100-40000 Hz"));
+        }
+      }
       if (!ledcAttach(first, freq, PWM_BITS)) { p = Port{}; parkLow(first); return fail(String(type) + ": no free PWM channel or timer"); }
       if (kind == K_HB2) {
         if (!ledcAttach(pins[1], freq, PWM_BITS)) {

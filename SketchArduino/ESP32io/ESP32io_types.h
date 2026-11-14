@@ -29,6 +29,7 @@ struct Port {
   pcnt_channel_handle_t chA = nullptr, chB = nullptr;
   int32_t offset = 0;
   uint8_t mult = 4;           // ENC: counts per encoder pulse (X1, X2, X4)
+  bool slowDecay = false;     // HB2: PWM off-time brakes (one input HIGH, the other inverted PWM)
 };
 
 // Closed-loop motor: what calibration measured (speeds in encoder counts per second)
@@ -65,6 +66,7 @@ struct Motor {
   uint32_t settleMs = 0;      // MOVE: when the reference reached the target
   int32_t lastPos = 0;        // stuck detection: last position and when it changed
   uint32_t lastMoveMs = 0;
+  uint32_t tapUntil = 0;      // HOLD: end of the running breakaway tap (0 = none)
   float tSoft = 1.0f;         // MTUNE: x closed-loop time (higher = softer, slower corrections)
   float tPos = 1.0f;          // MTUNE: x position stiffness
   float tDecel = 0.5f;        // MTUNE: deceleration of moves, x the acceleration

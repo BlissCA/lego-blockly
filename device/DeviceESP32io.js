@@ -468,9 +468,12 @@ export class ESP32io {
     return this._cfg(pin, rest, { type: "SERVO", range: t });
   }
 
-  /** H-bridge with two PWM inputs (DRV8833, MX1508, L9110S, ZK-5AD). Port = in1. */
-  configHBridge2(in1, in2, freq = 20000) {
-    return this._cfg(in1, `HB2 ${pinNum(in2)} ${Math.round(freq)}`, { type: "HB2", pins: [pinNum(in1), pinNum(in2)], freq });
+  /** H-bridge with two PWM inputs (DRV8833, MX1508, L9110S, ZK-5AD). Port = in1.
+   *  decay "SLOW" brakes between PWM pulses (better speed control, lets the closed loop slow the motor down);
+   *  "FAST" coasts between pulses (the L9110S cannot brake: always FAST). */
+  configHBridge2(in1, in2, freq = 20000, decay = "SLOW") {
+    decay = String(decay).toUpperCase() === "FAST" ? "FAST" : "SLOW";
+    return this._cfg(in1, `HB2 ${pinNum(in2)} ${Math.round(freq)} ${decay}`, { type: "HB2", pins: [pinNum(in1), pinNum(in2)], freq, decay });
   }
 
   /** H-bridge with enable (PWM) + two direction pins (L298N, L293D, TB6612). Port = en. */
@@ -482,7 +485,7 @@ export class ESP32io {
   configHBridge(board, a, b, c = null, freq = null) {
     const kind = ESP32IO_HBRIDGES[String(board).toUpperCase()];
     if (!kind) throw new Error(`ESP32io: unknown H-bridge "${board}" (${Object.keys(ESP32IO_HBRIDGES).join(", ")})`);
-    if (kind === "HB2") return this.configHBridge2(a, b, freq ?? 20000);
+    if (kind === "HB2") return this.configHBridge2(a, b, freq ?? 20000, String(board).toUpperCase() === "L9110S" ? "FAST" : "SLOW");
     if (c == null) throw new Error(`ESP32io: ${board} needs 3 pins (EN, IN1, IN2)`);
     return this.configHBridge3(a, b, c, freq ?? 1000);
   }
