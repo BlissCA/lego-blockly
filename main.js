@@ -957,6 +957,9 @@ document.getElementById("runBtn").onclick = async () => {
 // ---------------- STOP PROGRAM (Option A) ----------------
 
 document.getElementById("stopBtn").onclick = async () => {
+  // Stop the program FIRST: while the devices are being stopped (each stop awaits a reply), a running
+  // loop must not send new motor commands, or they reach the device after the stop and restart the motor
+  if (window.isProgramRunning) window.stopRequested = true;
   NamedTask.stopAll();
   NamedEventTimer.cancelAll();
 
