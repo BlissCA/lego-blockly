@@ -13,7 +13,7 @@
   What it does:
     The web app (driver device/DeviceESP32io.js, class ESP32io) tells the ESP32 what is wired
     on each GPIO (switch, sensor, LED, servo, H-bridge, encoder...), then reads and drives them.
-    Nothing is stored except the BLE name: the pin setup is sent by the Blockly program,
+    Nothing is stored except the BLE name and the motor calibrations: the pin setup is sent by the Blockly program,
     and everything is released when the PC connects or disconnects.
 
   Transport:
@@ -62,6 +62,21 @@
                                     Servos stop receiving pulses (they relax).
     ZERO <pin> [preset]          -> set an encoder count (default 0)
 
+  Closed-loop motors (H-bridge + encoder, the control loop runs here every 5 ms):
+    LINK <motor> <enc>           -> link an H-bridge port to an encoder port (NONE unlinks)
+                                    -> OK dir=<1|-1> ks=<%> top=<counts/s> tau=<ms>   or OK NOCAL
+    CAL <motor>                  -> calibrate (the motor turns for about 4 s, up to full power).
+                                    Replies OK at once, then "M <motor> CAL ..." or "M <motor> ERR ...".
+                                    The result is saved in flash for this motor pin.
+    MPAR <motor>                 -> OK <calibration> (as LINK)
+    MPAR <motor> <dir> <ks> <top> <tau> [SAVE]
+                                 -> set the calibration by hand (top in counts/s with the current encoder mode)
+    MPAR <motor> FORGET          -> erase the saved calibration
+    RUN <motor> <speed>          -> hold a speed, -100..100 % of the calibrated top speed
+    MGET <motor>                 -> OK mode=<OFF|SPEED|CAL> target=<%> speed=<%> power=<%> cps=<counts/s> pos=<count>
+    MLOG <motor> <ms>            -> send "M <motor> S ..." (as MGET) every <ms> (20-1000, 0 = off)
+    SET and STOP on the motor port go back to open loop (direct power).
+
   The port name is its first pin: an encoder on 18+19 is port 18, an HB3 on 25,26,27 is port 25.
 
   Messages (ESP32 -> PC):
@@ -70,6 +85,7 @@
     V <pin>=<value> ...          -> input values (DIN, AIN, ENC), sent when they change
                                     and every second for all inputs
     L <message>                  -> log
+    M <motor> CAL|ERR|S ...      -> closed-loop motor events (calibration done / failed, MLOG lines)
 
   Prerequisites (Arduino IDE):
     1. Boards Manager: "esp32" by Espressif, version 3.x.
@@ -90,7 +106,7 @@
 #include "ESP32io_types.h"
 
 #define FW_NAME          "ESP32io"
-#define FW_VERSION       1
+#define FW_VERSION       2
 #define DEFAULT_BLE_NAME "ESP32io"
 #define NAME_MAX_LEN     20
 
@@ -115,6 +131,14 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define SERVO_HZ            50
 #define ENC_LIMIT           30000  // PCNT counts to +/-ENC_LIMIT, the driver extends it to 32 bits
 #define ENC_GLITCH_NS       1000
+
+#define CTRL_MS          5      // closed-loop period
+#define SPEED_WIN        4      // speed = count change over the last 4 periods (20 ms)
+#define SPEED_LAG_MS     10     // ...which shows the speed of 10 ms ago
+#define ACCEL_MS         200    // speed ramp: 0 -> 100 % in 200 ms
+#define WRONG_WAY_MS     500    // turning against the setpoint this long = encoder direction wrong
+#define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp while looking for the start power
+#define CAL_VERSION      1
 
 #define CMD_LEN       96
 #define CMD_QUEUE_LEN 16
@@ -176,6 +200,9 @@ static Port ports[MAX_PIN];
 static int8_t owner[MAX_PIN];   // first pin of the port using this pin, -1 = free
 
 static bool isInputKind(Kind k) { return k == K_DIN || k == K_AIN || k == K_ENC; }
+
+static void motorCancel(int hb);      // closed-loop motors (defined after the encoder code)
+static void motorUnlinkPin(int pin);
 
 // ------------------------------------------------------
 // BLE + Serial transport
@@ -335,7 +362,7 @@ static void stopPort(Port& p, bool brake) {
 #endif
     case K_SERVO: ledcWrite(p.pins[0], 0); break;   // no pulses: the servo relaxes, a 360 servo stops
     case K_HB2:
-    case K_HB3:   hbStop(p, brake); break;
+    case K_HB3:   motorCancel(p.pins[0]); hbStop(p, brake); break;
     default: return;
   }
   p.setpoint = 0;
@@ -433,10 +460,294 @@ static int32_t encRead(Port& p) {
 }
 
 // ------------------------------------------------------
+// Closed-loop motors (an H-bridge port linked to an encoder port)
+// ------------------------------------------------------
+// Speed control = feedforward + PI, every CTRL_MS:
+//   power = ks + (100 - ks) * setpoint / top     (what the motor needs, from the calibration)
+//         + kp * error + integral                (corrects what the feedforward misses: load, battery)
+// kp and ki come from the calibration too (lambda tuning of a first-order motor), the user never sets them.
+// Speeds are in encoder counts per second, in the motor direction (count x dir).
+
+#define MAX_MOTORS (SOC_PCNT_UNITS_PER_GROUP / 2)   // each motor uses one encoder = one counter unit of 2 per pair
+static Motor motors[MAX_MOTORS];
+static uint32_t lastCtrlUs = 0;
+static const char* MOTOR_MODE_NAMES[] = { "OFF", "SPEED", "CAL" };
+
+static Motor* motorOf(int hb) {
+  for (Motor& m : motors) if (m.hb >= 0 && m.hb == hb) return &m;
+  return nullptr;
+}
+
+static Motor* motorOfEnc(int enc) {
+  for (Motor& m : motors) if (m.hb >= 0 && m.enc == enc) return &m;
+  return nullptr;
+}
+
+static void motorEvent(const Motor& m, const String& s) {
+  sendReport("M " + String(m.hb) + " " + s);
+}
+
+static String calText(const MotorCal& c) {
+  if (!c.valid) return "NOCAL";
+  return "dir=" + String(c.dir) + " ks=" + String(c.ks, 1) + " top=" + String(c.top, 0) + " tau=" + String(c.tauMs, 0);
+}
+
+static float motorPct(const Motor& m, float cps) { return m.cal.valid ? cps * 100.0f / m.cal.top : 0; }
+
+static String motorState(const Motor& m) {
+  return String("mode=") + MOTOR_MODE_NAMES[m.mode] + " target=" + String(motorPct(m, m.target), 1) +
+         " speed=" + String(motorPct(m, m.speed), 1) + " power=" + String(ports[m.hb].setpoint, 1) +
+         " cps=" + String(m.speed, 0) + " pos=" + String(m.pos);
+}
+
+// Saved calibrations: one flash entry per motor pin ("cal16")
+struct CalStore { uint8_t ver; int8_t dir; uint8_t mult; uint8_t pad; float ks, top, tauMs; };
+
+static String calKey(int hb) { return "cal" + String(hb); }
+
+static bool calLoad(int hb, MotorCal& c, uint8_t mult) {
+  CalStore s = {};
+  String key = calKey(hb);
+  bool ok = false;
+  if (prefs.begin("esp32io", true)) {
+    ok = prefs.isKey(key.c_str()) && prefs.getBytes(key.c_str(), &s, sizeof(s)) == sizeof(s);
+    prefs.end();
+  }
+  if (!ok || s.ver != CAL_VERSION || s.top <= 0 || s.mult == 0) return false;
+  c.valid = true;
+  c.dir = s.dir >= 0 ? 1 : -1;
+  c.ks = s.ks;
+  c.top = s.top * mult / s.mult;   // the encoder mode (X1/X2/X4) may have changed since
+  c.tauMs = s.tauMs;
+  c.mult = mult;
+  return true;
+}
+
+static void calSave(int hb, const MotorCal& c) {
+  CalStore s = { CAL_VERSION, c.dir, c.mult, 0, c.ks, c.top, c.tauMs };
+  prefs.begin("esp32io", false);
+  prefs.putBytes(calKey(hb).c_str(), &s, sizeof(s));
+  prefs.end();
+}
+
+static void calForget(int hb) {
+  prefs.begin("esp32io", false);
+  if (prefs.isKey(calKey(hb).c_str())) prefs.remove(calKey(hb).c_str());
+  prefs.end();
+}
+
+static void motorPowerOut(Motor& m, float power) {
+  m.power = power;
+  ports[m.hb].setpoint = power;
+  hbPower(ports[m.hb], power);
+}
+
+static void motorCoast(Motor& m) {
+  m.power = 0;
+  ports[m.hb].setpoint = 0;
+  hbStop(ports[m.hb], false);
+}
+
+static void motorIdle(Motor& m) {
+  m.mode = MM_OFF;
+  m.target = m.sp = m.integ = 0;
+  m.wrongMs = 0;
+}
+
+static void motorResetSpeed(Motor& m) { m.hn = 0; }   // the speed keeps its last value until 4 new samples
+
+// SET, STOP or the watchdog on the motor port: leave the closed loop (the caller drives the pins)
+static void motorCancel(int hb) {
+  Motor* m = motorOf(hb);
+  if (!m || m->mode == MM_OFF) return;
+  if (m->mode == MM_CAL) motorEvent(*m, "ERR calibration stopped");
+  motorIdle(*m);
+}
+
+static void motorFail(Motor& m, const String& msg) {
+  motorCoast(m);
+  motorIdle(m);
+  motorEvent(m, "ERR " + msg);
+}
+
+// The H-bridge or the encoder is released: the motor stops (if the loop was driving it) and the link goes
+static void motorUnlinkPin(int pin) {
+  for (Motor& m : motors) {
+    if (m.hb < 0 || (m.hb != pin && m.enc != pin)) continue;
+    if (m.mode == MM_CAL) motorEvent(m, "ERR calibration stopped");
+    if (m.mode != MM_OFF) motorCoast(m);
+    m = Motor{};
+  }
+}
+
+static void motorMeasure(Motor& m, uint32_t us) {
+  int32_t c = encRead(ports[m.enc]) * m.cal.dir;
+  m.pos = c;
+  m.hist[m.hidx] = c;
+  m.histUs[m.hidx] = us;
+  if (m.hn >= SPEED_WIN) {
+    uint8_t old = (m.hidx + MOTOR_HIST - SPEED_WIN) % MOTOR_HIST;
+    uint32_t dus = us - m.histUs[old];
+    if (dus) m.speed = (float)(c - m.hist[old]) * 1e6f / dus;
+  }
+  m.hidx = (m.hidx + 1) % MOTOR_HIST;
+  if (m.hn < MOTOR_HIST) m.hn++;
+}
+
+// Power the motor needs for a speed: friction (smoothed near 0 so the sign change is not a jump) + slope
+static float motorFeedforward(const Motor& m, float sp) {
+  if (sp == 0) return 0;
+  const MotorCal& c = m.cal;
+  return c.ks * constrain(sp / (0.02f * c.top), -1.0f, 1.0f) + (100.0f - c.ks) * sp / c.top;
+}
+
+static void motorSpeedTick(Motor& m, float dt, uint32_t now) {
+  const MotorCal& c = m.cal;
+  float step = c.top * dt * 1000.0f / ACCEL_MS;
+  if (m.sp < m.target) m.sp = min(m.sp + step, m.target);
+  else if (m.sp > m.target) m.sp = max(m.sp - step, m.target);
+
+  // Speed 0 reached: brake (holding a position comes with the position moves)
+  if (m.sp == 0 && m.target == 0) {
+    if (m.power != 0 || m.integ != 0) {
+      m.integ = 0;
+      m.power = 0;
+      ports[m.hb].setpoint = 0;
+      hbStop(ports[m.hb], true);
+    }
+    m.wrongMs = 0;
+    return;
+  }
+
+  float k = c.top / max(100.0f - c.ks, 10.0f);             // counts/s per % of power
+  float tau = max(c.tauMs, 5.0f) / 1000.0f;
+  float lam = max(tau, 0.03f) + SPEED_LAG_MS / 1000.0f;   // closed loop about as fast as the motor itself
+  float kp = tau / (k * lam), ki = 1.0f / (k * lam);
+  float err = m.sp - m.speed;
+  float ff = motorFeedforward(m, m.sp);
+  float out = ff + kp * err + m.integ;
+  if (!((out >= 100 && err > 0) || (out <= -100 && err < 0)))   // anti-windup
+    m.integ = constrain(m.integ + ki * err * dt, -100.0f, 100.0f);
+  out = constrain(ff + kp * err + m.integ, -100.0f, 100.0f);
+  motorPowerOut(m, out);
+
+  // The encoder counts the other way: the loop would push to full power, stop it
+  if (fabsf(m.sp) > 0.1f * c.top && fabsf(m.speed) > 0.1f * c.top && (m.speed > 0) != (m.sp > 0)) {
+    if (!m.wrongMs) m.wrongMs = now ? now : 1;
+    else if (now - m.wrongMs > WRONG_WAY_MS)
+      motorFail(m, "turns the wrong way for its encoder: run CAL again, or check the encoder wiring");
+  } else {
+    m.wrongMs = 0;
+  }
+}
+
+// Calibration: 0 stop, 1 slow power ramp until it moves (start power, direction),
+// 2 stop, 3 full power (response time, top speed), 4 middle power (friction line). About 3-5 s.
+static void motorCalTick(Motor& m, float dt, uint32_t now) {
+  uint32_t t = now - m.calT0;
+  switch (m.calStep) {
+    case 0:
+      if (t < 400) return;
+      m.calC0 = encRead(ports[m.enc]);
+      m.calPower = 0;
+      m.calStep = 1;
+      m.calT0 = now;
+      return;
+
+    case 1: {
+      int32_t d = encRead(ports[m.enc]) - m.calC0;
+      int32_t need = max(4, 2 * (int)ports[m.enc].mult);
+      if (abs(d) >= need) {
+        m.calKsStart = m.calPower;
+        m.cal.dir = d > 0 ? 1 : -1;
+        motorResetSpeed(m);
+        motorCoast(m);
+        m.calStep = 2;
+        m.calT0 = now;
+        return;
+      }
+      if (m.calPower >= 100) {
+        if (t > (uint32_t)(100.0f * 1000.0f / CAL_RAMP_PCT_S) + 500)
+          motorFail(m, "calibration: the encoder does not move at full power (check the motor supply, the wiring and the LINK pins)");
+        return;
+      }
+      m.calPower = min(100.0f, m.calPower + CAL_RAMP_PCT_S * dt);
+      motorPowerOut(m, m.calPower);
+      return;
+    }
+
+    case 2:
+      if (t < 600) return;
+      m.calN = m.calNs = 0;
+      m.calAcc = 0;
+      motorPowerOut(m, 100);
+      m.calStep = 3;
+      m.calT0 = now;
+      return;
+
+    case 3:
+      if (m.calNs < CAL_SAMPLES) m.calSpd[m.calNs++] = m.speed;
+      if (t >= 500) { m.calAcc += m.speed; m.calN++; }
+      if (t < 800) return;
+      m.calV100 = m.calAcc / max(1, (int)m.calN);
+      if (m.calV100 <= 0) { motorFail(m, "calibration: the motor turned the other way at full power (encoder?)"); return; }
+      {
+        int i = 0;
+        while (i < m.calNs && m.calSpd[i] < 0.632f * m.calV100) i++;
+        m.cal.tauMs = constrain((i + 1) * (float)CTRL_MS - SPEED_LAG_MS, 5.0f, 1000.0f);
+      }
+      m.calP2 = (m.calKsStart + 100.0f) / 2;
+      motorPowerOut(m, m.calP2);
+      m.calN = 0;
+      m.calAcc = 0;
+      m.calStep = 4;
+      m.calT0 = now;
+      return;
+
+    case 4: {
+      if (t >= 300) { m.calAcc += m.speed; m.calN++; }
+      if (t < 600) return;
+      // speed = top * (power - ks) / (100 - ks): solve for ks with the two measured points
+      float r = (m.calAcc / max(1, (int)m.calN)) / m.calV100;
+      float ks = (r > 0.05f && r < 0.98f) ? (m.calP2 - 100.0f * r) / (1.0f - r) : m.calKsStart * 0.8f;
+      m.cal.ks = constrain(ks, 0.0f, m.calKsStart);
+      m.cal.top = m.calV100;
+      m.cal.mult = ports[m.enc].mult;
+      m.cal.valid = true;
+      motorCoast(m);
+      motorIdle(m);
+      calSave(m.hb, m.cal);
+      motorEvent(m, "CAL " + calText(m.cal));
+      return;
+    }
+  }
+}
+
+static void motorsTick() {
+  uint32_t us = micros();
+  if (us - lastCtrlUs < CTRL_MS * 1000u) return;
+  float dt = (us - lastCtrlUs) / 1e6f;
+  lastCtrlUs = us;
+  if (dt > 0.05f) dt = 0.05f;
+  uint32_t now = millis();
+  for (Motor& m : motors) {
+    if (m.hb < 0) continue;
+    motorMeasure(m, us);
+    if (m.mode == MM_SPEED) motorSpeedTick(m, dt, now);
+    else if (m.mode == MM_CAL) motorCalTick(m, dt, now);
+    if (m.logMs && now - m.lastLogMs >= m.logMs) {
+      m.lastLogMs = now;
+      motorEvent(m, "S " + motorState(m));
+    }
+  }
+}
+
+// ------------------------------------------------------
 // Port setup / release
 // ------------------------------------------------------
 static void releasePort(int first) {
   Port& p = ports[first];
+  motorUnlinkPin(first);
   switch (p.kind) {
     case K_DIN:
     case K_AIN:   pinMode(p.pins[0], INPUT); break;
@@ -652,6 +963,7 @@ static bool cmdCfg(char** tok, int n) {
         else { p = Port{}; return fail(String("ENC: bad option ") + arg[i]); }
       }
       if (!encCreate(p, mult, pullUp)) { p = Port{}; return fail("ENC: no free counter unit (max " + String(SOC_PCNT_UNITS_PER_GROUP) + ")"); }
+      p.mult = mult;
       if (pullUp && (!(pinCaps(pins[0]) & C_PULL) || !(pinCaps(pins[1]) & C_PULL)))
         logLine("ENC " + pinName(first) + ": input-only pins have no pull-up, the encoder needs its own resistors");
       p.value = 0;
@@ -712,6 +1024,7 @@ static bool cmdSet(char** tok, int n) {
     case K_HB2:
     case K_HB3:
       v = constrain(v, -100.0f, 100.0f);
+      motorCancel(pin);   // direct power: back to open loop
       hbPower(*p, v);
       break;
     default:
@@ -726,6 +1039,121 @@ static String fmtValue(const Port& p) {
   float v = p.setpoint;
   if (v == (long)v) return String((long)v);
   return String(v, 2);
+}
+
+// ------------------------------------------------------
+// Closed-loop motor commands
+// ------------------------------------------------------
+static bool getMotorPort(const char* tok, int& pin) {
+  Port* p;
+  if (!getPort(tok, p, pin)) return false;
+  if (p->kind != K_HB2 && p->kind != K_HB3) return fail(pinName(pin) + " is not an H-bridge");
+  return true;
+}
+
+static bool getMotor(const char* tok, Motor*& m, int& pin) {
+  if (!getMotorPort(tok, pin)) return false;
+  m = motorOf(pin);
+  if (!m) return fail(pinName(pin) + " has no encoder: LINK " + String(pin) + " <encoder pin> first");
+  return true;
+}
+
+static bool cmdLink(char** cmd, int n, String& data) {
+  int hb, enc;
+  Port* pe;
+  if (n < 3) return fail("usage: LINK <motor pin> <encoder pin | NONE>");
+  if (!getMotorPort(cmd[1], hb)) return false;
+  if (is(cmd[2], "NONE")) { motorUnlinkPin(hb); return true; }
+  if (!getPort(cmd[2], pe, enc)) return false;
+  if (pe->kind != K_ENC) return fail(pinName(enc) + " is not an encoder");
+  Motor* other = motorOfEnc(enc);
+  if (other && other->hb != hb) return fail(pinName(enc) + " is already linked to the motor on " + pinName(other->hb));
+  motorUnlinkPin(hb);   // linking again starts fresh
+  Motor* m = nullptr;
+  for (Motor& x : motors) if (x.hb < 0) { m = &x; break; }
+  if (!m) return fail("LINK: " + String(MAX_MOTORS) + " closed-loop motors at most on " BOARD_NAME);
+  *m = Motor{};
+  m->hb = hb;
+  m->enc = enc;
+  calLoad(hb, m->cal, pe->mult);
+  data = calText(m->cal);
+  return true;
+}
+
+static bool cmdMpar(char** cmd, int n, String& data) {
+  Motor* m;
+  int pin;
+  if (n < 2) return fail("usage: MPAR <motor pin> [<dir> <ks> <top> <tau> [SAVE] | FORGET]");
+  if (!getMotor(cmd[1], m, pin)) return false;
+  if (n == 2) { data = calText(m->cal); return true; }
+  if (m->mode != MM_OFF) { motorCancel(pin); motorCoast(*m); }
+  if (is(cmd[2], "FORGET")) {
+    m->cal = MotorCal{};
+    calForget(pin);
+    data = calText(m->cal);
+    return true;
+  }
+  long dir;
+  float ks, top, tau;
+  bool save = n > 6 && is(cmd[6], "SAVE");
+  if (n < 6 || (n > 6 && !save) || !parseLong(cmd[2], dir) || (dir != 1 && dir != -1) ||
+      !parseFloat(cmd[3], ks) || ks < 0 || ks > 95 || !parseFloat(cmd[4], top) || top <= 0 ||
+      !parseFloat(cmd[5], tau) || tau < 1 || tau > 2000)
+    return fail("MPAR: <dir 1|-1> <ks 0-95 %> <top counts/s> <tau 1-2000 ms> [SAVE]");
+  if (dir != m->cal.dir) motorResetSpeed(*m);
+  m->cal.valid = true;
+  m->cal.dir = dir;
+  m->cal.ks = ks;
+  m->cal.top = top;
+  m->cal.tauMs = tau;
+  m->cal.mult = ports[m->enc].mult;
+  if (save) calSave(pin, m->cal);
+  data = calText(m->cal);
+  return true;
+}
+
+static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
+  Motor* m;
+  int pin;
+  if (n < 2) return fail(String("usage: ") + c + " <motor pin> ...");
+  if (!getMotor(cmd[1], m, pin)) return false;
+
+  if (is(c, "CAL")) {
+    motorCancel(pin);
+    m->cal.valid = false;   // until the new one is measured (a failed calibration leaves it uncalibrated)
+    m->cal.dir = 1;
+    motorResetSpeed(*m);
+    motorCoast(*m);
+    m->mode = MM_CAL;
+    m->calStep = 0;
+    m->calT0 = millis();
+    return true;
+  }
+  if (is(c, "RUN")) {
+    float v;
+    if (n < 3 || !parseFloat(cmd[2], v)) return fail("usage: RUN <motor pin> <speed -100..100>");
+    if (m->mode == MM_CAL) return fail(pinName(pin) + " is calibrating");
+    if (!m->cal.valid) return fail(pinName(pin) + " is not calibrated: CAL " + String(pin) + " first");
+    if (m->mode != MM_SPEED) {   // start from the present speed: no jerk if it was already turning
+      m->sp = m->speed;
+      m->integ = 0;
+      m->wrongMs = 0;
+      m->mode = MM_SPEED;
+    }
+    m->target = constrain(v, -100.0f, 100.0f) * m->cal.top / 100.0f;
+    return true;
+  }
+  if (is(c, "MGET")) {
+    data = motorState(*m);
+    return true;
+  }
+  if (is(c, "MLOG")) {
+    long ms;
+    if (n < 3 || !parseLong(cmd[2], ms) || (ms != 0 && (ms < 20 || ms > 1000))) return fail("MLOG: 20-1000 ms, 0 = off");
+    m->logMs = ms;
+    return true;
+  }
+  return fail(String("unknown command: ") + c);
 }
 
 static void handleLine(char* line, Src src) {
@@ -832,7 +1260,14 @@ static void handleLine(char* line, Src src) {
       p->offset = preset;
       p->value = encRead(*p);
       p->dirty = true;
+      if (Motor* m = motorOfEnc(pin)) motorResetSpeed(*m);   // the count jumped: not a speed
     }
+  } else if (is(c, "LINK")) {
+    ok = cmdLink(cmd, n, data);
+  } else if (is(c, "MPAR")) {
+    ok = cmdMpar(cmd, n, data);
+  } else if (is(c, "CAL") || is(c, "RUN") || is(c, "MGET") || is(c, "MLOG")) {
+    ok = cmdMotor(c, cmd, n, data);
   } else {
     ok = fail(String("unknown command: ") + c);
   }
@@ -985,6 +1420,7 @@ void loop() {
   }
 
   pollInputs(now);
+  motorsTick();
 
   if (now - lastReportMs >= reportMs) {
     lastReportMs = now;

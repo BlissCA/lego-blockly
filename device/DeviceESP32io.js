@@ -77,6 +77,24 @@ function pinNum(pin) {
   return Number(m[1]);
 }
 
+/** "a=1 b=2.5 c=OFF" -> { a: 1, b: 2.5, c: "OFF" } */
+function parseKV(text) {
+  const out = {};
+  for (const pair of String(text).trim().split(/\s+/)) {
+    const eq = pair.indexOf("=");
+    if (eq <= 0) continue;
+    const v = pair.slice(eq + 1);
+    out[pair.slice(0, eq)] = v !== "" && !isNaN(v) ? Number(v) : v;
+  }
+  return out;
+}
+
+/** LINK / MPAR / CAL reply -> { dir, ks, top, tau }, or null for NOCAL */
+function parseMotorCal(text) {
+  const kv = parseKV(text);
+  return kv.top > 0 ? { dir: kv.dir < 0 ? -1 : 1, ks: kv.ks, top: kv.top, tau: kv.tau } : null;
+}
+
 const _sleep = ms => new Promise(r => setTimeout(r, ms));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const round2 = v => Math.round(v * 100) / 100;
@@ -106,6 +124,9 @@ export class ESP32io {
     this.ports = {};           // first pin -> { type, ... } as configured by this driver
     this.values = {};          // first pin -> last input value pushed by the board
     this._lastSet = {};        // first pin -> last output value sent
+    this._lastRun = {};        // motor pin -> last closed-loop speed sent
+    this.motors = {};          // motor pin -> { enc, cal } for motors linked to an encoder (closed loop)
+    this._motorWaiters = [];   // calibrations waiting for their "M <pin> CAL|ERR" line
 
     this.queueActive = true;
     this._queue = Promise.resolve();
@@ -223,6 +244,10 @@ export class ESP32io {
     this.ports = {};
     this.values = {};
     this._lastSet = {};
+    this._lastRun = {};
+    this.motors = {};
+    for (const w of this._motorWaiters) { clearTimeout(w.timer); w.reject(new Error("disconnected")); }
+    this._motorWaiters = [];
     this._rxBuf = "";
   }
 
@@ -296,6 +321,7 @@ export class ESP32io {
     }
     if (this.debug) console.log(`[${this.name || this.namePrefix} RX] ${line}`);
     if (line.startsWith("L ")) { this.log(line.slice(2)); return; }
+    if (line.startsWith("M ")) { this._onMotorLine(line); return; }
 
     const m = /^(\d+) (OK|ERR)(?: (.*))?$/.exec(line);
     if (!m) { this.log("Unexpected: " + line); return; }
@@ -345,6 +371,8 @@ export class ESP32io {
     this.ports = {};
     this.values = {};
     this._lastSet = {};
+    this._lastRun = {};
+    this.motors = {};
   }
 
   /** Minimum time between two value reports from the board (5-1000 ms, default 20). */
@@ -384,6 +412,7 @@ export class ESP32io {
     await this.request(`CFG ${p} ${rest}`, undefined, () => {
       delete this.values[p];
       this.ports[p] = port;
+      this._dropMotorLinks(p);   // the board unlinks a port that is set up again
     });
     delete this._lastSet[p];
     // Inputs: the board pushes the first value right after the OK
@@ -467,6 +496,7 @@ export class ESP32io {
   async release(pin) {
     const p = pinNum(pin);
     await this.request(`REL ${p}`);
+    this._dropMotorLinks(p);
     delete this.ports[p];
     delete this.values[p];
     delete this._lastSet[p];
@@ -485,6 +515,7 @@ export class ESP32io {
     const v = round2(value);
     if (this._lastSet[p] === v) return Promise.resolve();
     this._lastSet[p] = v;
+    delete this._lastRun[p];   // direct power: the board leaves the closed loop
     return this.send(`SET ${p} ${v}`);
   }
 
@@ -512,6 +543,7 @@ export class ESP32io {
   motorStop(pin, brake = false) {
     const p = this._port(pin);
     this._lastSet[p] = 0;
+    delete this._lastRun[p];
     return this.send(`STOP ${p} ${brake ? "BRAKE" : "COAST"}`);
   }
 
@@ -522,7 +554,159 @@ export class ESP32io {
   async stopAllMotors(brake = false) {
     if (!this.rx) return;
     for (const p of Object.keys(this._lastSet)) this._lastSet[p] = 0;
+    this._lastRun = {};
     await this.request(brake ? "STOP BRAKE" : "STOP");
+  }
+
+  // ---------------- Closed-loop motors (H-bridge + encoder, the control loop runs on the ESP32) ----------------
+  // Setup: configHBridge(...), configEncoder(...), then linkMotor(motorPin, encoderPin).
+  // Calibrate once per motor (saved in the ESP32 flash for that motor pin): await dev.calibrateMotor(16)
+  // Then: dev.motorSpeed(16, 50)   (% of the calibrated top speed, -100..100)
+
+  /** Link an H-bridge port to an encoder port. Loads the saved calibration of that motor pin, if any. */
+  async linkMotor(motorPin, encPin) {
+    const m = this._port(motorPin, ["HB2", "HB3"]);
+    const e = this._port(encPin, ["ENC"]);
+    const data = await this.request(`LINK ${m} ${e}`);
+    this._dropMotorLinks(m);
+    this._dropMotorLinks(e);
+    this.motors[m] = { enc: e, cal: parseMotorCal(data) };
+    delete this._lastSet[m];
+    delete this._lastRun[m];
+    const cal = this.motorCalibration(m);
+    this.log(cal ? `Motor GPIO${m} + encoder GPIO${e}: ${this._calSummary(cal)}`
+                 : `Motor GPIO${m} + encoder GPIO${e}: not calibrated yet (calibrateMotor(${m}))`);
+    return cal;
+  }
+
+  /** Back to an open-loop motor. */
+  async unlinkMotor(motorPin) {
+    const m = this._port(motorPin, ["HB2", "HB3"]);
+    await this.request(`LINK ${m} NONE`);
+    delete this.motors[m];
+    delete this._lastRun[m];
+  }
+
+  /** Measure the motor: it turns for about 4 s, up to full power (lift the wheels!). Saved in the ESP32 flash. */
+  async calibrateMotor(motorPin, timeoutMs = 15000) {
+    const m = this._motor(motorPin);
+    this.log(`Calibrating motor GPIO${m}: it turns for about 4 s, up to full power...`);
+    delete this._lastSet[m];
+    delete this._lastRun[m];
+    const done = new Promise((resolve, reject) => {
+      const w = { pin: m, resolve, reject };
+      w.timer = setTimeout(() => {
+        this._motorWaiters = this._motorWaiters.filter(x => x !== w);
+        reject(new Error(`${this.name}: no calibration result for motor GPIO${m}`));
+      }, timeoutMs);
+      this._motorWaiters.push(w);
+    });
+    try {
+      await this.request(`CAL ${m}`);
+    } catch (err) {
+      for (const w of this._motorWaiters.filter(x => x.pin === m)) clearTimeout(w.timer);
+      this._motorWaiters = this._motorWaiters.filter(x => x.pin !== m);
+      throw err;
+    }
+    this.motors[m].cal = null;   // the board forgets it until the new one is measured
+    const data = await done;
+    this.motors[m].cal = parseMotorCal(data);
+    const cal = this.motorCalibration(m);
+    this.log(`Motor GPIO${m} calibrated: ${this._calSummary(cal)}`);
+    return cal;
+  }
+
+  /** Calibration in user units, or null: { direction, startPower (%), topSpeed (counts/s), topRpm, responseMs } */
+  motorCalibration(motorPin) {
+    const m = this._motor(motorPin);
+    const c = this.motors[m].cal;
+    if (!c) return null;
+    const enc = this.ports[this.motors[m].enc];
+    return {
+      direction: c.dir, startPower: round2(c.ks), topSpeed: Math.round(c.top),
+      topRpm: enc ? round2(c.top * 60 / this._countsPerTurn(enc)) : null, responseMs: Math.round(c.tau)
+    };
+  }
+
+  /** Set the calibration by hand (same fields as motorCalibration()). save: keep it in the ESP32 flash. */
+  async setMotorCalibration(motorPin, { direction = 1, startPower, topSpeed, responseMs }, save = true) {
+    const m = this._motor(motorPin);
+    const data = await this.request(`MPAR ${m} ${Number(direction) < 0 ? -1 : 1} ${round2(clamp(Number(startPower) || 0, 0, 95))} ` +
+      `${Math.round(Number(topSpeed) || 0)} ${Math.round(clamp(Number(responseMs) || 0, 1, 2000))}${save ? " SAVE" : ""}`);
+    delete this._lastRun[m];
+    this.motors[m].cal = parseMotorCal(data);
+    return this.motorCalibration(m);
+  }
+
+  /** Erase the calibration saved for this motor pin. */
+  async forgetMotorCalibration(motorPin) {
+    const m = this._motor(motorPin);
+    await this.request(`MPAR ${m} FORGET`);
+    delete this._lastRun[m];
+    this.motors[m].cal = null;
+  }
+
+  /** Hold a speed, -100..100 % of the calibrated top speed (0 = stop and brake). Returns at once. */
+  motorSpeed(motorPin, percent) {
+    const m = this._motor(motorPin);
+    if (!this.motors[m].cal) throw new Error(`${this.name}: motor GPIO${m} is not calibrated (calibrateMotor(${m}))`);
+    const v = round2(clamp(Number(percent) || 0, -100, 100));
+    if (this._lastRun[m] === v) return Promise.resolve();
+    this._lastRun[m] = v;
+    delete this._lastSet[m];
+    return this.send(`RUN ${m} ${v}`);
+  }
+
+  /** Motor state read from the board: { mode, target (%), speed (%), power (%), cps (counts/s), pos (count) } */
+  async motorState(motorPin) {
+    const m = this._motor(motorPin);
+    return parseKV(await this.request(`MGET ${m}`));
+  }
+
+  /** Measured speed, % of the top speed. */
+  async getMotorSpeed(motorPin) { return (await this.motorState(motorPin)).speed; }
+
+  /** Print the motor state in the console every ms (20-1000, 0 = off). For tests and tuning. */
+  async motorLog(motorPin, ms = 100) {
+    const m = this._motor(motorPin);
+    ms = Math.round(Number(ms) || 0);
+    await this.request(`MLOG ${m} ${ms ? clamp(ms, 20, 1000) : 0}`);
+  }
+
+  _motor(pin) {
+    const p = this._port(pin, ["HB2", "HB3"]);
+    if (!this.motors[p]) throw new Error(`${this.name}: motor GPIO${p} has no encoder (linkMotor(${p}, encoderPin) first)`);
+    return p;
+  }
+
+  _dropMotorLinks(pin) {
+    for (const [m, info] of Object.entries(this.motors)) {
+      if (Number(m) === pin || info.enc === pin) { delete this.motors[m]; delete this._lastRun[m]; }
+    }
+  }
+
+  _calSummary(c) {
+    return `start power ${c.startPower} %, top speed ${c.topRpm ?? "?"} RPM (${c.topSpeed} counts/s), ` +
+           `response ${c.responseMs} ms${c.direction < 0 ? ", encoder counts backwards (handled)" : ""}`;
+  }
+
+  // "M <pin> CAL ...", "M <pin> ERR ...", "M <pin> S ..."
+  _onMotorLine(line) {
+    const m = /^M (\d+) (\S+)(?: (.*))?$/.exec(line);
+    if (!m) { this.log("Unexpected: " + line); return; }
+    const pin = Number(m[1]), kind = m[2], data = m[3] ?? "";
+    if (kind === "S") { console.log(`[${this.name} motor ${pin}] ${data}`); return; }
+    const waiters = this._motorWaiters.filter(w => w.pin === pin);
+    this._motorWaiters = this._motorWaiters.filter(w => w.pin !== pin);
+    for (const w of waiters) {
+      clearTimeout(w.timer);
+      if (kind === "CAL") w.resolve(data);
+      else w.reject(new Error(`${this.name}: motor GPIO${pin}: ${data}`));
+    }
+    if (kind === "ERR") {
+      delete this._lastRun[pin];
+      if (!waiters.length) { this.log(`Motor GPIO${pin}: ${data}`); console.warn(`[${this.name}] motor GPIO${pin}: ${data}`); }
+    }
   }
 
   // ---------------- Inputs (instant: values pushed by the board) ----------------
