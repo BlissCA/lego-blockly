@@ -92,7 +92,7 @@ function parseKV(text) {
 /** LINK / MPAR / CAL reply -> { dir, ks, top, tau }, or null for NOCAL */
 function parseMotorCal(text) {
   const kv = parseKV(text);
-  return kv.top > 0 ? { dir: kv.dir < 0 ? -1 : 1, ks: kv.ks, top: kv.top, tau: kv.tau } : null;
+  return kv.top > 0 ? { dir: kv.dir < 0 ? -1 : 1, ks: kv.ks, top: kv.top, tau: kv.tau, kstart: kv.kstart ?? null } : null;
 }
 
 const _sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -587,10 +587,10 @@ export class ESP32io {
     delete this._lastRun[m];
   }
 
-  /** Measure the motor: it turns for about 4 s, up to full power (lift the wheels!). Saved in the ESP32 flash. */
+  /** Measure the motor: it turns for about 6 s, up to full power (lift the wheels!). Saved in the ESP32 flash. */
   async calibrateMotor(motorPin, timeoutMs = 15000) {
     const m = this._motor(motorPin);
-    this.log(`Calibrating motor GPIO${m}: it turns for about 4 s, up to full power...`);
+    this.log(`Calibrating motor GPIO${m}: it turns for about 6 s, up to full power...`);
     delete this._lastSet[m];
     delete this._lastRun[m];
     const done = new Promise((resolve, reject) => {
@@ -616,22 +616,24 @@ export class ESP32io {
     return cal;
   }
 
-  /** Calibration in user units, or null: { direction, startPower (%), topSpeed (counts/s), topRpm, responseMs } */
+  /** Calibration in user units, or null:
+   *  { direction, minPower (% that keeps it turning), topSpeed (counts/s), topRpm, responseMs, startPower (% that starts it, from CAL only) } */
   motorCalibration(motorPin) {
     const m = this._motor(motorPin);
     const c = this.motors[m].cal;
     if (!c) return null;
     const enc = this.ports[this.motors[m].enc];
     return {
-      direction: c.dir, startPower: round2(c.ks), topSpeed: Math.round(c.top),
-      topRpm: enc ? round2(c.top * 60 / this._countsPerTurn(enc)) : null, responseMs: Math.round(c.tau)
+      direction: c.dir, minPower: round2(c.ks), topSpeed: Math.round(c.top),
+      topRpm: enc ? round2(c.top * 60 / this._countsPerTurn(enc)) : null, responseMs: Math.round(c.tau),
+      startPower: c.kstart ?? null
     };
   }
 
   /** Set the calibration by hand (same fields as motorCalibration()). save: keep it in the ESP32 flash. */
-  async setMotorCalibration(motorPin, { direction = 1, startPower, topSpeed, responseMs }, save = true) {
+  async setMotorCalibration(motorPin, { direction = 1, minPower, topSpeed, responseMs }, save = true) {
     const m = this._motor(motorPin);
-    const data = await this.request(`MPAR ${m} ${Number(direction) < 0 ? -1 : 1} ${round2(clamp(Number(startPower) || 0, 0, 95))} ` +
+    const data = await this.request(`MPAR ${m} ${Number(direction) < 0 ? -1 : 1} ${round2(clamp(Number(minPower) || 0, 0, 95))} ` +
       `${Math.round(Number(topSpeed) || 0)} ${Math.round(clamp(Number(responseMs) || 0, 1, 2000))}${save ? " SAVE" : ""}`);
     delete this._lastRun[m];
     this.motors[m].cal = parseMotorCal(data);
@@ -686,7 +688,7 @@ export class ESP32io {
   }
 
   _calSummary(c) {
-    return `start power ${c.startPower} %, top speed ${c.topRpm ?? "?"} RPM (${c.topSpeed} counts/s), ` +
+    return `${c.startPower != null ? `starts at ${c.startPower} %, ` : ""}keeps turning from ${c.minPower} %, top speed ${c.topRpm ?? "?"} RPM (${c.topSpeed} counts/s), ` +
            `response ${c.responseMs} ms${c.direction < 0 ? ", encoder counts backwards (handled)" : ""}`;
   }
 

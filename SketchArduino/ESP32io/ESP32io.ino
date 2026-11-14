@@ -65,7 +65,7 @@
   Closed-loop motors (H-bridge + encoder, the control loop runs here every 5 ms):
     LINK <motor> <enc>           -> link an H-bridge port to an encoder port (NONE unlinks)
                                     -> OK dir=<1|-1> ks=<%> top=<counts/s> tau=<ms>   or OK NOCAL
-    CAL <motor>                  -> calibrate (the motor turns for about 4 s, up to full power).
+    CAL <motor>                  -> calibrate (the motor turns for about 6 s, up to full power).
                                     Replies OK at once, then "M <motor> CAL ..." or "M <motor> ERR ...".
                                     The result is saved in flash for this motor pin.
     MPAR <motor>                 -> OK <calibration> (as LINK)
@@ -137,7 +137,8 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define SPEED_LAG_MS     10     // ...which shows the speed of 10 ms ago
 #define ACCEL_MS         200    // speed ramp: 0 -> 100 % in 200 ms
 #define WRONG_WAY_MS     500    // turning against the setpoint this long = encoder direction wrong
-#define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp while looking for the start power
+#define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp up while looking for the start power...
+#define CAL_DOWN_PCT_S   30.0f  // ...and down while looking for the power that keeps it turning
 #define CAL_VERSION      1
 
 #define CMD_LEN       96
@@ -642,7 +643,7 @@ static void motorSpeedTick(Motor& m, float dt, uint32_t now) {
 }
 
 // Calibration: 0 stop, 1 slow power ramp until it moves (start power, direction),
-// 2 stop, 3 full power (response time, top speed), 4 middle power (friction line). About 3-5 s.
+// 2 stop, 3 full power (response time, top speed), 4 slow ramp down until it stops (ks). About 5-7 s.
 static void motorCalTick(Motor& m, float dt, uint32_t now) {
   uint32_t t = now - m.calT0;
   switch (m.calStep) {
@@ -696,28 +697,29 @@ static void motorCalTick(Motor& m, float dt, uint32_t now) {
         while (i < m.calNs && m.calSpd[i] < 0.632f * m.calV100) i++;
         m.cal.tauMs = constrain((i + 1) * (float)CTRL_MS - SPEED_LAG_MS, 5.0f, 1000.0f);
       }
-      m.calP2 = (m.calKsStart + 100.0f) / 2;
-      motorPowerOut(m, m.calP2);
-      m.calN = 0;
-      m.calAcc = 0;
+      m.calPower = 100;
       m.calStep = 4;
       m.calT0 = now;
       return;
 
     case 4: {
-      if (t >= 300) { m.calAcc += m.speed; m.calN++; }
-      if (t < 600) return;
-      // speed = top * (power - ks) / (100 - ks): solve for ks with the two measured points
-      float r = (m.calAcc / max(1, (int)m.calN)) / m.calV100;
-      float ks = (r > 0.05f && r < 0.98f) ? (m.calP2 - 100.0f * r) / (1.0f - r) : m.calKsStart * 0.8f;
-      m.cal.ks = constrain(ks, 0.0f, m.calKsStart);
-      m.cal.top = m.calV100;
-      m.cal.mult = ports[m.enc].mult;
-      m.cal.valid = true;
-      motorCoast(m);
-      motorIdle(m);
-      calSave(m.hb, m.cal);
-      motorEvent(m, "CAL " + calText(m.cal));
+      // Lower the power slowly until the motor (nearly) stops: the power that keeps it turning.
+      // (A straight line through two high powers missed it: speed is not linear in power at low power.)
+      m.calPower -= CAL_DOWN_PCT_S * dt;
+      if (t >= 100 && (m.speed < 0.02f * m.calV100 || m.calPower <= 0)) {
+        // the speed shows the past (motor response + measurement lag): add what the ramp did meanwhile
+        float ks = m.calPower + CAL_DOWN_PCT_S * (m.cal.tauMs + SPEED_LAG_MS) / 1000.0f;
+        m.cal.ks = constrain(ks, 0.0f, 90.0f);
+        m.cal.top = m.calV100;
+        m.cal.mult = ports[m.enc].mult;
+        m.cal.valid = true;
+        motorCoast(m);
+        motorIdle(m);
+        calSave(m.hb, m.cal);
+        motorEvent(m, "CAL " + calText(m.cal) + " kstart=" + String(m.calKsStart, 1));
+        return;
+      }
+      motorPowerOut(m, m.calPower);
       return;
     }
   }

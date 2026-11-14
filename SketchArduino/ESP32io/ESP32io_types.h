@@ -67,7 +67,7 @@ struct Motor {
   uint8_t calStep = 0;
   uint32_t calT0 = 0;
   int32_t calC0 = 0;
-  float calPower = 0, calKsStart = 0, calV100 = 0, calP2 = 0, calAcc = 0;
+  float calPower = 0, calKsStart = 0, calV100 = 0, calAcc = 0;
   uint16_t calN = 0, calNs = 0;
   float calSpd[CAL_SAMPLES] = {};
 };
