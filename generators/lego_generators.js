@@ -3715,7 +3715,83 @@ javascriptGenerator.forBlock["esp32io_mot_power"] = function (block) {
 
 javascriptGenerator.forBlock["esp32io_mot_stop"] = function (block) {
   const pin = esp32ioValue(block, "PIN", "16");
-  return esp32ioStatement(block, `dev.motorStop(${pin}, ${block.getFieldValue("MODE") === "1"})`);
+  const mode = { "0": "false", "1": "true", "2": '"hold"' }[block.getFieldValue("MODE")] || "false";
+  return esp32ioStatement(block, `dev.motorStop(${pin}, ${mode})`);
+};
+
+// Closed-loop motors (H-bridge + encoder): the motor is its H-bridge port
+function esp32ioMotorOpts(block) {
+  return `{ stop: "${block.getFieldValue("STOP")}", wait: ${block.getFieldValue("WAIT") === "TRUE"} }`;
+}
+
+javascriptGenerator.forBlock["esp32io_mot_link"] = function (block) {
+  return esp32ioStatement(block, `dev.linkMotor(${esp32ioValue(block, "MOTOR", "16")}, ${esp32ioValue(block, "ENC", "18")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_calibrate"] = function (block) {
+  return esp32ioStatement(block, `dev.calibrateMotor(${esp32ioValue(block, "MOTOR", "16")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_profile"] = function (block) {
+  const m = esp32ioValue(block, "MOTOR", "16");
+  const rpm = esp32ioValue(block, "RPM", "120");
+  const minPwr = esp32ioValue(block, "MINPWR", "15");
+  const startPwr = esp32ioValue(block, "STARTPWR", "20");
+  const resp = esp32ioValue(block, "RESP", "45");
+  return esp32ioStatement(block, `dev.setMotorCalibration(${m}, { direction: ${block.getFieldValue("DIR") === "-1" ? -1 : 1}, ` +
+    `topRpm: Number(${rpm}), minPower: Number(${minPwr}), startPower: Number(${startPwr}), responseMs: Number(${resp}) }, false)`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_speed"] = function (block) {
+  return esp32ioStatement(block, `dev.motorSpeed(${esp32ioValue(block, "MOTOR", "16")}, Number(${esp32ioValue(block, "SPEED", "0")}))`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_angle"] = function (block) {
+  const m = esp32ioValue(block, "MOTOR", "16");
+  const value = esp32ioValue(block, "VALUE", "0");
+  const deg = block.getFieldValue("UNIT") === "turns" ? `Number(${value}) * 360` : `Number(${value})`;
+  const speed = esp32ioValue(block, "SPEED", "50");
+  return esp32ioStatement(block, `dev.motorAngle(${m}, ${deg}, Number(${speed}), ${esp32ioMotorOpts(block)})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_goto"] = function (block) {
+  const m = esp32ioValue(block, "MOTOR", "16");
+  const pos = esp32ioValue(block, "POS", "0");
+  const speed = esp32ioValue(block, "SPEED", "50");
+  return esp32ioStatement(block, `dev.motorGoto(${m}, Number(${pos}), Number(${speed}), ${esp32ioMotorOpts(block)})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_time"] = function (block) {
+  const m = esp32ioValue(block, "MOTOR", "16");
+  const secs = esp32ioValue(block, "SECS", "1");
+  const speed = esp32ioValue(block, "SPEED", "50");
+  return esp32ioStatement(block, `dev.motorTime(${m}, Number(${secs}) * 1000, Number(${speed}), ${esp32ioMotorOpts(block)})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_wait"] = function (block) {
+  // waitMotor returns early on STOP: the shouldStop() of the next block ends the program
+  return esp32ioStatement(block, `dev.waitMotor(${esp32ioValue(block, "MOTOR", "16")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_set_pos"] = function (block) {
+  return esp32ioStatement(block, `dev.motorResetPosition(${esp32ioValue(block, "MOTOR", "16")}, Number(${esp32ioValue(block, "POS", "0")}))`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_position"] = function (block) {
+  return esp32ioReporter(block, `motorPosition(${esp32ioValue(block, "MOTOR", "16")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_get_speed"] = function (block) {
+  const dev = block.getFieldValue("DEVICE");
+  return [`(await deviceManager.getDeviceByName("${dev}").getMotorSpeed(${esp32ioValue(block, "MOTOR", "16")}))`, javascriptGenerator.ORDER_ATOMIC];
+};
+
+javascriptGenerator.forBlock["esp32io_mot_done"] = function (block) {
+  return esp32ioReporter(block, `motorDone(${esp32ioValue(block, "MOTOR", "16")})`);
+};
+
+javascriptGenerator.forBlock["esp32io_mot_stalled"] = function (block) {
+  return esp32ioReporter(block, `motorStalled(${esp32ioValue(block, "MOTOR", "16")})`);
 };
 
 javascriptGenerator.forBlock["esp32io_stop_all"] = function (block) {

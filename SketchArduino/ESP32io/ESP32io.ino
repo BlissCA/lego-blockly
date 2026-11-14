@@ -87,16 +87,18 @@
     MGET <motor>                 -> OK mode=<OFF|SPEED|CAL|MOVE|HOLD> target=<%> speed=<%> power=<%>
                                        cps=<counts/s> pos=<count> ref=<count> tag=<tag>
     MLOG <motor> <ms>            -> send "M <motor> S ..." (as MGET) every <ms> (20-1000, 0 = off)
-    MTUNE <motor> [soft] [pos] [decel] [kick] [tol]
-                                 -> tuning, not saved (back to 1 1 0.5 1 0 on LINK): soft = x loop time (0.3-5,
+    MTUNE <motor> [soft] [pos] [decel] [kick] [tol] [stall]
+                                 -> tuning, not saved (back to 1 1 0.5 1 0 600 on LINK): soft = x loop time (0.3-5,
                                     higher = softer), pos = x position stiffness (0-5), decel = move deceleration
                                     x acceleration (0.1-1), kick = 0|1, tol = "in place" tolerance in counts
-                                    (0 = 2 encoder pulses; a holding motor stays braked until 2 x tol away).
+                                    (0 = 2 encoder pulses; a holding motor stays braked until 2 x tol away),
+                                    stall = ms pushing (power >= 40 %) without moving before it stops (0 = off).
                                     Replies the values.
     Counts and positions are in the motor direction (positive power = counts go up, whatever the encoder wiring).
     A new RUN / RUNT / MOVE / HOLD replaces the running one. SET and STOP on the motor port go back to
     open loop (direct power). RUNT and MOVE with a tag end with "M <motor> DONE <tag> pos=<count>",
     or "M <motor> CANCEL <tag> pos=<count>" when something else stopped them.
+    A stalled RUN / RUNT / MOVE stops (coast) with "M <motor> STALL <tag> pos=<count>" (tag 0 for RUN).
 
   The port name is its first pin: an encoder on 18+19 is port 18, an HB3 on 25,26,27 is port 25.
 
@@ -106,8 +108,8 @@
     V <pin>=<value> ...          -> input values (DIN, AIN, ENC), sent when they change
                                     and every second for all inputs
     L <message>                  -> log
-    M <motor> CAL|ERR|DONE|CANCEL|S ...
-                                 -> closed-loop motor events (calibration done, error, move ended, MLOG lines)
+    M <motor> CAL|ERR|DONE|CANCEL|STALL|S ...
+                                 -> closed-loop motor events (calibration done, error, move ended, stalled, MLOG lines)
 
   Prerequisites (Arduino IDE):
     1. Boards Manager: "esp32" by Espressif, version 3.x.
@@ -163,6 +165,7 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define SETTLE_MS        500    // a move ends at most this long after its reference reached the target
 #define HOLD_TAP_EVERY_MS 150   // HOLD, stuck out of place: one tap at the start power every 150 ms...
 #define HOLD_TAP_MS      15     // ...lasting 15 ms
+#define STALL_POWER      40.0f  // stall detection: "pushing" = power >= 40 % (the time is MTUNE's stall value)
 #define LEAD_S           0.05f  // MOVE: the reference stays within 50 ms of top speed of the motor
 #define SPEED_WINDOW_S   0.02f  // SPEED: ...within 20 ms of travel (or 2 pulses)
 #define CAL_RAMP_PCT_S   40.0f  // calibration: power ramp up while looking for the start power...
@@ -741,6 +744,23 @@ static void motorTrack(Motor& m, float dt, uint32_t now) {
   }
 }
 
+// Stall: pushing (power >= STALL_POWER) without moving more than the tolerance for tStallMs.
+// The motor stops (coast: no heating) and "M <pin> STALL <tag> pos=" ends what was running.
+static bool motorCheckStall(Motor& m, uint32_t now) {
+  if (!m.tStallMs) return false;
+  if (abs(m.pos - m.stallPos) > motorTol(m) || fabsf(m.power) < STALL_POWER) {
+    m.stallPos = m.pos;
+    m.stallT = now;
+    return false;
+  }
+  if (now - m.stallT < m.tStallMs) return false;
+  motorEvent(m, "STALL " + String(m.tag) + " pos=" + String(m.pos));
+  m.tag = 0;
+  motorCoast(m);
+  motorIdle(m);
+  return true;
+}
+
 // A move or a timed run is over: DONE event, then brake, coast or hold
 static void motorFinish(Motor& m) {
   float holdAt = (m.mode == MM_MOVE) ? m.moveX : (float)m.pos;
@@ -783,6 +803,7 @@ static void motorSpeedTick(Motor& m, float dt, uint32_t now) {
   float window = max(2.0f * c.mult, fabsf(m.vref) * SPEED_WINDOW_S);
   m.ref = constrain(m.ref, m.pos - window, m.pos + window);
   motorTrack(m, dt, now);
+  if (m.mode == MM_SPEED) motorCheckStall(m, now);
 }
 
 // Trapezoid: accelerate to moveV, cruise, decelerate so the reference stops exactly on moveX
@@ -807,6 +828,7 @@ static void motorMoveTick(Motor& m, float dt, uint32_t now) {
 
   motorTrack(m, dt, now);
   if (m.mode != MM_MOVE) return;   // stopped by the wrong-way guard
+  if (motorCheckStall(m, now)) return;
   if (m.ref == m.moveX && m.vref == 0) {
     if (!m.settleMs) m.settleMs = now ? now : 1;
     if (fabsf(m.moveX - m.pos) <= motorTol(m) || now - m.settleMs > SETTLE_MS) motorFinish(m);
@@ -1336,21 +1358,22 @@ static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
     return true;
   }
   if (is(c, "MTUNE")) {
-    float v[5] = { m->tSoft, m->tPos, m->tDecel, m->tKick ? 1.0f : 0.0f, m->tTol };
-    static const float lo[5] = { 0.3f, 0.0f, 0.1f, 0.0f, 0.0f }, hi[5] = { 5.0f, 5.0f, 1.0f, 1.0f, 10000.0f };
+    float v[6] = { m->tSoft, m->tPos, m->tDecel, m->tKick ? 1.0f : 0.0f, m->tTol, (float)m->tStallMs };
+    static const float lo[6] = { 0.3f, 0.0f, 0.1f, 0.0f, 0.0f, 0.0f }, hi[6] = { 5.0f, 5.0f, 1.0f, 1.0f, 10000.0f, 10000.0f };
     for (int i = 2; i < n; i++) {
       float x;
-      if (i - 2 >= 5 || !parseFloat(cmd[i], x) || x < lo[i - 2] || x > hi[i - 2])
-        return fail("MTUNE: [soft 0.3-5] [pos 0-5] [decel 0.1-1] [kick 0|1] [tol counts, 0 = 2 pulses]");
+      if (i - 2 >= 6 || !parseFloat(cmd[i], x) || x < lo[i - 2] || x > hi[i - 2])
+        return fail("MTUNE: [soft 0.3-5] [pos 0-5] [decel 0.1-1] [kick 0|1] [tol counts, 0 = 2 pulses] [stall 0-10000 ms]");
       v[i - 2] = x;
     }
+    m->tStallMs = (uint16_t)lroundf(v[5]);
     m->tSoft = v[0];
     m->tPos = v[1];
     m->tDecel = v[2];
     m->tKick = v[3] >= 0.5f;
     m->tTol = v[4];
     data = "soft=" + String(m->tSoft, 2) + " pos=" + String(m->tPos, 2) + " decel=" + String(m->tDecel, 2) +
-           " kick=" + String(m->tKick ? 1 : 0) + " tol=" + String(motorTol(*m), 0);
+           " kick=" + String(m->tKick ? 1 : 0) + " tol=" + String(motorTol(*m), 0) + " stall=" + String(m->tStallMs);
     return true;
   }
 
@@ -1437,6 +1460,8 @@ static void motorTakeOver(Motor& m) {
   m.target = 0;
   m.endMs = m.settleMs = 0;
   m.wrongMs = 0;
+  m.stallPos = m.pos;   // the stall timer starts now
+  m.stallT = millis();
 }
 
 

@@ -3368,6 +3368,23 @@ const toolbox = {
                 "B": { "shadow": { "type": "esp32io_pin", "fields": { "ESPPIN": "19" } } },
                 "PPR": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 1, "max": 10000, "precision": 1 }, "fields": { "NUM": 7 } } },
                 "GEAR": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 0.01, "max": 10000, "precision": 0.01 }, "fields": { "NUM": 1 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_link",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "ENC": { "shadow": { "type": "esp32io_pin", "fields": { "ESPPIN": "18" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_calibrate",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_profile",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "RPM": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 1, "max": 100000, "precision": 0.1 }, "fields": { "NUM": 120 } } },
+                "MINPWR": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 0, "max": 95, "precision": 0.1 }, "fields": { "NUM": 15 } } },
+                "STARTPWR": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 0, "max": 100, "precision": 0.1 }, "fields": { "NUM": 20 } } },
+                "RESP": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 1, "max": 2000, "precision": 1 }, "fields": { "NUM": 45 } } }
               } }
           ]
         },
@@ -3387,6 +3404,22 @@ const toolbox = {
               "inputs": {
                 "PIN": { "shadow": { "type": "esp32io_pin", "fields": { "ESPPIN": "18" } } },
                 "VALUE": { "shadow": { "type": "math_number", "fields": { "NUM": 0 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_position",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_get_speed",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_done",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_stalled",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
               } }
           ]
         },
@@ -3423,7 +3456,39 @@ const toolbox = {
               } },
             { "kind": "block", "type": "esp32io_mot_stop",
               "inputs": { "PIN": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } } } },
-            { "kind": "block", "type": "esp32io_stop_all" }
+            { "kind": "block", "type": "esp32io_stop_all" },
+            { "kind": "block", "type": "esp32io_mot_speed",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "SPEED": { "shadow": { "type": "math_number_constrained", "extraState": { "min": -100, "max": 100, "precision": 1 }, "fields": { "NUM": 50 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_angle",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "VALUE": { "shadow": { "type": "math_number", "fields": { "NUM": 360 } } },
+                "SPEED": { "shadow": { "type": "math_number_constrained", "extraState": { "min": -100, "max": 100, "precision": 1 }, "fields": { "NUM": 50 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_goto",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "POS": { "shadow": { "type": "math_number", "fields": { "NUM": 0 } } },
+                "SPEED": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 1, "max": 100, "precision": 1 }, "fields": { "NUM": 50 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_time",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "SECS": { "shadow": { "type": "math_number_constrained", "extraState": { "min": 0, "max": 3600, "precision": 0.1 }, "fields": { "NUM": 1 } } },
+                "SPEED": { "shadow": { "type": "math_number_constrained", "extraState": { "min": -100, "max": 100, "precision": 1 }, "fields": { "NUM": 50 } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_wait",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } }
+              } },
+            { "kind": "block", "type": "esp32io_mot_set_pos",
+              "inputs": {
+                "MOTOR": { "shadow": { "type": "esp32io_pin_out", "fields": { "ESPPIN": "16" } } },
+                "POS": { "shadow": { "type": "math_number", "fields": { "NUM": 0 } } }
+              } }
           ]
         },
         {

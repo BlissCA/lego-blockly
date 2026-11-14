@@ -555,7 +555,8 @@ export class ESP32io {
     if (mode === "hold" && this.motors[p]?.cal) return this.motorHold(p);
     this._lastSet[p] = 0;
     delete this._lastRun[p];
-    return this.send(`STOP ${p} ${brake === true || mode === "brake" || mode === "1" ? "BRAKE" : "COAST"}`);
+    const doBrake = brake === true || ["brake", "1", "hold", "2"].includes(mode);   // hold without encoder = brake
+    return this.send(`STOP ${p} ${doBrake ? "BRAKE" : "COAST"}`);
   }
 
   /** Last value sent to an output. */
@@ -645,10 +646,15 @@ export class ESP32io {
   }
 
   /** Set the calibration by hand (same fields as motorCalibration()). save: keep it in the ESP32 flash. */
-  async setMotorCalibration(motorPin, { direction = 1, minPower, topSpeed, responseMs }, save = true) {
+  //  topRpm (output shaft) can replace topSpeed (counts/s). startPower: the breakaway kick (default minPower).
+  async setMotorCalibration(motorPin, { direction = 1, minPower, startPower, topSpeed, topRpm, responseMs }, save = true) {
     const m = this._motor(motorPin);
-    const data = await this.request(`MPAR ${m} ${Number(direction) < 0 ? -1 : 1} ${round2(clamp(Number(minPower) || 0, 0, 95))} ` +
-      `${Math.round(Number(topSpeed) || 0)} ${Math.round(clamp(Number(responseMs) || 0, 1, 2000))}${save ? " SAVE" : ""}`);
+    const top = topRpm != null ? Number(topRpm) * this._motorCountsPerTurn(m) / 60 : Number(topSpeed);
+    if (!(top > 0)) throw new Error(`${this.name}: motor GPIO${m}: the top speed must be above 0`);
+    const ks = round2(clamp(Number(minPower) || 0, 0, 95));
+    const kstart = round2(clamp(startPower != null ? Number(startPower) || 0 : ks, ks, 100));
+    const data = await this.request(`MPAR ${m} ${Number(direction) < 0 ? -1 : 1} ${ks} ${Math.round(top)} ` +
+      `${Math.round(clamp(Number(responseMs) || 0, 1, 2000))} ${kstart}${save ? " SAVE" : ""}`);
     delete this._lastRun[m];
     this.motors[m].cal = parseMotorCal(data);
     return this.motorCalibration(m);
@@ -669,6 +675,7 @@ export class ESP32io {
     const v = round2(clamp(Number(percent) || 0, -100, 100));
     if (this._lastRun[m] === v) return Promise.resolve();
     this._lastRun[m] = v;
+    this.motors[m].stalled = false;
     delete this._lastSet[m];
     return this.send(`RUN ${m} ${v}`);
   }
@@ -699,10 +706,14 @@ export class ESP32io {
   /** Keep the present position, pushing back when moved. */
   motorHold(motorPin) {
     const m = this._motorReady(motorPin);
+    this.motors[m].stalled = false;
     delete this._lastSet[m];
     delete this._lastRun[m];
     return this.send(`HOLD ${m}`);
   }
+
+  /** True when the last run / move stopped because the motor was blocked (until the next order). Instant. */
+  motorStalled(motorPin) { return !!this.motors[this._motor(motorPin)].stalled; }
 
   /** True when no move / timed run is running on this motor (instant, no BLE round trip). */
   motorDone(motorPin) { return !this.motors[this._motor(motorPin)].busy; }
@@ -760,6 +771,7 @@ export class ESP32io {
 
   // Send a tagged MOVE / RUNT; the board answers "M <pin> DONE|CANCEL <tag>" at the end
   async _motorOrder(m, cmd, wait) {
+    this.motors[m].stalled = false;
     const tag = this._nextTag;
     this._nextTag = this._nextTag >= 65535 ? 1 : this._nextTag + 1;
     const ended = new Promise(resolve => this._moveWaiters.set(tag, resolve));
@@ -785,14 +797,16 @@ export class ESP32io {
 
   /** Control tuning (not saved, reset by linkMotor): { soft (x loop time, higher = softer), pos (x position stiffness),
    *  decel (move deceleration x acceleration), kick (true/false), holdDeg ("in place" tolerance, degrees of the
-   *  output shaft: a holding motor stays braked until 2 x holdDeg away; moves end within holdDeg) }.
+   *  output shaft: a holding motor stays braked until 2 x holdDeg away; moves end within holdDeg),
+   *  stallMs (pushing at >= 40 % without moving this long stops the motor, 0 = off) }.
    *  Missing fields keep their value. Returns all. */
-  async motorTune(motorPin, { soft, pos, decel, kick, holdDeg } = {}) {
+  async motorTune(motorPin, { soft, pos, decel, kick, holdDeg, stallMs } = {}) {
     const m = this._motor(motorPin);
     const cpt = this._motorCountsPerTurn(m);
     const now = parseKV(await this.request(`MTUNE ${m}`));
     const tol = holdDeg == null ? now.tol : Math.max(1, Math.round(Number(holdDeg) * cpt / 360));
-    const v = [soft ?? now.soft, pos ?? now.pos, decel ?? now.decel, kick == null ? now.kick : (kick ? 1 : 0), tol];
+    const stall = stallMs == null ? now.stall : Math.round(clamp(Number(stallMs) || 0, 0, 10000));
+    const v = [soft ?? now.soft, pos ?? now.pos, decel ?? now.decel, kick == null ? now.kick : (kick ? 1 : 0), tol, stall];
     const r = parseKV(await this.request(`MTUNE ${m} ${v.join(" ")}`));
     r.kick = !!r.kick;
     r.holdDeg = round2(r.tol * 360 / cpt);
@@ -829,9 +843,15 @@ export class ESP32io {
     if (!m) { this.log("Unexpected: " + line); return; }
     const pin = Number(m[1]), kind = m[2], data = m[3] ?? "";
     if (kind === "S") { console.log(`[${this.name} motor ${pin}] ${data}`); return; }
-    if (kind === "DONE" || kind === "CANCEL") {
+    if (kind === "DONE" || kind === "CANCEL" || kind === "STALL") {
       const tag = Number(data.split(" ")[0]);
-      if (this.motors[pin]?.busy === tag) this.motors[pin].busy = null;
+      const mot = this.motors[pin];
+      if (mot && (mot.busy === tag || kind === "STALL")) mot.busy = null;
+      if (kind === "STALL") {
+        if (mot) mot.stalled = true;
+        delete this._lastRun[pin];
+        this.log(`Motor GPIO${pin} stalled: stopped (${data.split(" ").slice(1).join(" ")})`);
+      }
       const resolve = this._moveWaiters.get(tag);
       this._moveWaiters.delete(tag);
       resolve?.(kind === "DONE");

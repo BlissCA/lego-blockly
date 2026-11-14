@@ -5948,6 +5948,12 @@ window.addEventListener("load", () => {
   const espNum = (name, num) => ({ "type": "input_value", "name": name, "check": "Number", "shadow": { "type": "math_number", "fields": { "NUM": num } } });
   const espChoice = (name, options) => ({ "type": "field_dropdown", "name": name, "options": options });
   const espStatement = { "inputsInline": true, "previousStatement": null, "nextStatement": null, "colour": ESP32IO_COLOUR };
+  const espMotor = () => espPin("MOTOR", "esp32io_pin_out", "16");   // closed-loop motor = its H-bridge port
+  const espStopChoice = (first) => espChoice("STOP", first === "hold"
+    ? [["hold", "hold"], ["brake", "brake"], ["coast", "coast"]]
+    : [["brake", "brake"], ["coast", "coast"], ["hold", "hold"]]);
+  const espWait = () => ({ "type": "field_checkbox", "name": "WAIT", "checked": true });
+  const ESP32IO_LOOP_TIP = " Needs the motor linked to its encoder (\"motor with encoder\") and calibrated.";
 
   Blockly.defineBlocksWithJsonArray([
     // Pin constants (toolbox shadows)
@@ -6075,6 +6081,33 @@ window.addEventListener("load", () => {
                  "X4 = 4 counts per pulse (motors), X1 = 1 count per click (knobs). " +
                  "Pulses/turn: 7 for most N20 encoders, the number of clicks for a knob. Gear: 100 for a 1:100 gearbox."
     },
+    {
+      "type": "esp32io_mot_link",
+      "message0": "%1 motor %2 with encoder %3",
+      "args0": [ espDevice(), espMotor(), espPin("ENC", "esp32io_pin", "18") ],
+      ...espStatement,
+      "tooltip": "Closed loop: the ESP32 controls this motor (H-bridge port) with its encoder (A pin), for speed, " +
+                 "degrees, position and hold. Put it after the H-bridge and encoder setup blocks. " +
+                 "The motor uses the calibration saved on the board (see \"calibrate motor\")."
+    },
+    {
+      "type": "esp32io_mot_calibrate",
+      "message0": "%1 calibrate motor %2",
+      "args0": [ espDevice(), espMotor() ],
+      ...espStatement,
+      "tooltip": "Measures the motor: it turns for about 6 s, up to full power (lift the wheels!). " +
+                 "The result is saved on the board for this motor pin: do it once (again if you change the motor, " +
+                 "the gearbox or the battery voltage). The log shows the numbers for the \"motor profile\" block."
+    },
+    {
+      "type": "esp32io_mot_profile",
+      "message0": "%1 motor %2 profile: top speed %3 RPM keeps turning from %4 %% starts at %5 %% response %6 ms encoder %7",
+      "args0": [ espDevice(), espMotor(), espNum("RPM", 120), espNum("MINPWR", 15), espNum("STARTPWR", 20), espNum("RESP", 45),
+        espChoice("DIR", [["normal", "1"], ["backwards", "-1"]]) ],
+      ...espStatement,
+      "tooltip": "Instead of calibrating: the numbers that \"calibrate motor\" printed in the log. " +
+                 "Used by this program only (not saved on the board), so the program works on any board. After \"motor with encoder\"."
+    },
 
     // Input
     {
@@ -6121,6 +6154,43 @@ window.addEventListener("load", () => {
         espChoice("STATE", [["active", "1"], ["inactive", "0"]]) ],
       ...espStatement,
       "tooltip": "Wait until a digital input is active / inactive."
+    },
+    {
+      "type": "esp32io_mot_position",
+      "message0": "%1 motor %2 position (°)",
+      "args0": [ espDevice(), espMotor() ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "Position of the output shaft in degrees, positive = the direction of a positive speed." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_get_speed",
+      "message0": "%1 motor %2 speed (%%)",
+      "args0": [ espDevice(), espMotor() ],
+      "inputsInline": true,
+      "output": "Number",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "Measured speed, % of the calibrated top speed (asks the board: about 30 ms)." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_done",
+      "message0": "%1 motor %2 done?",
+      "args0": [ espDevice(), espMotor() ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "True when the last \"run for\" / \"go to position\" started without waiting has ended." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_stalled",
+      "message0": "%1 motor %2 stalled?",
+      "args0": [ espDevice(), espMotor() ],
+      "inputsInline": true,
+      "output": "Boolean",
+      "colour": ESP32IO_COLOUR,
+      "tooltip": "True when the motor was blocked (pushing hard without moving for 0.6 s): it was stopped. " +
+                 "Cleared by the next motor block." + ESP32IO_LOOP_TIP
     },
 
     // Output
@@ -6171,9 +6241,55 @@ window.addEventListener("load", () => {
       "type": "esp32io_mot_stop",
       "message0": "%1 motor %2 stop %3",
       "args0": [ espDevice(), espPin("PIN", "esp32io_pin_out", "16"),
-        espChoice("MODE", [["coast", "0"], ["brake", "1"]]) ],
+        espChoice("MODE", [["coast", "0"], ["brake", "1"], ["hold", "2"]]) ],
       ...espStatement,
-      "tooltip": "Stop a motor. Brake stops it faster (the motor is not held in place afterwards)."
+      "tooltip": "Stop a motor. Brake stops it faster. Hold keeps the position, pushing back when it is turned " +
+                 "(motor with encoder only: brake otherwise)."
+    },
+    {
+      "type": "esp32io_mot_speed",
+      "message0": "%1 motor %2 run at speed %3 %%",
+      "args0": [ espDevice(), espMotor(), espNum("SPEED", 50) ],
+      ...espStatement,
+      "tooltip": "Keep a speed, -100..100 % of the top speed, whatever the load (0 = stop). " +
+                 "Use up to 80-90 %: a weaker battery cannot reach 100 %." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_angle",
+      "message0": "%1 motor %2 run for %3 %4 at speed %5 %% then %6 wait %7",
+      "args0": [ espDevice(), espMotor(), espNum("VALUE", 360), espChoice("UNIT", [["degrees", "deg"], ["turns", "turns"]]),
+        espNum("SPEED", 50), espStopChoice("brake"), espWait() ],
+      ...espStatement,
+      "tooltip": "Turn the output shaft by an angle (negative angle or negative speed = backwards), then brake, coast or hold. " +
+                 "Wait unchecked: the program goes on at once (to move several motors together)." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_goto",
+      "message0": "%1 motor %2 go to position %3 ° at speed %4 %% then %5 wait %6",
+      "args0": [ espDevice(), espMotor(), espNum("POS", 0), espNum("SPEED", 50), espStopChoice("hold"), espWait() ],
+      ...espStatement,
+      "tooltip": "Go to a position in degrees (see \"set motor position\") (it can be several turns away: 720 = two turns)." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_time",
+      "message0": "%1 motor %2 run for %3 seconds at speed %4 %% then %5 wait %6",
+      "args0": [ espDevice(), espMotor(), espNum("SECS", 1), espNum("SPEED", 50), espStopChoice("brake"), espWait() ],
+      ...espStatement,
+      "tooltip": "Keep a speed for a time, then brake, coast or hold." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_wait",
+      "message0": "%1 wait until motor %2 done",
+      "args0": [ espDevice(), espMotor() ],
+      ...espStatement,
+      "tooltip": "Wait for a \"run for\" / \"go to position\" started without waiting." + ESP32IO_LOOP_TIP
+    },
+    {
+      "type": "esp32io_mot_set_pos",
+      "message0": "%1 set motor %2 position to %3 °",
+      "args0": [ espDevice(), espMotor(), espNum("POS", 0) ],
+      ...espStatement,
+      "tooltip": "Say that the present position is this many degrees (0 by default). A holding motor stays where it is." + ESP32IO_LOOP_TIP
     },
     {
       "type": "esp32io_stop_all",
