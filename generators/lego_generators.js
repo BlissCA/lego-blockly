@@ -3728,6 +3728,26 @@ javascriptGenerator.forBlock["esp32io_mot_link"] = function (block) {
   return esp32ioStatement(block, `dev.linkMotor(${esp32ioValue(block, "MOTOR", "16")}, ${esp32ioValue(block, "ENC", "18")})`);
 };
 
+javascriptGenerator.forBlock["esp32io_cfg_step4"] = function (block) {
+  const pins = ["IN1", "IN2", "IN3", "IN4"].map((n, i) => esp32ioValue(block, n, String(16 + i)));
+  const spt = esp32ioValue(block, "SPT", "2048");
+  const rpm = esp32ioValue(block, "RPM", "12");
+  const rev = block.getFieldValue("REVERSE") === "TRUE";
+  return esp32ioStatement(block, `dev.configStepper(${pins.join(", ")}, ` +
+    `{ mode: "${block.getFieldValue("MODE")}", stepsPerTurn: Number(${spt}), rpm: Number(${rpm}), reverse: ${rev} })`);
+};
+
+javascriptGenerator.forBlock["esp32io_cfg_stepdir"] = function (block) {
+  const step = esp32ioValue(block, "STEP", "25");
+  const dir = esp32ioValue(block, "DIR", "26");
+  const en = block.getFieldValue("EN");
+  const spt = esp32ioValue(block, "SPT", "200");
+  const rpm = esp32ioValue(block, "RPM", "60");
+  const rev = block.getFieldValue("REVERSE") === "TRUE";
+  return esp32ioStatement(block, `dev.configStepperDriver(${step}, ${dir}, { en: ${en === "NONE" ? "null" : en}, ` +
+    `stepsPerTurn: Number(${spt}), microsteps: ${Number(block.getFieldValue("MICRO")) || 1}, rpm: Number(${rpm}), reverse: ${rev} })`);
+};
+
 javascriptGenerator.forBlock["esp32io_mot_calibrate"] = function (block) {
   return esp32ioStatement(block, `dev.calibrateMotor(${esp32ioValue(block, "MOTOR", "16")})`);
 };

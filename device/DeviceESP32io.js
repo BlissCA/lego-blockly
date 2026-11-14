@@ -24,7 +24,8 @@ const ESP32IO = {
   nameMaxLen: 20,
   adcMax: 4095,
   adcVolts: 3.3,
-  holdDeg: 1                 // closed-loop motors: "in place" tolerance, degrees of the output shaft
+  holdDeg: 1,                // closed-loop motors: "in place" tolerance, degrees of the output shaft
+  stepMaxRate: 10000         // steppers: steps/s the board can make (STEP_MAX_RATE in the sketch)
 };
 
 // Digital input presets (value 1 = pressed / beam blocked / surface seen)
@@ -421,7 +422,7 @@ export class ESP32io {
     });
     delete this._lastSet[p];
     // Inputs: the board pushes the first value right after the OK
-    if (["DIN", "AIN", "ENC"].includes(port.type)) {
+    if (["DIN", "AIN", "ENC", "STEP"].includes(port.type)) {
       for (let i = 0; i < 40 && this.values[p] === undefined; i++) await _sleep(10);
     }
     return p;
@@ -500,6 +501,47 @@ export class ESP32io {
       { type: "ENC", pins: [pinNum(a), pinNum(b)], mode, ppr: Number(ppr) || 7, gear: Number(gear) || 1, reverse: !!reverse });
   }
 
+  /** Stepper on 4 coils: ULN2003 board + 28BYJ-48 (or a bipolar motor on an L298N: pins IN1 IN3 IN2 IN4). Port = in1.
+   *  stepsPerTurn: full steps per turn of the output shaft (28BYJ-48: 2048, closer to 2038 for most of them),
+   *  mode "HALF" (default, smoother, x2 steps) | "FULL" (stronger) | "WAVE" (one coil, less current),
+   *  rpm: top speed (= 100 %), accelMs: time from 0 to the top speed. Then the motor blocks: motorAngle(in1, ...). */
+  async configStepper(in1, in2, in3, in4, { mode = "HALF", stepsPerTurn = 2048, rpm = 12, accelMs = 200, reverse = false } = {}) {
+    mode = String(mode).toUpperCase();
+    if (!["HALF", "FULL", "WAVE"].includes(mode)) throw new Error("ESP32io: stepper mode HALF, FULL or WAVE");
+    const spt = (Number(stepsPerTurn) || 2048) * (mode === "HALF" ? 2 : 1);
+    const pins = [in1, in2, in3, in4].map(pinNum);
+    return this._cfgStepper(in1, `STEP4 ${pins.slice(1).join(" ")} ${mode}`, { kind: "STEP4", pins, mode }, spt, rpm, accelMs, reverse);
+  }
+
+  /** Stepper driver board with STEP / DIR inputs (A4988, DRV8825, TMC2208...). Port = step.
+   *  en: enable pin (LOW = on; "coast" turns the driver off) or null. stepsPerTurn: 200 for most NEMA 17 motors,
+   *  microsteps: as set by the board's MS pins (A4988 / DRV8825 with nothing on MS1-3: 1, TMC2208 with nothing on MS1-2: 8). */
+  async configStepperDriver(step, dir, { en = null, stepsPerTurn = 200, microsteps = 1, rpm = 60, accelMs = 200, reverse = false } = {}) {
+    const spt = (Number(stepsPerTurn) || 200) * (Math.round(Number(microsteps)) || 1);
+    const pins = [pinNum(step), pinNum(dir)];
+    const noEn = en == null || en === "" || String(en).toUpperCase() === "NONE";
+    if (!noEn) pins.push(pinNum(en));
+    return this._cfgStepper(step, `STEPDIR ${pins[1]}${noEn ? "" : " EN " + pins[2]}`, { kind: "STEPDIR", pins }, spt, rpm, accelMs, reverse);
+  }
+
+  async _cfgStepper(first, rest, port, spt, rpm, accelMs, reverse) {
+    if (this.info && this.info.version < 3) {
+      throw new Error(`${this.name}: steppers need the ESP32io firmware v3 (this board has v${this.info.version}): flash SketchArduino/ESP32io again`);
+    }
+    let top = (Number(rpm) || 0) * spt / 60;   // steps/s at 100 %
+    if (!(top > 0)) throw new Error(`ESP32io: stepper top speed (RPM) must be above 0`);
+    if (top > ESP32IO.stepMaxRate) {
+      this.log(`Stepper GPIO${pinNum(first)}: ${rpm} RPM = ${Math.round(top)} steps/s, the board makes ${ESP32IO.stepMaxRate} at most: ` +
+               `top speed ${round2(ESP32IO.stepMaxRate * 60 / spt)} RPM`);
+      top = ESP32IO.stepMaxRate;
+    }
+    const accel = Math.round(clamp(top / (Math.max(0, Number(accelMs) || 0) / 1000 || 1e-6), 1, 1000000));
+    const p = await this._cfg(first, `${rest}${reverse ? " REV" : ""} ${round2(top)} ${accel}`,
+      { type: "STEP", ...port, spt, top: round2(top), rpm: round2(top * 60 / spt), reverse: !!reverse });
+    this.motors[p] = { stepper: true };   // the motor blocks work on it
+    return p;
+  }
+
   /** Release one port (outputs go off). */
   async release(pin) {
     const p = pinNum(pin);
@@ -552,7 +594,7 @@ export class ESP32io {
   motorStop(pin, brake = false) {
     const p = this._port(pin);
     const mode = String(brake).toLowerCase();
-    if (mode === "hold" && this.motors[p]?.cal) return this.motorHold(p);
+    if (mode === "hold" && (this.motors[p]?.cal || this.motors[p]?.stepper)) return this.motorHold(p);
     this._lastSet[p] = 0;
     delete this._lastRun[p];
     const doBrake = brake === true || ["brake", "1", "hold", "2"].includes(mode);   // hold without encoder = brake
@@ -604,7 +646,7 @@ export class ESP32io {
 
   /** Measure the motor: it turns for about 6 s, up to full power (lift the wheels!). Saved in the ESP32 flash. */
   async calibrateMotor(motorPin, timeoutMs = 15000) {
-    const m = this._motor(motorPin);
+    const m = this._encMotor(motorPin);
     this.log(`Calibrating motor GPIO${m}: it turns for about 6 s, up to full power...`);
     delete this._lastSet[m];
     delete this._lastRun[m];
@@ -648,7 +690,7 @@ export class ESP32io {
   /** Set the calibration by hand (same fields as motorCalibration()). save: keep it in the ESP32 flash. */
   //  topRpm (output shaft) can replace topSpeed (counts/s). startPower: the breakaway kick (default minPower).
   async setMotorCalibration(motorPin, { direction = 1, minPower, startPower, topSpeed, topRpm, responseMs }, save = true) {
-    const m = this._motor(motorPin);
+    const m = this._encMotor(motorPin);
     const top = topRpm != null ? Number(topRpm) * this._motorCountsPerTurn(m) / 60 : Number(topSpeed);
     if (!(top > 0)) throw new Error(`${this.name}: motor GPIO${m}: the top speed must be above 0`);
     const ks = round2(clamp(Number(minPower) || 0, 0, 95));
@@ -662,7 +704,7 @@ export class ESP32io {
 
   /** Erase the calibration saved for this motor pin. */
   async forgetMotorCalibration(motorPin) {
-    const m = this._motor(motorPin);
+    const m = this._encMotor(motorPin);
     await this.request(`MPAR ${m} FORGET`);
     delete this._lastRun[m];
     this.motors[m].cal = null;
@@ -670,8 +712,7 @@ export class ESP32io {
 
   /** Hold a speed, -100..100 % of the calibrated top speed (0 = stop and brake). Returns at once. */
   motorSpeed(motorPin, percent) {
-    const m = this._motor(motorPin);
-    if (!this.motors[m].cal) throw new Error(`${this.name}: motor GPIO${m} is not calibrated (calibrateMotor(${m}))`);
+    const m = this._motorReady(motorPin);
     const v = round2(clamp(Number(percent) || 0, -100, 100));
     if (this._lastRun[m] === v) return Promise.resolve();
     this._lastRun[m] = v;
@@ -734,27 +775,28 @@ export class ESP32io {
   /** Motor position in degrees of the output shaft, positive = the direction of positive power. Instant. */
   motorPosition(motorPin) {
     const m = this._motor(motorPin);
-    const raw = this.values[this.motors[m].enc] ?? 0;
+    const raw = this.values[this.motors[m].stepper ? m : this.motors[m].enc] ?? 0;
     return Math.round(raw * this._motorDir(m) * 360 / this._motorCountsPerTurn(m));
   }
 
   /** Set the motor position (degrees, default 0). A holding motor stays where it is. */
   async motorResetPosition(motorPin, degrees = 0) {
     const m = this._motor(motorPin);
-    const e = this.motors[m].enc;
+    const e = this.motors[m].stepper ? m : this.motors[m].enc;
     const raw = Math.round((Number(degrees) || 0) * this._motorCountsPerTurn(m) / 360) * this._motorDir(m);
     await this.request(`ZERO ${e} ${raw}`, undefined, () => { this.values[e] = raw; });
   }
 
   _motorReady(pin) {
     const m = this._motor(pin);
-    if (!this.motors[m].cal) throw new Error(`${this.name}: motor GPIO${m} is not calibrated (calibrateMotor(${m}))`);
+    if (!this.motors[m].cal && !this.motors[m].stepper) throw new Error(`${this.name}: motor GPIO${m} is not calibrated (calibrateMotor(${m}))`);
     return m;
   }
 
   _motorDir(m) { return this.motors[m].cal?.dir ?? 1; }
 
   _motorCountsPerTurn(m) {
+    if (this.motors[m].stepper) return this.ports[m].spt;
     const enc = this.ports[this.motors[m].enc];
     if (!enc) throw new Error(`${this.name}: motor GPIO${m}: its encoder is not set up`);
     return this._countsPerTurn(enc);
@@ -801,7 +843,7 @@ export class ESP32io {
    *  stallMs (pushing at >= 40 % without moving this long stops the motor, 0 = off) }.
    *  Missing fields keep their value. Returns all. */
   async motorTune(motorPin, { soft, pos, decel, kick, holdDeg, stallMs } = {}) {
-    const m = this._motor(motorPin);
+    const m = this._encMotor(motorPin);
     const cpt = this._motorCountsPerTurn(m);
     const now = parseKV(await this.request(`MTUNE ${m}`));
     const tol = holdDeg == null ? now.tol : Math.max(1, Math.round(Number(holdDeg) * cpt / 360));
@@ -820,9 +862,18 @@ export class ESP32io {
     await this.request(`MLOG ${m} ${ms ? clamp(ms, 20, 1000) : 0}`);
   }
 
+  // Motor with encoder (linked H-bridge) or stepper
   _motor(pin) {
-    const p = this._port(pin, ["HB2", "HB3"]);
+    const p = this._port(pin, ["HB2", "HB3", "STEP"]);
+    if (this.ports[p].type === "STEP") this.motors[p] ??= { stepper: true };
     if (!this.motors[p]) throw new Error(`${this.name}: motor GPIO${p} has no encoder (linkMotor(${p}, encoderPin) first)`);
+    return p;
+  }
+
+  // Motor with encoder only (calibration, tuning)
+  _encMotor(pin) {
+    const p = this._motor(pin);
+    if (this.motors[p].stepper) throw new Error(`${this.name}: GPIO${p} is a stepper: it needs no calibration or tuning`);
     return p;
   }
 

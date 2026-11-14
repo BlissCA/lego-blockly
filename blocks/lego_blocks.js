@@ -5948,12 +5948,12 @@ window.addEventListener("load", () => {
   const espNum = (name, num) => ({ "type": "input_value", "name": name, "check": "Number", "shadow": { "type": "math_number", "fields": { "NUM": num } } });
   const espChoice = (name, options) => ({ "type": "field_dropdown", "name": name, "options": options });
   const espStatement = { "inputsInline": true, "previousStatement": null, "nextStatement": null, "colour": ESP32IO_COLOUR };
-  const espMotor = () => espPin("MOTOR", "esp32io_pin_out", "16");   // closed-loop motor = its H-bridge port
+  const espMotor = () => espPin("MOTOR", "esp32io_pin_out", "16");   // closed-loop motor = its H-bridge port, stepper = IN1 / STEP
   const espStopChoice = (first) => espChoice("STOP", first === "hold"
     ? [["hold", "hold"], ["brake", "brake"], ["coast", "coast"]]
     : [["brake", "brake"], ["coast", "coast"], ["hold", "hold"]]);
   const espWait = () => ({ "type": "field_checkbox", "name": "WAIT", "checked": true });
-  const ESP32IO_LOOP_TIP = " Needs the motor linked to its encoder (\"motor with encoder\") and calibrated.";
+  const ESP32IO_LOOP_TIP = " For a motor with encoder (\"motor with encoder\", calibrated) or a stepper (its IN1 / STEP pin).";
 
   Blockly.defineBlocksWithJsonArray([
     // Pin constants (toolbox shadows)
@@ -6107,6 +6107,36 @@ window.addEventListener("load", () => {
       ...espStatement,
       "tooltip": "Instead of calibrating: the numbers that \"calibrate motor\" printed in the log. " +
                  "Used by this program only (not saved on the board), so the program works on any board. After \"motor with encoder\"."
+    },
+    {
+      "type": "esp32io_cfg_step4",
+      "message0": "%1 stepper ULN2003 IN1 %2 IN2 %3 IN3 %4 IN4 %5 %6 steps/turn %7 max speed %8 RPM reverse %9",
+      "args0": [ espDevice(), espPin("IN1", "esp32io_pin_out", "16"), espPin("IN2", "esp32io_pin_out", "17"),
+        espPin("IN3", "esp32io_pin_out", "18"), espPin("IN4", "esp32io_pin_out", "19"),
+        espChoice("MODE", [["half step", "HALF"], ["full step", "FULL"], ["wave", "WAVE"]]),
+        espNum("SPT", 2048), espNum("RPM", 12),
+        { "type": "field_checkbox", "name": "REVERSE", "checked": false } ],
+      ...espStatement,
+      "tooltip": "Stepper on a ULN2003 board (28BYJ-48). The motor port is the IN1 pin: then use the motor blocks " +
+                 "(run for degrees, go to position, speed...), speed in % of the max speed. " +
+                 "Steps/turn: full steps per turn of the shaft (28BYJ-48: 2048, most are closer to 2038). " +
+                 "Half step: smoother. Full step: stronger. Wave: less current. A 28BYJ-48 on 5 V reaches about 12-15 RPM. " +
+                 "Brake / hold keep the coils on (the motor holds, and gets warm), coast turns them off."
+    },
+    {
+      "type": "esp32io_cfg_stepdir",
+      "message0": "%1 stepper driver STEP %2 DIR %3 EN %4 steps/turn %5 microsteps %6 max speed %7 RPM reverse %8",
+      "args0": [ espDevice(), espPin("STEP", "esp32io_pin_out", "25"), espPin("DIR", "esp32io_pin_out", "26"),
+        espChoice("EN", [["none", "NONE"], ...esp32ioPinOptions("out")]),
+        espNum("SPT", 200),
+        espChoice("MICRO", [["1", "1"], ["2", "2"], ["4", "4"], ["8", "8"], ["16", "16"], ["32", "32"]]),
+        espNum("RPM", 60),
+        { "type": "field_checkbox", "name": "REVERSE", "checked": false } ],
+      ...espStatement,
+      "tooltip": "Stepper driver board with STEP / DIR inputs (A4988, DRV8825, TMC2208). The motor port is the STEP pin. " +
+                 "Microsteps: as set on the board (A4988 / DRV8825 with nothing on MS1-3: 1; TMC2208 with nothing on MS1-2: 8). " +
+                 "Steps/turn: 200 for most NEMA 17 motors. EN (optional): coast turns the driver off. " +
+                 "At most 10000 steps per second."
     },
 
     // Input

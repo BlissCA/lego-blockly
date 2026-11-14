@@ -5,11 +5,11 @@
 #include <Arduino.h>
 #include "driver/pulse_cnt.h"
 
-enum Kind : uint8_t { K_NONE, K_DIN, K_DOUT, K_PWM, K_AIN, K_DAC, K_SERVO, K_HB2, K_HB3, K_ENC };
+enum Kind : uint8_t { K_NONE, K_DIN, K_DOUT, K_PWM, K_AIN, K_DAC, K_SERVO, K_HB2, K_HB3, K_ENC, K_STEP4, K_STEPDIR };
 
 struct Port {
   Kind kind = K_NONE;
-  uint8_t pins[3] = { 0, 0, 0 };
+  uint8_t pins[4] = { 0, 0, 0, 0 };
   uint8_t npins = 0;
   bool activeLow = false;     // DIN: LOW reads as 1. DOUT: 1 drives LOW
   uint16_t debounceMs = 0;
@@ -93,6 +93,41 @@ struct Motor {
   float calPower = 0, calKsStart = 0, calV100 = 0, calAcc = 0;
   uint16_t calN = 0, calNs = 0;
   float calSpd[CAL_SAMPLES] = {};
+};
+
+// Stepper motor: the step interrupt makes the steps, the 5 ms loop sets their rate (acceleration, moves)
+struct Stepper {
+  int8_t port = -1;           // first pin (-1 = free slot)
+  bool stepDir = false;       // STEPDIR driver board (A4988...), else 4 coils (ULN2003...)
+  uint8_t pin[4] = {};        // STEP4: coils A B C D. STEPDIR: STEP, DIR, EN
+  bool hasEn = false;         // STEPDIR: EN pin wired (LOW = driver on)
+  int8_t rev = 1;             // -1: the motor turns the other way (REV)
+  uint8_t seqStep = 1;        // STEP4: steps through the half-step table by 1 (HALF) or 2 (FULL, WAVE)
+  float top = 800;            // steps/s at 100 %
+  float accel = 4000;         // steps/s2
+  // shared with the step interrupt
+  volatile int32_t pos = 0;
+  volatile uint32_t inc = 0;  // added to phase every tick: steps/s x 2^32 / STEP_TICK_HZ (0 = no steps)
+  volatile int8_t dir = 1;    // direction of the next steps
+  volatile bool limitOn = false;
+  volatile int32_t limit = 0; // MOVE: the interrupt makes no step past this position
+  volatile bool energized = false;
+  uint32_t phase = 0;
+  uint8_t idx = 0;            // STEP4: place in the half-step table
+  int8_t dirOut = 0;          // STEPDIR: direction written on DIR (0 = not yet)
+  bool pulseHigh = false;     // STEPDIR: STEP is HIGH (back LOW on the next tick)
+  // motion (loop side)
+  MotorMode mode = MM_OFF;    // MM_SPEED (RUN, RUNT, HOLD = slow down to 0), MM_MOVE
+  float v = 0;                // step rate now, steps/s (signed)
+  float target = 0;           // SPEED: requested rate
+  int32_t moveX = 0;          // MOVE: target position
+  float moveV = 0;            // MOVE: cruise rate (> 0)
+  bool ending = false;        // SPEED: slowing down to 0, then the end action
+  MotorEnd endAction = END_BRAKE;
+  uint16_t tag = 0;
+  uint32_t endMs = 0;         // RUNT: end time
+  uint16_t logMs = 0;
+  uint32_t lastLogMs = 0;
 };
 
 enum Src : uint8_t { SRC_BLE, SRC_SERIAL };

@@ -57,13 +57,22 @@
                                     HB2/HB3: SET = power -100..100
     CFG <a> ENC <b> [X1|X2|X4] [UP|NONE]
                                  -> quadrature encoder counted by the PCNT hardware (default X4, pull-up on)
+    CFG <in1> STEP4 <in2> <in3> <in4> [HALF|FULL|WAVE] [REV] [top] [accel]
+                                 -> stepper on 4 coils (ULN2003 + 28BYJ-48; a bipolar motor on an L298N: pins
+                                    IN1 IN3 IN2 IN4). Default HALF, top 800 steps/s (= 100 %), accel 4000 steps/s2
+    CFG <step> STEPDIR <dir> [EN <en>] [REV] [top] [accel]
+                                 -> stepper driver board (A4988, DRV8825, TMC2208). EN: LOW = on (coast turns it off).
+                                    Default top 3200 steps/s, accel 16000 steps/s2. Top 1-10000 steps/s.
+                                 Steppers take RUN, RUNT, MOVE, HOLD, MGET, MLOG and ZERO like a closed-loop motor,
+                                 in steps (no LINK or CAL). Their position is reported in "V" lines.
+                                 BRAKE and HOLD keep the coils on (the motor holds), COAST turns them off.
     REL <pin>                    -> release one port
 
     SET <pin> <value>            -> output value (see each type above)
     GET <pin>                    -> OK <value> (input: current value, output: last SET value)
     STOP [<pin>] [BRAKE|COAST]   -> outputs off (all ports, or one). H-bridges coast unless BRAKE.
                                     Servos stop receiving pulses (they relax).
-    ZERO <pin> [preset]          -> set an encoder count (default 0)
+    ZERO <pin> [preset]          -> set an encoder count or a stepper position (default 0)
 
   Closed-loop motors (H-bridge + encoder, the control loop runs here every 5 ms):
     LINK <motor> <enc>           -> link an H-bridge port to an encoder port (NONE unlinks)
@@ -127,10 +136,11 @@
 #include "soc/soc_caps.h"
 #include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
+#include "soc/gpio_reg.h"
 #include "ESP32io_types.h"
 
 #define FW_NAME          "ESP32io"
-#define FW_VERSION       2
+#define FW_VERSION       3
 #define DEFAULT_BLE_NAME "ESP32io"
 #define NAME_MAX_LEN     20
 
@@ -172,9 +182,14 @@ static const uint8_t ADV_MARKER[] = { 0xFF, 0xFF, 'L', 'B', 'i', 'o' };
 #define CAL_DOWN_PCT_S   30.0f  // ...and down while looking for the power that keeps it turning
 #define CAL_VERSION      2
 
+#define MAX_STEPPERS     4
+#define STEP_TICK_HZ     20000  // step interrupt rate: a STEP pulse lasts one tick, so at most 10000 steps/s
+#define STEP_MAX_RATE    (STEP_TICK_HZ / 2)
+#define STEP_START_FRAC  0.1f   // a stepper starts and stops at once below 10 % of its top speed
+
 #define CMD_LEN       96
 #define CMD_QUEUE_LEN 16
-#define MAX_TOKENS    10
+#define MAX_TOKENS    14
 
 // ------------------------------------------------------
 // Usable pins per chip (no strapping, flash/PSRAM, USB or UART0 pins)
@@ -225,17 +240,20 @@ static uint8_t pinCaps(int pin) {
 // ------------------------------------------------------
 // Ports (indexed by their first pin)
 // ------------------------------------------------------
-static const char* KIND_NAMES[] = { "NONE", "DIN", "DOUT", "PWM", "AIN", "DAC", "SERVO", "HB2", "HB3", "ENC" };
+static const char* KIND_NAMES[] = { "NONE", "DIN", "DOUT", "PWM", "AIN", "DAC", "SERVO", "HB2", "HB3", "ENC", "STEP4", "STEPDIR" };
 
 #define MAX_PIN 49
 static Port ports[MAX_PIN];
 static int8_t owner[MAX_PIN];   // first pin of the port using this pin, -1 = free
 
 static bool isInputKind(Kind k) { return k == K_DIN || k == K_AIN || k == K_ENC; }
+static bool isStepperKind(Kind k) { return k == K_STEP4 || k == K_STEPDIR; }
+static bool isReportedKind(Kind k) { return isInputKind(k) || isStepperKind(k); }   // value sent in "V" lines
 
 static void motorCancel(int hb);      // closed-loop motors (defined after the encoder code)
 static void motorUnlinkPin(int pin);
 static void motorTakeOver(Motor& m);
+static void stepperStop(int first, bool brake);   // steppers (defined before motorsTick)
 
 // ------------------------------------------------------
 // BLE + Serial transport
@@ -409,6 +427,8 @@ static void stopPort(Port& p, bool brake) {
     case K_SERVO: ledcWrite(p.pins[0], 0); break;   // no pulses: the servo relaxes, a 360 servo stops
     case K_HB2:
     case K_HB3:   motorCancel(p.pins[0]); hbStop(p, brake); break;
+    case K_STEP4:
+    case K_STEPDIR: stepperStop(p.pins[0], brake); break;
     default: return;
   }
   p.setpoint = 0;
@@ -924,6 +944,172 @@ static void motorCalTick(Motor& m, float dt, uint32_t now) {
   }
 }
 
+// ------------------------------------------------------
+// Stepper motors: a 20 kHz timer interrupt makes the steps at the rate set by the 5 ms loop
+// ------------------------------------------------------
+static Stepper steppers[MAX_STEPPERS];
+static hw_timer_t* stepTimer = nullptr;
+static portMUX_TYPE stepMux = portMUX_INITIALIZER_UNLOCKED;
+// Coils A B C D (bits 0-3): even entries = one coil, odd = two. HALF uses all 8, FULL the odd ones, WAVE the even ones.
+static const uint8_t HALF_SEQ[8] = { 0b0001, 0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001 };
+
+static inline void IRAM_ATTR pinFast(uint8_t pin, bool high) {
+  if (pin < 32) REG_WRITE(high ? GPIO_OUT_W1TS_REG : GPIO_OUT_W1TC_REG, 1u << pin);
+  else REG_WRITE(high ? GPIO_OUT1_W1TS_REG : GPIO_OUT1_W1TC_REG, 1u << (pin - 32));
+}
+
+static inline void IRAM_ATTR stepCoils(const Stepper& s, uint8_t bits) {
+  for (int i = 0; i < 4; i++) pinFast(s.pin[i], (bits >> i) & 1);
+}
+
+static void IRAM_ATTR stepIsr() {
+  portENTER_CRITICAL_ISR(&stepMux);
+  for (int k = 0; k < MAX_STEPPERS; k++) {
+    Stepper& s = steppers[k];
+    if (s.port < 0) continue;
+    if (s.pulseHigh) { pinFast(s.pin[0], false); s.pulseHigh = false; }
+    if (!s.inc || !s.energized) continue;
+    if (s.stepDir && s.dirOut != s.dir) {   // DIR first, the step on a later tick (the board needs DIR set before STEP)
+      s.dirOut = s.dir;
+      pinFast(s.pin[1], s.dir * s.rev > 0);
+      continue;
+    }
+    uint32_t ph = s.phase + s.inc;          // inc <= 2^31: never a step on two ticks in a row
+    bool carry = ph < s.phase;
+    s.phase = ph;
+    if (!carry) continue;
+    if (s.limitOn && (s.dir > 0 ? s.pos >= s.limit : s.pos <= s.limit)) { s.inc = 0; continue; }
+    s.pos = s.pos + s.dir;
+    if (s.stepDir) { pinFast(s.pin[0], true); s.pulseHigh = true; }
+    else { s.idx = (uint8_t)(s.idx + s.dir * s.rev * s.seqStep) & 7; stepCoils(s, HALF_SEQ[s.idx]); }
+  }
+  portEXIT_CRITICAL_ISR(&stepMux);
+}
+
+static bool stepTimerStart() {
+  if (stepTimer) return true;
+  stepTimer = timerBegin(1000000);
+  if (!stepTimer) return false;
+  timerAttachInterrupt(stepTimer, &stepIsr);
+  timerAlarm(stepTimer, 1000000 / STEP_TICK_HZ, true, 0);
+  return true;
+}
+
+static Stepper* stepperOf(int first) {
+  for (Stepper& s : steppers) if (s.port >= 0 && s.port == first) return &s;
+  return nullptr;
+}
+
+static void stepperEvent(const Stepper& s, const String& txt) { sendReport("M " + String(s.port) + " " + txt); }
+
+static String stepperState(const Stepper& s) {
+  const char* mode = (s.mode == MM_OFF && s.energized) ? "HOLD" : MOTOR_MODE_NAMES[s.mode];
+  int32_t pos = s.pos;
+  return String("mode=") + mode + " target=" + String((s.mode == MM_MOVE ? s.moveV : s.target) * 100.0f / s.top, 1) +
+         " speed=" + String(s.v * 100.0f / s.top, 1) + " power=0 cps=" + String(s.v, 0) + " pos=" + String(pos) +
+         " ref=" + String(s.mode == MM_MOVE ? s.moveX : pos) + " tag=" + String(s.tag);
+}
+
+// Coils on (holds its position) or off. STEPDIR without an EN pin stays powered, it only stops stepping.
+static void stepperPower(Stepper& s, bool on) {
+  portENTER_CRITICAL(&stepMux);
+  if (!on) s.inc = 0;
+  if (on != s.energized) {
+    if (s.stepDir) { if (s.hasEn) pinFast(s.pin[2], !on); }
+    else stepCoils(s, on ? HALF_SEQ[s.idx] : 0);
+    s.energized = on;
+  }
+  portEXIT_CRITICAL(&stepMux);
+}
+
+// Step rate (signed steps/s) for the interrupt, and the position it must not pass (moves)
+static void stepperRate(Stepper& s, float v, bool limitOn, int32_t limit) {
+  float a = fminf(fabsf(v), (float)STEP_MAX_RATE);
+  uint32_t inc = (uint32_t)(a * (4294967296.0f / STEP_TICK_HZ));
+  portENTER_CRITICAL(&stepMux);
+  if (inc) s.dir = v > 0 ? 1 : -1;
+  s.inc = inc;
+  s.limitOn = limitOn;
+  s.limit = limit;
+  portEXIT_CRITICAL(&stepMux);
+}
+
+static void stepperEndTag(Stepper& s, const char* how) {
+  if (!s.tag) return;
+  int32_t pos = s.pos;
+  stepperEvent(s, String(how) + " " + s.tag + " pos=" + pos);
+  s.tag = 0;
+}
+
+static void stepperIdle(Stepper& s) {
+  stepperRate(s, 0, false, 0);
+  s.mode = MM_OFF;
+  s.v = s.target = 0;
+  s.ending = false;
+  s.endMs = 0;
+}
+
+// STOP / watchdog: stop at once. BRAKE keeps the coils on, COAST turns them off.
+static void stepperStop(int first, bool brake) {
+  Stepper* s = stepperOf(first);
+  if (!s) return;
+  stepperEndTag(*s, "CANCEL");
+  stepperIdle(*s);
+  stepperPower(*s, brake);
+}
+
+static void stepperFinish(Stepper& s) {
+  stepperIdle(s);
+  if (s.endAction == END_COAST) stepperPower(s, false);
+  stepperEndTag(s, "DONE");
+}
+
+static void stepperFree(int first) {
+  Stepper* s = stepperOf(first);
+  if (!s) return;
+  stepperStop(first, false);
+  portENTER_CRITICAL(&stepMux);
+  s->port = -1;
+  portEXIT_CRITICAL(&stepMux);
+  *s = Stepper{};
+}
+
+static void stepperTick(Stepper& s, float dt, uint32_t now) {
+  if (s.mode == MM_OFF) return;
+  int32_t d = 0;
+  float want;
+  if (s.mode == MM_MOVE) {
+    d = s.moveX - s.pos;
+    if (d == 0) { stepperFinish(s); return; }
+    // Fastest rate that can still stop at the target: v^2 = 2 a d
+    want = (d > 0 ? 1.0f : -1.0f) * fminf(s.moveV, sqrtf(2.0f * s.accel * fabsf((float)d)));
+  } else {
+    if (s.endMs && (int32_t)(now - s.endMs) >= 0) { s.endMs = 0; s.ending = true; s.target = 0; }
+    want = s.target;
+  }
+  float dv = s.accel * dt;
+  s.v = want > s.v ? fminf(want, s.v + dv) : fmaxf(want, s.v - dv);
+  // Below the start rate a stepper starts and stops at once (no slow creep from 0)
+  float vs = s.top * STEP_START_FRAC;
+  if (fabsf(s.v) < vs) {
+    if (want == 0 || (s.v != 0 && (s.v > 0) != (want > 0))) s.v = 0;
+    else s.v = want > 0 ? fminf(vs, want) : fmaxf(-vs, want);
+  }
+  bool lim = s.mode == MM_MOVE && s.v != 0 && (s.v > 0) == (d > 0);
+  stepperRate(s, s.v, lim, s.moveX);
+  if (s.mode == MM_SPEED && s.ending && s.v == 0) stepperFinish(s);
+}
+
+// A new order: the running one is replaced, the coils go on
+static void stepperTakeOver(Stepper& s) {
+  stepperEndTag(s, "CANCEL");
+  if (s.mode == MM_OFF) s.v = 0;
+  s.endMs = 0;
+  s.ending = false;
+  s.target = 0;
+  stepperPower(s, true);
+}
+
 static void motorsTick() {
   uint32_t us = micros();
   if (us - lastCtrlUs < CTRL_MS * 1000u) return;
@@ -946,6 +1132,14 @@ static void motorsTick() {
       motorEvent(m, "S " + motorState(m));
     }
   }
+  for (Stepper& s : steppers) {
+    if (s.port < 0) continue;
+    stepperTick(s, dt, now);
+    if (s.logMs && now - s.lastLogMs >= s.logMs) {
+      s.lastLogMs = now;
+      stepperEvent(s, "S " + stepperState(s));
+    }
+  }
 }
 
 // ------------------------------------------------------
@@ -966,6 +1160,12 @@ static void releasePort(int first) {
     case K_HB2:   ledcDetach(p.pins[0]); ledcDetach(p.pins[1]); parkLow(p.pins[0]); parkLow(p.pins[1]); break;
     case K_HB3:   ledcDetach(p.pins[0]); parkLow(p.pins[0]); parkLow(p.pins[1]); parkLow(p.pins[2]); break;
     case K_ENC:   encDelete(p); pinMode(p.pins[0], INPUT); pinMode(p.pins[1], INPUT); break;
+    case K_STEP4:
+    case K_STEPDIR:
+      stepperFree(first);
+      for (int i = 0; i < p.npins; i++) parkLow(p.pins[i]);
+      if (p.kind == K_STEPDIR && p.npins == 3) digitalWrite(p.pins[2], HIGH);   // EN HIGH = driver off
+      break;
     default: break;
   }
   for (int i = 0; i < p.npins; i++) owner[p.pins[i]] = -1;
@@ -1035,7 +1235,7 @@ static bool cmdCfg(char** tok, int n) {
   long v;
 
   // Pins used by the new port
-  int pins[3] = { first, -1, -1 };
+  int pins[4] = { first, -1, -1, -1 };
   int npins = 1;
   uint8_t need = C_IN;
   Kind kind;
@@ -1048,12 +1248,28 @@ static bool cmdCfg(char** tok, int n) {
   else if (is(type, "HB2")) { kind = K_HB2; need = C_OUT; npins = 2; }
   else if (is(type, "HB3")) { kind = K_HB3; need = C_OUT; npins = 3; }
   else if (is(type, "ENC")) { kind = K_ENC; npins = 2; }
+  else if (is(type, "STEP4")) { kind = K_STEP4; need = C_OUT; npins = 4; }
+  else if (is(type, "STEPDIR")) { kind = K_STEPDIR; need = C_OUT; npins = 2; }
   else return fail(String("unknown type: ") + type);
 
   for (int i = 1; i < npins; i++) {
     if (nargs < 1) return fail(String(type) + " needs " + String(npins) + " pins");
     if (!parsePin(arg[0], pins[i])) return false;
     arg++; nargs--;
+  }
+  if (kind == K_STEPDIR) {
+    // Optional "EN <pin>"
+    for (int i = 0; i + 1 < nargs; i++) {
+      if (!is(arg[i], "EN")) continue;
+      if (!parsePin(arg[i + 1], pins[2])) return false;
+      npins = 3;
+      break;
+    }
+  }
+  if (isStepperKind(kind) && !stepperOf(first)) {
+    bool freeSlot = false;
+    for (Stepper& x : steppers) if (x.port < 0) freeSlot = true;
+    if (!freeSlot) return fail(String(type) + ": " + String(MAX_STEPPERS) + " steppers at most");
   }
   for (int i = 0; i < npins; i++) {
     for (int j = 0; j < i; j++) if (pins[i] == pins[j]) return fail(pinName(pins[i]) + " is given twice");
@@ -1182,12 +1398,54 @@ static bool cmdCfg(char** tok, int n) {
       p.value = 0;
       break;
     }
+    case K_STEP4:
+    case K_STEPDIR: {
+      Stepper st;
+      st.stepDir = kind == K_STEPDIR;
+      st.top = st.stepDir ? 3200 : 800;
+      st.accel = st.stepDir ? 16000 : 4000;
+      float num[2] = { st.top, st.accel };
+      int nn = 0;
+      for (int i = 0; i < nargs; i++) {
+        float x;
+        if (!st.stepDir && is(arg[i], "HALF")) { st.seqStep = 1; st.idx = 0; }
+        else if (!st.stepDir && is(arg[i], "FULL")) { st.seqStep = 2; st.idx = 1; }   // two coils at a time
+        else if (!st.stepDir && is(arg[i], "WAVE")) { st.seqStep = 2; st.idx = 0; }   // one coil at a time
+        else if (st.stepDir && is(arg[i], "EN")) i++;                                  // read above
+        else if (is(arg[i], "REV")) st.rev = -1;
+        else if (nn < 2 && parseFloat(arg[i], x)) num[nn++] = x;
+        else {
+          p = Port{};
+          return fail(st.stepDir ? "STEPDIR: <dir> [EN <en>] [REV] [top steps/s] [accel steps/s2]"
+                                 : "STEP4: <in2> <in3> <in4> [HALF|FULL|WAVE] [REV] [top steps/s] [accel steps/s2]");
+        }
+      }
+      if (num[0] < 1 || num[0] > STEP_MAX_RATE || num[1] < 1 || num[1] > 1000000) {
+        p = Port{};
+        return fail(String(type) + ": top 1-" + String(STEP_MAX_RATE) + " steps/s, accel 1-1000000 steps/s2");
+      }
+      if (!stepTimerStart()) { p = Port{}; return fail(String(type) + ": no free hardware timer"); }
+      st.top = num[0];
+      st.accel = num[1];
+      for (int i = 0; i < npins; i++) parkLow(pins[i]);   // coils off / STEP and DIR LOW
+      st.hasEn = npins == 3;
+      if (st.hasEn) digitalWrite(pins[2], HIGH);          // driver off until the first order
+      for (int i = 0; i < npins; i++) st.pin[i] = pins[i];
+      st.port = first;
+      Stepper* slot = nullptr;
+      for (Stepper& x : steppers) if (x.port < 0) { slot = &x; break; }   // checked above (released if it was one)
+      portENTER_CRITICAL(&stepMux);
+      *slot = st;
+      portEXIT_CRITICAL(&stepMux);
+      p.value = 0;
+      break;
+    }
     default: break;
   }
 
   for (int i = 0; i < npins; i++) owner[pins[i]] = first;
   p.reported = p.value;
-  p.dirty = isInputKind(kind);   // send the first value at once
+  p.dirty = isReportedKind(kind);   // send the first value at once
   return true;
 }
 
@@ -1240,6 +1498,9 @@ static bool cmdSet(char** tok, int n) {
       motorCancel(pin);   // direct power: back to open loop
       hbPower(*p, v);
       break;
+    case K_STEP4:
+    case K_STEPDIR:
+      return fail(pinName(pin) + " is a stepper: use RUN, RUNT or MOVE");
     default:
       return fail(pinName(pin) + " is an input (" + KIND_NAMES[p->kind] + ")");
   }
@@ -1248,7 +1509,7 @@ static bool cmdSet(char** tok, int n) {
 }
 
 static String fmtValue(const Port& p) {
-  if (isInputKind(p.kind)) return String(p.value);
+  if (isReportedKind(p.kind)) return String(p.value);
   float v = p.setpoint;
   if (v == (long)v) return String((long)v);
   return String(v, 2);
@@ -1446,6 +1707,80 @@ static bool cmdMotor(const char* c, char** cmd, int n, String& data) {
   return fail(String("unknown command: ") + c);
 }
 
+// RUN, RUNT, MOVE, HOLD, MGET, MLOG on a stepper (positions in steps, speeds in % of its top rate)
+static bool cmdStepper(const char* c, char** cmd, int n, String& data, Stepper& s) {
+  int pin = s.port;
+  if (is(c, "MGET")) { data = stepperState(s); return true; }
+  if (is(c, "MLOG")) {
+    long ms;
+    if (n < 3 || !parseLong(cmd[2], ms) || (ms != 0 && (ms < 20 || ms > 1000))) return fail("MLOG: 20-1000 ms, 0 = off");
+    s.logMs = ms;
+    return true;
+  }
+  if (!(is(c, "RUN") || is(c, "RUNT") || is(c, "MOVE") || is(c, "HOLD")))
+    return fail(pinName(pin) + " is a stepper: " + c + " is for motors with an encoder (a stepper needs no calibration)");
+
+  MotorEnd endAction = END_BRAKE;
+  long tag = 0;
+  auto parseEnd = [&](int from) -> bool {
+    for (int i = from; i < n; i++) {
+      if (is(cmd[i], "BRAKE")) endAction = END_BRAKE;
+      else if (is(cmd[i], "COAST")) endAction = END_COAST;
+      else if (is(cmd[i], "HOLD")) endAction = END_HOLD;
+      else if (!parseLong(cmd[i], tag) || tag < 0 || tag > 65535) return fail(String("bad option: ") + cmd[i]);
+    }
+    return true;
+  };
+  float pct = s.top / 100.0f;
+  if (is(c, "RUN")) {
+    float v;
+    if (n < 3 || !parseFloat(cmd[2], v)) return fail("usage: RUN <stepper pin> <speed -100..100>");
+    stepperTakeOver(s);
+    s.mode = MM_SPEED;
+    s.target = constrain(v, -100.0f, 100.0f) * pct;
+    s.ending = s.target == 0;   // RUN 0: slow down and hold
+    s.endAction = END_BRAKE;
+    return true;
+  }
+  if (is(c, "RUNT")) {
+    long ms;
+    float v;
+    if (n < 4 || !parseLong(cmd[2], ms) || ms < 1 || ms > 3600000L || !parseFloat(cmd[3], v))
+      return fail("usage: RUNT <stepper pin> <ms> <speed -100..100> [BRAKE|COAST|HOLD] [tag]");
+    if (!parseEnd(4)) return false;
+    stepperTakeOver(s);
+    s.mode = MM_SPEED;
+    s.target = constrain(v, -100.0f, 100.0f) * pct;
+    s.endMs = millis() + ms;
+    if (!s.endMs) s.endMs = 1;
+    s.endAction = endAction;
+    s.tag = tag;
+    return true;
+  }
+  if (is(c, "MOVE")) {
+    long steps;
+    float v;
+    bool rel = n > 2 && is(cmd[2], "REL");
+    if (n < 5 || !(rel || is(cmd[2], "ABS")) || !parseLong(cmd[3], steps) || !parseFloat(cmd[4], v))
+      return fail("usage: MOVE <stepper pin> REL|ABS <steps> <speed 1..100> [BRAKE|COAST|HOLD] [tag]");
+    if (!parseEnd(5)) return false;
+    stepperTakeOver(s);
+    s.mode = MM_MOVE;
+    s.moveX = rel ? s.pos + steps : steps;
+    s.moveV = constrain(fabsf(v), 1.0f, 100.0f) * pct;
+    s.endAction = endAction;
+    s.tag = tag;
+    return true;
+  }
+  // HOLD: slow down to a stop, coils on
+  stepperTakeOver(s);
+  s.mode = MM_SPEED;
+  s.target = 0;
+  s.ending = true;
+  s.endAction = END_HOLD;
+  return true;
+}
+
 // A new order on a closed-loop motor: continue smoothly from what it was doing
 static void motorTakeOver(Motor& m) {
   motorEndTag(m, "CANCEL");   // a move that something waited for is replaced
@@ -1562,9 +1897,20 @@ static void handleLine(char* line, Src src) {
     int pin;
     long preset = 0;
     ok = n > 1 ? getPort(cmd[1], p, pin) : fail("usage: ZERO <pin> [preset]");
-    if (ok && p->kind != K_ENC) ok = fail(pinName(pin) + " is not an encoder");
+    if (ok && p->kind != K_ENC && !isStepperKind(p->kind)) ok = fail(pinName(pin) + " is not an encoder or a stepper");
     if (ok && n > 2 && !parseLong(cmd[2], preset)) ok = fail(String("bad preset: ") + cmd[2]);
-    if (ok) {
+    if (ok && isStepperKind(p->kind)) {
+      Stepper* st = stepperOf(pin);
+      // A moving stepper keeps going to the same place
+      portENTER_CRITICAL(&stepMux);
+      int32_t d = (int32_t)preset - st->pos;
+      st->pos = preset;
+      st->limit = st->limit + d;
+      portEXIT_CRITICAL(&stepMux);
+      st->moveX += d;
+      p->value = preset;
+      p->dirty = true;
+    } else if (ok) {
       int32_t before = encRead(*p);
       pcnt_unit_clear_count(p->unit);
       p->offset = preset;
@@ -1585,7 +1931,11 @@ static void handleLine(char* line, Src src) {
   } else if (is(c, "MPAR")) {
     ok = cmdMpar(cmd, n, data);
   } else if (is(c, "CAL") || is(c, "RUN") || is(c, "RUNT") || is(c, "MOVE") || is(c, "HOLD") || is(c, "MGET") || is(c, "MLOG") || is(c, "MTUNE")) {
-    ok = cmdMotor(c, cmd, n, data);
+    // A stepper port takes the same commands
+    Stepper* st = nullptr;
+    int sp;
+    if (n > 1 && parsePin(cmd[1], sp) && owner[sp] == sp) st = stepperOf(sp);
+    ok = st ? cmdStepper(c, cmd, n, data, *st) : cmdMotor(c, cmd, n, data);
   } else {
     ok = fail(String("unknown command: ") + c);
   }
@@ -1629,6 +1979,10 @@ static void pollInputs(uint32_t now) {
       case K_ENC:
         p.value = encRead(p);
         break;
+      case K_STEP4:
+      case K_STEPDIR:
+        if (Stepper* st = stepperOf(i)) p.value = st->pos;
+        break;
       default: break;
     }
   }
@@ -1638,7 +1992,7 @@ static void reportInputs(bool all) {
   String line = "V";
   for (int i = 0; i < MAX_PIN; i++) {
     Port& p = ports[i];
-    if (!isInputKind(p.kind)) continue;
+    if (!isReportedKind(p.kind)) continue;
     bool changed = (p.kind == K_AIN) ? abs(p.value - p.reported) >= p.delta : p.value != p.reported;
     if (!(all || changed || p.dirty)) continue;
     line += ' ';
