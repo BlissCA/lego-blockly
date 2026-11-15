@@ -6053,11 +6053,13 @@ window.addEventListener("load", () => {
     {
       "type": "esp32io_cfg_hb2",
       "message0": "%1 H-bridge %2 IN1 %3 IN2 %4",
-      "args0": [ espDevice(), espChoice("BOARD", [["DRV8833", "DRV8833"], ["MX1508 / 1508S", "MX1508"], ["L9110S", "L9110S"], ["ZK-5AD", "ZK-5AD"]]),
+      "args0": [ espDevice(), espChoice("BOARD", [["DRV8833", "DRV8833"], ["DRV8835 (IN/IN)", "DRV8835"], ["MX1508 / 1508S", "MX1508"], ["L9110S", "L9110S"], ["ZK-5AD", "ZK-5AD"]]),
         espPin("IN1", "esp32io_pin_out", "16"), espPin("IN2", "esp32io_pin_out", "17") ],
       ...espStatement,
       "tooltip": "H-bridge with 2 inputs. The motor port is the IN1 pin. The L9110S cannot brake (brake = coast). " +
-                 "DRV8833: its sleep pin (nSLEEP / SLP / EEP) must be HIGH."
+                 "DRV8833: its sleep pin (nSLEEP / SLP / EEP) must be HIGH. " +
+                 "DRV8835: MODE pin LOW (IN/IN mode, the chip default when MODE is not connected) and VCC on the ESP32 3.3 V; " +
+                 "its PHASE/ENABLE mode is not supported."
     },
     {
       "type": "esp32io_cfg_hb3",

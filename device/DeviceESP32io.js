@@ -39,7 +39,7 @@ export const ESP32IO_PRESETS = {
 
 // H-bridge boards: HB2 = two PWM inputs, HB3 = enable (PWM) + two direction pins
 export const ESP32IO_HBRIDGES = {
-  DRV8833: "HB2", MX1508: "HB2", L9110S: "HB2", "ZK-5AD": "HB2",   // ZK-5AD: TA6586 chips
+  DRV8833: "HB2", DRV8835: "HB2", MX1508: "HB2", L9110S: "HB2", "ZK-5AD": "HB2",   // ZK-5AD: TA6586 chips, DRV8835 in IN/IN mode (MODE LOW)
   L298N: "HB3", L293D: "HB3", TB6612: "HB3"
 };
 
@@ -470,7 +470,7 @@ export class ESP32io {
     return this._cfg(pin, rest, { type: "SERVO", range: t });
   }
 
-  /** H-bridge with two PWM inputs (DRV8833, MX1508, L9110S, ZK-5AD). Port = in1.
+  /** H-bridge with two PWM inputs (DRV8833, DRV8835 IN/IN, MX1508, L9110S, ZK-5AD). Port = in1.
    *  decay "SLOW" brakes between PWM pulses (better speed control, lets the closed loop slow the motor down);
    *  "FAST" coasts between pulses (the L9110S cannot brake: always FAST). */
   configHBridge2(in1, in2, freq = 20000, decay = "SLOW") {
@@ -483,7 +483,7 @@ export class ESP32io {
     return this._cfg(en, `HB3 ${pinNum(in1)} ${pinNum(in2)} ${Math.round(freq)}`, { type: "HB3", pins: [pinNum(en), pinNum(in1), pinNum(in2)], freq });
   }
 
-  /** H-bridge by board name. L298N / L293D / TB6612: (en, in1, in2). DRV8833 / MX1508 / L9110S / ZK-5AD: (in1, in2). */
+  /** H-bridge by board name. L298N / L293D / TB6612: (en, in1, in2). DRV8833 / DRV8835 / MX1508 / L9110S / ZK-5AD: (in1, in2). */
   configHBridge(board, a, b, c = null, freq = null) {
     const kind = ESP32IO_HBRIDGES[String(board).toUpperCase()];
     if (!kind) throw new Error(`ESP32io: unknown H-bridge "${board}" (${Object.keys(ESP32IO_HBRIDGES).join(", ")})`);
