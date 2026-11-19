@@ -68,3 +68,4 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 - The core build has NO `text_multiline` block and no `Blockly.FieldMultilineInput`. Using `text_multiline` in the toolbox crashes every flyout. Multi-line text comes from the plugin `@blockly/field-multilineinput@6.0.2` (script tag in index.html) through the custom `spike_code` block (`getMultilineFieldClass()` in lego_blocks.js, with a safe single-line fallback).
 - `Blockly.registry.getClass()` logs a console warning for anything not registered: check `hasItem()` first.
 - Never put a block type in the toolbox before checking it is defined: one unknown type empties the whole toolbox.
+- `Blockly.inject` sets `media: "https://unpkg.com/blockly@12.4.1/media/"` (zoom buttons, trash can, sounds): the default, blockly-demo.appspot.com, answers 404 since Nov 2026. Update its version together with the blockly script tag.

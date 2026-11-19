@@ -729,6 +729,9 @@ Blockly.Css.register(`
 
 window.workspace = Blockly.inject("blocklyDiv", {
   toolbox,
+  // Blockly's images (zoom buttons, trash can) and sounds. Without this option Blockly loads them from
+  // blockly-demo.appspot.com, which no longer serves them (404). Keep the version equal to blockly.min.js in index.html.
+  media: "https://unpkg.com/blockly@12.4.1/media/",
   renderer: "geras",
   theme: Blockly.Themes.Classic,
   zoom: {
