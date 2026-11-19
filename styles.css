@@ -46,6 +46,42 @@ body {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 40px;
+  position: relative;
+  transition: width 0.15s ease;
+}
+
+/* Tab on the panel's left border: hides / shows the panel */
+#panelToggle {
+  position: absolute;
+  top: 50%;
+  left: -9px;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 18px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#panelToggle:hover {
+  background: #e0e0e0;
+  color: #000;
+}
+
+/* Hidden panel: a thin strip that keeps the tab */
+#right-panel.collapsed {
+  width: 12px;
+  padding: 0;
+}
+
+#right-panel.collapsed > :not(#panelToggle) {
+  display: none;
 }
 
 #devicesList {

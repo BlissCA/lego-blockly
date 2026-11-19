@@ -725,6 +725,31 @@ Blockly.Css.register(`
 `);
 
 
+// ---------------- RIGHT PANEL (Devices / Status) HIDE / SHOW ----------------
+
+const rightPanel = document.getElementById("right-panel");
+const panelToggle = document.getElementById("panelToggle");
+
+function setRightPanelCollapsed(collapsed) {
+  rightPanel.classList.toggle("collapsed", collapsed);
+  panelToggle.innerHTML = collapsed ? "&#9664;" : "&#9654;";   // ◀ show / ▶ hide
+  panelToggle.title = collapsed ? "Show the Devices / Status panel" : "Hide the Devices / Status panel";
+  panelToggle.setAttribute("aria-expanded", String(!collapsed));
+  try { localStorage.setItem("rightPanelCollapsed", collapsed ? "1" : "0"); } catch (e) {}
+  if (window.workspace) Blockly.svgResize(window.workspace);
+}
+
+panelToggle.addEventListener("click", () => setRightPanelCollapsed(!rightPanel.classList.contains("collapsed")));
+// The width animates: resize the workspace again when it is done
+rightPanel.addEventListener("transitionend", e => {
+  if (e.target === rightPanel && window.workspace) Blockly.svgResize(window.workspace);
+});
+
+let rightPanelStartCollapsed = false;
+try { rightPanelStartCollapsed = localStorage.getItem("rightPanelCollapsed") === "1"; } catch (e) {}
+setRightPanelCollapsed(rightPanelStartCollapsed);   // before inject, so the workspace starts at the right size
+
+
 // ---------------- BLOCKLY WORKSPACE ----------------
 
 window.workspace = Blockly.inject("blocklyDiv", {
