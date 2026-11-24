@@ -756,12 +756,37 @@ Blockly.fieldRegistry.register('field_rgb_slider', FieldRGBSlider);
 
 // ---------------- DEVICE DROPDOWNS ----------------
 
+// Device dropdown options: the connected devices of the family, plus the name the block already has
+// (or is being given by a loaded project / paste / undo), even if that device is not connected now.
+// Without it, a project loaded before connecting its devices lost every device name ("No LPF2").
+function deviceOptions(field, list, emptyLabel) {
+  const opts = list.map(d => [d.name, d.name]);
+  for (const v of [field?._wantedDevice, field?.getValue?.()]) {
+    if (typeof v === "string" && v && v !== "NONE" && !opts.some(o => o[1] === v)) opts.push([v, v]);
+  }
+  return opts.length ? opts : [[emptyLabel, 'NONE']];
+}
+
+// Blockly checks a new dropdown value against options it built (and cached) when the block was created,
+// before the value was known. For device dropdowns, rebuild them with the wanted value first.
+(function keepSavedDeviceNames() {
+  const proto = Blockly.FieldDropdown?.prototype;
+  if (!proto || proto._keepsSavedDevices) return;
+  const validate = proto.doClassValidation_;
+  proto.doClassValidation_ = function (value) {
+    if (!this.menuGenerator_?.isDeviceDropdown) return validate.call(this, value);
+    this._wantedDevice = value;
+    this.generatedOptions = null;
+    try { return validate.call(this, value); }
+    finally { this._wantedDevice = undefined; }
+  };
+  proto._keepsSavedDevices = true;
+})();
+
 // All devices (if you still need it somewhere)
 function getDeviceDropdown() {
   const devices = window.deviceManager?.devices || [];
-  return devices.length
-    ? devices.map(d => [d.name, d.name])
-    : [['No devices', 'NONE']];
+  return deviceOptions(this, devices, 'No devices');
 }
 
 // Only LEGO Interface A devices
@@ -769,9 +794,7 @@ function getLegoADropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("LegoA"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No Lego A', 'NONE']];
+  return deviceOptions(this, list, 'No Lego A');
 }
 
 // Only LEGO Interface B devices
@@ -779,9 +802,7 @@ function getLegoBDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("LegoB"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No Lego B', 'NONE']];
+  return deviceOptions(this, list, 'No Lego B');
 }
 
 // RCX (Serial or USB) devices with RCX Bricks Detected
@@ -794,9 +815,7 @@ function getRcxDropdown() {
     !d.name.startsWith("RcxTw")
   );
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No RCX/CM', 'NONE']];
+  return deviceOptions(this, list, 'No RCX/CM');
 }
 
 // RCX (Serial or USB) devices
@@ -809,9 +828,7 @@ function getRcxTwDropdown() {
     d.name.startsWith("RcxTw")
   );
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No RCX IR', 'NONE']];
+  return deviceOptions(this, list, 'No RCX IR');
 }
 
 // CyberMaster devices
@@ -821,9 +838,7 @@ function getCMDropdown() {
   // Accept both "Rcx" and "CM" prefixes
   const list = devices.filter(d => d.name.startsWith("CM"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No CyberMaster', 'NONE']];
+  return deviceOptions(this, list, 'No CyberMaster');
 }
 
 // NXT devices
@@ -831,9 +846,7 @@ function getNxtDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("Nxt"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No NXT', 'NONE']];
+  return deviceOptions(this, list, 'No NXT');
 }
 
 // Only WeDo 1.0 devices
@@ -841,9 +854,7 @@ function getWedo1Dropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("WD1_"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No WeDo 1.0', 'NONE']];
+  return deviceOptions(this, list, 'No WeDo 1.0');
 }
 
 // Only VLL devices
@@ -851,9 +862,7 @@ function getVLLDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("VLL"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No VLL', 'NONE']];
+  return deviceOptions(this, list, 'No VLL');
 }
 
 // Only LEGO LPF2 devices
@@ -861,9 +870,7 @@ function getLPF2Dropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "LegoLPF2");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No LPF2', 'NONE']];
+  return deviceOptions(this, list, 'No LPF2');
 }
 
 // Only LEGO SPIKE (LegoSpike3) hubs
@@ -871,9 +878,7 @@ function getSpike3Dropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "LegoSpike3");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No SPIKE', 'NONE']];
+  return deviceOptions(this, list, 'No SPIKE');
 }
 
 // LPF2 Technic Move devices only
@@ -881,9 +886,7 @@ function getTechnicMoveDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.namePrefix==="TechM");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No Technic Move', 'NONE']];
+  return deviceOptions(this, list, 'No Technic Move');
 }
 
 // Only LEGO WeDo 2.0 devices
@@ -891,9 +894,7 @@ function getWeDo2Dropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "LegoWeDo2");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No WeDo 2.0', 'NONE']];
+  return deviceOptions(this, list, 'No WeDo 2.0');
 }
 
 // Only LEGO Toy Pad devices
@@ -901,9 +902,7 @@ function getTPadDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "LegoToyPad");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No ToyPad', 'NONE']];
+  return deviceOptions(this, list, 'No ToyPad');
 }
 
 // Only SBrick devices
@@ -911,9 +910,7 @@ function getSBrickDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "SBrick");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No SBrick', 'NONE']];
+  return deviceOptions(this, list, 'No SBrick');
 }
 
 // Only LEGO PF IR devices
@@ -921,9 +918,7 @@ function getLegoPFIRDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("PFIR"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No Lego PF IR', 'NONE']];
+  return deviceOptions(this, list, 'No Lego PF IR');
 }
 
 // Only Circuit Cubes ESP32 devices
@@ -931,9 +926,7 @@ function getCCubesESP32Dropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.name.startsWith("Cubesp"));
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No Cube', 'NONE']];
+  return deviceOptions(this, list, 'No Cube');
 }
 
 // Only ESP32io boards
@@ -941,10 +934,28 @@ function getESP32ioDropdown() {
   const devices = window.deviceManager?.devices || [];
   const list = devices.filter(d => d.constructor.name === "ESP32io");
 
-  return list.length
-    ? list.map(d => [d.name, d.name])
-    : [['No ESP32io', 'NONE']];
+  return deviceOptions(this, list, 'No ESP32io');
 }
+
+// Device dropdowns keep a saved device name (see deviceOptions)
+getDeviceDropdown.isDeviceDropdown = true;
+getLegoADropdown.isDeviceDropdown = true;
+getLegoBDropdown.isDeviceDropdown = true;
+getRcxDropdown.isDeviceDropdown = true;
+getRcxTwDropdown.isDeviceDropdown = true;
+getCMDropdown.isDeviceDropdown = true;
+getNxtDropdown.isDeviceDropdown = true;
+getWedo1Dropdown.isDeviceDropdown = true;
+getVLLDropdown.isDeviceDropdown = true;
+getLPF2Dropdown.isDeviceDropdown = true;
+getSpike3Dropdown.isDeviceDropdown = true;
+getTechnicMoveDropdown.isDeviceDropdown = true;
+getWeDo2Dropdown.isDeviceDropdown = true;
+getTPadDropdown.isDeviceDropdown = true;
+getSBrickDropdown.isDeviceDropdown = true;
+getLegoPFIRDropdown.isDeviceDropdown = true;
+getCCubesESP32Dropdown.isDeviceDropdown = true;
+getESP32ioDropdown.isDeviceDropdown = true;
 
 // ESP-WROOM-32 pins, same list as PIN_CAPS in SketchArduino/ESP32io/ESP32io.ino
 // (I input, O output, A analog in, D DAC, P internal pull-up/down)
