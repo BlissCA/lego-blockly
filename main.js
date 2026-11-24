@@ -941,6 +941,7 @@ document.getElementById("runBtn").onclick = async () => {
   logStatus("Running program...");
 
   window.stopRequested = false;
+  window.deviceManager.clearOptional?.();
 
   // 2. Wrap the generated code in an async IIFE
   const asyncWrapper = new Function(

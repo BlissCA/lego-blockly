@@ -85,6 +85,43 @@ export class DeviceManager {
     // Name management
     this.usedNames = new Set();
     this.freeNames = [];
+
+    // Optional devices of the running program ("device ... is optional" block): when one is missing,
+    // its blocks do nothing / read 0, and losing it does not stop the program
+    this.optionalNames = new Set();
+    this._absentLogged = new Set();
+  }
+
+  // -------------------------
+  // Optional devices
+  // -------------------------
+
+  /** Called when a program starts: no device is optional until the program says so. */
+  clearOptional() {
+    this.optionalNames.clear();
+    this._absentLogged.clear();
+  }
+
+  setOptional(name) {
+    name = String(name ?? "").trim();
+    if (!name) return;
+    this.optionalNames.add(name);
+    if (!this.devices.some(d => d.name === name)) this._logAbsent(name);
+  }
+
+  isOptional(name) {
+    return this.optionalNames.has(name);
+  }
+
+  /** True when a device with this name is connected (in the Devices list). */
+  isConnected(name) {
+    return this.devices.some(d => d.name === String(name ?? "").trim());
+  }
+
+  _logAbsent(name) {
+    if (this._absentLogged.has(name)) return;
+    this._absentLogged.add(name);
+    window.logStatus?.(`${name} not connected: its blocks are skipped (optional device)`);
   }
 
   // -------------------------
@@ -567,8 +604,13 @@ export class DeviceManager {
       window.logStatus?.(`Lost device ${dev.name}`);
 
       if (window.currentExecution) {
-        window.stopRequested = true;
-        window.logStatus?.("Program stopped due to device loss.");
+        if (this.isOptional(dev.name)) {
+          window.logStatus?.(`${dev.name} lost, program continues (optional device)`);
+          this._absentLogged.add(dev.name);   // already said
+        } else {
+          window.stopRequested = true;
+          window.logStatus?.("Program stopped due to device loss.");
+        }
       }
 
       dev.forceDisconnect();
@@ -583,8 +625,41 @@ export class DeviceManager {
   // -------------------------
 
   getDeviceByName(name) {
-    return this.devices.find(d => d.name === name) || null;
+    const dev = this.devices.find(d => d.name === name);
+    if (dev) return dev;
+    if (this.optionalNames.has(name)) {
+      this._logAbsent(name);
+      return absentDevice(name);
+    }
+    return null;
   }
+}
+
+// ---------------- Stand-in for a missing optional device ----------------
+// Every method call does nothing and returns 0 (false / 0 in the blocks), every property is again a
+// stand-in, so the generated code runs unchanged. "then" is undefined: awaiting it gives the stand-in.
+// Property READS give a stand-in (truthy): generators that read a flag compare it with "=== true".
+// Methods that return an object the code calls again (RCX dev.mot(1).on()) return a stand-in.
+const ABSENT_CHAINED = new Set(["mot", "sensor"]);
+const absentDevices = new Map();
+
+function absentDevice(name) {
+  if (absentDevices.has(name)) return absentDevices.get(name);
+  const make = method => new Proxy(function absent() {}, {
+    get(target, key) {
+      if (typeof key === "symbol") return key === Symbol.toPrimitive ? () => 0 : undefined;
+      if (key === "then") return undefined;
+      if (key === "name") return name;
+      if (key === "isAbsent") return true;
+      if (Object.prototype.hasOwnProperty.call(target, key)) return target[key];   // set by the program (dev.unitMs = ...)
+      return make(key);
+    },
+    set(target, key, value) { target[key] = value; return true; },
+    apply() { return ABSENT_CHAINED.has(method) ? make("") : 0; }
+  });
+  const stub = make("");
+  absentDevices.set(name, stub);
+  return stub;
 }
 
 window.deviceManager = new DeviceManager();

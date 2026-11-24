@@ -937,7 +937,46 @@ function getESP32ioDropdown() {
   return deviceOptions(this, list, 'No ESP32io');
 }
 
+// Any device, for the generic blocks (device ... is optional / connected?): the connected devices,
+// the device names the program's blocks use, the block's own name, and "other name..." to type any name.
+const DEVICE_OTHER = "__OTHER__";
+function getAnyDeviceDropdown() {
+  const names = new Set((window.deviceManager?.devices || []).map(d => d.name));
+  const workspaces = new Set([this?.getSourceBlock?.()?.workspace, Blockly.getMainWorkspace?.()]);
+  for (const ws of workspaces) {
+    for (const b of ws?.getAllBlocks?.(false) || []) {
+      for (const input of b.inputList) {
+        for (const f of input.fieldRow) {
+          if (f === this || !f.menuGenerator_?.isDeviceDropdown) continue;
+          const v = f.getValue();
+          if (typeof v === "string" && v && v !== "NONE" && v !== DEVICE_OTHER) names.add(v);
+        }
+      }
+    }
+  }
+  const opts = deviceOptions(this, [...names].sort().map(name => ({ name })), "No devices");
+  return [...opts.filter(o => o[1] !== DEVICE_OTHER), ["other name...", DEVICE_OTHER]];
+}
+
+// "other name...": ask for the name, keep whatever is typed
+if (!Blockly.Extensions.isRegistered("device_name_other")) {
+  Blockly.Extensions.register("device_name_other", function () {
+    this.getField("NAME")?.setValidator(function (value) {
+      if (value !== DEVICE_OTHER) return value;
+      const field = this;
+      const current = field.getValue();
+      Blockly.dialog.prompt("Device name (as shown in the Devices panel):",
+        current && current !== "NONE" && current !== DEVICE_OTHER ? current : "", name => {
+          name = String(name ?? "").trim();
+          if (name) field.setValue(name);
+        });
+      return null;   // keep the current value until a name is typed
+    });
+  });
+}
+
 // Device dropdowns keep a saved device name (see deviceOptions)
+getAnyDeviceDropdown.isDeviceDropdown = true;
 getDeviceDropdown.isDeviceDropdown = true;
 getLegoADropdown.isDeviceDropdown = true;
 getLegoBDropdown.isDeviceDropdown = true;
@@ -1453,6 +1492,36 @@ window.addEventListener("load", () => {
       "previousStatement": null,
       "nextStatement": null,
       "colour": 180
+    },
+
+    {
+      "type": "device_optional",
+      "message0": "device %1 is optional",
+      "args0": [
+        { "type": "field_dropdown", "name": "NAME", "options": getAnyDeviceDropdown }
+      ],
+      "extensions": ["device_name_other"],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 180,
+      "tooltip": "Put it at the start of the program. Pick the device (connected, or used by blocks of the program), " +
+                 "or \"other name...\" to type it as shown in the Devices panel (any device type). " +
+                 "If this device is not connected, its blocks do nothing and its values read 0 / false, " +
+                 "and losing it during the program does not stop the program. When it connects again with the same name, " +
+                 "its blocks work again. Careful: \"wait until\" one of its buttons then waits forever."
+    },
+
+    {
+      "type": "device_connected",
+      "message0": "device %1 connected?",
+      "args0": [
+        { "type": "field_dropdown", "name": "NAME", "options": getAnyDeviceDropdown }
+      ],
+      "extensions": ["device_name_other"],
+      "output": "Boolean",
+      "colour": 180,
+      "tooltip": "True when this device is connected (in the Devices panel). Any device type. " +
+                 "\"other name...\" to type a name that is not in the list."
     },
 
     {

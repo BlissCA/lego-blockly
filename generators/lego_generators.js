@@ -237,6 +237,17 @@ javascriptGenerator.forBlock["legob_vll_unitms"] = function (block) {
 
 
 // MISC Blocks
+javascriptGenerator.forBlock["device_optional"] = function (block) {
+  const name = String(block.getFieldValue("NAME") || "").trim();
+  if (!name || name === "NONE" || name === "__OTHER__") return "";
+  return `deviceManager.setOptional(${JSON.stringify(name)});\n`;
+};
+
+javascriptGenerator.forBlock["device_connected"] = function (block) {
+  const name = String(block.getFieldValue("NAME") || "").trim();
+  return [`deviceManager.isConnected(${JSON.stringify(name)})`, javascriptGenerator.ORDER_FUNCTION_CALL];
+};
+
 javascriptGenerator.forBlock["lego_wait_until"] = function (block) {
   const cond = javascriptGenerator.valueToCode(block, "COND", javascriptGenerator.ORDER_NONE) || "false";
 
@@ -545,7 +556,7 @@ javascriptGenerator.forBlock["rcx_tower_setmode"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  if (!(await dev.setTowerMode("${mode}"))) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the mode"));
+  if (!(await dev.setTowerMode("${mode}")) && !dev.isAbsent) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the mode"));
 }
 `;
 };
@@ -559,7 +570,7 @@ javascriptGenerator.forBlock["rcx_tower_setrange"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  if (!(await dev.setTowerRange("${range}"))) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the range"));
+  if (!(await dev.setTowerRange("${range}")) && !dev.isAbsent) throw new Error("USB tower: " + (dev.lastTowerError || "could not set the range"));
 }
 `;
 };
@@ -572,7 +583,7 @@ javascriptGenerator.forBlock["rcx_tower_reset"] = function (block) {
   shouldStop();
   const dev = deviceManager.getDeviceByName("${dev}");
   if (!dev) throw new Error("Device lost");
-  if (!(await dev.resetTower())) throw new Error("USB tower: " + (dev.lastTowerError || "reset failed"));
+  if (!(await dev.resetTower()) && !dev.isAbsent) throw new Error("USB tower: " + (dev.lastTowerError || "reset failed"));
 }
 `;
 };
@@ -868,7 +879,7 @@ javascriptGenerator.forBlock["rcx_send_vll"] = function (block) {
   }
   shouldStop();
   // A cancelled send is not an error (Stop button); anything else that failed is reported
-  if (!ok && !dev.lastVllCancelled) throw new Error("VLL: " + (dev.lastTowerError || "send failed"));
+  if (!ok && !dev.lastVllCancelled && !dev.isAbsent) throw new Error("VLL: " + (dev.lastTowerError || "send failed"));
 }
 `;
 };
@@ -903,7 +914,7 @@ javascriptGenerator.forBlock["rcx_fw_upload"] = function (block) {
     clearInterval(stopWatch);
   }
   shouldStop();
-  if (!ok) throw new Error("Firmware upload failed: " + ((dev.lastFirmwareResult && dev.lastFirmwareResult.error) || "unknown error"));
+  if (!ok && !dev.isAbsent) throw new Error("Firmware upload failed: " + ((dev.lastFirmwareResult && dev.lastFirmwareResult.error) || "unknown error"));
 }
 `;
 };
@@ -2989,7 +3000,7 @@ javascriptGenerator.forBlock["spike_upload_program"] = function (block) {
 javascriptGenerator.forBlock["spike_program_running"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   return [
-    `(deviceManager.getDeviceByName("${dev}").programRunning)`,
+    `(deviceManager.getDeviceByName("${dev}").programRunning === true)`,
     javascriptGenerator.ORDER_ATOMIC
   ];
 };
@@ -2997,7 +3008,7 @@ javascriptGenerator.forBlock["spike_program_running"] = function (block) {
 javascriptGenerator.forBlock["spike_helper_ready"] = function (block) {
   const dev  = block.getFieldValue("DEVICE");
   return [
-    `(deviceManager.getDeviceByName("${dev}").helperReady)`,
+    `(deviceManager.getDeviceByName("${dev}").helperReady === true)`,
     javascriptGenerator.ORDER_ATOMIC
   ];
 };

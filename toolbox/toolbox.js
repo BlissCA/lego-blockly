@@ -189,6 +189,14 @@ const toolbox = {
         },
         {
           "kind": "category",
+          "name": "Devices",
+          "contents": [
+            { "kind": "block", "type": "device_optional" },
+            { "kind": "block", "type": "device_connected" }
+          ]
+        },
+        {
+          "kind": "category",
           "name": "Interactive Control",
           "contents": [
             { "kind": "block", "type": "lego_button_event" },
