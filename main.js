@@ -774,6 +774,20 @@ window.workspace = Blockly.inject("blocklyDiv", {
   }
 });
 
+// Cross-tab copy / paste (plugin loaded in index.html; skipped if it failed to load).
+// Replaces Blockly's Ctrl+C / Ctrl+X / Ctrl+V with versions that keep the copy in localStorage
+// (shared by the tabs of the same site), and adds Copy (block) / Paste (workspace) to the right-click menus.
+if (window.CrossTabCopyPaste && !window._crossTabCopyPaste) {
+  try {
+    window._crossTabCopyPaste = new CrossTabCopyPaste();
+    window._crossTabCopyPaste.init({ contextMenu: true, shortcut: true }, () => {
+      logStatus("Paste failed: the copied blocks contain a block type this page does not know.");
+    });
+  } catch (e) {
+    console.warn("Cross-tab copy/paste not enabled:", e);
+  }
+}
+
 // ---------------- CATEGORY CALLBACKS ----------------
 
 // Register Callback converting JSON/XML for flyout insertion
