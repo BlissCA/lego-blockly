@@ -788,6 +788,133 @@ if (window.CrossTabCopyPaste && !window._crossTabCopyPaste) {
   }
 }
 
+// Free-floating workspace comments: right-click an empty spot > "Add Comment" (Blockly 11+ needs this call).
+// They are saved in the JSON file with the blocks.
+if (!Blockly.ContextMenuRegistry.registry.getItem("commentCreate")) {
+  Blockly.ContextMenuItems.registerCommentOptions();
+}
+
+// ---------------- COPY ALL / COPY STACK ----------------
+// "Copy all" (workspace menu) and "Copy stack" (block menu: the block and the blocks below it) put several
+// blocks / comments in the cross-tab clipboard. The plugin's Paste / Ctrl+V give them to Blockly.clipboard.paste(),
+// which calls the paster registered here for the "lego-multi" type. Pasted from the menu: at the click point;
+// with Ctrl+V: at the original positions in an empty workspace, else at the top-left of the visible area.
+// One Ctrl+Z undoes the whole paste.
+const LEGO_MULTI_PASTER = "lego-multi";
+
+function legoSaveStack(block) {
+  return Blockly.serialization.blocks.save(block, {
+    addCoordinates: true, addNextBlocks: true, doFullSerialization: true, saveIds: false
+  });
+}
+
+function legoStashCopy(data) {
+  const key = window._crossTabCopyPaste?.localStorageKey;
+  if (!key) return false;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    logStatus("Copy failed: " + e.message);
+    return false;
+  }
+}
+
+function legoCopyAllData(ws) {
+  return {
+    paster: LEGO_MULTI_PASTER,
+    blocks: ws.getTopBlocks(true).map(legoSaveStack),
+    comments: ws.getTopComments(true).map(c =>
+      Blockly.serialization.workspaceComments.save(c, { addCoordinates: true, saveIds: false })),
+    // also the variables no block uses yet (Variables category)
+    variables: ws.getVariableMap().getAllVariables().map(v => ({ name: v.getName(), type: v.getType() }))
+  };
+}
+
+function legoPasteMulti(data, ws, coordinate) {
+  const blocks = data.blocks || [], comments = data.comments || [];
+  const items = [...blocks, ...comments];
+  if (!items.length) return null;
+  const minX = Math.min(...items.map(s => s.x ?? 0));
+  const minY = Math.min(...items.map(s => s.y ?? 0));
+  let dx = 0, dy = 0;
+  if (coordinate) {
+    dx = coordinate.x - minX;
+    dy = coordinate.y - minY;
+  } else if (ws.getTopBlocks(false).length || ws.getTopComments().length) {
+    const view = ws.getMetricsManager().getViewMetrics(true);   // workspace coordinates
+    dx = view.left + 20 - minX;
+    dy = view.top + 20 - minY;
+  }
+  const oldGroup = Blockly.Events.getGroup();
+  if (!oldGroup) Blockly.Events.setGroup(true);   // one undo step
+  let first = null;
+  try {
+    const vars = ws.getVariableMap();
+    for (const v of data.variables || []) {
+      if (!vars.getVariable(v.name, v.type)) vars.createVariable(v.name, v.type);
+    }
+    for (const s of blocks) {
+      const b = Blockly.serialization.blocks.append(
+        { ...s, x: (s.x ?? 0) + dx, y: (s.y ?? 0) + dy }, ws, { recordUndo: true });
+      first ??= b;
+    }
+    for (const s of comments) {
+      const c = Blockly.serialization.workspaceComments.append(
+        { ...s, x: (s.x ?? 0) + dx, y: (s.y ?? 0) + dy }, ws, { recordUndo: true });
+      first ??= c;
+    }
+  } finally {
+    if (!oldGroup) Blockly.Events.setGroup(false);
+  }
+  return first;
+}
+
+if (window._crossTabCopyPaste && !Blockly.registry.hasItem(Blockly.registry.Type.PASTER, LEGO_MULTI_PASTER)) {
+  Blockly.clipboard.registry.register(LEGO_MULTI_PASTER, { paste: legoPasteMulti });
+
+  const menuWorkspace = scope =>
+    scope.workspace || (scope.focusedNode instanceof Blockly.WorkspaceSvg ? scope.focusedNode : null);
+
+  Blockly.ContextMenuRegistry.registry.register({
+    id: "legoCopyAll",
+    scopeType: Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    weight: 0,
+    displayText: () => "Copy all",
+    preconditionFn: scope => {
+      const ws = menuWorkspace(scope);
+      if (!ws || ws.isFlyout) return "hidden";
+      return ws.getTopBlocks(false).length || ws.getTopComments().length ? "enabled" : "disabled";
+    },
+    callback: scope => {
+      const ws = menuWorkspace(scope);
+      if (!ws) return;
+      const data = legoCopyAllData(ws);
+      if (legoStashCopy(data)) {
+        logStatus(`Copied ${data.blocks.length} block stack(s) and ${data.comments.length} comment(s): ` +
+                  "right-click > Paste or Ctrl+V, in this tab or another one.");
+      }
+    }
+  });
+
+  Blockly.ContextMenuRegistry.registry.register({
+    id: "legoCopyStack",
+    scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+    weight: 0,
+    displayText: () => "Copy stack",
+    preconditionFn: scope => {
+      const b = scope.block;
+      if (!b || b.isInFlyout || b.isShadow()) return "hidden";
+      return "enabled";
+    },
+    callback: scope => {
+      const b = scope.block;
+      if (!b) return;
+      legoStashCopy({ paster: LEGO_MULTI_PASTER, blocks: [legoSaveStack(b)], comments: [], variables: [] });
+    }
+  });
+}
+
 // ---------------- CATEGORY CALLBACKS ----------------
 
 // Register Callback converting JSON/XML for flyout insertion
