@@ -3529,7 +3529,7 @@ export class LegoLPF2 {
 			// Only stop motors / lights / sound if you want
 			if (info.type !== "motorSimple" &&
 					info.type !== "motorTacho" &&
-					info.type !== "rgb" &&
+					//info.type !== "rgb" &&
 					info.type !== "sound" &&
 					info.type !== "light") {
 				continue;
