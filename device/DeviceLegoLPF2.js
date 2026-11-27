@@ -1595,6 +1595,7 @@ export class LegoLPF2 {
 
 	async _initializeLPF2() {
 		this._connectedAt = performance.now();
+		this._inputSetupDone = false;   // ports attached after STEP 3 are subscribed in _handleHubAttachedIO
 		this._imuLive = false;
 		this.log("Initializing LPF2 hub...");
 
@@ -1643,35 +1644,11 @@ export class LegoLPF2 {
 		// STEP 3 — Configure Input Format for each sensor port (safe version)
 		// ------------------------------------------------------------
 		for (const portStr of Object.keys(this.portInfo)) {
-				const port = Number(portStr);
-				const info = this.portInfo[port];
-				let d = 1;
-
-				if (!info) continue;
-
-				// Technic Move Hub: every device on it is internal (IMU, gesture, drive VM, lights...).
-				// Subscribing to all of them at connect time with delta 1 makes the hub flood the link
-				// as soon as it is moved, and the connection drops. Subscribe on demand instead
-				// (_ensureMode / setSensorMode), where _setInputFormat applies safe deltas.
-				if (this.hubType === 0x84) continue;
-
-				// Skip motors
-				if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rgb" || info.type === "rssi") {
-						continue;
+				if (await this._autoSubscribePort(Number(portStr))) {
+					await new Promise(r => setTimeout(r, 20));
 				}
-				switch (info.type) {
-						case "tiltMulti":
-							d=5;
-							break;
-						default:
-							d=1;
-				}
-
-				// For now: always mode 0, delta=1, notifications=1
-				await this._setInputFormat(port, 0, d, 1);
-
-				await new Promise(r => setTimeout(r, 20));
 		}
+		this._inputSetupDone = true;
 
 
 		// Handset: the green button is the hub button → arrives as Hub Properties updates
@@ -1690,6 +1667,32 @@ export class LegoLPF2 {
 			this._checkReady();
 
 			this.log("LPF2 initialization complete.");
+	}
+
+	/**
+	 * Connect-time subscription of one port (mode 0): sensors and handset buttons. Motors, LED, current, voltage,
+	 * temperature and RSSI are skipped. Used by STEP 3 of _initializeLPF2 and for a port the hub reports later
+	 * (a handset on a busy link can list its button ports after the 300 ms wait). Returns true when it subscribed.
+	 */
+	async _autoSubscribePort(port) {
+		const info = this.portInfo[port];
+		if (!info) return false;
+
+		// Technic Move Hub: every device on it is internal (IMU, gesture, drive VM, lights...).
+		// Subscribing to all of them at connect time with delta 1 makes the hub flood the link
+		// as soon as it is moved, and the connection drops. Subscribe on demand instead
+		// (_ensureMode / setSensorMode), where _setInputFormat applies safe deltas.
+		if (this.hubType === 0x84) return false;
+
+		// Skip motors
+		if (info.type === "motorSimple" || info.type === "motorTacho" || info.type === "motor" || info.type === "current" || info.type === "volt" || info.type === "temperature" || info.type === "rgb" || info.type === "rssi") {
+				return false;
+		}
+		const d = info.type === "tiltMulti" ? 5 : 1;
+
+		// For now: always mode 0, delta=1 (5 for the tilt sensor), notifications=1
+		await this._setInputFormat(port, 0, d, 1);
+		return true;
 	}
 
 	async _setInputFormat(port, mode, delta = 1, notifications = 1, { wait = false } = {}) {
@@ -2424,11 +2427,19 @@ export class LegoLPF2 {
     if (event === 0x01) {
       const ioType = msg[5] | (msg[6] << 8);
       this._registerPort(portId, ioType);
+			delete this._ledMode[portId];   // a re-attached LED starts in its default mode
 			// Ask for MODE INFO (info type 0x01): total mode count + input/output masks
 				this._pendingPortInfo++;
 			this._write(new Uint8Array([
 					0x05, this.hubId, 0x21, portId, 0x01
 			]));
+			// Reported after the connect-time subscriptions (STEP 3): subscribe it now, or its values
+			// (handset buttons, a sensor plugged in later) never arrive
+			if (this._inputSetupDone) {
+				this._autoSubscribePort(portId)
+					.then(done => { if (done) this.log(`Port ${portId} (ioType ${ioType}) attached after setup: subscribed`); })
+					.catch(e => this.log(`Port ${portId}: subscribe failed: ${e?.message || e}`));
+			}
 
     } else if (event === 0x00) {
       delete this.portInfo[portId];
@@ -3684,6 +3695,8 @@ export class LegoLPF2 {
     for (const [id, info] of Object.entries(this.portInfo)) {
       if (info.type === "rgb") return Number(id);
     }
+    // Handset (88010): its LED is always port 52 (0x34), even before the hub has listed it
+    if (this.hubType === 0x42) return 0x34;
     return null;
   }
 

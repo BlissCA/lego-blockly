@@ -1501,6 +1501,8 @@ async function ${funcName}() {
     } else {
       console.error("Task error in ${taskName}:", e);
       NamedTaskState["${taskName}"].error = e;
+      // show it: otherwise the task just stops and the rest of the program keeps running without it
+      if (!window.stopRequested) window.logStatus?.(${JSON.stringify(`Task ${rawTaskName} stopped by an error: `)} + (e?.message || e));
     }
   } finally {
     NamedTaskState["${taskName}"].running = false;
@@ -1576,6 +1578,8 @@ async function ${funcName}() {
     } else {
       console.error("Task error in ${taskName}:", e);
       NamedTaskState["${taskName}"].error = e;
+      // show it: otherwise the task just stops and the rest of the program keeps running without it
+      if (!window.stopRequested) window.logStatus?.(${JSON.stringify(`Task ${rawTaskName} stopped by an error: `)} + (e?.message || e));
     }
   } finally {
     NamedTaskState["${taskName}"].running = false;
