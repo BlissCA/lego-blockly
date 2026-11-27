@@ -82,6 +82,10 @@ export class DeviceManager {
   constructor() {
     this.devices = [];
 
+    // Devices the user is disconnecting (Disconnect / Disconnect All): the BLE "gattserverdisconnected"
+    // event their disconnect() fires must not be reported as a lost device
+    this._closing = new Set();
+
     // Name management
     this.usedNames = new Set();
     this.freeNames = [];
@@ -188,7 +192,8 @@ export class DeviceManager {
 
   _removeDevice(dev) {
     const idx = this.devices.indexOf(dev);
-    if (idx >= 0) this.devices.splice(idx, 1);
+    if (idx < 0) return;   // already removed (driver disconnect() and the manager can both call this)
+    this.devices.splice(idx, 1);
 
     // Free the name
     this._freeName(dev.name);
@@ -583,11 +588,14 @@ export class DeviceManager {
   async disconnectDevice(name) {
     const dev = this.devices.find(d => d.name === name);
     if (!dev) return false;
+    this._closing.add(dev);
     try {
       await dev.disconnect();
     } catch (e) {
       window.logStatus?.(`Disconnect error (${name}): ${e?.message || e}`);
       try { dev.forceDisconnect?.(); } catch (_) {}
+    } finally {
+      this._closing.delete(dev);
     }
     // Some drivers remove themselves in disconnect(), others do not
     if (this.devices.includes(dev)) this._removeDevice(dev);
@@ -601,7 +609,12 @@ export class DeviceManager {
 
   async disconnectAll() {
     for (const dev of [...this.devices]) {
-      await dev.disconnect();
+      this._closing.add(dev);
+      try {
+        await dev.disconnect();
+      } finally {
+        this._closing.delete(dev);
+      }
       if (dev.name) {
         this._removeDevice(dev);
       }
@@ -619,6 +632,8 @@ export class DeviceManager {
   // -------------------------
 
   handleDeviceLost(dev) {
+    if (this._closing.has(dev)) return;        // the user is disconnecting it: not a loss
+    if (!this.devices.includes(dev)) return;   // already removed (late BLE event)
     if (dev.name) {
       window.logStatus?.(`Lost device ${dev.name}`);
 
