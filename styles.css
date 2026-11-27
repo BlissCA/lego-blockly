@@ -92,6 +92,27 @@ body {
   font-size: 13px;
 }
 
+#devicesList .deviceRow {
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+}
+
+#devicesList .deviceRow:hover {
+  background: #eef3fb;
+}
+
+#devicesList .deviceRow.selected {
+  background: #cfe0fa;
+  outline: 1px solid #7aa7e6;
+}
+
+#devicesActions {
+  margin-top: 4px;
+  text-align: right;
+}
+
 #statusHeader {
   display: flex;
   justify-content: space-between;

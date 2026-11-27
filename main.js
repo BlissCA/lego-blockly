@@ -688,9 +688,27 @@ window.logStatus = logStatus;
 
 // ---------------- DEVICE PANEL ----------------
 
+// Name of the device selected in the list (kept by name across redraws)
+let selectedDeviceName = null;
+
+function updateDisconnectOneBtn() {
+  const btn = document.getElementById("disconnectOneBtn");
+  if (!btn) return;
+  btn.disabled = !selectedDeviceName;
+  btn.title = selectedDeviceName
+    ? `Disconnect ${selectedDeviceName}`
+    : "Select a device in the list first";
+}
+
 function refreshDevicesPanel() {
   const listEl = document.getElementById("devicesList");
   const dm = window.deviceManager;
+
+  // Forget a selection whose device is gone
+  if (selectedDeviceName && !dm?.devices.some(d => d.name === selectedDeviceName)) {
+    selectedDeviceName = null;
+  }
+  updateDisconnectOneBtn();
 
   if (!dm || dm.devices.length === 0) {
     listEl.textContent = "No devices connected.";
@@ -700,7 +718,13 @@ function refreshDevicesPanel() {
   listEl.innerHTML = "";
   dm.devices.forEach(dev => {
     const div = document.createElement("div");
+    div.className = "deviceRow" + (dev.name === selectedDeviceName ? " selected" : "");
     div.textContent = `${dev.name} – ${dev.status || "OK"}`;
+    div.title = "Click to select, click again to unselect";
+    div.onclick = () => {
+      selectedDeviceName = (selectedDeviceName === dev.name) ? null : dev.name;
+      refreshDevicesPanel();
+    };
     listEl.appendChild(div);
   });
 }
@@ -1328,6 +1352,22 @@ document.getElementById("disconnectBtn").onclick = async () => {
   } catch (err) {
     logStatus("Disconnect error: " + err);
   }
+};
+
+// ---------------- DISCONNECT SELECTED DEVICE ----------------
+
+document.getElementById("disconnectOneBtn").onclick = async () => {
+  const name = selectedDeviceName;
+  if (!name) return;
+  const btn = document.getElementById("disconnectOneBtn");
+  btn.disabled = true;
+  try {
+    await window.deviceManager.disconnectDevice(name);
+  } catch (err) {
+    logStatus(`Disconnect error (${name}): ${err?.message || err}`);
+  }
+  if (selectedDeviceName === name) selectedDeviceName = null;
+  refreshDevicesPanel();
 };
 
 // ---------------- SAVE PROJECT ----------------

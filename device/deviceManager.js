@@ -577,6 +577,25 @@ export class DeviceManager {
   }
 
   // -------------------------
+  // Disconnect one device (Devices panel "Disconnect" button)
+  // -------------------------
+
+  async disconnectDevice(name) {
+    const dev = this.devices.find(d => d.name === name);
+    if (!dev) return false;
+    try {
+      await dev.disconnect();
+    } catch (e) {
+      window.logStatus?.(`Disconnect error (${name}): ${e?.message || e}`);
+      try { dev.forceDisconnect?.(); } catch (_) {}
+    }
+    // Some drivers remove themselves in disconnect(), others do not
+    if (this.devices.includes(dev)) this._removeDevice(dev);
+    window.refreshDevicesPanel?.();
+    return true;
+  }
+
+  // -------------------------
   // Disconnect All
   // -------------------------
 

@@ -5,7 +5,7 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 
 ## Layout
 - `index.html`: connect dropdown (`<option value="SPIKE">…`), run / stop buttons.
-- `main.js`: imports every driver and block file, the connect `switch` (`case "SPIKE": … connectLegoSpike3()`), run-program wrapper, STOP logic.
+- `main.js`: imports every driver and block file, the connect `switch` (`case "SPIKE": … connectLegoSpike3()`), run-program wrapper, STOP logic. Devices panel (`refreshDevicesPanel()`): a row click selects one device (kept by name, cleared when it leaves the list), the "Disconnect" button under the list (`disconnectOneBtn`) calls `deviceManager.disconnectDevice(name)` (driver `disconnect()`, then `_removeDevice` if the driver did not remove itself); "Disconnect All" is unchanged. Not yet tested by the owner.
 - `device/deviceManager.js`: `DeviceManager` (names like `Prefix1`, `getDeviceByName`, `connectXxx()` per driver, wake lock).
 - `device/DeviceXxx.js`: one driver class per hardware family.
 - `blocks/lego_blocks.js`, `generators/lego_generators.js`, `toolbox/toolbox.js`: block definitions, JavaScript generators, toolbox.
@@ -38,7 +38,7 @@ Hardware is reached through Web Bluetooth / Web Serial / WebUSB / WebSocket. Cla
 - LPF2 (`DeviceLegoLPF2.js`): connect waits 300 ms for the Hub Attached I/O list, then subscribes each sensor / handset button port once (`_autoSubscribePort`); a port attached later is subscribed in `_handleHubAttachedIO` (`_inputSetupDone`). Handset (hubType 0x42) LED = port 0x34 even before it is listed. Added for a friend's report (2 handsets 88010: the second-connected one sometimes had dead buttons and no LED change, order dependent); not yet confirmed on hardware.
 
 ## File format
-- The project's working files use CRLF line endings (blocks, generators, toolbox, main.js, index.html and, since the last checkout, the SPIKE driver and helper). Check with `git ls-files --eol` / `od -c` before patching and keep each file's style.
+- Line endings vary: some working files have used CRLF (blocks, generators, toolbox, SPIKE driver), while main.js, index.html, deviceManager.js and styles.css were LF on 2026-11-26. Check with `git ls-files --eol` / `od -c` before patching and keep each file's style.
 - Git stores LF; on a machine without `core.autocrlf`, `git diff` looks like every line changed (use `--ignore-cr-at-eol`).
 
 ## SPIKE hub (88016 Robot Inventor on SPIKE firmware, Hub OS 1.8.x) — `DeviceLegoSpike3.js`
