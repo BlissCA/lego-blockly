@@ -711,23 +711,45 @@ function refreshDevicesPanel() {
   updateDisconnectOneBtn();
 
   if (!dm || dm.devices.length === 0) {
-    listEl.textContent = "No devices connected.";
+    if (listEl.dataset.names !== "") {
+      listEl.textContent = "No devices connected.";
+      listEl.dataset.names = "";
+    }
     return;
   }
 
-  listEl.innerHTML = "";
-  dm.devices.forEach(dev => {
-    const div = document.createElement("div");
-    div.className = "deviceRow" + (dev.name === selectedDeviceName ? " selected" : "");
-    div.textContent = `${dev.name} – ${dev.status || "OK"}`;
-    div.title = "Click to select, click again to unselect";
-    div.onclick = () => {
-      selectedDeviceName = (selectedDeviceName === dev.name) ? null : dev.name;
-      refreshDevicesPanel();
-    };
-    listEl.appendChild(div);
+  // Some drivers (Interface A / B) call this for every serial packet: rebuild the rows only when
+  // the device list changes, otherwise update them in place. Replacing the row under the mouse
+  // between mouse down and mouse up cancels the click, so the rows could not be selected.
+  const names = dm.devices.map(d => d.name).join("\n");
+  if (listEl.dataset.names !== names) {
+    listEl.dataset.names = names;
+    listEl.innerHTML = "";
+    dm.devices.forEach(dev => {
+      const div = document.createElement("div");
+      div.className = "deviceRow";
+      div.dataset.name = dev.name;
+      div.title = "Click to select, click again to unselect";
+      listEl.appendChild(div);
+    });
+  }
+
+  dm.devices.forEach((dev, i) => {
+    const div = listEl.children[i];
+    const text = `${dev.name} – ${dev.status || "OK"}`;
+    if (div.textContent !== text) div.textContent = text;
+    div.classList.toggle("selected", dev.name === selectedDeviceName);
   });
 }
+
+// One click handler for the list (the rows are recreated when devices come and go)
+document.getElementById("devicesList").addEventListener("click", (e) => {
+  const row = e.target.closest?.(".deviceRow");
+  if (!row) return;
+  const name = row.dataset.name;
+  selectedDeviceName = (selectedDeviceName === name) ? null : name;
+  refreshDevicesPanel();
+});
 
 window.refreshDevicesPanel = refreshDevicesPanel;
 
